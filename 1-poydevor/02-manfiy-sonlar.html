@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2-dars. Manfiy sonlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>2-dars. Manfiy sonlar</h1>
+<p class="lead">Savol: kalitlar faqat «tok bor» va «tok yo'q» ni bilsa, minus ishorasi qayerda saqlanadi?</p>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Birinchi urinish: ishora uchun alohida bit, va u nega yaramadi</li>
+      <li>Bugungi usul: qo'shimcha kod (two's complement)</li>
+      <li>Nega bir xil qo'shish qurilmasi manfiy sonlar bilan ham ishlaydi</li>
+      <li>Ishorali va ishorasiz o'qish: bir xil bitlar, ikki xil son</li>
+      <li>Java turlarining chegaralari va toshib ketish aynan qayerda sodir bo'lishi</li>
+      <li>Amaliy tuzoqlar: <span class="num">byte</span>, <span class="num">Math.abs</span>, ikki sonning o'rtachasi, 2038-yil</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Kasr sonlar va nega pul <span class="num">double</span> da saqlanmaydi: 3-dars</li>
+      <li>Matn, harflar va kodirovka, o'n oltilik yozuv: 4-dars</li>
+      <li>Qo'shish qurilmasining o'zi kalitlardan qanday yig'iladi: 6-dars</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Sakkizta kalitda minus yo'q</h3>
+<p>1-darsda sakkizta kalit 0 dan 255 gacha sonlarni berdi. Lekin hisob-kitobda manfiy sonlar muqarrar: qarz, noldan past harorat, yoki shunchaki 3 dan 5 ni ayirish. Kalitda esa uchinchi holat yo'q: «tok bor», «tok yo'q», va tamom. Minus ishorasini ham shu ikki holat bilan ifodalash kerak.</p>
+
+<p class="beat">Birinchi urinish: bitta kalitni ishoraga ajratamiz</p>
+<p>Eng tabiiy fikr qog'ozdagi yozuvni takrorlash. Qog'ozda son ikki qismdan iborat: ishora va qiymat. Demak, eng chapdagi kalitni ishoraga beramiz: 0 bo'lsa musbat, 1 bo'lsa manfiy. Qolgan yetti kalit sonning o'zini saqlaydi. Bu usul <strong>ishora va qiymat</strong> usuli deyiladi.</p>
+<p>Shu usulda 5 soni <span class="num">00000101</span>, −5 esa <span class="num">10000101</span> bo'ladi. O'qish oson, tushunish oson. Muammo hisoblashga o'tganda chiqadi.</p>
+<p>Protsessor ichida ikki sonni qo'shadigan qurilma bor. U juda sodda ishlaydi: bitlarni o'ngdan chapga ustma-ust qo'shib boradi, xuddi maktabdagi ustun shaklida qo'shish kabi. U ishora haqida hech narsa bilmaydi. Pastdagi chizmada shu qurilmaga har xil sonlarni berib ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="sm" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="Ishora va qiymat usulida yozilgan ikki son oddiy qo'shish qurilmasidan o'tganda noto'g'ri natija chiqadi"></svg>
+  </div>
+  <figcaption>Chapda ikki son ishora va qiymat usulida yozilgan. O'rtadagi qurilma ularni oddiy ikkilik sonlar sifatida qo'shadi. O'ngda natija yana shu usulda o'qilgan.</figcaption>
+  <div class="controls">
+    <button type="button" data-sm="0">5 + 3</button>
+    <button type="button" data-sm="1" class="primary">5 + (−3)</button>
+    <button type="button" data-sm="2">(−5) + (−3)</button>
+    <button type="button" data-sm="3">Ikki xil nol</button>
+  </div>
+  <p class="say" id="smSay" aria-live="polite"></p>
+</figure>
+
+<p>Chizma ikki kamchilikni ko'rsatadi.</p>
+<p><strong>Qo'shish ishlamaydi.</strong> Ikkala son musbat bo'lsa, hammasi joyida. Lekin 5 ga −3 ni qo'shsangiz, qurilma 2 o'rniga −8 beradi, chunki u ishora bitini ham oddiy raqam deb qo'shib yuboradi. Buni tuzatish uchun protsessorga qo'shimcha qismlar kerak: ishoralarni solishtiradigan, kattasidan kichigini ayiradigan, natija ishorasini tanlaydigan. 1950-yillarda har bir qo'shimcha qism o'nlab lampa yoki tranzistor degani edi: qimmat, katta va buziladigan.</p>
+<p><strong>Nol ikkita.</strong> <span class="num">00000000</span> musbat nol, <span class="num">10000000</span> manfiy nol. Ikkalasi ham nolni bildiradi, lekin bitlari har xil. Demak, «bu son nolga tengmi?» degan eng oddiy tekshiruv ham ikki holatni ko'rib chiqishi kerak, va 256 ta imkoniyatdan bittasi behuda sarflangan.</p>
+<p>Kerak bo'lgan narsa aniq: manfiy sonlarni shunday yozish usuliki, mavjud qo'shish qurilmasi hech narsani bilmasdan to'g'ri natija bersin.</p>
+
+<h3><span class="part">2. Ichkarida</span>Sonlar halqasi</h3>
+<p>Yechim mashina hisoblagichining bitta xususiyatidan chiqadi. Avtomobil spidometridagi masofa hisoblagichini tasavvur qiling: <span class="num">0000</span> turibdi, va siz uni bir qadam <em>orqaga</em> aylantirasiz. U <span class="num">9999</span> ni ko'rsatadi. Demak, bu hisoblagichda 9999 soni «noldan bitta oldin», ya'ni −1 vazifasini bajaradi. Buning isboti oddiy: 9999 ga 1 qo'shsangiz, yana 0000 chiqadi.</p>
+<p>Ikkilik kalitlarda ham xuddi shunday. 1-darsda ko'rdingiz: hamma kalit yoniq bo'lganda 1 qo'shilsa, son 0 ga qaytadi. Demak, «hamma kalit yoniq» holati −1 vazifasini bajara oladi. Bu fikrni oxirigacha yetkazsak, sonlar chiziq emas, <strong>halqa</strong> bo'lib chiqadi.</p>
+<p>Pastdagi chizmada to'rtta kalitning barcha 16 holati halqa bo'ylab terilgan (to'rtta kalit olindi, chunki sakkiztasining 256 holati chizmaga sig'maydi, qoida esa bir xil). «1 qo'shish» soat yo'nalishida bir qadam, «1 ayirish» teskari tomonga bir qadam. Avval ishorasiz o'qishda yurib ko'ring, keyin ishorali o'qishga o'ting.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="ring" style="width:1240px;height:600px" viewBox="0 0 1240 600" role="img" aria-label="To'rt bitning o'n olti holati halqa bo'ylab joylashgan. Bir xil holatlar ishorasiz o'qilsa 0 dan 15 gacha, ishorali o'qilsa minus 8 dan 7 gacha sonlarni beradi"></svg>
+  </div>
+  <figcaption>Har bir quti kalitlarning bitta holati: yuqorida bitlar, pastida shu bitlar hozirgi usulda qanday o'qilishi. Ko'k quti hozirgi holat. Qizil punktir chiziq chegara: undan o'tilsa, son toshib ketadi.</figcaption>
+  <div class="evo-tabs" id="ringMode" style="margin-top:0.9rem"></div>
+  <div class="controls" style="margin-top:0">
+    <button type="button" id="ringPlus">1 qo'shish</button>
+    <button type="button" id="ringMinus">1 ayirish</button>
+    <button class="primary" type="button" id="ringDemo">5 + (−3) ni bajarish</button>
+    <button type="button" id="ringZero">0 ga qaytish</button>
+  </div>
+  <p class="say" id="ringSay" aria-live="polite"></p>
+</figure>
+
+<p>Halqadan to'rt narsani olib qoling.</p>
+<p><strong>Birinchisi: kalitlar o'zgarmadi, o'qish o'zgardi.</strong> Ikkala rejimda ham qutilardagi bitlar bir xil. Farq faqat halqaning chap yarmini qanday nomlashimizda: ishorasiz o'qishda u 8 dan 15 gacha, ishorali o'qishda −8 dan −1 gacha. <span class="num">1111</span> holati bir o'qishda 15, boshqasida −1.</p>
+<p><strong>Ikkinchisi: qo'shish qurilmasi hech narsani bilmaydi va shunga qaramay to'g'ri ishlaydi.</strong> «5 + (−3)» tugmasi buni ko'rsatadi. −3 ning bitlari <span class="num">1101</span>. Qurilma uchun bu shunchaki 13: u 5 dan boshlab 13 qadam oldinga yuradi, halqaning tepasidan o'tib ketadi va 2 ga keladi. 13 qadam oldinga yurish va 3 qadam orqaga yurish halqada bitta joyga olib boradi, chunki halqa 16 qadamdan iborat. Demak, ayirish uchun alohida qurilma kerak emas: ayirish bu manfiy sonni qo'shish.</p>
+<p><strong>Uchinchisi: nol bitta.</strong> <span class="num">0000</span> yagona nol. Ikki xil nol muammosi yo'qoldi.</p>
+<p><strong>To'rtinchisi: chegara ko'chdi.</strong> Ishorasiz o'qishda toshib ketish tepada, 15 bilan 0 orasida. Ishorali o'qishda u pastda, 7 bilan −8 orasida. 1-darsdagi «<span class="num">int</span> ikki milliarddan oshsa, manfiy bo'lib qoladi» degan hodisa aynan shu: son halqaning pastki chegarasidan o'tib, eng katta musbatdan eng kichik manfiyga tushadi.</p>
+
+<p>Bu usul <strong>qo'shimcha kod</strong> deyiladi, inglizchasi two's complement. Bugun deyarli barcha kompyuterlar va Java'ning barcha butun son turlari shu usulda ishlaydi.</p>
+
+<p class="beat">Sakkiz kalitda: eng chap kalitning vazni manfiy</p>
+<p>Halqa g'oyani ko'rsatadi, lekin sonni tez o'qish uchun undan qulayroq qoida bor. 1-darsda kalitlar vazni 128, 64, 32 va hokazo edi. Qo'shimcha kodda faqat bitta narsa o'zgaradi: eng chapdagi kalitning vazni 128 emas, <strong>−128</strong>. Qolganlari o'sha-o'sha. Yoniq kalitlar vaznini qo'shasiz, va son chiqadi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="sg" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="group" aria-label="Sakkizta kalit. Bir xil holat ishorasiz o'qilsa 0 dan 255 gacha, ishorali o'qilsa minus 128 dan 127 gacha son beradi"></svg>
+  </div>
+  <figcaption>1-darsdagi sakkiz kalit, lekin o'ngda endi ikki xil o'qish: ishorasiz va ishorali. Farq faqat birinchi kalitning vaznida. Kalitlarni bosing.</figcaption>
+  <div class="controls">
+    <button type="button" data-sg="200">200 ni qo'yish</button>
+    <button type="button" data-sg="255">Hammasini yoqish</button>
+    <button type="button" data-sg="128">Faqat birinchisini yoqish</button>
+    <button type="button" data-sg="127">Birinchisidan boshqa hammasini yoqish</button>
+  </div>
+  <p class="say" id="sgSay" aria-live="polite"></p>
+</figure>
+
+<p>Birinchi kalit o'chiq bo'lsa, ikkala o'qish bir xil natija beradi: 0 dan 127 gacha sonlar ikkala usulda ham bir xil yoziladi. Birinchi kalit yoqilishi bilan o'qishlar ajraladi, va farq doim aynan 256 ga teng: 200 va −56, 255 va −1, 128 va −128.</p>
+<p>Shu sababli eng chapdagi bit <strong>ishora biti</strong> deb ham ataladi: u 1 bo'lsa, son manfiy. Lekin birinchi urinishdan farqli o'laroq, bu yerda u shunchaki belgi emas, to'liq huquqli raqam: uning o'z vazni bor va u qo'shishda boshqalar qatori qatnashadi.</p>
+<p>Chegaralar ham shundan kelib chiqadi. Eng katta son: birinchi kalit o'chiq, qolgan hammasi yoniq, ya'ni 127. Eng kichik son: faqat birinchi kalit yoniq, ya'ni −128. Manfiy tomonda bitta son ortiq, chunki nol musbat tomondan joy olgan. Bu nosimmetriklik pastda bitta amaliy tuzoqqa sabab bo'ladi.</p>
+
+<p class="beat">Sonning manfiysini topish: ag'dar va bir qo'sh</p>
+<p>5 ning bitlarini bilsangiz, −5 ning bitlarini ikki qadamda topasiz: har bir bitni teskarisiga almashtirasiz (0 ni 1 ga, 1 ni 0 ga), keyin natijaga 1 qo'shasiz. Protsessor ham sonning ishorasini aynan shunday o'zgartiradi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="ng" style="width:1240px;height:250px" viewBox="0 0 1240 250" role="img" aria-label="Sonning manfiysini topish: bitlar ag'dariladi, keyin bir qo'shiladi"></svg>
+  </div>
+  <figcaption>Chapdan o'ngga: boshlang'ich son, bitlari ag'darilgani, va unga 1 qo'shilgani. Oxirgi quti boshlang'ich sonning manfiysi.</figcaption>
+  <div class="slider">
+    <label for="ngN">Son:</label>
+    <input class="numin" id="ngN" type="number" min="-127" max="127" value="5">
+    <button type="button" data-ng="5">5</button>
+    <button type="button" data-ng="100">100</button>
+    <button type="button" data-ng="1">1</button>
+    <button type="button" data-ng="-56">−56</button>
+  </div>
+  <p class="say" id="ngSay" aria-live="polite"></p>
+</figure>
+
+<p>Nega bu ishlaydi? Son bilan uning ag'darilgani qo'shilsa, har bir xonada bitta 0 va bitta 1 uchrashadi, natijada hamma bit 1 bo'ladi. Hamma bit 1 esa, halqada ko'rganingizdek, −1. Demak, son va uning ag'darilgani yig'indisi −1, ya'ni ag'darilgan son asl sonning manfiysidan bitta kam. Shu bittani qo'shsak, aniq manfiysi chiqadi.</p>
+
+<p>Java turlarining chegaralari shu qoidadan to'g'ridan-to'g'ri kelib chiqadi:</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Tur</th><th>Bitlar</th><th class="numr">Eng kichik</th><th class="numr">Eng katta</th></tr></thead>
+  <tbody>
+    <tr><td class="num">byte</td><td class="num">8</td><td class="numr">−128</td><td class="numr">127</td></tr>
+    <tr><td class="num">short</td><td class="num">16</td><td class="numr">−32 768</td><td class="numr">32 767</td></tr>
+    <tr><td class="num">int</td><td class="num">32</td><td class="numr">−2 147 483 648</td><td class="numr">2 147 483 647</td></tr>
+    <tr><td class="num">long</td><td class="num">64</td><td class="numr">−9 223 372 036 854 775 808</td><td class="numr">9 223 372 036 854 775 807</td></tr>
+    <tr><td class="num">char</td><td class="num">16</td><td class="numr">0</td><td class="numr">65 535</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Dastlabki to'rttasi ishorali: eng chap bit manfiy vaznga ega. <span class="num">char</span> Java'dagi yagona ishorasiz butun tur, chunki u harf raqamini saqlaydi va manfiy harf bo'lmaydi. Uni 4-darsda ko'ramiz.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Uch usul va bittasining g'alabasi</h3>
+<p>Qo'shimcha kod birdan standart bo'lib qolmagan. Yigirma yilga yaqin vaqt davomida uch xil usul yonma-yon yashagan, va har bir kompyuter ishlab chiqaruvchi o'zinikini tanlagan. Bosqichlarni tartib bilan ko'ring.</p>
+<div class="bench" id="evoSign"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Ishorali son (signed)</dt>
+  <dd>Musbat ham, manfiy ham bo'la oladigan son. Java'da <span class="num">byte, short, int, long</span>.</dd>
+  <dt>Ishorasiz son (unsigned)</dt>
+  <dd>Faqat nol va musbat qiymatlar. Bir xil bitlar soni bilan ikki baravar katta songacha yetadi, chunki manfiy tomonga joy ketmaydi.</dd>
+  <dt>Ishora va qiymat usuli (sign-magnitude)</dt>
+  <dd>Eng chap bit faqat ishorani, qolganlari sonning qiymatini saqlaydigan usul. Butun sonlar uchun bugun ishlatilmaydi, lekin kasr sonlarda hamon shu usul bor.</dd>
+  <dt>Qo'shimcha kod (two's complement)</dt>
+  <dd>Eng chap bitning vazni manfiy bo'lgan usul. Manfiy son «halqada noldan orqaga sanash» orqali hosil bo'ladi. Bugungi standart.</dd>
+  <dt>Ishora biti</dt>
+  <dd>Eng chapdagi bit. Qo'shimcha kodda u 1 bo'lsa, son manfiy.</dd>
+  <dt>Eng katta bit (most significant bit)</dt>
+  <dd>Vazni eng katta bo'lgan, ya'ni eng chapdagi bit. Eng o'ngdagisi eng kichik bit.</dd>
+  <dt>Toshib ketish (overflow)</dt>
+  <dd>Amal natijasi turning chegarasidan chiqib ketishi. Halqada bu chegara chizig'idan o'tish: natija qarama-qarshi tomondan paydo bo'ladi. Java'da bu xato hisoblanmaydi va hech qanday ogohlantirish chiqmaydi.</dd>
+  <dt>Bitlarni ag'darish (inversiya)</dt>
+  <dd>Har bir 0 ni 1 ga, har bir 1 ni 0 ga almashtirish. Java'da <span class="num">~x</span> deb yoziladi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>To'rtta tuzoq, hammasi shu halqadan</h3>
+
+<div class="rule">
+  <b>Tuzoq: Java'da byte ishorali</b>
+  <p>Fayldan, tarmoqdan yoki shifrlash kutubxonasidan baytlar o'qiganingizda, Java ularni <span class="num">byte</span> turida beradi, va bu tur −128 dan 127 gacha. Tarmoqdan 200 qiymatli bayt kelsa, Java'da u −56 bo'lib ko'rinadi. Yuqoridagi sakkiz kalitli chizmada «200 ni qo'yish» tugmasi aynan shu holatni ko'rsatadi: bitlar o'sha, o'qish boshqa.</p>
+  <p>To'g'rilash usuli: <span class="num">b &amp; 0xFF</span>. Bu yozuv baytni <span class="num">int</span> ga kengaytirib, faqat pastki sakkiz bitini qoldiradi, natijada ishorasiz qiymat, ya'ni 200 chiqadi. <span class="num">0xFF</span> bu 255, ya'ni sakkizta yoniq bit, uning yozilish usulini 4-darsda ko'ramiz.</p>
+  <p class="why">Qayerda uchraydi: to'lov protokollaridagi ikkilik maydonlarni (uzunlik, bitmap) o'qishda, xesh va imzo baytlarini matnga aylantirishda, rasm va fayl formatlari bilan ishlashda. Belgisi: uzunlik yoki rang kutilgan joyda birdan manfiy son chiqadi.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: ikki sonning o'rtachasi</b>
+  <p>Ikki indeksning o'rtasini topish uchun <span class="num">(past + yuqori) / 2</span> deb yozish tabiiy. Lekin ikkala son katta bo'lsa, ularning yig'indisi <span class="num">int</span> chegarasidan oshadi, manfiy songa aylanadi, va ikkiga bo'lingach manfiy indeks chiqadi.</p>
+</div>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="mid" style="width:1240px;height:290px" viewBox="0 0 1240 290" role="img" aria-label="Ikki katta son yig'indisi int chegarasidan oshib, manfiy songa aylanadi"></svg>
+  </div>
+  <figcaption>Ikkala son ham chegaradan kichik, lekin yig'indisi chegaradan oshadi. Xavfsiz usulda yig'indi umuman hisoblanmaydi.</figcaption>
+</figure>
+<div class="rule">
+  <p>To'g'ri yozilishi: <span class="num">past + (yuqori − past) / 2</span>. Bu yerda avval ikki son orasidagi masofa topiladi, u hech qachon chegaradan oshmaydi.</p>
+  <p class="why">Haqiqiy voqea: bu xato Java'ning o'z standart kutubxonasidagi ikkilik qidiruvda to'qqiz yilga yaqin yashagan. 2006-yilda uni Java kolleksiyalari muallifi Joshua Bloch e'lon qilgan. Xato faqat milliarddan ortiq elementli massivlarda chiqar edi, shuning uchun uzoq vaqt hech kim sezmagan. Kod ko'rinishidan mutlaqo to'g'ri edi.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: Math.abs manfiy son qaytarishi mumkin</b>
+  <p>Halqaning nosimmetrikligini eslang: manfiy tomonda bitta son ortiq. <span class="num">int</span> da −2 147 483 648 bor, lekin +2 147 483 648 yo'q. Shuning uchun <span class="num">Math.abs(Integer.MIN_VALUE)</span> musbat son qaytara olmaydi va o'sha manfiy sonning o'zini qaytaradi. Yuqoridagi «ag'dar va bir qo'sh» chizmasida buning sababini ko'rish mumkin: −128 ni ag'darib bir qo'shsangiz, yana −128 chiqadi.</p>
+  <p class="why">Qayerda uchraydi: <span class="num">Math.abs(kalit.hashCode()) % n</span> ko'rinishidagi kodda. Xesh qiymati istalgan <span class="num">int</span> bo'lishi mumkin, va to'rt milliarddan bir holatda natija manfiy indeks bo'ladi. Katta yuk ostida bu kuniga bir necha marta chiqadigan, takrorlab bo'lmaydigan xatoga aylanadi. To'g'risi: <span class="num">Math.floorMod(kalit.hashCode(), n)</span>.</p>
+</div>
+
+<div class="rule">
+  <b>Haqiqiy voqea: 2038-yil</b>
+  <p>Ko'p tizimlarda vaqt 1970-yil 1-yanvardan beri o'tgan soniyalar soni sifatida saqlanadi. Bu son 32 bitli ishorali o'zgaruvchida turgan joylarda 2038-yil 19-yanvarda u 2 147 483 647 ga yetadi va keyingi soniyada manfiy songa aylanadi: tizim uchun vaqt birdan 1901-yilga qaytadi.</p>
+  <p class="why">Zamonaviy tizimlar 64 bitga o'tgan, Java'da vaqt azaldan <span class="num">long</span> da. Lekin eski qurilmalar, fayl formatlari va ma'lumotlar bazasidagi 32 bitli ustunlar hamon bor. O'n yildan uzoq muddatli kredit yoki depozitning tugash sanasi bunday maydonga bugunoq sig'maydi.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: toshib ketish xato bo'lishi kerak bo'lgan joyda aniq amallardan foydalaning</b>
+  <p>Java 8 dan beri <span class="num">Math.addExact</span>, <span class="num">Math.subtractExact</span>, <span class="num">Math.multiplyExact</span> va <span class="num">Math.toIntExact</span> bor. Ular natija chegaradan chiqsa, jimgina noto'g'ri son qaytarish o'rniga <span class="num">ArithmeticException</span> tashlaydi.</p>
+  <p class="why">Sababi: pul bilan ishlaydigan kodda noto'g'ri son xatodan yomonroq. Xato to'xtatadi va logga tushadi, noto'g'ri son esa bazaga yoziladi va keyin uni topish kerak bo'ladi.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> −5 va −100 ni sakkiz bitda yozing. Usul: musbat sonni yozing, bitlarini ag'daring, 1 qo'shing. «Ag'dar va bir qo'sh» chizmasida tekshiring.</li>
+  <li><strong>Halqada.</strong> Ishorali o'qishda 7 turgan holatga boring va 1 qo'shing. Nima chiqdi va nega? Keyin −8 dan 1 ayiring.</li>
+  <li><strong>Sakkiz kalitda.</strong> Kalitlarni shunday qo'yingki, ishorali o'qishda −1 chiqsin. Keyin −128. Har ikki holatda ishorasiz o'qish nimani ko'rsatadi?</li>
+  <li><strong>Kodda.</strong> Bajaring va har bir natijani tushuntiring:
+    <pre class="code" style="margin-top:0.5rem">byte b = (byte) 200;
+System.out.println(b);
+System.out.println(b &amp; 0xFF);
+System.out.println(Integer.toBinaryString(-1));
+System.out.println(Math.abs(Integer.MIN_VALUE));
+System.out.println(Math.addExact(Integer.MAX_VALUE, 1));</pre>
+  </li>
+  <li><strong>O'z ishingizda.</strong> Loyihangizda <span class="num">&amp; 0xFF</span> yozilgan joylarni qidiring. Har birida u nima uchun turganini tushuntira olasizmi? Keyin <span class="num">Math.abs(</span> ni qidiring: ichida <span class="num">hashCode</span> yoki tasodifiy son bormi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga o'z so'zingiz bilan yozing.</p>
+<ol class="check">
+  <li>Ishora uchun alohida bit ajratish usuli nega tashlab ketilgan? Ikki sababini ayting.</li>
+  <li>Qo'shimcha kodda qo'shish qurilmasi manfiy sonlar haqida hech narsa bilmaydi. Shunga qaramay 5 + (−3) to'g'ri chiqadi. Qanday qilib?</li>
+  <li><span class="num">11111111</span> bitlari qaysi sonni bildiradi?</li>
+  <li>Nega <span class="num">byte</span> −128 ni saqlay oladi, lekin +128 ni saqlay olmaydi?</li>
+  <li>Hamkasbingiz yozgan: <span class="num">int bolim = Math.abs(mijozId.hashCode()) % 16;</span>. Bu kod yillab ishlagan. Unda nima xavf bor va qanday tuzatiladi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Java'da ishorasiz son kerak bo'lsa nima qilinadi?</summary>
+  <p>Tilda ishorasiz <span class="num">int</span> yo'q, lekin Java 8 da yordamchi metodlar qo'shilgan: <span class="num">Integer.toUnsignedString</span>, <span class="num">Integer.compareUnsigned</span>, <span class="num">Integer.divideUnsigned</span>, <span class="num">Integer.toUnsignedLong</span>. Ular o'sha 32 bitni ishorasiz deb o'qiydi. Qo'shish, ayirish va ko'paytirish uchun alohida metod kerak emas: halqada ko'rganingizdek, bu amallar ikkala o'qishda ham bir xil bitlarni beradi. Farq faqat solishtirish, bo'lish va matnga aylantirishda.</p>
+</details>
+<details>
+  <summary>&gt;&gt; va &gt;&gt;&gt; nima va farqi nimada?</summary>
+  <p>Ikkalasi ham bitlarni o'ngga suradi. Bitta xonaga surish sonni ikkiga bo'lishga teng. Farq chapdan bo'shagan joyga nima yozilishida. <span class="num">&gt;&gt;</span> ishora bitini takrorlaydi, shuning uchun manfiy son manfiyligicha qoladi: −8 &gt;&gt; 1 bu −4. <span class="num">&gt;&gt;&gt;</span> doim nol yozadi, ya'ni sonni ishorasiz deb hisoblaydi: manfiy son katta musbat songa aylanadi. Ikki sonning o'rtachasini <span class="num">(past + yuqori) &gt;&gt;&gt; 1</span> deb yozish ham to'g'ri ishlaydi, chunki toshib ketgan yig'indi ishorasiz o'qilganda to'g'ri qiymatni beradi.</p>
+</details>
+<details>
+  <summary>Teskari kod butunlay yo'qolganmi?</summary>
+  <p>Butun sonlarni saqlash usuli sifatida ha. Lekin bitta joyda u har kuni ishlatiladi: internet protokollaridagi nazorat yig'indisi. IP, TCP va UDP paketlarining butunligini tekshiradigan son teskari kod qoidasi bo'yicha qo'shiladi. Bu 1970-yillardagi qaror, va u bugungi har bir tarmoq paketida yashaydi.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>John von Neumann, «First Draft of a Report on the EDVAC», 1945: ikkilik mashinada manfiy sonlarni qo'shimcha kodda saqlash taklifi. Joshua Bloch, «Extra, Extra — Read All About It: Nearly All Binary Searches and Mergesorts are Broken», Google Research blogi, 2006. Java tili spetsifikatsiyasi, 4.2-bo'lim: butun son turlari qo'shimcha kodda ekani til darajasida belgilangan.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Manfiy son uchun alohida belgi yo'q: sonlar halqa bo'ylab joylashgan va halqaning yarmi manfiy deb o'qiladi. Eng chap bitning vazni manfiy. Shu tufayli bitta qo'shish qurilmasi hamma holatda ishlaydi. Toshib ketish halqadagi chegaradan o'tish, va Java uni xato deb hisoblamaydi.</p>
+  <p><strong>Keyingi dars.</strong> Kasr sonlar: nega 0.1 + 0.2 aniq 0.3 emas va nega pul hech qachon <span class="num">double</span> da saqlanmaydi.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="01-kalit-va-bit.html">Oldingi: 1. Kalit va bit</a><span class="dim">Keyingi: 3. Kasr sonlar (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  var M = '−';
+  function sgn(n) { return n < 0 ? M + (-n) : String(n); }
+  function bin(n, w) { var s = (n >>> 0).toString(2); while (s.length < w) s = '0' + s; return s.slice(-w); }
+  function $(id) { return document.getElementById(id); }
+
+  // ---------- 1. Ishora va qiymat usulida qo'shish ----------
+  (function () {
+    var svg = $('sm');
+    function enc(n, neg) { return (neg ? 128 : 0) | Math.abs(n); }
+    function dec(b) { var v = b & 127; return (b & 128) ? (v === 0 ? M + '0' : M + v) : (v === 0 ? '+0' : String(v)); }
+    var CASES = [
+      { a: enc(5), b: enc(3), want: '8', msg: 'Ikkala son musbat. Ishora bitlari nol, qurilma qolgan bitlarni qo\'shdi va to\'g\'ri natija chiqdi.' },
+      { a: enc(5), b: enc(3, true), want: '2', msg: 'Qurilma ishora bitini ham oddiy raqam deb qo\'shdi. Natija bitlari ishora va qiymat usulida ' + M + '8 deb o\'qiladi, to\'g\'ri javob esa 2. Qurilma aslida 5 va 3 ni qo\'shib, ustiga minus qo\'yib berdi.' },
+      { a: enc(5, true), b: enc(3, true), want: M + '8', msg: 'Ikki ishora biti qo\'shilib, 9-xonaga ko\'chdi va yo\'qoldi. Natijada ishora biti nol bo\'lib qoldi: ikki manfiy sonning yig\'indisi musbat chiqdi.' },
+      { a: enc(0), b: enc(0, true), want: '0', msg: 'Bu yerda qo\'shish emas, yozuvning o\'zi muammo. 00000000 va 10000000 ikkalasi ham nol, lekin bitlari har xil. «Nolga tengmi?» degan tekshiruv ikkalasini ham bilishi kerak.' }
+    ];
+    function draw(i) {
+      var c = CASES[i], r = (c.a + c.b) & 255, got = dec(r), ok = got === c.want || (c.want === '0' && false);
+      svg.textContent = ''; marker(svg, 'smmk');
+      group(svg, 20, 30, 330, 310, 'Ishora va qiymat usulida yozilgan');
+      box(svg, 44, 76, 282, 110, 'Birinchi son: ' + dec(c.a), 'ishora | qiymat');
+      S(svg, 'text', { x: 60, y: 166, 'class': 'val' }, bin(c.a, 8).slice(0, 1) + ' | ' + bin(c.a, 8).slice(1));
+      box(svg, 44, 206, 282, 110, 'Ikkinchi son: ' + dec(c.b), 'ishora | qiymat');
+      S(svg, 'text', { x: 60, y: 296, 'class': 'val' }, bin(c.b, 8).slice(0, 1) + ' | ' + bin(c.b, 8).slice(1));
+      box(svg, 480, 130, 300, 110, 'Qo\'shish qurilmasi', 'Bitlarni ustma-ust qo\'shadi,', 'on');
+      S(svg, 'text', { x: 496, y: 196, 'class': 'sub' }, 'ishora haqida hech narsa bilmaydi');
+      S(svg, 'path', { d: 'M326 131H410V165H478', 'class': 'arr', 'marker-end': 'url(#smmk)' });
+      S(svg, 'path', { d: 'M326 261H410V205H478', 'class': 'arr', 'marker-end': 'url(#smmk)' });
+      S(svg, 'text', { x: 402, y: 121, 'text-anchor': 'middle', 'class': 'lbl' }, '8 bit');
+      S(svg, 'text', { x: 402, y: 281, 'text-anchor': 'middle', 'class': 'lbl' }, '8 bit');
+      S(svg, 'line', { x1: 780, y1: 185, x2: 878, y2: 185, 'class': 'arr', 'marker-end': 'url(#smmk)' });
+      S(svg, 'text', { x: 829, y: 175, 'text-anchor': 'middle', 'class': 'lbl' }, 'natija');
+      var bad = i !== 0;
+      box(svg, 880, 90, 340, 190, 'Natija bitlari', 'ishora | qiymat', bad ? 'bad' : 'on');
+      S(svg, 'text', { x: 896, y: 180, 'class': 'val' }, bin(r, 8).slice(0, 1) + ' | ' + bin(r, 8).slice(1));
+      S(svg, 'text', { x: 896, y: 218, 'class': 'ttl' }, 'O\'qilishi: ' + got);
+      S(svg, 'text', { x: 896, y: 250, 'class': 'sub' }, i === 3 ? 'Nolning ikkinchi ko\'rinishi' : 'To\'g\'ri javob: ' + c.want + (bad ? '  (mos kelmadi)' : ''));
+      $('smSay').textContent = c.msg; $('smSay').className = bad ? 'say bad' : 'say';
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sm]'), function (b) { b.addEventListener('click', function () { draw(+b.getAttribute('data-sm')); }); });
+    draw(1);
+  })();
+
+  // ---------- 2. Halqa ----------
+  (function () {
+    var svg = $('ring'), pos = 0, signed = false, timer = null, CX = 330, CY = 300, RR = 232;
+    var modeBtns = [];
+    ['Ishorasiz o\'qish: 0 dan 15 gacha', 'Ishorali o\'qish: ' + M + '8 dan 7 gacha'].forEach(function (t, i) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+      b.addEventListener('click', function () { stop(); signed = i === 1; draw(signed ? 'Bitlar o\'zgarmadi. Faqat halqaning chap yarmi endi manfiy deb o\'qilyapti, va chegara pastga ko\'chdi.' : 'Hamma holat musbat deb o\'qilyapti. Chegara tepada, 15 bilan 0 orasida.'); });
+      $('ringMode').appendChild(b); modeBtns.push(b);
+    });
+    function val(i) { return signed && i >= 8 ? i - 16 : i; }
+    function stop() { if (timer !== null) { clearInterval(timer); timer = null; } }
+    function draw(msg, bad) {
+      svg.textContent = ''; marker(svg, 'rgmk');
+      modeBtns.forEach(function (b, i) { b.setAttribute('aria-pressed', (i === 1) === signed ? 'true' : 'false'); });
+      S(svg, 'circle', { cx: CX, cy: CY, r: RR, 'class': 'ring' });
+      // yo'nalish
+      S(svg, 'path', { d: 'M' + (CX - 60) + ' ' + (CY - 30) + 'a66 66 0 1 1 120 0', 'class': 'arr', 'marker-end': 'url(#rgmk)' });
+      S(svg, 'text', { x: CX, y: CY + 4, 'text-anchor': 'middle', 'class': 'lbl' }, '1 qo\'shish: soat yo\'nalishida');
+      S(svg, 'text', { x: CX, y: CY + 22, 'text-anchor': 'middle', 'class': 'lbl' }, '1 ayirish: teskari tomonga');
+      // chegara: ishorasizda 15|0 (tepa), ishoralida 7|8 (past)
+      var ba = ((signed ? 7.5 : 15.5) * 22.5 - 90) * Math.PI / 180;
+      S(svg, 'line', { x1: CX + (RR - 62) * Math.cos(ba), y1: CY + (RR - 62) * Math.sin(ba), x2: CX + (RR + 44) * Math.cos(ba), y2: CY + (RR + 44) * Math.sin(ba), stroke: 'var(--bad)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5' });
+      S(svg, 'text', { x: CX + (RR - 78) * Math.cos(ba), y: CY + (RR - 78) * Math.sin(ba) + (signed ? -2 : 12), 'text-anchor': 'middle', 'class': 'lbl', fill: 'var(--bad)' }, 'chegara');
+      for (var i = 0; i < 16; i++) {
+        var a = (i * 22.5 - 90) * Math.PI / 180, x = CX + RR * Math.cos(a), y = CY + RR * Math.sin(a), v = val(i);
+        S(svg, 'rect', { x: x - 37, y: y - 24, width: 74, height: 48, rx: 5, 'class': 'box' + (i === pos ? ' on' : (v < 0 ? ' live' : '')) });
+        S(svg, 'text', { x: x, y: y - 4, 'text-anchor': 'middle', 'class': 'mono' }, bin(i, 4));
+        S(svg, 'text', { x: x, y: y + 16, 'text-anchor': 'middle', 'class': 'ttl' }, sgn(v));
+      }
+      group(svg, 660, 60, 560, 480, 'Hozirgi holat');
+      box(svg, 690, 110, 500, 100, 'Kalitlar', 'To\'rtta kalitning holati');
+      S(svg, 'text', { x: 706, y: 192, 'class': 'big' }, bin(pos, 4));
+      box(svg, 690, 230, 500, 90, 'Ishorasiz o\'qilsa', 'Vaznlar: 8, 4, 2, 1', signed ? '' : 'on');
+      S(svg, 'text', { x: 706, y: 304, 'class': 'val' }, String(pos));
+      box(svg, 690, 340, 500, 90, 'Ishorali o\'qilsa', 'Vaznlar: ' + M + '8, 4, 2, 1', signed ? 'on' : '');
+      S(svg, 'text', { x: 706, y: 414, 'class': 'val' }, sgn(pos >= 8 ? pos - 16 : pos));
+      S(svg, 'text', { x: 690, y: 470, 'class': 'sub' }, 'Sariq qutilar: ishorali o\'qishda manfiy bo\'lgan holatlar.');
+      S(svg, 'text', { x: 690, y: 492, 'class': 'sub' }, 'Halqa 16 qadam: 16 qadam yurilsa, boshlangan joyga qaytiladi.');
+      if (msg !== undefined) { $('ringSay').textContent = msg; $('ringSay').className = bad ? 'say bad' : 'say'; }
+    }
+    function move(d) {
+      var from = pos, fv = val(pos); pos = (pos + d + 16) % 16; var tv = val(pos);
+      var crossed = d > 0 ? tv < fv : tv > fv;
+      if (crossed) draw(sgn(fv) + (d > 0 ? ' ga 1 qo\'shildi' : ' dan 1 ayirildi') + ', lekin natija ' + sgn(tv) + ' chiqdi. Chegara chizig\'idan o\'tildi: son toshib ketdi va halqaning narigi tomonidan paydo bo\'ldi. Kalitlar esa odatdagidek bir qadam surildi, xolos: ' + bin(from, 4) + ' dan ' + bin(pos, 4) + ' ga.', true);
+      else draw(sgn(fv) + (d > 0 ? ' ga 1 qo\'shildi: ' : ' dan 1 ayirildi: ') + sgn(tv) + '. Kalitlar: ' + bin(from, 4) + ' dan ' + bin(pos, 4) + ' ga.');
+    }
+    $('ringPlus').addEventListener('click', function () { stop(); move(1); });
+    $('ringMinus').addEventListener('click', function () { stop(); move(-1); });
+    $('ringZero').addEventListener('click', function () { stop(); pos = 0; draw('0 holatiga qaytildi.'); });
+    $('ringDemo').addEventListener('click', function () {
+      stop(); signed = true; pos = 5; var left = 13;
+      draw('5 dan boshlaymiz. ' + M + '3 ning bitlari 1101. Qo\'shish qurilmasi uchun bu 13, shuning uchun u 13 qadam oldinga yuradi.');
+      timer = setInterval(function () {
+        pos = (pos + 1) % 16; left--;
+        if (left === 0) { stop(); draw('13 qadam yurildi, halqa tepasidan o\'tildi va 2 ga kelindi. 5 + (' + M + '3) = 2. Qurilma manfiy son haqida hech narsa bilmadi: u shunchaki 0101 va 1101 ni qo\'shdi, 10010 chiqdi, beshinchi bit sig\'madi va tashlab yuborildi, 0010 qoldi.'); }
+        else draw('Yana ' + left + ' qadam qoldi.');
+      }, 330);
+    });
+    draw('«1 ayirish» ni bosing va 0 dan orqaga yurganda nima bo\'lishiga qarang. Keyin ishorali o\'qishga o\'ting.');
+  })();
+
+  // ---------- 3. Sakkiz kalit, ikki o'qish ----------
+  (function () {
+    var svg = $('sg'), W = [128, 64, 32, 16, 8, 4, 2, 1], bits = [1, 1, 0, 0, 1, 0, 0, 0];
+    function total() { var t = 0; bits.forEach(function (b, i) { if (b) t += W[i]; }); return t; }
+    function set(n) { bits = W.map(function (w) { if (n >= w) { n -= w; return 1; } return 0; }); }
+    function draw(msg, focus) {
+      svg.textContent = ''; marker(svg, 'sgmk');
+      group(svg, 20, 40, 800, 320, 'Bayt: 8 ta kalit');
+      var nodes = [];
+      bits.forEach(function (b, i) {
+        var x = 44 + i * 96, g = S(svg, 'g', { role: 'switch', tabindex: '0', 'aria-checked': b ? 'true' : 'false', 'aria-label': (i === 0 ? 'Ishora kaliti' : 'Vazni ' + W[i] + ' bo\'lgan kalit') });
+        S(svg, 'rect', { x: x, y: 84, width: 84, height: 200, rx: 5, 'class': 'box' + (b ? ' live' : '') }, null, g);
+        S(svg, 'text', { x: x + 42, y: 108, 'text-anchor': 'middle', 'class': 'sub' }, 'vazni', g);
+        S(svg, 'text', { x: x + 42, y: 130, 'text-anchor': 'middle', 'class': i === 0 ? 'mono' : 'val' }, i === 0 ? '128 / ' + M + '128' : String(W[i]), g);
+        S(svg, 'circle', { cx: x + 22, cy: 172, r: 4, 'class': 'mk' }, null, g);
+        S(svg, 'circle', { cx: x + 62, cy: 172, r: 4, 'class': 'mk' }, null, g);
+        S(svg, 'line', { x1: x + 22, y1: 172, x2: b ? x + 62 : x + 56, y2: b ? 172 : 150, 'class': 'arr' }, null, g);
+        S(svg, 'text', { x: x + 42, y: 232, 'text-anchor': 'middle', 'class': 'big' }, String(b), g);
+        S(svg, 'text', { x: x + 42, y: 266, 'text-anchor': 'middle', 'class': 'sub' }, i === 0 ? 'ishora biti' : (b ? 'tok bor' : 'tok yo\'q'), g);
+        function tg() { bits[i] = bits[i] ? 0 : 1; draw(i === 0 ? 'Birinchi kalit ' + (bits[0] ? 'yoqildi: ishorasiz o\'qishga 128 qo\'shildi, ishorali o\'qishdan esa 128 ayirildi. Ikki o\'qish orasidagi farq 256.' : 'o\'chirildi: endi ikkala o\'qish bir xil.') : 'Vazni ' + W[i] + ' bo\'lgan kalit ' + (bits[i] ? 'yoqildi' : 'o\'chirildi') + ': ikkala o\'qish ham ' + W[i] + ' ga o\'zgardi.', i); }
+        g.addEventListener('click', tg);
+        g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); tg(); } });
+        nodes.push(g);
+      });
+      S(svg, 'text', { x: 44, y: 326, 'class': 'sub' }, 'Kalitlar holati:');
+      S(svg, 'text', { x: 160, y: 327, 'class': 'val' }, bits.join(''));
+      var u = total(), s = u >= 128 ? u - 256 : u;
+      box(svg, 920, 60, 300, 130, 'Ishorasiz o\'qilsa', 'Birinchi kalit vazni +128', 'on');
+      S(svg, 'text', { x: 936, y: 156, 'class': 'big' }, String(u));
+      box(svg, 920, 220, 300, 130, 'Ishorali o\'qilsa (Java byte)', 'Birinchi kalit vazni ' + M + '128', 'on');
+      S(svg, 'text', { x: 936, y: 316, 'class': 'big' }, sgn(s));
+      [[125, 'ishorasiz'], [285, 'ishorali']].forEach(function (a) {
+        S(svg, 'line', { x1: 820, y1: a[0], x2: 918, y2: a[0], 'class': 'arr', 'marker-end': 'url(#sgmk)' });
+        S(svg, 'text', { x: 869, y: a[0] - 10, 'text-anchor': 'middle', 'class': 'lbl' }, a[1]);
+      });
+      if (msg) $('sgSay').textContent = msg;
+      if (focus !== undefined) nodes[focus].focus();
+    }
+    var PRE = { 200: 'Tarmoqdan 200 qiymatli bayt keldi deylik. Java uni byte turida o\'qiydi va ' + M + '56 deb ko\'rsatadi: ' + M + '128 + 64 + 8.', 255: 'Hamma kalit yoniq. Ishorasiz 255, ishorali ' + M + '1: halqada noldan bir qadam orqa.', 128: 'Faqat ishora kaliti yoniq: eng kichik son, ' + M + '128. Uning musbat jufti yo\'q, chunki eng katta musbat son 127.', 127: 'Ishora kaliti o\'chiq, qolgan hammasi yoniq: eng katta son, 127. Ikkala o\'qish bir xil.' };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-sg]'), function (b) { b.addEventListener('click', function () { var n = +b.getAttribute('data-sg'); set(n); draw(PRE[n]); }); });
+    draw(PRE[200]);
+  })();
+
+  // ---------- 4. Ag'dar va bir qo'sh ----------
+  (function () {
+    var svg = $('ng'), inp = $('ngN');
+    function draw() {
+      var n = parseInt(inp.value, 10); if (isNaN(n)) n = 0; n = Math.max(-128, Math.min(127, n));
+      var a = n & 255, inv = (~a) & 255, res = (inv + 1) & 255, rv = res >= 128 ? res - 256 : res, iv = inv >= 128 ? inv - 256 : inv;
+      svg.textContent = ''; marker(svg, 'ngmk');
+      function cell(x, title, bits, v, cls) { box(svg, x, 60, 300, 130, title, 'Ishorali o\'qilsa: ' + sgn(v), cls); S(svg, 'text', { x: x + 16, y: 160, 'class': 'big' }, bits); }
+      cell(30, 'Boshlang\'ich son', bin(a, 8), n, '');
+      cell(470, 'Bitlari ag\'darilgan', bin(inv, 8), iv, '');
+      cell(910, 'Natija', bin(res, 8), rv, 'on');
+      [[330, 468, 'har bitni ag\'dar'], [770, 908, '1 qo\'sh']].forEach(function (p) {
+        S(svg, 'line', { x1: p[0], y1: 125, x2: p[1], y2: 125, 'class': 'arr', 'marker-end': 'url(#ngmk)' });
+        S(svg, 'text', { x: (p[0] + p[1]) / 2, y: 114, 'text-anchor': 'middle', 'class': 'lbl' }, p[2]);
+      });
+      S(svg, 'text', { x: 30, y: 226, 'class': 'sub' }, 'Tekshiruv: ' + sgn(n) + ' va ' + sgn(rv) + ' ni qo\'shsak, ' + bin(a, 8) + ' + ' + bin(res, 8) + ' = 1 00000000. To\'qqizinchi bit sig\'maydi, 00000000 qoladi: nol.');
+      var say = $('ngSay');
+      if (n === -128) { say.textContent = M + '128 ni ag\'darib 1 qo\'shsangiz, yana ' + M + '128 chiqadi. Sakkiz bitda +128 yo\'q, shuning uchun bu sonning musbat jufti mavjud emas. Math.abs(Integer.MIN_VALUE) ning manfiy son qaytarishi shu hodisaning 32 bitli ko\'rinishi.'; say.className = 'say bad'; }
+      else if (n === 0) { say.textContent = 'Nolni ag\'darsangiz hamma bit 1 bo\'ladi (' + M + '1), 1 qo\'shsangiz yana nol. Nolning manfiysi o\'zi: nol bitta.'; say.className = 'say'; }
+      else { say.textContent = sgn(n) + ' ning manfiysi ' + sgn(rv) + '. O\'rtadagi qutiga qarang: ag\'darilgan son doim kerakli javobdan bitta kam, shuning uchun 1 qo\'shiladi.'; say.className = 'say'; }
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ng]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-ng'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 5. O'rtacha ----------
+  (function () {
+    var svg = $('mid'); marker(svg, 'mdmk');
+    var x0 = 60, w = 700, MAX = 2147483647, px = function (v) { return x0 + v / MAX * w; };
+    S(svg, 'text', { x: x0, y: 34, 'class': 'ttl' }, 'int ga sig\'adigan musbat sonlar: 0 dan 2 147 483 647 gacha');
+    S(svg, 'rect', { x: x0, y: 110, width: w, height: 40, 'class': 'bar' });
+    S(svg, 'text', { x: x0, y: 172, 'class': 'tick' }, '0');
+    S(svg, 'text', { x: x0 + w - 8, y: 172, 'text-anchor': 'end', 'class': 'tick' }, '2 147 483 647');
+    S(svg, 'line', { x1: x0 + w, y1: 56, x2: x0 + w, y2: 200, stroke: 'var(--bad)', 'stroke-width': 2.5, 'stroke-dasharray': '7 5' });
+    S(svg, 'text', { x: x0 + w + 8, y: 196, 'class': 'lbl', fill: 'var(--bad)' }, 'chegara');
+    [[1500000000, 'past = 1 500 000 000', 88], [2000000000, 'yuqori = 2 000 000 000', 64]].forEach(function (p) {
+      var x = px(p[0]);
+      S(svg, 'line', { x1: x, y1: p[2] + 6, x2: x, y2: 96, 'class': 'ruler' });
+      S(svg, 'path', { d: 'M' + (x - 8) + ' 94h16l-8 14z', 'class': 'sent' });
+      S(svg, 'text', { x: x - 8, y: p[2], 'text-anchor': 'end', 'class': 'lbl' }, p[1]);
+    });
+    S(svg, 'rect', { x: x0 + w, y: 110, width: 400, height: 40, 'class': 'band miss' });
+    S(svg, 'text', { x: x0 + w + 200, y: 135, 'text-anchor': 'middle', 'class': 'lbl' }, 'past + yuqori = 3 500 000 000: sig\'maydi');
+    box(svg, 60, 226, 540, 54, '(past + yuqori) / 2', 'Yig\'indi toshib −794 967 296 bo\'ladi, yarmi: −397 483 648', 'bad');
+    box(svg, 640, 226, 540, 54, 'past + (yuqori − past) / 2', 'Oraliq 500 000 000, natija: 1 750 000 000', 'on');
+  })();
+
+  // ---------- Tarix ----------
+  window.evoStepper('evoSign', [
+    {
+      name: `Ishora va qiymat`,
+      years: `1940–1960-yillar`,
+      art: `<rect x="10" y="34" width="22" height="32" class="lit"/><rect x="38" y="34" width="72" height="32"/><path d="M15 50h12" style="stroke:var(--lamp-ink)"/><path d="M50 50h48" class="acc"/>`,
+      how: `Eng chap bit faqat ishorani bildiradi, qolgan bitlar sonning qiymatini. Qog'ozdagi «minus besh» yozuvining to'g'ridan-to'g'ri nusxasi.`,
+      better: `Odamga eng tushunarli usul. Sonni ko'paytirish va bo'lish oson: qiymatlar alohida ko'paytiriladi, ishoralar alohida solishtiriladi.`,
+      pain: `Qo'shish va ayirish uchun qo'shimcha qurilmalar kerak: ishoralarni solishtirish, kattasini aniqlash, natija ishorasini tanlash. Nol ikkita. Har bir ortiqcha qism mashinani qimmatlashtirar va ishonchsiz qilar edi.`,
+      ex: `IBM 704 va 7090 kabi ilmiy hisob-kitob mashinalari. Bu usul butunlay yo'qolmagan: kasr sonlarda ishora bugun ham alohida bitda saqlanadi, buni 3-darsda ko'ramiz.`
+    },
+    {
+      name: `Teskari kod`,
+      years: `1950–1970-yillar`,
+      art: `<rect x="10" y="20" width="100" height="24"/><path d="M22 32h10M46 32h10M70 32h10" class="acc"/><rect x="10" y="58" width="100" height="24" class="lit"/><path d="M34 70h10M58 70h10M94 70h8" style="stroke:var(--lamp-ink)"/><path d="M60 44v12"/>`,
+      how: `Manfiy son musbat sonning barcha bitlarini ag'darish orqali hosil qilinadi. 5 bu 00000101 bo'lsa, −5 bu 11111010. Inglizchasi one's complement.`,
+      better: `Ayirish qo'shish orqali bajariladi: manfiy sonni qo'shish kifoya. Alohida ayirish qurilmasi kerak emas. Sonning ishorasini o'zgartirish juda oson: bitlarni ag'darish, xolos.`,
+      pain: `Nol hamon ikkita: 00000000 va 11111111. Qo'shishdan keyin tuzatish kerak: eng chapdan chiqib ketgan bit qaytarib, eng o'ngga qo'shiladi. Bu qo'shimcha qadam har bir qo'shishni sekinlashtiradi.`,
+      ex: `CDC 6600 (o'z davrining eng tez kompyuteri), UNIVAC 1100 seriyasi.`
+    },
+    {
+      name: `Qo'shimcha kod`,
+      years: `1945-yilda taklif qilingan, 1964-yildan standart`,
+      art: `<circle cx="60" cy="50" r="34"/><path d="M60 16v10M60 74v10M26 50h10M84 50h10"/><path d="M60 84a34 34 0 0 1 0-68" class="lit" style="fill:none;stroke-width:6"/><circle cx="60" cy="16" r="5" class="acc"/>`,
+      how: `Teskari kodga bitta qadam qo'shiladi: ag'darilgan songa 1 qo'shiladi. Natijada sonlar halqa bo'ylab joylashadi va eng chap bitning vazni manfiy bo'ladi. Shu darsning asosiy mavzusi.`,
+      better: `Nol bitta. Qo'shishdan keyin hech qanday tuzatish kerak emas: sig'may qolgan bit shunchaki tashlab yuboriladi. Qo'shish, ayirish va ko'paytirish ishorali va ishorasiz sonlar uchun bitta qurilmada bajariladi.`,
+      pain: `Diapazon nosimmetrik: manfiy tomonda bitta son ortiq. Toshib ketish jim o'tadi. Odam uchun manfiy sonning bitlarini o'qish qiyinroq. Bu og'riqlar bugun ham bor, «Amaliyotda» bo'limidagi tuzoqlar shulardan.`,
+      ex: `G'oyani John von Neumann 1945-yilda EDVAC loyihasi hisobotida taklif qilgan. 1964-yilda IBM System/360 uni tanladi, va shu mashinalar oilasi bozorni egallagani uchun u amalda standartga aylandi. PDP-11 va undan keyingi barcha mikroprotsessorlar shu yo'ldan bordi.`
+    },
+    {
+      name: `Yagona usul`,
+      years: `1970-yillardan hozirgacha`,
+      art: `<rect x="18" y="18" width="84" height="64" rx="4"/><path d="M34 52l14 14 30-32" class="lit" style="fill:none;stroke-width:6"/>`,
+      how: `Bugun barcha keng tarqalgan protsessorlar (x86, ARM, RISC-V) faqat qo'shimcha kodda ishlaydi. Dasturlash tillari ham buni rasman tan oldi.`,
+      better: `Dasturchi qaysi mashinada ishlashidan qat'i nazar, butun sonlar bir xil ishlashiga ishonishi mumkin.`,
+      pain: `Tillar toshib ketishga turlicha qaraydi, va bu chalkashlik manbai. Java'da u jim aylanib ketadi. C va C++ da ishorali sonning toshishi «noaniq xatti-harakat», ya'ni kompilyator xohlagan ishni qilishi mumkin. Rust sinov rejimida dasturni to'xtatadi. Kotlin Java kabi ishlaydi.`,
+      ex: `Java 1995-yildan boshlab qo'shimcha kodni til spetsifikatsiyasida belgilagan. C va C++ esa o'nlab yillar uchala usulga ruxsat berib kelgan va faqat C++20 hamda C23 standartlarida qo'shimcha kodni yagona usul deb e'lon qilgan.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
