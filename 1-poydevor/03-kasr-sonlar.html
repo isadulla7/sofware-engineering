@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3-dars. Kasr sonlar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>3-dars. Kasr sonlar</h1>
+<p class="lead">Savol: 0 va 1 dan iborat kalitlarda 3,14 yoki 0,1 qanday saqlanadi, va nega kompyuter 0,1 + 0,2 ni 0,3 deb hisoblamaydi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Suzuvchi nuqtali son</strong> kasr sonni bitlarda saqlash usuli. Java'dagi <span class="num">float</span> va <span class="num">double</span> shu usulda ishlaydi.</p>
+    <p>Uning asosiy xususiyati: ko'p kasr sonlarni u <strong>aniq saqlay olmaydi</strong>, faqat eng yaqin qiymatini saqlaydi. 0,1 shunday sonlardan biri.</p>
+    <p>Bu xato emas, usulning tabiati. Lekin buni bilmagan dasturchi pul hisobida tiyin yo'qotadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Hisob-kitobda.</strong> Foiz, kurs, o'rtacha qiymat, koordinata, o'lchov: kasr chiqadigan har qanday joyda.</li>
+      <li><strong>JSON da.</strong> JSON dagi har bir son ko'p tizimlarda <span class="num">double</span> sifatida o'qiladi, hatto u butun bo'lsa ham.</li>
+      <li><strong>Bazada.</strong> Oracle'dagi <span class="num">NUMBER</span> va <span class="num">BINARY_DOUBLE</span> ikki xil usul, va ularni adashtirish pulga tushadi.</li>
+      <li><strong>Pul bilan ishlashda</strong> aynan ishlatilmasligi kerak. Buning o'rniga nima ishlatilishi shu darsda.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>nega 0,1 ikkilik sanoqda cheksiz kasr;</li>
+      <li><span class="num">double</span> ning 64 biti nimalarga bo'lingan;</li>
+      <li>nega <span class="num">0.1 + 0.2 == 0.3</span> yolg'on;</li>
+      <li>pul uchun nima ishlatiladi va <span class="num">BigDecimal</span> ichkarida qanday ishlaydi.</li>
+    </ul>
+    <p>Amaliy foydasi: summa, kurs va foiz bilan ishlaydigan kodda to'g'ri turni tanlaysiz va boshqalar kodidagi xatoni ko'rasiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada o'sha qavatlar. Bu dars ham bayt qavatida: 2-darsda bitlar manfiy son sifatida o'qilgan edi, bu yerda ular kasr son sifatida o'qiladi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidagi bitta o'zgaruvchidan kalitgacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Kodingizdagi bitta o'zgaruvchi yuqoridan pastga qanday yo'l bosadi. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Ikkilik kasr: nuqtadan keyingi bitlar va ularning vazni</li>
+      <li>Qat'iy nuqta usuli va uning chegarasi</li>
+      <li>Suzuvchi nuqta: ishora, daraja, mantissa</li>
+      <li>Nega ba'zi sonlar aniq saqlanmaydi va xato qanday to'planadi</li>
+      <li>Sonlar orasidagi «teshiklar»: katta sonlarda aniqlik yo'qolishi</li>
+      <li>Maxsus qiymatlar: cheksizlik, NaN, manfiy nol</li>
+      <li>Pul uchun yechimlar: tiyinda <span class="num">long</span> va <span class="num">BigDecimal</span></li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Protsessor kasr sonlarni qanday qo'shishi va ko'paytirishi: mexanizmi 6-darsda</li>
+      <li>Oracle <span class="num">NUMBER</span> turining ichki tuzilishi: ma'lumotlar bazasi yo'nalishida</li>
+      <li>Valyuta, yaxlitlash qoidalari va soliq hisobi: bular biznes qoidalari, bu yerda faqat texnik asosi</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Butun sonlar orasida joy yo'q</h3>
+<p>Dastlabki ikki darsda kalitlar faqat butun sonlarni berdi: 0, 1, 2 va hokazo. Lekin hisob-kitobning katta qismi kasr sonlarda: narx 12,50, foiz 0,18, aylana uzunligi uchun 3,14159. Butun sonlar orasidagi qiymatlarni ham qandaydir yo'l bilan kalitlarda ifodalash kerak.</p>
+
+<p class="beat">Birinchi fikr: vaznlarni nuqtadan o'ngga davom ettiramiz</p>
+<p>O'nlik sanoqda bu qanday ishlashini eslang. 12,75 sonida nuqtadan chapdagi raqamlar vazni 10 va 1. Nuqtadan o'ngga o'tganda vaznlar o'n baravar kichrayishda davom etadi: o'ndan bir, yuzdan bir. Ya'ni 12,75 bu 1 ta o'nlik, 2 ta birlik, 7 ta o'ndan bir va 5 ta yuzdan bir.</p>
+<p>Ikkilikda xuddi shunday, faqat har qadamda vazn ikki baravar kichrayadi. Chapda 8, 4, 2, 1 edi. Nuqtadan o'ngda: yarim, chorak, sakkizdan bir, o'n oltidan bir. Pastdagi chizmada sakkizta kalit shunday bo'lingan: to'rttasi butun qism uchun, to'rttasi kasr qism uchun. Kalitlarni bosib, har xil kasrlarni yasab ko'ring, keyin 0,1 ni yasashga urinib ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="fx" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="group" aria-label="Sakkizta kalit: to'rttasi butun qism, to'rttasi kasr qism. Kasr vaznlari yarim, chorak, sakkizdan bir va o'n oltidan bir"></svg>
+  </div>
+  <figcaption>1-darsdagi kalitlar, lekin nuqta o'rtaga qo'yilgan. Nuqtadan o'ngdagi kalitlarning vazni birdan kichik. O'ngda hosil bo'lgan son va uning 0,1 dan qanchalik uzoqligi.</figcaption>
+  <div class="controls">
+    <button type="button" data-fx="8">0,5</button>
+    <button type="button" data-fx="12">0,75</button>
+    <button type="button" data-fx="204">12,75</button>
+    <button type="button" data-fx="1">0,1 ga pastdan eng yaqini</button>
+    <button type="button" data-fx="2" class="primary">0,1 ga yuqoridan eng yaqini</button>
+  </div>
+  <p class="say" id="fxSay" aria-live="polite"></p>
+</figure>
+
+<p>Bu chizma darsning eng muhim haqiqatini ko'rsatadi. 0,5 aniq chiqadi: bitta kalit. 0,75 aniq chiqadi: yarim va chorak. Lekin 0,1 ni hech qanday yo'l bilan yasab bo'lmaydi. To'rtta kasr kaliti bilan unga eng yaqin sonlar 0,0625 va 0,125.</p>
+<p>Kalit qo'shsak, yordam beradimi? Qisman. Har bir yangi kalit aniqlikni ikki baravar oshiradi, va biz 0,1 ga tobora yaqinlashamiz. Lekin hech qachon yetib bormaymiz. Sababi o'nlik sanoqdagi tanish hodisaning o'zi: uchdan birni o'nlik kasr bilan yozing. 0,333... va uchlar hech qachon tugamaydi, chunki 3 soni 10 ning bo'luvchisi emas. Ikkilikda faqat ikkining darajalariga bo'linadigan kasrlar tugaydi: yarim, chorak, sakkizdan bir. O'ndan bir esa ikkilikda cheksiz davriy kasr: 0,0001100110011... va bu naqsh abadiy takrorlanadi.</p>
+<p>Demak, bu texnik kamchilik emas, sanoq tizimining xususiyati: <strong>o'nlikda oddiy ko'ringan son ikkilikda cheksiz bo'lishi mumkin</strong>, va chekli sondagi kalitlar uni faqat taxminan saqlay oladi.</p>
+
+<p class="beat">Bu usulning ikkinchi og'rig'i: nuqta qotib qolgan</p>
+<p>Yuqoridagi usulda nuqtaning o'rni oldindan belgilangan: to'rt bit butun qismga, to'rt bit kasr qismga. Shuning uchun u <strong>qat'iy nuqta</strong> usuli deyiladi. Uning kamchiligi: diapazon va aniqlik bir-birining hisobidan yashaydi. Chizmadagi sakkiz bit bilan eng katta son 15,9375, eng kichik qadam 0,0625. Katta sonlar kerak bo'lsa, nuqtani o'ngga surasiz va kasr aniqligini yo'qotasiz. Mayda kasrlar kerak bo'lsa, chapga surasiz va katta sonlarni yo'qotasiz.</p>
+<p>Ilmiy hisob-kitobda esa ikkalasi ham bir vaqtda kerak: bir formulada yulduzlar orasidagi masofa ham, atom o'lchami ham uchraydi. Ularning ikkalasiga yetadigan qat'iy nuqtali son yuzlab bit talab qilardi. Yechim: nuqtani qotirmaslik.</p>
+
+<h3><span class="part">2. Ichkarida</span>Suzuvchi nuqta: uch bo'lakli son</h3>
+<p>Olimlar juda katta va juda kichik sonlarni azaldan ixcham yozishadi: 300 000 000 o'rniga 3 × 10⁸, 0,000002 o'rniga 2 × 10⁻⁶. Bu yozuvda son ikki qismga ajralgan: <strong>raqamlarning o'zi</strong> (3 yoki 2) va <strong>nuqta qayerda turishi</strong> (10 ning nechanchi darajasi). Nuqta darajaga qarab «suzadi», usulning nomi shundan.</p>
+<p>Kompyuter aynan shu yozuvni ikkilikda ishlatadi. Java'dagi <span class="num">double</span> ning 64 biti uch bo'lakka bo'lingan:</p>
+<ul class="pain">
+  <li><strong>Ishora: 1 bit.</strong> 0 musbat, 1 manfiy. E'tibor bering: bu 2-darsdagi «tashlab ketilgan» ishora va qiymat usulining o'zi. Kasr sonlarda u hamon ishlatiladi.</li>
+  <li><strong>Daraja: 11 bit.</strong> Nuqta qayerda turishini bildiradi: sonni hosil qilish uchun raqamlarni 2 ning nechanchi darajasiga ko'paytirish kerak.</li>
+  <li><strong>Mantissa: 52 bit.</strong> Sonning raqamlari. U doim «bir butun va qandaydir kasr» ko'rinishida yoziladi, shuning uchun boshidagi bir saqlanmaydi, faqat kasr qismi saqlanadi.</li>
+</ul>
+<p>Pastdagi chizmada istalgan sonni kiriting va u 64 bitga qanday yoyilishini ko'ring. Eng muhimi pastki ikki quti: siz yozgan son va aslida saqlangan son.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="dbl" style="width:1240px;height:480px" viewBox="0 0 1240 480" role="img" aria-label="double turidagi sonning 64 biti: ishora, daraja va mantissa. Pastda yozilgan son va aslida saqlangan qiymat"></svg>
+  </div>
+  <figcaption>Yuqorida 64 bit uch bo'lakda. Pastda chapda siz kiritgan son, o'ngda shu bitlar aslida ifodalaydigan aniq qiymat, oxirgi raqamigacha.</figcaption>
+  <div class="slider">
+    <label for="dblN">Son:</label>
+    <input class="numin" id="dblN" type="text" inputmode="decimal" value="0.1" style="width:11rem">
+    <button type="button" data-dbl="0.5">0.5</button>
+    <button type="button" data-dbl="0.1">0.1</button>
+    <button type="button" data-dbl="0.3">0.3</button>
+    <button type="button" data-dbl="12.75">12.75</button>
+    <button type="button" data-dbl="-2">−2</button>
+    <button type="button" data-dbl="1000000">1 000 000</button>
+  </div>
+  <p class="say" id="dblSay" aria-live="polite"></p>
+</figure>
+
+<p>0,5 va 12,75 aniq saqlanadi: ular ikkining darajalaridan yig'iladi. 0,1 esa yo'q. Saqlangan qiymat 0,1 dan o'n yettinchi raqamda farq qiladi. 52 bitli mantissa o'sha cheksiz naqshni 52-bitda kesib, yaxlitlab qo'ygan.</p>
+<p>Bu farq juda kichik, va bitta sonda u hech qachon sezilmaydi. Muammo sonlar ustida amal bajarilganda boshlanadi: har bir sondagi mayda xato natijaga o'tadi va yangi yaxlitlash qo'shiladi.</p>
+
+<p class="beat">Mashhur misol: 0,1 + 0,2</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="sum" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="0,1 va 0,2 ning saqlangan qiymatlari qo'shilganda natija 0,3 ning saqlangan qiymatidan farq qiladi"></svg>
+  </div>
+  <figcaption>Chapda ikki son aslida qanday saqlangan. O'rtada qo'shish. O'ngda yuqorida hosil bo'lgan yig'indi, pastda esa 0,3 ning o'zi qanday saqlanishi. Ular bir xil emas.</figcaption>
+</figure>
+<p>Chizmani tartib bilan o'qing. 0,1 aslida biroz kattaroq saqlangan. 0,2 ham biroz kattaroq. Ularning yig'indisi yana yaxlitlanadi va 0,30000000000000004 ga yaqin son chiqadi. 0,3 ning o'zi esa biroz <em>kichikroq</em> saqlanadi. Natijada ikki son oxirgi bitda farq qiladi, va <span class="num">0.1 + 0.2 == 0.3</span> yolg'on qaytaradi. Bu Java'ning xatosi emas: Kotlin, JavaScript, Python, C va Oracle'ning <span class="num">BINARY_DOUBLE</span> turi ham aynan shu natijani beradi, chunki hammasi bitta standartga amal qiladi.</p>
+
+<p class="beat">Sonlar orasidagi teshiklar</p>
+<p>Ikkinchi, kamroq ma'lum xususiyat: <span class="num">double</span> sonlari bir tekis joylashmagan. Mantissa doim 52 bit, daraja esa uni kattalashtiradi. Demak, kichik sonlarda qo'shni qiymatlar bir-biriga juda yaqin, katta sonlarda esa ular orasidagi masofa o'sadi. Yetarlicha katta songa borganda qo'shni <span class="num">double</span> lar orasidagi masofa birdan oshadi, ya'ni ba'zi <strong>butun sonlarni</strong> ham saqlab bo'lmay qoladi.</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="gap" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="double sonining kattaligi oshgani sari u bilan keyingi ifodalanadigan son orasidagi masofa ham oshadi"></svg>
+  </div>
+  <figcaption>Chapda tanlangan son, o'rtada undan keyingi saqlab bo'ladigan son, o'ngda ular orasidagi masofa. Bu oraliqdagi hech bir sonni double saqlay olmaydi.</figcaption>
+  <div class="controls">
+    <button type="button" data-gap="1">1</button>
+    <button type="button" data-gap="1000">1 000</button>
+    <button type="button" data-gap="1000000000">1 milliard</button>
+    <button type="button" data-gap="9007199254740992" class="primary">9 007 199 254 740 992</button>
+    <button type="button" data-gap="1e18">1 kvintillion</button>
+  </div>
+  <p class="say" id="gapSay" aria-live="polite"></p>
+</figure>
+<p>9 007 199 254 740 992 soni 2 ning 53-darajasi. Undan boshlab <span class="num">double</span> faqat juft sonlarni saqlay oladi, toq sonlar eng yaqin juftiga yaxlitlanadi. Bu chegara amaliyotda juda muhim, sababini «Amaliyotda» bo'limida ko'rasiz.</p>
+
+<p class="beat">Maxsus qiymatlar</p>
+<p>Daraja bo'lagining ikki chekka qiymati oddiy sonlar uchun ishlatilmaydi. Ular maxsus holatlarga ajratilgan:</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Qiymat</th><th>Qachon hosil bo'ladi</th><th>Tuzog'i</th></tr></thead>
+  <tbody>
+    <tr><td class="num">Infinity</td><td>Musbat sonni nolga bo'lganda: <span class="num">1.0 / 0</span></td><td>Xato chiqmaydi. Butun sonlarda nolga bo'lish <span class="num">ArithmeticException</span> beradi, kasr sonlarda esa jimgina cheksizlik qaytadi</td></tr>
+    <tr><td class="num">NaN</td><td>Ma'nosiz amalda: <span class="num">0.0 / 0</span>, manfiy sondan ildiz</td><td>NaN hech narsaga teng emas, hatto o'ziga ham: <span class="num">x == x</span> yolg'on. Tekshirish uchun faqat <span class="num">Double.isNaN(x)</span>. NaN qatnashgan har qanday hisob natijasi ham NaN</td></tr>
+    <tr><td class="num">−0.0</td><td>Manfiy juda kichik son nolga yaxlitlanganda</td><td>Ishora alohida bitda bo'lgani uchun nol ikkita. <span class="num">0.0 == -0.0</span> rost, lekin <span class="num">Double.valueOf(0.0).equals(-0.0)</span> yolg'on</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Har mashinada o'z kasri bo'lgan davr</h3>
+<p>Suzuvchi nuqta g'oyasi eski, lekin uning bugungi yagona ko'rinishi 1985-yilda paydo bo'lgan. Undan oldin bir xil dastur har xil kompyuterda har xil javob berardi. Bosqichlarni tartib bilan ko'ring.</p>
+<div class="bench" id="evoFloat"></div>
+
+<h3><span class="part">Yechim</span>Pul uchun nima ishlatiladi</h3>
+<p>Pul hisobi ilmiy hisobdan tubdan farq qiladi. Ilmda o'n yettinchi raqamdagi xato ahamiyatsiz. Pulda esa har bir tiyin hisobda, yig'indilar oxirgi tiyinigacha mos kelishi kerak, va sonlar o'nlik tizimda aniq bo'lishi kerak: 0,10 so'm aynan 0,10 so'm. Buning ikki yechimi bor, va ikkalasi ham bitta fikrga tayanadi: <strong>kasrdan qochib, butun son saqlash</strong>.</p>
+<p><strong>Birinchi yechim: eng mayda birlikda <span class="num">long</span>.</strong> Summani so'mda emas, tiyinda saqlaysiz. 12,50 so'm bu 1250 tiyin, va 1250 butun son. Butun sonlar 1- va 2-darslarda ko'rganingizdek aniq saqlanadi. Bu «Og'riq» bo'limidagi qat'iy nuqta usulining o'zi, faqat ikkilik emas, o'nlik nuqta bilan: nuqta doim ikki xona chapda deb kelishib olingan.</p>
+<p><strong>Ikkinchi yechim: <span class="num">BigDecimal</span>.</strong> Bu Java klassi ichida ikki narsani saqlaydi: <em>masshtabsiz qiymat</em>, ya'ni nuqtasiz yozilgan butun son, va <em>masshtab</em>, ya'ni nuqtadan keyin nechta xona borligi. 12,50 uning ichida 1250 va 2. Bu ham suzuvchi nuqta, lekin daraja ikkining emas, o'nning darajasi. Shuning uchun o'nlikda aniq yoziladigan har qanday son unda aniq saqlanadi. Butun son qismi istalgancha katta bo'la oladi, chunki u 64 bit bilan cheklanmagan.</p>
+<p>Pastdagi chizmada bitta hisobga 0,10 so'mdan qo'shib boring va uch usulni solishtiring.</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="mon" style="width:1240px;height:440px" viewBox="0 0 1240 440" role="img" aria-label="Bir xil summa uch usulda: double xato to'playdi, tiyindagi long va BigDecimal aniq saqlaydi"></svg>
+  </div>
+  <figcaption>Har bosishda uchala o'zgaruvchiga 0,10 so'm qo'shiladi. Farq faqat ularning ichida son qanday saqlanishida.</figcaption>
+  <div class="controls">
+    <button class="primary" type="button" id="monAdd">0,10 so'm qo'shish</button>
+    <button type="button" id="monTen">O'n marta qo'shish</button>
+    <button type="button" id="monZero">Nolga qaytarish</button>
+  </div>
+  <p class="say" id="monSay" aria-live="polite"></p>
+</figure>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Ikkilik kasr</dt>
+  <dd>Nuqtadan keyingi xonalari yarim, chorak, sakkizdan bir kabi vaznlarga ega bo'lgan son. Faqat ikkining darajalariga bo'linadigan kasrlar chekli sondagi bit bilan aniq yoziladi.</dd>
+  <dt>Qat'iy nuqta (fixed point)</dt>
+  <dd>Nuqtaning o'rni oldindan belgilangan usul. Summani tiyinda saqlash shu usulning o'nlik ko'rinishi.</dd>
+  <dt>Suzuvchi nuqta (floating point)</dt>
+  <dd>Son raqamlar va daraja sifatida saqlanadigan usul. Nuqtaning o'rni darajaga qarab o'zgaradi.</dd>
+  <dt>Mantissa</dt>
+  <dd>Sonning raqamlari saqlanadigan bo'lak. <span class="num">double</span> da 52 bit, bu o'nlikda taxminan 15–17 ta ishonchli raqam.</dd>
+  <dt>Daraja (eksponent)</dt>
+  <dd>Nuqta qayerda turishini bildiradigan bo'lak. <span class="num">double</span> da 11 bit.</dd>
+  <dt>float va double</dt>
+  <dd><span class="num">float</span> 32 bit: 1 ishora, 8 daraja, 23 mantissa, taxminan 7 ta ishonchli raqam. <span class="num">double</span> 64 bit, «ikki baravar aniqlik» nomi shundan. Java'da kasr yozilsa, sukut bo'yicha <span class="num">double</span>.</dd>
+  <dt>IEEE 754</dt>
+  <dd>Suzuvchi nuqtali sonlar qanday saqlanishi va hisoblanishini belgilaydigan xalqaro standart. Deyarli barcha protsessor va tillar unga amal qiladi.</dd>
+  <dt>Yaxlitlash xatosi</dt>
+  <dd>Son yoki amal natijasi mavjud bitlarga sig'may, eng yaqin ifodalanadigan qiymatga almashtirilishidan kelib chiqadigan farq.</dd>
+  <dt>NaN</dt>
+  <dd>«Not a Number»: ma'nosiz amal natijasini bildiradigan maxsus qiymat.</dd>
+  <dt>BigDecimal</dt>
+  <dd>Java'dagi o'nlik kasrlarni aniq saqlaydigan klass. Ichida istalgancha katta butun son va masshtab.</dd>
+  <dt>Masshtab (scale)</dt>
+  <dd><span class="num">BigDecimal</span> da nuqtadan keyingi xonalar soni. 12,50 ning masshtabi 2, 12,5 ning masshtabi 1.</dd>
+  <dt>Eng mayda birlik (minor unit)</dt>
+  <dd>Valyutaning bo'linmaydigan eng kichik bo'lagi: tiyin, sent. Summani shu birlikda butun son qilib saqlash to'lov tizimlarida keng tarqalgan usul.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar va qoidalar</h3>
+
+<div class="rule">
+  <b>Qoida: pul hech qachon float yoki double da saqlanmaydi</b>
+  <p>Yuqoridagi chizmada ko'rdingiz: o'n marta 0,10 qo'shilganda <span class="num">double</span> 1,00 emas, 0,9999999999999999 beradi. Bitta amalda farq ko'rinmaydi. Lekin million tranzaksiyali hisobotda yig'indi bir necha tiyinga mos kelmay qoladi, va uni hech kim topa olmaydi, chunki har bir alohida hisob «to'g'ri».</p>
+  <p class="why">Nima ishlatiladi: tiyinda <span class="num">long</span> yoki <span class="num">BigDecimal</span>. Bazada: Oracle'da <span class="num">NUMBER(19,2)</span> kabi o'nlik tur, <span class="num">BINARY_DOUBLE</span> yoki <span class="num">FLOAT</span> emas. To'lov tizimlari protokollarining ko'pi summani eng mayda birlikda butun son qilib uzatadi, aynan shu sababdan.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: BigDecimal ni double dan yaratish</b>
+  <p><span class="num">new BigDecimal(0.1)</span> deb yozsangiz, <span class="num">0.1</span> avval <span class="num">double</span> ga aylanadi, ya'ni allaqachon noaniq, va <span class="num">BigDecimal</span> o'sha noaniq qiymatni oxirgi raqamigacha sodiqlik bilan saqlaydi: 0,1000000000000000055511151231257827... Yuqoridagi 64 bitli chizmada «aslida saqlangan son» qutisida ko'rgan sonning o'zi.</p>
+  <p class="why">To'g'risi: <span class="num">new BigDecimal("0.1")</span>, ya'ni matndan, yoki <span class="num">BigDecimal.valueOf(0.1)</span>. Kodni ko'rib chiqishda <span class="num">new BigDecimal(</span> ichida kasr son yoki <span class="num">double</span> o'zgaruvchi tursa, bu deyarli har doim xato.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: BigDecimal da equals va compareTo</b>
+  <p><span class="num">new BigDecimal("2.0").equals(new BigDecimal("2.00"))</span> yolg'on qaytaradi. <span class="num">equals</span> masshtabni ham solishtiradi: 2,0 ning masshtabi 1, 2,00 niki 2. Qiymat jihatidan tengligini <span class="num">compareTo</span> tekshiradi: natija 0 bo'lsa, sonlar teng.</p>
+  <p class="why">Qayerda uchraydi: bazadan kelgan summa bilan kodda hisoblangan summani solishtirishda, va <span class="num">BigDecimal</span> ni <span class="num">HashMap</span> kaliti yoki <span class="num">HashSet</span> elementi qilganda. Ikkinchi holatda 2,0 va 2,00 ikki xil kalit bo'lib qoladi.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: katta butun son JSON orqali o'tganda buziladi</b>
+  <p>JavaScript'da alohida butun son turi yo'q, har bir son <span class="num">double</span>. Yuqoridagi «teshiklar» chizmasini eslang: 9 007 199 254 740 992 dan keyin toq sonlar saqlanmaydi. Java'dagi <span class="num">long</span> identifikator shu chegaradan katta bo'lsa va JSON orqali brauzerga yoki JavaScript'da yozilgan ilovaga borsa, uning oxirgi raqamlari jimgina o'zgaradi. Mijoz boshqa identifikator bilan so'rov yuboradi va «topilmadi» degan javob oladi.</p>
+  <p class="why">To'g'risi: katta identifikatorlar va summalarni JSON da matn sifatida uzatish. Katta xizmatlar aynan shu sababli identifikatorni ikki ko'rinishda beradi: son va matn. Belgisi: xato faqat katta identifikatorli yozuvlarda va faqat veb mijozda chiqadi.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: kasr sonlarni == bilan solishtirmang</b>
+  <p>Ikki <span class="num">double</span> hisob-kitob natijasi bo'lsa, ular matematik jihatdan teng bo'lishi kerak bo'lgan holatda ham oxirgi bitda farq qilishi mumkin. Solishtirish uchun farqning kichikligi tekshiriladi: <span class="num">Math.abs(a - b) &lt; 0.000001</span>, bu yerda chegara masalaga qarab tanlanadi.</p>
+  <p class="why">Testlarda: JUnit'dagi <span class="num">assertEquals(kutilgan, haqiqiy, delta)</span> ning uchinchi parametri shu chegara. Usiz yozilgan test bir mashinada o'tib, hisoblash tartibi biroz o'zgarganda yiqiladi.</p>
+</div>
+
+<div class="rule">
+  <b>Haqiqiy voqealar</b>
+  <p>1991-yilda Fors ko'rfazi urushida Patriot raketaga qarshi tizimi kelayotgan raketani tuta olmadi, 28 askar halok bo'ldi. Tizim vaqtni soniyaning o'ndan birlarida sanab, uni 0,1 ga ko'paytirar edi. 0,1 ikkilikda aniq saqlanmagani uchun har ko'paytirishda mayda xato qo'shilgan. Tizim 100 soat to'xtovsiz ishlagach, xato soniyaning uchdan biriga yetgan, bu vaqt ichida raketa yarim kilometrdan ortiq masofani bosib o'tadi.</p>
+  <p>1982-yilda Vankuver fond birjasi yangi indeksni 1000 punktdan boshladi. Har bir bitimdan keyin indeks qayta hisoblanib, uchinchi kasr xonasidan keyingi raqamlar yaxlitlanmasdan shunchaki tashlab yuborilgan. Kuniga minglab marta tashlangan mayda bo'laklar yig'ilib, yigirma ikki oyda indeks 520 punktga tushib qolgan, holbuki bozor o'sayotgan edi. To'g'ri qayta hisoblanganda u 1098 punkt chiqdi.</p>
+  <p class="why">Ikkalasida ham har bir alohida amaldagi xato ko'zga ko'rinmas darajada kichik edi. Zarar uning millionlab marta takrorlanishidan chiqqan.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> 0,625 ni ikkilik kasr qilib yozing. Usul: yarim sig'adimi, chorak sig'adimi, sakkizdan bir sig'adimi. Birinchi chizmada tekshiring. Keyin 0,2 ni yozishga urinib ko'ring: naqsh qayerdan takrorlana boshlaydi?</li>
+  <li><strong>64 bitli chizmada.</strong> 0,5, 0,25 va 0,75 ni kiriting. Mantissa va darajada nima o'zgaradi? Keyin 1 va 2 ni kiriting: qaysi bo'lak o'zgardi?</li>
+  <li><strong>Kodda.</strong> Bajaring va har bir natijani tushuntiring:
+    <pre class="code" style="margin-top:0.5rem">System.out.println(0.1 + 0.2);
+System.out.println(0.1 + 0.2 == 0.3);
+System.out.println(new BigDecimal(0.1));
+System.out.println(new BigDecimal("0.1"));
+System.out.println(new BigDecimal("2.0").equals(new BigDecimal("2.00")));
+System.out.println(new BigDecimal("2.0").compareTo(new BigDecimal("2.00")));
+System.out.println(1.0 / 0);
+System.out.println(0.0 / 0 == 0.0 / 0);
+System.out.println((double) 9007199254740993L);</pre>
+  </li>
+  <li><strong>O'z ishingizda.</strong> Loyihangizda summa qaysi turda yuradi: Java kodida, bazadagi ustunda va JSON da? Uchala joyda bir xil aniqlikmi? <span class="num">new BigDecimal(</span> yozilgan joylarni qidiring: qavs ichida nima turibdi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga o'z so'zingiz bilan yozing.</p>
+<ol class="check">
+  <li>Nega 0,5 <span class="num">double</span> da aniq saqlanadi, 0,1 esa yo'q? Javobda «ikkining darajasi» so'zi bo'lsin.</li>
+  <li><span class="num">double</span> ning 64 biti qanday uch bo'lakka bo'lingan va har biri nimani bildiradi?</li>
+  <li>Hamkasbingiz aytdi: «<span class="num">double</span> da 17 ta raqam aniqlik bor, bizning summalar bunga sig'adi, demak pul uchun yetadi». U qayerda xato qilyapti?</li>
+  <li><span class="num">BigDecimal</span> ichida nima saqlanadi va u nega 0,1 ni aniq saqlay oladi?</li>
+  <li>Server <span class="num">long</span> identifikatorni JSON da son qilib yuboryapti. Veb ilovada ba'zi yozuvlar ochilmayapti, mobil ilovada hammasi ishlayapti. Sababi nima bo'lishi mumkin va qanday tuzatiladi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Daraja nega «surilgan» holda saqlanadi?</summary>
+  <p>Daraja manfiy ham bo'lishi kerak, chunki birdan kichik sonlar bor. Lekin u qo'shimcha kodda emas, surilgan ko'rinishda saqlanadi: haqiqiy darajaga 1023 qo'shiladi. Masalan, daraja −4 bo'lsa, bitlarda 1019 turadi. Buning sababi solishtirish: shu tufayli ikki musbat <span class="num">double</span> ni solishtirish uchun ularning bitlarini oddiy butun son kabi solishtirish kifoya, alohida mantiq kerak emas. Yuqoridagi chizmada «daraja» qutisida ikkala qiymat ham ko'rsatilgan.</p>
+</details>
+<details>
+  <summary>Yaxlitlash usullari va «bankir yaxlitlashi»</summary>
+  <p>Maktabda 0,5 doim yuqoriga yaxlitlanadi. Minglab summani shunday yaxlitlasangiz, yig'indi asta-sekin yuqoriga siljiydi. Shuning uchun moliyada ko'pincha boshqa qoida ishlatiladi: aynan o'rtada turgan son eng yaqin juft raqamga yaxlitlanadi. 2,5 bu 2 ga, 3,5 esa 4 ga. Yarmi yuqoriga, yarmi pastga ketadi va siljish yo'qoladi. Java'da bu <span class="num">RoundingMode.HALF_EVEN</span>, maktabdagi usul esa <span class="num">HALF_UP</span>. <span class="num">BigDecimal</span> da bo'lish amali yaxlitlash usulini aniq ko'rsatishni talab qiladi, aks holda cheksiz kasr chiqqanda xato tashlaydi. Qaysi usul to'g'riligi texnik emas, biznes va qonunchilik savoli.</p>
+</details>
+<details>
+  <summary>Nolga juda yaqin sonlar</summary>
+  <p>Daraja eng kichik qiymatiga yetganda sonlar birdan nolga tushib ketmaydi. Standart «normallashmagan» sonlarni nazarda tutadi: ularda mantissaning boshidagi yashirin bir yo'q, va ular nolga tomon asta-sekin, aniqlikni yo'qotib boradi. <span class="num">double</span> ning eng kichik musbat qiymati taxminan 4,9 × 10⁻³²⁴. Amaliy ahamiyati kam, lekin ba'zi protsessorlarda bunday sonlar bilan hisoblash odatdagidan ancha sekin.</p>
+</details>
+<details>
+  <summary>Java'da strictfp nima edi?</summary>
+  <p>Eski Intel protsessorlari oraliq hisoblarni 80 bitda bajarar edi, shuning uchun bir xil Java dasturi turli mashinalarda oxirgi bitda farq qiladigan natija berishi mumkin edi. <span class="num">strictfp</span> kalit so'zi hisobni qat'iy 64 bitda bajarishga majburlardi. Zamonaviy protsessorlarda bu muammo yo'q, va Java 17 dan boshlab barcha hisoblar doim qat'iy: kalit so'z ortiqcha bo'lib qoldi.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>IEEE 754 standarti, 1985, qayta ko'rilgan 2008 va 2019. David Goldberg, «What Every Computer Scientist Should Know About Floating-Point Arithmetic», 1991: mavzu bo'yicha klassik maqola. AQSH Bosh hisob palatasining Patriot tizimi haqidagi hisoboti, GAO/IMTEC-92-26, 1992. Java tili spetsifikatsiyasi, 4.2.3-bo'lim.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Kasr son bitlarda ishora, daraja va mantissa sifatida saqlanadi. Faqat ikkining darajalaridan yig'iladigan kasrlar aniq saqlanadi, 0,1 kabi sonlar taxminan. Xato bitta sonda ko'rinmaydi, takrorlanganda to'planadi. Katta sonlarda <span class="num">double</span> butun sonlarni ham yo'qotadi. Pul uchun kasrdan qochiladi: tiyinda <span class="num">long</span> yoki <span class="num">BigDecimal</span>.</p>
+  <p><strong>Keyingi dars.</strong> Matn va kodirovka: harf qanday baytga aylanadi, nega matn ba'zan «ierogliflarga» aylanib qoladi, va o'n oltilik yozuv.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="02-manfiy-sonlar.html">Oldingi: 2. Manfiy sonlar</a><span class="dim">Keyingi: 4. Matn va kodirovka (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'long balans = 3_000_000_000L;', link: 'ishga tushganda JVM bajaradi' },
+    { title: 'JVM', sub: 'O\'zgaruvchi uchun joy ajratadi', ex: 'long turi: 64 bit kerak', link: 'joyni xotiradan oladi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: '64 bit = yonma-yon 8 ta bayt', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [3], 'Bayt: bitlar kasr son sifatida');
+</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  var M = '−';
+  function $(id) { return document.getElementById(id); }
+  function uz(s) { return String(s).replace('.', ',').replace('-', M); }
+  function grp3(s) { return String(s).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+
+  // double ning bitlari va aniq o'nlik qiymati
+  function parts(d) {
+    var v = new DataView(new ArrayBuffer(8)); v.setFloat64(0, d);
+    var hi = v.getUint32(0), lo = v.getUint32(4);
+    var bits = ('00000000000000000000000000000000' + hi.toString(2)).slice(-32) + ('00000000000000000000000000000000' + lo.toString(2)).slice(-32);
+    return { sign: hi >>> 31, e: (hi >>> 20) & 2047, m: (BigInt(hi & 1048575) << 32n) | BigInt(lo), bits: bits };
+  }
+  function exact(d) {
+    if (!isFinite(d)) return String(d);
+    var p = parts(d), mant = p.e === 0 ? p.m : (p.m | (1n << 52n)), E = (p.e === 0 ? 1 : p.e) - 1075, s;
+    if (mant === 0n) return p.sign ? M + '0' : '0';
+    if (E >= 0) s = (mant << BigInt(E)).toString();
+    else {
+      var k = -E, n = (mant * (5n ** BigInt(k))).toString();
+      while (n.length <= k) n = '0' + n;
+      s = n.slice(0, n.length - k) + ',' + n.slice(n.length - k);
+      s = s.replace(/0+$/, '').replace(/,$/, '');
+    }
+    return (p.sign ? M : '') + s;
+  }
+  function nextUp(d) { var v = new DataView(new ArrayBuffer(8)); v.setFloat64(0, d); v.setBigUint64(0, v.getBigUint64(0) + 1n); return v.getFloat64(0); }
+  function lines(svg, x, y, str, n, cls) { for (var i = 0, r = 0; i < str.length; i += n, r++) S(svg, 'text', { x: x, y: y + r * 22, 'class': cls || 'mono' }, str.slice(i, i + n)); }
+  window.__fp = { exact: exact, parts: parts, nextUp: nextUp };
+
+  // ---------- 1. Qat'iy nuqta ----------
+  (function () {
+    var svg = $('fx'), W = [8, 4, 2, 1, 0.5, 0.25, 0.125, 0.0625], L = ['8', '4', '2', '1', '1/2', '1/4', '1/8', '1/16'], bits = [0, 0, 0, 0, 0, 0, 1, 0];
+    function total() { var t = 0; bits.forEach(function (b, i) { if (b) t += W[i]; }); return t; }
+    function set(n) { for (var i = 0; i < 8; i++) bits[i] = (n >> (7 - i)) & 1; }
+    function draw(msg, focus) {
+      svg.textContent = ''; marker(svg, 'fxmk');
+      S(svg, 'rect', { x: 20, y: 40, width: 404, height: 320, rx: 4, 'class': 'grp' });
+      S(svg, 'rect', { x: 20, y: 40, width: 180, height: 24, 'class': 'tab' });
+      S(svg, 'text', { x: 30, y: 57, 'class': 'tabt' }, 'Butun qism: 4 kalit');
+      S(svg, 'rect', { x: 452, y: 40, width: 404, height: 320, rx: 4, 'class': 'grp' });
+      S(svg, 'rect', { x: 452, y: 40, width: 180, height: 24, 'class': 'tab' });
+      S(svg, 'text', { x: 462, y: 57, 'class': 'tabt' }, 'Kasr qism: 4 kalit');
+      S(svg, 'circle', { cx: 438, cy: 300, r: 7, 'class': 'mk' });
+      S(svg, 'text', { x: 438, y: 334, 'text-anchor': 'middle', 'class': 'lbl' }, 'nuqta');
+      var nodes = [];
+      bits.forEach(function (b, i) {
+        var x = (i < 4 ? 38 : 470) + (i % 4) * 94, g = S(svg, 'g', { role: 'switch', tabindex: '0', 'aria-checked': b ? 'true' : 'false', 'aria-label': 'Vazni ' + L[i] + ' bo\'lgan kalit' });
+        S(svg, 'rect', { x: x, y: 84, width: 84, height: 200, rx: 5, 'class': 'box' + (b ? ' live' : '') }, null, g);
+        S(svg, 'text', { x: x + 42, y: 108, 'text-anchor': 'middle', 'class': 'sub' }, 'vazni', g);
+        S(svg, 'text', { x: x + 42, y: 130, 'text-anchor': 'middle', 'class': 'val' }, L[i], g);
+        S(svg, 'text', { x: x + 42, y: 150, 'text-anchor': 'middle', 'class': 'sub' }, i < 4 ? '' : '= ' + uz(W[i]), g);
+        S(svg, 'circle', { cx: x + 22, cy: 186, r: 4, 'class': 'mk' }, null, g);
+        S(svg, 'circle', { cx: x + 62, cy: 186, r: 4, 'class': 'mk' }, null, g);
+        S(svg, 'line', { x1: x + 22, y1: 186, x2: b ? x + 62 : x + 56, y2: b ? 186 : 164, 'class': 'arr' }, null, g);
+        S(svg, 'text', { x: x + 42, y: 244, 'text-anchor': 'middle', 'class': 'big' }, String(b), g);
+        S(svg, 'text', { x: x + 42, y: 272, 'text-anchor': 'middle', 'class': 'sub' }, b ? 'tok bor' : 'tok yo\'q', g);
+        function tg() { bits[i] = bits[i] ? 0 : 1; draw('Vazni ' + L[i] + ' bo\'lgan kalit ' + (bits[i] ? 'yoqildi.' : 'o\'chirildi.'), i); }
+        g.addEventListener('click', tg);
+        g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); tg(); } });
+        nodes.push(g);
+      });
+      S(svg, 'text', { x: 38, y: 326, 'class': 'sub' }, 'Kalitlar holati:');
+      S(svg, 'text', { x: 150, y: 327, 'class': 'val' }, bits.slice(0, 4).join('') + ' , ' + bits.slice(4).join(''));
+      var t = total(), diff = Math.abs(t - 0.1);
+      box(svg, 940, 60, 280, 130, 'Hosil bo\'lgan son', 'Yoniq kalitlar vaznlari yig\'indisi', 'on');
+      S(svg, 'text', { x: 956, y: 156, 'class': 'big' }, uz(t));
+      box(svg, 940, 220, 280, 130, '0,1 dan farqi', t === 0.1 ? 'Aniq mos' : (t > 0.1 ? 'Keragidan katta' : 'Keragidan kichik'), diff < 0.05 ? 'bad' : '');
+      S(svg, 'text', { x: 956, y: 316, 'class': 'val' }, uz(Math.round(diff * 10000) / 10000));
+      [[125, 'yig\'indi'], [285, 'solishtirish']].forEach(function (a) {
+        S(svg, 'line', { x1: 858, y1: a[0], x2: 938, y2: a[0], 'class': 'arr', 'marker-end': 'url(#fxmk)' });
+        S(svg, 'text', { x: 898, y: a[0] - 10, 'text-anchor': 'middle', 'class': 'lbl' }, a[1]);
+      });
+      if (msg) $('fxSay').textContent = msg;
+      if (focus !== undefined) nodes[focus].focus();
+    }
+    var PRE = { 8: 'Yarim: bitta kalit, aniq.', 12: 'Yarim va chorak: 0,75, aniq.', 204: '8 + 4 + 0,5 + 0,25 = 12,75. Butun va kasr qism birga, aniq.', 1: 'Eng kichik qadam: o\'n oltidan bir, ya\'ni 0,0625. Bu 0,1 dan 0,0375 ga kichik. Undan keyingi qadam esa allaqachon 0,125.', 2: 'Sakkizdan bir, ya\'ni 0,125. Bu 0,1 dan 0,025 ga katta. 0,0625 bilan 0,125 orasida boshqa son yo\'q: 0,1 ikkalasining orasiga tushib qolgan.' };
+    Array.prototype.forEach.call(document.querySelectorAll('[data-fx]'), function (b) { b.addEventListener('click', function () { var n = +b.getAttribute('data-fx'); set(n); draw(PRE[n]); }); });
+    draw(PRE[2]);
+  })();
+
+  // ---------- 2. double ning 64 biti ----------
+  (function () {
+    var svg = $('dbl'), inp = $('dblN');
+    // ikki o'nlik yozuvni solishtirish: birinchisi kattami
+    function bigger(exStr, rawStr) {
+      var x = exStr.replace(M, '-').replace(',', '.'), y = rawStr, nx = x[0] === '-', ny = y[0] === '-';
+      if (nx !== ny) return ny;
+      x = x.replace('-', ''); y = y.replace('-', '').replace('+', '');
+      var xa = x.split('.'), ya = y.split('.'), fx = xa[1] || '', fy = ya[1] || '';
+      while (fx.length < fy.length) fx += '0'; while (fy.length < fx.length) fy += '0';
+      var bx = BigInt(xa[0] + fx), by = BigInt((ya[0] || '0') + fy);
+      return nx ? bx < by : bx > by;
+    }
+    function canon(str) { var s = str.trim().replace(',', '.').replace(M, '-').replace(/\s/g, ''); return s; }
+    function draw() {
+      var raw = canon(inp.value), d = Number(raw), say = $('dblSay');
+      svg.textContent = '';
+      if (raw === '' || isNaN(d) || !isFinite(d)) { say.textContent = 'Son kiriting, masalan 0.1 yoki 12.75.'; say.className = 'say bad'; return; }
+      marker(svg, 'dbmk');
+      var p = parts(d), ex = exact(d);
+      group(svg, 20, 30, 1200, 200, 'double: 64 bit, uch bo\'lak');
+      box(svg, 40, 76, 150, 134, 'Ishora', '1 bit');
+      S(svg, 'text', { x: 56, y: 160, 'class': 'big' }, p.bits[0]);
+      S(svg, 'text', { x: 56, y: 192, 'class': 'sub' }, p.sign ? 'manfiy' : 'musbat');
+      box(svg, 206, 76, 270, 134, 'Daraja', '11 bit');
+      S(svg, 'text', { x: 222, y: 156, 'class': 'val' }, p.bits.slice(1, 12));
+      S(svg, 'text', { x: 222, y: 192, 'class': 'sub' }, p.e === 0 ? 'maxsus: nol yoki juda kichik son' : 'bitlarda ' + p.e + ', haqiqiy daraja ' + uz(p.e - 1023));
+      box(svg, 492, 76, 708, 134, 'Mantissa', '52 bit: sonning raqamlari, boshidagi «1,» saqlanmaydi');
+      S(svg, 'text', { x: 508, y: 156, 'class': 'mono' }, p.bits.slice(12, 38));
+      S(svg, 'text', { x: 508, y: 178, 'class': 'mono' }, p.bits.slice(38));
+      var want = uz(raw.replace(/^\+/, '')), wantC = raw.indexOf('.') === -1 ? raw : raw.replace(/0+$/, '').replace(/\.$/, '');
+      var same = uz(wantC) === ex;
+      box(svg, 40, 290, 380, 170, 'Siz yozgan son', 'Kodda yoki ma\'lumotda');
+      S(svg, 'text', { x: 56, y: 378, 'class': 'big' }, want.length > 14 ? want.slice(0, 14) : want);
+      box(svg, 560, 290, 660, 170, 'Aslida saqlangan son', same ? 'Yozilgan son bilan aynan bir xil' : 'Eng yaqin ifodalanadigan qiymat', same ? 'on' : 'bad');
+      lines(svg, 576, 368, ex, 62, 'mono');
+      S(svg, 'line', { x1: 420, y1: 375, x2: 558, y2: 375, 'class': 'arr', 'marker-end': 'url(#dbmk)' });
+      S(svg, 'text', { x: 489, y: 365, 'text-anchor': 'middle', 'class': 'lbl' }, '64 bitga yaxlitlanadi');
+      S(svg, 'line', { x1: 890, y1: 230, x2: 890, y2: 288, 'class': 'arr', 'marker-end': 'url(#dbmk)' });
+      S(svg, 'text', { x: 902, y: 264, 'class': 'lbl' }, 'shu bitlar aslida bildiradigan son');
+      if (same) { say.textContent = want + ' aniq saqlandi: u ikkining darajalaridan yig\'iladi, va mantissaning 52 biti unga yetdi.'; say.className = 'say'; }
+      else { say.textContent = want + ' ni aniq saqlab bo\'lmadi. Mantissadagi takrorlanayotgan naqshga qarang: bu cheksiz davriy kasrning 52 bitda kesilgan boshlanishi. Saqlangan son yozilganidan ' + (bigger(ex, wantC) ? 'biroz katta' : 'biroz kichik') + '.'; say.className = 'say bad'; }
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-dbl]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-dbl'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 3. 0,1 + 0,2 ----------
+  (function () {
+    var svg = $('sum'); marker(svg, 'smk');
+    function card(x, y, w, title, sub, d, cls) { box(svg, x, y, w, 150, title, sub, cls); lines(svg, x + 16, y + 78, exact(d), Math.floor((w - 32) / 8.6), 'mono'); }
+    card(20, 30, 400, 'Siz yozgan: 0,1', 'Saqlangan qiymat: biroz katta', 0.1, '');
+    card(20, 220, 400, 'Siz yozgan: 0,2', 'Saqlangan qiymat: biroz katta', 0.2, '');
+    box(svg, 500, 150, 180, 100, 'Qo\'shish', 'Natija yana', 'on');
+    S(svg, 'text', { x: 516, y: 216, 'class': 'sub' }, '64 bitga yaxlitlanadi');
+    S(svg, 'path', { d: 'M420 105H460V180H498', 'class': 'arr', 'marker-end': 'url(#smk)' });
+    S(svg, 'path', { d: 'M420 295H460V220H498', 'class': 'arr', 'marker-end': 'url(#smk)' });
+    card(780, 30, 440, '0.1 + 0.2 natijasi', 'Kutilgandan biroz katta', 0.1 + 0.2, 'bad');
+    card(780, 220, 440, '0.3 ning o\'zi', 'Saqlangan qiymat: biroz kichik', 0.3, '');
+    S(svg, 'path', { d: 'M680 200H730V105H778', 'class': 'arr', 'marker-end': 'url(#smk)' });
+    S(svg, 'text', { x: 729, y: 95, 'text-anchor': 'middle', 'class': 'lbl' }, 'natija');
+    S(svg, 'line', { x1: 1000, y1: 182, x2: 1000, y2: 218, stroke: 'var(--bad)', 'stroke-width': 2.5, 'stroke-dasharray': '6 4' });
+    S(svg, 'text', { x: 1012, y: 205, 'class': 'lbl', fill: 'var(--bad)' }, 'teng emas: == yolg\'on qaytaradi');
+  })();
+
+  // ---------- 4. Teshiklar ----------
+  (function () {
+    var svg = $('gap');
+    function show(d) { return d < 1e15 && Math.floor(d) !== d ? exact(d) : grp3(exact(d).split(',')[0]) + (exact(d).indexOf(',') > 0 ? ',' + exact(d).split(',')[1] : ''); }
+    function draw(d) {
+      svg.textContent = ''; marker(svg, 'gpmk');
+      var n = nextUp(d), g = n - d;
+      box(svg, 20, 60, 400, 150, 'Tanlangan son', 'double da aniq saqlanadi', 'on');
+      lines(svg, 36, 150, show(d), 40, 'val');
+      box(svg, 480, 60, 420, 150, 'Keyingi saqlab bo\'ladigan son', 'Bitlarga 1 qo\'shilgandagi qiymat');
+      lines(svg, 496, 146, show(n), 44, 'mono');
+      box(svg, 960, 60, 260, 150, 'Oradagi masofa', 'Shu oraliqda double yo\'q', g >= 1 ? 'bad' : '');
+      S(svg, 'text', { x: 976, y: 150, 'class': 'val' }, g >= 1 ? grp3(g) : uz(g.toExponential(2)).replace('e', ' × 10^'));
+      S(svg, 'line', { x1: 420, y1: 135, x2: 478, y2: 135, 'class': 'arr', 'marker-end': 'url(#gpmk)' });
+      S(svg, 'line', { x1: 900, y1: 135, x2: 958, y2: 135, 'class': 'arr', 'marker-end': 'url(#gpmk)' });
+      S(svg, 'line', { x1: 60, y1: 256, x2: 1180, y2: 256, 'class': 'ruler' });
+      S(svg, 'line', { x1: 220, y1: 244, x2: 220, y2: 268, 'class': 'ruler' }); S(svg, 'line', { x1: 1020, y1: 244, x2: 1020, y2: 268, 'class': 'ruler' });
+      S(svg, 'text', { x: 220, y: 288, 'text-anchor': 'middle', 'class': 'lbl' }, 'tanlangan son');
+      S(svg, 'text', { x: 1020, y: 288, 'text-anchor': 'middle', 'class': 'lbl' }, 'keyingisi');
+      S(svg, 'text', { x: 620, y: 248, 'text-anchor': 'middle', 'class': 'lbl' }, 'bu oraliqdagi sonlar eng yaqin chetiga yaxlitlanadi');
+      var say = $('gapSay');
+      if (g < 1e-9) { say.textContent = 'Bu kattalikda qo\'shni sonlar bir-biriga juda yaqin. Aniqlik o\'n oltinchi raqam atrofida.'; say.className = 'say'; }
+      else if (g < 1) { say.textContent = 'Son kattalashdi, oraliq ham kengaydi: endi kasr qismida faqat ' + (g < 1e-4 ? 'olti-yetti' : 'bir-ikki') + ' ta ishonchli raqam qoldi. Mantissa 52 bitligicha qolgan, lekin uning ko\'p qismi butun qismga ketyapti.'; say.className = 'say'; }
+      else if (g === 2) { say.textContent = 'Oraliq 2 ga teng. 9 007 199 254 740 993 degan toq sonni double saqlay olmaydi: u 992 yoki 994 ga yaxlitlanadi. Bu chegara 2 ning 53-darajasi, va Java\'dagi long undan ming baravar katta sonlarni saqlaydi. JavaScript\'da esa bundan katta butun son yo\'q.'; say.className = 'say bad'; }
+      else { say.textContent = 'Bu kattalikda double faqat har ' + grp3(g) + ' ta sondan bittasini saqlay oladi. Butun sonlar ham aniq emas.'; say.className = 'say bad'; }
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-gap]'), function (b) { b.addEventListener('click', function () { draw(Number(b.getAttribute('data-gap'))); }); });
+    draw(9007199254740992);
+  })();
+
+  // ---------- 5. Pul ----------
+  (function () {
+    var svg = $('mon'), n = 0;
+    function draw() {
+      svg.textContent = ''; marker(svg, 'mnmk');
+      var d = 0; for (var i = 0; i < n; i++) d += 0.1;
+      var tiyin = n * 10, dec = (tiyin / 100).toFixed(2), bad = String(d) !== String(tiyin / 100);
+      box(svg, 20, 170, 250, 100, 'Qo\'shildi', n + ' marta 0,10 so\'m');
+      S(svg, 'text', { x: 36, y: 252, 'class': 'sub' }, 'To\'g\'ri javob: ' + uz(dec) + ' so\'m');
+      group(svg, 400, 20, 820, 400, 'Bitta hisob, uch xil saqlash usuli');
+      box(svg, 426, 60, 768, 100, 'double', 'Ikkilik suzuvchi nuqta: 0,10 ning o\'zi taxminan saqlangan', bad ? 'bad' : 'on');
+      S(svg, 'text', { x: 442, y: 142, 'class': 'val' }, uz(String(d)) + (bad ? '   (noto\'g\'ri)' : ''));
+      box(svg, 426, 180, 768, 100, 'long, tiyinda', 'Butun son: 0,10 so\'m bu 10 tiyin', 'on');
+      S(svg, 'text', { x: 442, y: 262, 'class': 'val' }, grp3(tiyin) + ' tiyin  =  ' + uz(dec) + ' so\'m');
+      box(svg, 426, 300, 768, 100, 'BigDecimal', 'O\'nlik suzuvchi nuqta: masshtabsiz qiymat va masshtab', 'on');
+      S(svg, 'text', { x: 442, y: 382, 'class': 'val' }, uz(dec) + '   (ichida: ' + tiyin + ' va masshtab 2)');
+      S(svg, 'path', { d: 'M270 220H340V110H424', 'class': 'arr', 'marker-end': 'url(#mnmk)' });
+      S(svg, 'path', { d: 'M340 220H424', 'class': 'arr', 'marker-end': 'url(#mnmk)' });
+      S(svg, 'path', { d: 'M340 220V350H424', 'class': 'arr', 'marker-end': 'url(#mnmk)' });
+      S(svg, 'text', { x: 282, y: 210, 'class': 'lbl' }, '+0,10');
+      var say = $('monSay');
+      if (n === 0) say.textContent = 'Hisob bo\'sh. Tugmani uch marta bosing, keyin o\'ntaga yetkazing.';
+      else if (!bad) say.textContent = 'Hozircha uchala usul bir xil ko\'rsatyapti. double ichidagi xato bor, lekin u chop etishda yaxlitlanib, ko\'rinmayapti.';
+      else say.textContent = 'double ' + uz(String(d)) + ' ko\'rsatyapti, to\'g\'ri javob ' + uz(dec) + '. Har bir qo\'shishda 0,10 ning mayda xatosi natijaga o\'tdi. Qolgan ikki usul butun son bilan ishlagani uchun xato to\'planadigan joy yo\'q.';
+      say.className = bad ? 'say bad' : 'say';
+    }
+    $('monAdd').addEventListener('click', function () { if (n < 1000) n++; draw(); });
+    $('monTen').addEventListener('click', function () { if (n <= 990) n += 10; draw(); });
+    $('monZero').addEventListener('click', function () { n = 0; draw(); });
+    draw();
+  })();
+
+  // ---------- Tarix ----------
+  window.evoStepper('evoFloat', [
+    {
+      name: `Qat'iy nuqta`,
+      years: `1940–1950-yillar`,
+      art: `<rect x="10" y="36" width="20" height="28"/><rect x="30" y="36" width="20" height="28"/><rect x="50" y="36" width="20" height="28"/><circle cx="76" cy="62" r="4" class="lit"/><rect x="82" y="36" width="14" height="28" class="lit"/><rect x="96" y="36" width="14" height="28" class="lit"/>`,
+      how: `Ilk kompyuterlar faqat butun sonlar bilan ishlagan. Kasr kerak bo'lsa, dasturchi nuqta qayerda turishini o'zi kelishib olar va har bir amaldan keyin sonni qo'lda surib, masshtabni to'g'rilab borar edi.`,
+      better: `Apparat sodda: alohida kasr qurilmasi kerak emas.`,
+      pain: `Har bir formulada oraliq natijalar qanchalik katta yoki kichik bo'lishini oldindan hisoblab chiqish kerak. Adashilsa, son toshib ketadi yoki aniqligini yo'qotadi. Dasturchi vaqtining katta qismi masalaga emas, shu masshtablashga ketgan.`,
+      ex: `John von Neumann suzuvchi nuqtaga qarshi bo'lgan: yaxshi matematik masshtabni o'zi kuzatib boradi, deb hisoblagan. Amaliyot buning aksini ko'rsatdi.`
+    },
+    {
+      name: `Har kimning o'z formati`,
+      years: `1950–1970-yillar`,
+      art: `<rect x="8" y="14" width="46" height="20"/><rect x="66" y="14" width="46" height="20" class="lit"/><rect x="8" y="64" width="46" height="20" class="lit"/><rect x="66" y="64" width="46" height="20"/><path d="M31 34v30M89 34v30M54 24h12M54 74h12" class="acc" stroke-dasharray="3 4"/>`,
+      how: `Suzuvchi nuqta apparatga ko'chdi: protsessorning o'zi ishora, daraja va mantissa bilan ishlaydigan bo'ldi. Lekin har bir ishlab chiqaruvchi bo'laklar hajmini, darajaning asosini va yaxlitlash qoidasini o'zicha tanlagan.`,
+      better: `Masshtablash dasturchi zimmasidan tushdi. FORTRAN kabi tillarda formulani matematikadagidek yozish mumkin bo'ldi.`,
+      pain: `Bir xil dastur har xil mashinada har xil javob berardi. Ba'zi mashinalarda ikki son teng emas, lekin ayirmasi nol chiqardi. Boshqalarida songa 1,0 ni ko'paytirish uni o'zgartirardi. Ishonchli hisob-kitob kutubxonasini bir mashinadan boshqasiga ko'chirib bo'lmasdi.`,
+      ex: `IBM System/360 o'n oltilik asosli formatni ishlatgan, DEC VAX o'zinikini, Cray superkompyuterlari yana boshqasini.`
+    },
+    {
+      name: `IEEE 754`,
+      years: `1985-yil`,
+      art: `<rect x="10" y="34" width="14" height="32" class="lit"/><rect x="26" y="34" width="30" height="32"/><rect x="58" y="34" width="52" height="32"/><path d="M34 50h14M66 50h36" class="acc"/>`,
+      how: `Yagona standart: bo'laklar hajmi, yaxlitlash qoidalari, maxsus qiymatlar (cheksizlik, NaN) va har bir amal natijasi oxirgi bitigacha belgilab qo'yildi. Shu darsdagi 64 bitli chizma aynan shu standartning double formati.`,
+      better: `Bir xil hisob har qanday mashinada bir xil natija beradi. Xatolarni oldindan baholash mumkin bo'ldi, chunki har bir amal qanday yaxlitlanishi aniq.`,
+      pain: `Standart ikkilik asosda. O'nlik kasrlar, ya'ni pul, hamon aniq saqlanmaydi. Bu ilm uchun maqbul, moliya uchun esa yo'q.`,
+      ex: `Asosiy muallifi William Kahan, buning uchun 1989-yilda Turing mukofotini olgan. Standart Intel 8087 kasr hisob protsessori (1980) loyihasidan o'sib chiqqan va besh yildan keyin rasman qabul qilingan.`
+    },
+    {
+      name: `O'nlik arifmetika`,
+      years: `1997-yildan`,
+      art: `<rect x="12" y="30" width="60" height="40"/><path d="M22 50h40" class="acc"/><rect x="82" y="30" width="26" height="40" class="lit"/><path d="M72 50h10"/>`,
+      how: `Moliya uchun alohida yo'l: son ikkilik emas, o'nlik asosda saqlanadi. Java'da bu BigDecimal: istalgancha katta butun son va o'nlik masshtab. Hisob protsessorda emas, dasturda bajariladi.`,
+      better: `O'nlikda aniq yoziladigan har qanday son aniq saqlanadi. Yaxlitlash usuli va aniqlik dasturchi tomonidan aniq belgilanadi.`,
+      pain: `double dan o'nlab marta sekin va ko'proq xotira oladi: har bir son alohida obyekt. Yozilishi noqulay: a + b o'rniga a.add(b). equals va masshtab bilan bog'liq tuzoqlari bor.`,
+      ex: `BigDecimal Java 1.1 da paydo bo'lgan, Java 5 da aniqlik va yaxlitlashni boshqarish kengaytirilgan. Oracle bazasidagi NUMBER turi ham o'nlik asosda ishlaydi, shuning uchun bazadagi summa aniq. IEEE 754 ning 2008-yilgi tahririga o'nlik formatlar ham qo'shilgan.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
