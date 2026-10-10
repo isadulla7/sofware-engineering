@@ -1,0 +1,2004 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Java: pastdan tepaga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EDF0F3;
+  --panel: #FFFFFF;
+  --ink: #18212C;
+  --muted: #566373;
+  --line: #C9D1DA;
+  --accent: #274690;
+  --accent-soft: #DCE5F7;
+  --lamp: #E8A317;
+  --lamp-soft: #FBEBC4;
+  --lamp-ink: #3A2A00;
+  --off: #D5DBE2;
+  --bad: #B3261E;
+  --sans: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131922;
+    --panel: #1B2330;
+    --ink: #E7ECF2;
+    --muted: #9AA7B6;
+    --line: #2F3A4A;
+    --accent: #8FB0FF;
+    --accent-soft: #24324F;
+    --lamp: #F2B632;
+    --lamp-soft: #43371A;
+    --lamp-ink: #2A1E00;
+    --off: #2A3442;
+    --bad: #FF8A80;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131922;
+  --panel: #1B2330;
+  --ink: #E7ECF2;
+  --muted: #9AA7B6;
+  --line: #2F3A4A;
+  --accent: #8FB0FF;
+  --accent-soft: #24324F;
+  --lamp: #F2B632;
+  --lamp-soft: #43371A;
+  --lamp-ink: #2A1E00;
+  --off: #2A3442;
+  --bad: #FF8A80;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; margin: 0 0 1rem; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.75rem; line-height: 1.2; margin: 4rem 0 0.5rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.25rem; line-height: 1.3; margin: 3rem 0 0.5rem; font-weight: 600; }
+p { margin: 0 0 1rem; max-width: 40rem; }
+.lead { font-size: 1.1875rem; color: var(--muted); }
+strong { font-weight: 600; }
+.num { font-family: var(--mono); }
+
+/* Qavatlar minorasi */
+.tower { list-style: none; margin: 2rem 0 0.75rem; padding: 0; display: flex; flex-direction: column-reverse; gap: 4px; max-width: 26rem; }
+.tower li { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.55rem 0.9rem; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); background: transparent; }
+.tower li .n { font-family: var(--mono); font-weight: 600; min-width: 1ch; }
+.tower li.now { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); font-weight: 600; }
+.tower li.now .here { margin-left: auto; font-weight: 500; font-size: 0.875rem; }
+.note { font-size: 0.9375rem; color: var(--muted); }
+
+/* Atamalar */
+dl.terms { margin: 1.25rem 0; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid var(--accent); max-width: 40rem; }
+dl.terms dt { font-weight: 600; margin-top: 0.6rem; }
+dl.terms dt:first-child { margin-top: 0; }
+dl.terms dd { margin: 0; color: var(--muted); }
+
+/* Asbob paneli */
+.bench { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1.25rem; margin: 1.5rem 0; }
+.bench > p:last-child { margin-bottom: 0; }
+
+/* Bit kalitlari */
+.bits { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-width: 30rem; }
+.bit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bit .w { font-family: var(--mono); font-size: 0.8125rem; color: var(--muted); }
+.bit button {
+  width: 100%; aspect-ratio: 3 / 4; max-height: 4.5rem; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--off); color: var(--muted); font-family: var(--mono); font-size: 1.375rem; font-weight: 600; cursor: pointer;
+}
+.bit button[aria-checked="true"] { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
+.readout { margin-top: 1.1rem; display: grid; gap: 0.3rem; }
+.readout .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.readout .k { color: var(--muted); min-width: 9.5rem; }
+.readout .v { font-family: var(--mono); font-weight: 500; }
+
+/* Mashina */
+.cpu { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.reg { border: 1px solid var(--line); border-radius: 4px; padding: 0.5rem 0.85rem; min-width: 10rem; }
+.reg .k { font-size: 0.875rem; color: var(--muted); display: block; }
+.reg .v { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; }
+.reg.pc .v { color: var(--accent); }
+.memlabel { font-size: 0.9375rem; color: var(--muted); margin: 0 0 0.4rem; }
+.mem { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+@media (max-width: 560px) { .mem { grid-template-columns: repeat(4, 1fr); } }
+.cell { border: 1px solid var(--line); border-radius: 4px; padding: 0.3rem 0.25rem 0.35rem; text-align: center; background: var(--bg); min-width: 0; }
+.cell .addr { display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+.cell input {
+  width: 100%; border: 0; background: transparent; color: var(--ink); text-align: center;
+  font-family: var(--mono); font-size: 1.25rem; font-weight: 600; padding: 0; -moz-appearance: textfield; appearance: textfield;
+}
+.cell input::-webkit-outer-spin-button, .cell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cell .bin { display: block; font-family: var(--mono); font-size: 0.6875rem; color: var(--muted); letter-spacing: -0.02em; }
+.cell.pc { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.cell.arg { border-color: var(--accent); border-style: dashed; }
+.cell.touched { background: var(--lamp-soft); border-color: var(--lamp); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 0.8rem; height: 0.8rem; margin-right: 0.4rem; vertical-align: -1px; border-radius: 2px; border: 1px solid var(--line); }
+.legend .l-pc::before { background: var(--accent-soft); border-color: var(--accent); }
+.legend .l-arg::before { border: 1px dashed var(--accent); }
+.legend .l-touch::before { background: var(--lamp-soft); border-color: var(--lamp); }
+.controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.1rem 0 0.9rem; }
+.controls button {
+  font: inherit; font-size: 1rem; font-weight: 500; padding: 0.5rem 0.9rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+}
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); font-weight: 600; }
+.controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+.say { min-height: 3.2rem; margin: 0; padding: 0.7rem 0.9rem; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); max-width: none; }
+.say.bad { border-color: var(--bad); color: var(--bad); }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+/* Texnologiya bosqichlari */
+.evo-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.1rem; }
+.evo-tabs button, .evo-nav button {
+  font: inherit; font-size: 0.9375rem; font-weight: 500; padding: 0.4rem 0.75rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+}
+.evo-tabs button[aria-pressed="true"] { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); font-weight: 600; }
+.evo-body { display: grid; grid-template-columns: 8rem 1fr; gap: 1.25rem; align-items: start; }
+@media (max-width: 560px) { .evo-body { grid-template-columns: 1fr; } .evo-body svg { max-width: 7rem; } }
+.evo-body svg { width: 100%; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.evo-body svg .lit { fill: var(--lamp); stroke: var(--lamp); }
+.evo-body svg .acc { stroke: var(--accent); }
+.evo-body h4 { margin: 0; font-size: 1.1875rem; font-weight: 600; line-height: 1.3; }
+.evo-body .years { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9375rem; }
+.evo-body dl { margin: 0; }
+.evo-body dt { font-weight: 600; font-size: 0.9375rem; margin-top: 0.75rem; }
+.evo-body dt.pain { color: var(--bad); }
+.evo-body dd { margin: 0; max-width: 34rem; }
+.evo-nav { display: flex; gap: 0.5rem; margin-top: 1.1rem; }
+.evo-nav button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+
+/* 1-qavat */
+.tower li.done { background: var(--lamp-soft); border-color: var(--lamp); color: var(--ink); }
+.tower li .here { margin-left: auto; font-size: 0.875rem; font-weight: 500; }
+.tower a { color: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+.presets button { font: inherit; font-size: 0.9375rem; font-weight: 500; padding: 0.4rem 0.75rem; border-radius: 4px; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+.asm-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1.1rem; }
+@media (max-width: 640px) { .asm-grid { grid-template-columns: minmax(0, 1fr); } }
+.asm-grid h4 { margin: 0 0 0.4rem; font-size: 0.9375rem; font-weight: 600; color: var(--muted); }
+textarea.src { width: 100%; min-height: 19rem; font-family: var(--mono); font-size: 0.9375rem; line-height: 1.5; padding: 0.7rem; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); resize: vertical; tab-size: 8; white-space: pre; overflow-x: auto; }
+.listing { overflow-x: auto; }
+.listing table { min-width: 0; width: 100%; font-family: var(--mono); font-size: 0.875rem; }
+.listing th { font-family: var(--sans); }
+.listing td, .listing th { padding: 0.25rem 0.75rem 0.25rem 0.3rem; white-space: pre; }
+.listing tr.cur td { background: var(--accent-soft); }
+.kv { margin: 0.8rem 0 0; font-size: 0.9375rem; max-width: none; }
+.kv .k { color: var(--muted); }
+.kv .v { font-family: var(--mono); font-weight: 500; overflow-wrap: anywhere; }
+.asm-err { margin: 0; padding: 0.7rem 0.9rem; border: 1px solid var(--bad); border-radius: 4px; color: var(--bad); max-width: none; }
+.cell .val { display: block; font-family: var(--mono); font-size: 1.125rem; font-weight: 600; }
+.cell .tag { display: block; font-family: var(--mono); font-size: 0.6875rem; color: var(--accent); min-height: 1em; overflow: hidden; text-overflow: ellipsis; }
+.code2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin: 1.25rem 0; }
+@media (max-width: 640px) { .code2 { grid-template-columns: minmax(0, 1fr); } }
+.code2 figure { margin: 0; }
+.code2 figcaption { font-size: 0.9375rem; color: var(--muted); margin-bottom: 0.3rem; }
+pre.code { font-family: var(--mono); font-size: 0.875rem; line-height: 1.5; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem; overflow-x: auto; margin: 0; }
+
+
+/* J0 */
+.tower li .n { min-width: 2ch; }
+.cell.own { border-color: var(--accent); background: var(--accent-soft); }
+.cell.lost { border: 1px dashed var(--bad); }
+.cell.own.touched, .cell.lost.touched { background: var(--lamp-soft); }
+.legend .l-own::before { background: var(--accent-soft); border-color: var(--accent); }
+.legend .l-lost::before { border: 1px dashed var(--bad); }
+.pick-label { font-size: 0.9375rem; color: var(--muted); margin: 0 0 0.3rem; }
+.pipe { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.4rem 0 1rem; }
+.pipe .box { border: 1px solid var(--line); border-radius: 4px; padding: 0.4rem 0.6rem; font-family: var(--mono); font-size: 0.875rem; background: var(--bg); }
+.pipe .box.key { border-color: var(--accent); background: var(--accent-soft); }
+.pipe .ar { color: var(--muted); }
+
+
+/* J1 */
+.stack { display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 4px; min-height: 10rem; border: 1px solid var(--line); border-radius: 4px; padding: 6px; background: var(--bg); }
+.stack .slot { font-family: var(--mono); font-weight: 600; font-size: 1.125rem; text-align: center; padding: 0.3rem; border: 1px solid var(--accent); background: var(--accent-soft); border-radius: 3px; }
+.stack .slot.top { background: var(--lamp-soft); border-color: var(--lamp); }
+.stack .empty { color: var(--muted); font-size: 0.875rem; text-align: center; margin: auto; }
+.jv-side { display: grid; gap: 1rem; align-content: start; }
+.jv-side .reg { min-width: 0; padding: 0.35rem 0.7rem; }
+.jv-side .reg .v { font-size: 1.25rem; }
+td.numr, th.numr { text-align: right; font-family: var(--mono); white-space: nowrap; }
+tr.best td { background: var(--lamp-soft); }
+
+
+/* J2 */
+.mem2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; }
+@media (max-width: 640px) { .mem2 { grid-template-columns: minmax(0, 1fr); } }
+.mem2 h4, .gen h4 { margin: 0 0 0.4rem; font-size: 0.9375rem; font-weight: 600; color: var(--muted); }
+.frames { display: flex; flex-direction: column-reverse; justify-content: flex-start; gap: 6px; min-height: 9rem; }
+.frame, .obj { border: 1px solid var(--line); border-radius: 4px; padding: 0.45rem 0.6rem; background: var(--bg); font-family: var(--mono); font-size: 0.875rem; }
+.frame.top { border-color: var(--accent); background: var(--accent-soft); }
+.frame b, .obj b { display: block; font-family: var(--sans); font-size: 0.875rem; margin-bottom: 0.15rem; }
+.heapbox { display: flex; flex-direction: column; gap: 6px; min-height: 9rem; border: 1px dashed var(--line); border-radius: 4px; padding: 6px; }
+.obj.live { border-color: var(--lamp); background: var(--lamp-soft); }
+.obj.dead { border: 1px dashed var(--bad); }
+.heapbox .empty { color: var(--muted); font-size: 0.875rem; margin: auto; }
+.stepnum { font-family: var(--mono); font-size: 0.875rem; color: var(--muted); align-self: center; }
+.gen { display: grid; grid-template-columns: 2fr 1fr 1fr 2fr; gap: 8px; }
+@media (max-width: 640px) { .gen { grid-template-columns: 1fr 1fr; } }
+.region { border: 1px solid var(--line); border-radius: 4px; padding: 6px; min-height: 6.5rem; background: var(--bg); }
+.region.young { border-color: var(--accent); }
+.chips { display: flex; flex-wrap: wrap; gap: 4px; }
+.chip { font-family: var(--mono); font-size: 0.875rem; font-weight: 600; padding: 0.15rem 0.4rem; border-radius: 3px; border: 1px solid var(--lamp); background: var(--lamp-soft); }
+.chip.dead { border: 1px dashed var(--bad); background: transparent; color: var(--muted); font-weight: 400; }
+.chip.new { border-color: var(--line); background: var(--panel); }
+
+
+/* J3 */
+tr.err td { color: var(--bad); }
+.kv2 { display: flex; flex-wrap: wrap; gap: 0.4rem 0.6rem; align-items: center; margin: 0.8rem 0; }
+.kv2 .k { color: var(--muted); font-size: 0.9375rem; }
+.numin { font: inherit; font-family: var(--mono); font-size: 1.125rem; width: 7rem; padding: 0.35rem 0.5rem; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); }
+.objrow { display: flex; flex-wrap: wrap; gap: 8px; margin: 0.6rem 0; }
+.objrow .obj { min-width: 9rem; }
+
+.scroll { overflow-x: auto; margin: 1rem 0 1.25rem; }
+table { border-collapse: collapse; min-width: 26rem; }
+th, td { text-align: left; padding: 0.45rem 1rem 0.45rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 0.9375rem; color: var(--muted); }
+td.num { font-weight: 600; }
+
+ol.try, ul.pain { max-width: 40rem; padding-left: 1.3rem; }
+ol.try li, ul.pain li { margin-bottom: 0.7rem; }
+
+details { border-bottom: 1px solid var(--line); max-width: 40rem; }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; padding: 0.8rem 0; font-weight: 600; }
+details p { margin: 0 0 1rem; color: var(--muted); }
+
+.next { margin-top: 3rem; padding: 1rem 1.1rem; border: 1px dashed var(--line); border-radius: 6px; max-width: 40rem; }
+.next p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Java: pastdan tepaga</h1>
+<p class="lead">Java'ni yaratilishidan eng so'nggi o'zgarishigacha, qavatma-qavat. Har qavatda: qanday og'riq bor edi, unga javoban nima yaratildi va u qanday yangi og'riq olib keldi.</p>
+
+<ol class="tower" aria-label="Java yo'li qavatlari">
+  <li class="done"><span class="n">J0</span><a href="#j0">Java nega yaratildi: C dan Java'gacha</a><span class="here">o'tildi</span></li>
+  <li class="done"><span class="n">J1</span><a href="#j1">JVM ichi: bayt-kod, interpretator, JIT</a><span class="here">o'tildi</span></li>
+  <li class="done"><span class="n">J2</span><a href="#j2">Xotira: stack, heap va axlat yig'uvchi</a><span class="here">o'tildi</span></li>
+  <li class="now"><span class="n">J3</span><a href="#j3">Tiplar: generics, enum, annotatsiyalar</a><span class="here">shu yerdasiz</span></li>
+  <li><span class="n">J4</span><span>Ko'p oqimlilik: Thread'dan virtual thread'gacha</span></li>
+  <li><span class="n">J5</span><span>Yozish uslubi: lambda, stream, record</span></li>
+  <li><span class="n">J6</span><span>Ekotizim: J2EE'dan Spring Boot'gacha</span></li>
+  <li><span class="n">J7</span><span>Arxitektura: qatlamlardan mikroservislargacha</span></li>
+  <li><span class="n">J8</span><span>Versiyama-versiya: 1.0 dan eng so'nggisigacha</span></li>
+</ol>
+<p class="note">Poydevor alohida sahifada: «Dasturlash: pastdan tepaga» (0-qavat: bit va mashina kodi, 1-qavat: assembler). Bu yerdagi «0-qavatdan eslang» kabi havolalar o'sha sahifaga tegishli.</p>
+
+<h2 id="j0">J0-qavat. Java nega yaratildi</h2>
+<p class="lead">Assemblerdan Java'gacha qirq yil o'tgan. Bu qavat shu yo'lni qisqa bosib o'tadi va bitta savolga javob beradi: 1990-yillar boshida dasturchilarni nima shunchalik qiynadiki, yangi til va uning ostiga butun bir «xayoliy kompyuter» yasashga to'g'ri keldi?</p>
+
+<h3>Ko'prik: assemblerdan Java'gacha to'rt qadam</h3>
+<p>1-qavat shu fikr bilan tugagan edi: tarjimon so'zni songa aylantira olsa, butun ifodani ham aylantira olar. Shunday tarjimon <strong>kompilyator</strong> deyiladi. U <span class="num">c = a + b</span> degan bitta qatorni o'zi «yukla, qo'sh, saqla» buyruqlariga yoyadi. Eng muhimi: bitta matnni har xil protsessor uchun har xil sonlarga tarjima qila oladi.</p>
+<p>Pastdagi to'rt tilni tartib bilan bosib chiqing. Har birining og'rig'i keyingisining sababi, to'rtinchisi esa Java.</p>
+<div class="bench" id="evoLang"></div>
+
+<dl class="terms">
+  <dt>Yuqori darajali til</dt>
+  <dd>Mashina buyruqlari bilan emas, odamga yaqin ifodalar bilan yoziladigan til: formulalar, <span class="num">if</span>, <span class="num">while</span>, funksiyalar. Bitta qatori bir nechta mashina buyrug'iga aylanadi.</dd>
+  <dt>Kompilyator</dt>
+  <dd>Yuqori darajali tildagi matnni mashina kodiga aylantiruvchi dastur. Assemblerdan farqi: jadvaldan almashtirmaydi, qaror qabul qiladi (qaysi registr, qaysi tartib).</dd>
+  <dt>Manba kod va bajariladigan fayl</dt>
+  <dd>Manba kod siz yozgan matn. Bajariladigan fayl kompilyator undan chiqargan tayyor sonlar. Protsessor faqat ikkinchisini tushunadi.</dd>
+  <dt>Platforma</dt>
+  <dd>Protsessor turi va operatsion tizim juftligi. Masalan: Intel protsessorida Windows, SPARC protsessorida Solaris.</dd>
+</dl>
+
+<h3>C ning birinchi og'rig'i: xotira dasturchining qo'lida</h3>
+<p>C da dastur ishlab turgan paytda qo'shimcha xotira kerak bo'lsa, dasturchi uni o'zi so'raydi va ish tugagach o'zi qaytaradi. So'rash <span class="num">malloc</span>, qaytarish <span class="num">free</span> deyiladi. So'ralgan joyning manzili <strong>pointer</strong> degan o'zgaruvchida saqlanadi. Pointer 0-qavatdagi manzilning o'zi: «falon katakdan boshlab» degan son.</p>
+<p>Bu juda tez ishlaydi, lekin uchta xato turiga yo'l ochadi. Uchalasi ham kompilyatsiyadan o'tadi va uchalasi ham ko'pincha xato xabarisiz sodir bo'ladi. Pastdagi modelda har birini qadam-baqadam ko'ring.</p>
+
+<div class="bench" id="cmem">
+  <div class="evo-tabs" id="cmTabs"></div>
+  <div class="asm-grid">
+    <div>
+      <h4>C kodi</h4>
+      <div class="listing"><table><tbody id="cmCode"></tbody></table></div>
+    </div>
+    <div>
+      <h4>Pointer o'zgaruvchilar</h4>
+      <div class="cpu" id="cmVars"></div>
+    </div>
+  </div>
+  <p class="memlabel">Dastur so'rab olishi mumkin bo'lgan xotira: 16 ta katak.</p>
+  <div class="mem" id="cmMem"></div>
+  <div class="legend">
+    <span class="l-own">band, egasi bor</span>
+    <span class="l-lost">band, lekin unga hech kim yeta olmaydi</span>
+    <span class="l-touch">shu qadamda yozilgan</span>
+  </div>
+  <div class="controls">
+    <button class="primary" id="cmNext" type="button">Keyingi qadam</button>
+    <button id="cmBack" type="button">Boshidan</button>
+  </div>
+  <p class="say" id="cmSay" aria-live="polite"></p>
+</div>
+
+<dl class="terms">
+  <dt>Pointer (ko'rsatkich)</dt>
+  <dd>Ichida boshqa katakning manzili turadigan o'zgaruvchi. C da pointer ustida arifmetika qilish mumkin: unga 1 qo'shsangiz, qo'shni katakni ko'rsatadi. Kuchi ham, xavfi ham shunda.</dd>
+  <dt>malloc va free</dt>
+  <dd><span class="num">malloc(4)</span> «menga 4 ta katak ber» degani, javobiga birinchi katak manzili qaytadi. <span class="num">free(p)</span> «bu joy menga endi kerak emas» degani.</dd>
+  <dt>Xotira oqishi (memory leak)</dt>
+  <dd>Olingan joy qaytarilmagan va unga olib boradigan manzil yo'qolgan holat. Joy band, lekin undan hech kim foydalana olmaydi.</dd>
+  <dt>Osilgan pointer (dangling pointer)</dt>
+  <dd>Allaqachon qaytarilgan joyni hamon ko'rsatib turgan pointer. U orqali yozilsa, o'sha joyning yangi egasining ma'lumoti buziladi.</dd>
+  <dt>Chegaradan chiqish (buffer overflow)</dt>
+  <dd>Ajratilgan joyga sig'adiganidan ko'p ma'lumot yozish. Ortig'i qo'shni kataklarga tushadi. O'nlab yillar davomida eng ko'p uchraydigan xavfsizlik zaifligi shu bo'lgan.</dd>
+</dl>
+
+<h3>C ning ikkinchi og'rig'i: har platformaga alohida fayl</h3>
+<p>Kompilyator matnni bitta aniq protsessorning sonlariga aylantiradi. 0-qavatdan eslang: har protsessor oilasining buyruq sonlari o'ziga xos. Demak, tayyor fayl faqat o'sha platformada ishlaydi. Boshqasi uchun matnni qayta kompilyatsiya qilish kerak, ko'pincha matnning o'zini ham moslashtirib.</p>
+<p>Pastda tilni va ikki kompyuterni tanlab ko'ring. Avval C bilan har xil juftlarni sinang, keyin Java'ga o'ting.</p>
+
+<div class="bench" id="plat">
+  <p class="pick-label">Til</p>
+  <div class="evo-tabs" id="plLang"></div>
+  <p class="pick-label">Dastur qayerda kompilyatsiya qilindi</p>
+  <div class="evo-tabs" id="plBuild"></div>
+  <p class="pick-label">Tayyor fayl qayerda ishga tushirilyapti</p>
+  <div class="evo-tabs" id="plRun"></div>
+  <div class="pipe" id="plPipe"></div>
+  <p class="say" id="plSay" aria-live="polite"></p>
+</div>
+
+<p>Java bu yerda yangi qatlam qo'shdi. Kompilyator matnni haqiqiy protsessorning sonlariga emas, <strong>bayt-kod</strong> degan oraliq sonlarga aylantiradi. Bayt-kodni hech qaysi haqiqiy protsessor tushunmaydi. Uni <strong>JVM</strong> degan dastur o'qib bajaradi. JVM har bir platforma uchun alohida yozilgan, bayt-kod esa hamma joyda bir xil.</p>
+<p>E'tibor bering: muammo yo'qolmadi, u ko'chdi. Ilgari har bir dasturchi o'z dasturini har platformaga moslashtirardi. Endi bu ishni JVM mualliflari bir marta qiladi, qolgan hamma undan foydalanadi.</p>
+
+<div class="code2">
+  <figure>
+    <figcaption>Java'da</figcaption>
+<pre class="code">int c = a + b;</pre>
+  </figure>
+  <figure>
+    <figcaption>Bayt-kodda</figcaption>
+<pre class="code">iload_1     // a ni ol
+iload_2     // b ni ol
+iadd        // qo'sh
+istore_3    // c ga saqla</pre>
+  </figure>
+</div>
+<p>1-qavatdagi LOAD, ADD, STORE ni tanidingizmi? Bayt-kod xayoliy protsessorning mashina kodi, JVM esa o'sha protsessorning dastur ko'rinishidagi nusxasi. U ichkarida qanday ishlashini J1-qavatda ochamiz.</p>
+
+<dl class="terms">
+  <dt>Bayt-kod</dt>
+  <dd>Java kompilyatori chiqaradigan oraliq buyruqlar. <span class="num">.class</span> faylning ichidagi narsa shu. Nomi har bir buyruq kodi bir bayt bo'lganidan.</dd>
+  <dt>JVM (Java Virtual Machine)</dt>
+  <dd>Bayt-kodni o'qib, uni o'zi turgan kompyuterda bajaruvchi dastur. «Virtual mashina» deyilishi sababi: u temirdan emas, dasturdan yasalgan protsessor.</dd>
+  <dt>javac</dt>
+  <dd>Java kompilyatori. <span class="num">.java</span> matnini <span class="num">.class</span> bayt-kodiga aylantiradi.</dd>
+  <dt>JRE (Java Runtime Environment)</dt>
+  <dd>JVM va standart kutubxonalar birga. Tayyor Java dasturini ishga tushirish uchun yetadi.</dd>
+  <dt>JDK (Java Development Kit)</dt>
+  <dd>JRE ustiga dasturchi asboblari: javac, tuzatish vositalari va boshqalar. Dastur yozish uchun kerak. Qisqasi: JDK ichida JRE, JRE ichida JVM.</dd>
+</dl>
+
+<h3>Java'ning tug'ilishi: besh yillik yo'l</h3>
+<p>Java veb uchun o'ylab topilmagan. U televizor pristavkalari uchun boshlangan, ikki marta bozor topa olmagan va deyarli yopilib ketgan. Bosqichlarni tartib bilan ko'ring.</p>
+<div class="bench" id="evoJava"></div>
+
+<h3>Java har bir og'riqqa nima deb javob berdi</h3>
+<div class="scroll">
+<table>
+  <thead><tr><th>C va C++ dagi og'riq</th><th>Java'ning javobi</th></tr></thead>
+  <tbody>
+    <tr><td>free ni unutish, xotira oqishi</td><td>free umuman yo'q. Hech kim murojaat qila olmaydigan obyektlarni <strong>axlat yig'uvchi</strong> (GC) o'zi topib tozalaydi</td></tr>
+    <tr><td>Osilgan pointer</td><td>Obyekt unga kamida bitta havola bor ekan yashaydi. Tirik havola o'lik obyektni ko'rsata olmaydi</td></tr>
+    <tr><td>Pointer arifmetikasi</td><td>Pointer o'rniga havola (reference). Unga son qo'shib, qo'shni katakka o'tib bo'lmaydi</td></tr>
+    <tr><td>Chegaradan chiqish</td><td>Har bir massiv murojaatida indeks tekshiriladi. Chiqib ketsa, <span class="num">ArrayIndexOutOfBoundsException</span></td></tr>
+    <tr><td>Har platformaga alohida fayl</td><td>Bayt-kod va JVM: bitta <span class="num">.class</span> hamma joyda</td></tr>
+    <tr><td><span class="num">int</span> hajmi mashinaga qarab 16 yoki 32 bit</td><td>Hajmlar tilda qat'iy: <span class="num">int</span> doim 32 bit, <span class="num">long</span> doim 64 bit</td></tr>
+    <tr><td>Qiymat berilmagan o'zgaruvchida tasodifiy «axlat» son</td><td>Kompilyator qiymatsiz lokal o'zgaruvchini o'qishga yo'l qo'ymaydi, maydonlar esa nol bilan boshlanadi</td></tr>
+    <tr><td>C++ ning murakkabligi: ko'p vorislik, header fayllar, preprotsessor</td><td>Bitta klassdan vorislik va interfeyslar. Header ham, preprotsessor ham yo'q</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Yuqoridagi uchta C ssenariysini eslang. Java'da birinchisida egasiz kataklarni GC bo'shatadi. Ikkinchisi umuman yozib bo'lmaydi, chunki <span class="num">free</span> yo'q. Uchinchisida dastur to'rtinchi harfdan keyin xato bilan to'xtaydi va <span class="num">isAdmin</span> ga tegmaydi.</p>
+
+<dl class="terms">
+  <dt>Axlat yig'uvchi (Garbage Collector, GC)</dt>
+  <dd>JVM ichidagi mexanizm. Vaqti-vaqti bilan xotirani ko'zdan kechiradi va dastur endi yeta olmaydigan obyektlar egallagan joyni bo'shatadi.</dd>
+  <dt>Havola (reference)</dt>
+  <dd>Obyektga olib boradigan «tutqich». Ichida manzil turadi, lekin dasturchi uni son sifatida ko'ra olmaydi va o'zgartira olmaydi.</dd>
+  <dt>Exception</dt>
+  <dd>Xatoning jim o'tib ketishi o'rniga dasturning aniq xabar bilan to'xtashi yoki xatoni ushlab qayta ishlashi. 0-qavatdagi «xato jim o'tadi» og'rig'ining javobi.</dd>
+</dl>
+
+<h3>Og'riq: Java buning evaziga nima to'ladi</h3>
+<ul class="pain">
+  <li><strong>Sekinlik.</strong> Ilk JVM bayt-kodni buyruqma-buyruq o'qib bajarardi. Har bir bayt-kod buyrug'i uchun JVM o'nlab haqiqiy buyruq sarflaydi. 1996-yilda Java dasturi C dagi shu dasturdan o'nlab marta sekin ishlashi mumkin edi.</li>
+  <li><strong>To'xtab qolishlar.</strong> GC ishlayotganda dastur kutib turadi. Ilk versiyalarda bu ko'zga tashlanadigan pauzalar edi.</li>
+  <li><strong>Xotira ishtahasi va sekin ishga tushish.</strong> Dasturdan oldin JVM ning o'zi yuklanishi va o'ziga joy olishi kerak.</li>
+  <li><strong>Har bir tekshiruv vaqt oladi.</strong> Massiv chegarasi, null, tip mosligi: xavfsizlik bepul emas.</li>
+</ul>
+<p>Shu sababli Java dastlabki yillarda «xavfsiz, lekin sekin» til degan nom oldi. Bu nomdan qutulish uchun JVM ichida juda ko'p narsa qayta yasalgan. Birinchisi va eng muhimi: bayt-kodni ish paytida haqiqiy mashina kodiga aylantirish. Bu J1-qavat.</p>
+
+<h3>Tug'ilishi mumkin bo'lgan savollar</h3>
+<details>
+  <summary>GC va virtual mashinani Java ixtiro qilganmi?</summary>
+  <p>Yo'q. Axlat yig'uvchi 1950-yillar oxirida Lisp tili uchun John McCarthy tomonidan o'ylab topilgan. Oraliq kod va uni bajaruvchi virtual mashina 1970-yillarda Pascal tilining p-code tizimida va Smalltalk'da ishlatilgan. Java'ning hissasi ixtiroda emas, yig'ishda: u bu g'oyalarni C dasturchisiga tanish ko'rinishdagi tilga jamladi va ommaga yetkazdi.</p>
+</details>
+<details>
+  <summary>Nega nomi «Java»?</summary>
+  <p>Til dastlab Oak (eman) deb atalgan, Gosling xonasi derazasi oldidagi daraxt sharafiga. 1995-yilda bu nom boshqa kompaniyaga tegishli tovar belgisi ekani ma'lum bo'ldi. Jamoa yangi nom qidirib, Java'ni tanladi: bu Indoneziyadagi orol nomi va AQSHda qahvaning og'zaki atamasi. Logotipdagi qahva finjoni shundan.</p>
+</details>
+<details>
+  <summary>JavaScript'ning Java'ga aloqasi bormi?</summary>
+  <p>Texnik jihatdan yo'q. JavaScript 1995-yilda Netscape'da Brendan Eich tomonidan yaratilgan butunlay boshqa til. O'sha yili Java juda mashhur bo'lgani uchun unga marketing maqsadida o'xshash nom berilgan. Umumiy tomoni faqat C dan olingan qavslar va nuqtali vergullar.</p>
+</details>
+<details>
+  <summary>Java kompilyatsiya qilinadigan tilmi yoki interpretatsiya qilinadiganmi?</summary>
+  <p>Ikkalasi ham. javac matnni bayt-kodga kompilyatsiya qiladi. JVM bayt-kodni avval interpretatsiya qiladi, ya'ni buyruqma-buyruq o'qib bajaradi, keyin ko'p ishlatiladigan qismlarini ish paytida haqiqiy mashina kodiga kompilyatsiya qiladi. Bu ikkinchi bosqich J1-qavatning mavzusi.</p>
+</details>
+<details>
+  <summary>JVM ning o'zi nimada yozilgan?</summary>
+  <p>Asosan C++ da. Bugun eng keng tarqalgan JVM HotSpot deb ataladi va u C++ dasturi. Ya'ni Java sizni qutqargan xatolarning hammasi JVM ichida hamon mavjud bo'lishi mumkin, faqat ular bilan endi siz emas, JVM mualliflari kurashadi. Bu yana o'sha «muammo ko'chdi» g'oyasi.</p>
+</details>
+<details>
+  <summary>GC bor ekan, Java'da xotira oqishi bo'lmaydimi?</summary>
+  <p>Bo'ladi, lekin boshqa turda. GC faqat hech kim yeta olmaydigan obyektni tozalaydi. Agar kerak bo'lmay qolgan obyektga havola biror joyda saqlanib qolsa, GC uni tirik deb hisoblaydi. Tipik misollar: statik ro'yxatga qo'shilib, hech qachon o'chirilmaydigan obyektlar, yoki Android'da uzoq yashaydigan obyekt ichida qolib ketgan Activity havolasi. LeakCanary kabi vositalar aynan shuni qidiradi. Buni J2-qavatda batafsil ko'ramiz.</p>
+</details>
+<details>
+  <summary>Android'da JVM bormi?</summary>
+  <p>Aynan JVM emas. Android o'z virtual mashinasidan foydalanadi: avval Dalvik, 5-versiyadan boshlab ART. Ular Java bayt-kodini emas, undan qayta ishlab olingan DEX formatini bajaradi. G'oya bir xil: oraliq kod va uni bajaruvchi mashina. Farqlari va sabablari J1-qavatda.</p>
+</details>
+<details>
+  <summary>Java kimga tegishli?</summary>
+  <p>Uni Sun Microsystems yaratgan. 2006–2007-yillarda Sun Java'ning asosiy qismini OpenJDK nomi bilan ochiq kodga aylantirdi. 2010-yilda Sun'ni Oracle sotib oldi. Bugun til OpenJDK loyihasida ochiq rivojlanadi, Oracle unga rahbarlik qiladi, tayyor JDK yig'malarini esa bir necha kompaniya chiqaradi. Versiyalar va litsenziyalar tarixi J8-qavatda.</p>
+</details>
+<details>
+  <summary>«Applet» nima edi va nega yo'qoldi?</summary>
+  <p>Applet veb-sahifa ichida, brauzerdagi JVM yordamida ishlaydigan kichik Java dasturi edi. 1995-yilda statik sahifalar orasida bu mo'jiza bo'lib ko'ringan va Java'ni mashhur qilgan. Keyinchalik sekin yuklanishi, xavfsizlik zaifliklari va JavaScript'ning kuchayishi sababli appletlar brauzerlardan chiqarib tashlandi. Java esa bu orada butunlay boshqa joyda, serverda o'rnashib oldi.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu qavatdan olib ketadigan narsa.</strong> Java ikki og'riqqa javob: xotirani qo'lda boshqarishdagi xatolar va har platformaga alohida kompilyatsiya. Javoblari: GC va havolalar, bayt-kod va JVM. Narxi: sekinlik va pauzalar.</p>
+  <p><strong>Keyingi qavat.</strong> JVM ichida nima bor va u bayt-kodni qanday bajaradi: stek mashinasi, interpretator, JIT kompilyator va HotSpot.</p>
+</div>
+
+<h2 id="j1">J1-qavat. JVM ichi: bayt-kod qanday bajariladi</h2>
+<p class="lead">J0 shu og'riq bilan tugadi: Java xavfsiz, lekin sekin. Bu qavatda JVM ning ichiga kiramiz: u <span class="num">.class</span> faylni olganidan keyin nima qiladi, nega dastlab sekin bo'lgan va qanday qilib C ga yaqin tezlikka chiqarilgan.</p>
+
+<h3>.class fayldan ishlayotgan dasturgacha</h3>
+<p>Siz <span class="num">java Hello</span> deb yozganingizda JVM ichida to'rtta bosqich ishlaydi:</p>
+<div class="pipe">
+  <span class="box key">Hello.class</span><span class="ar" aria-hidden="true">→</span>
+  <span class="box">Klass yuklovchi</span><span class="ar" aria-hidden="true">→</span>
+  <span class="box">Verifikator</span><span class="ar" aria-hidden="true">→</span>
+  <span class="box">Interpretator</span><span class="ar" aria-hidden="true">→</span>
+  <span class="box">JIT kompilyator</span><span class="ar" aria-hidden="true">→</span>
+  <span class="box key">mashina kodi</span>
+</div>
+<ol class="try">
+  <li><strong>Klass yuklovchi</strong> faylni diskdan topib, xotiraga o'qiydi. U klasslarni hammasini birdan emas, birinchi marta kerak bo'lgan paytda yuklaydi.</li>
+  <li><strong>Verifikator</strong> bayt-kodni bajarishdan oldin tekshiradi: stek to'lib ketmaydimi, <span class="num">int</span> o'rniga havola ishlatilmayaptimi, sakrashlar metod ichidagi to'g'ri joylarga boryaptimi. J0 da aytilgan edi: Java notanish joydan kelgan kodni xavfsiz bajarish uchun yaratilgan. Bu tekshiruv shuning qoldig'i.</li>
+  <li><strong>Interpretator</strong> bayt-kodni buyruqma-buyruq o'qib bajaradi. Dastur shu zahoti ishlay boshlaydi, lekin sekin.</li>
+  <li><strong>JIT kompilyator</strong> ko'p ishlatilayotgan metodlarni ish paytida haqiqiy mashina kodiga aylantiradi. Shundan keyin o'sha metodlar to'g'ridan-to'g'ri protsessorda ishlaydi.</li>
+</ol>
+
+<dl class="terms">
+  <dt>Klass yuklovchi (class loader)</dt>
+  <dd><span class="num">.class</span> faylni topib JVM xotirasiga kirituvchi qism. Bir nechta turi bor: biri JDK ning o'z klasslarini, boshqasi sizning ilovangiz klasslarini yuklaydi.</dd>
+  <dt>Verifikator</dt>
+  <dd>Bayt-kod JVM qoidalarini buzmasligini bajarishdan oldin tekshiruvchi qism.</dd>
+  <dt>Interpretator</dt>
+  <dd>Kodni oldindan tarjima qilmasdan, har bir buyruqni o'qigan zahoti bajaruvchi dastur.</dd>
+  <dt>JIT (Just-In-Time) kompilyator</dt>
+  <dd>«Ayni kerak paytda» kompilyatsiya qiluvchi: bayt-kodni dastur ishlab turgan vaqtda mashina kodiga aylantiradi.</dd>
+</dl>
+
+<h3>JVM stek mashinasi</h3>
+<p>1-qavatdagi model mashinada bitta registr bor edi: A. Hisob-kitob shu registrda bajarilardi. JVM boshqacha qurilgan: unda registr yo'q, o'rniga <strong>operand steki</strong> bor. Stek ustma-ust qo'yilgan likopchalarga o'xshaydi: faqat tepasiga qo'yish va faqat tepasidan olish mumkin.</p>
+<p>Qo'shish shunday bajariladi: ikki son stekka qo'yiladi, <span class="num">iadd</span> buyrug'i ikkalasini olib, yig'indini qaytarib qo'yadi. Buyruqda «qaysi sonlarni qo'shay» degan ma'lumot yo'q, u doim stek tepasidagi ikkitasini oladi.</p>
+<p>Metodning o'zgaruvchilari esa alohida raqamlangan jadvalda turadi: <strong>lokal o'zgaruvchilar</strong>. <span class="num">iload_1</span> «1-o'rindagi o'zgaruvchini stekka nusxala», <span class="num">istore_3</span> «stek tepasidagini olib, 3-o'ringa yoz» degani. Oddiy metodlarda 0-o'rin <span class="num">this</span> uchun band, shuning uchun sanoq 1 dan boshlanadi.</p>
+
+<div class="bench" id="jv">
+  <div class="presets">
+    <button type="button" id="jvAdd">Namuna: qo'shish</button>
+    <button type="button" id="jvLoop">Namuna: sikl</button>
+  </div>
+  <div class="code2" style="margin-top:0">
+    <figure><figcaption>Java matni</figcaption><pre class="code" id="jvSrc"></pre></figure>
+    <figure><figcaption>Bajarilgan buyruqlar soni</figcaption><pre class="code" id="jvCount">0</pre></figure>
+  </div>
+  <div class="asm-grid">
+    <div>
+      <h4>Bayt-kod</h4>
+      <div class="listing"><table><thead><tr><th>Manzil</th><th>Buyruq</th></tr></thead><tbody id="jvCode"></tbody></table></div>
+    </div>
+    <div class="jv-side">
+      <div>
+        <h4>Operand steki (tepasi yuqorida)</h4>
+        <div class="stack" id="jvStack"></div>
+      </div>
+      <div>
+        <h4>Lokal o'zgaruvchilar</h4>
+        <div class="cpu" id="jvLoc" style="margin:0"></div>
+      </div>
+    </div>
+  </div>
+  <div class="controls">
+    <button class="primary" id="jvStep" type="button">Bir qadam</button>
+    <button id="jvRun" type="button">Oxirigacha bajarish</button>
+    <button id="jvReset" type="button">Boshidan</button>
+  </div>
+  <p class="say" id="jvSay" aria-live="polite"></p>
+</div>
+
+<dl class="terms">
+  <dt>Operand steki</dt>
+  <dd>Hisob-kitob uchun vaqtinchalik ish joyi. Buyruqlar qiymatlarni shu yerga qo'yadi va shu yerdan oladi.</dd>
+  <dt>Lokal o'zgaruvchilar jadvali</dt>
+  <dd>Metodning parametrlari va ichki o'zgaruvchilari turadigan raqamlangan o'rinlar. Bayt-kodda nomlar yo'q, faqat raqamlar: <span class="num">a</span> emas, «1-o'rin».</dd>
+  <dt>Kadr (frame)</dt>
+  <dd>Bitta metod chaqiruvi uchun ajratilgan joy: uning operand steki va lokal o'zgaruvchilari. Metod chaqirilganda yangi kadr ochiladi, qaytganda yopiladi. J2-qavatda batafsil.</dd>
+  <dt>Buyruq nomidagi harf</dt>
+  <dd><span class="num">i</span> harfi <span class="num">int</span> degani: iload, iadd. <span class="num">long</span> uchun l, <span class="num">double</span> uchun d, havola uchun a (aload, astore) ishlatiladi.</dd>
+</dl>
+
+<h3>O'zingiz sinab ko'ring</h3>
+<ol class="try">
+  <li>«Qo'shish» namunasini qadam-baqadam bajaring. Stek qanday o'sib, <span class="num">iadd</span> da qanday qisqarishini kuzating. Bir qator Java oltita bayt-kod buyrug'iga aylandi.</li>
+  <li>«Sikl» namunasiga o'ting. <span class="num">ifeq</span> va <span class="num">goto</span> ga e'tibor bering: bular poydevor sahifasidagi JZ va JMP ning o'zi. <span class="num">while</span> bu yerda ham ikki sakrash.</li>
+  <li><span class="num">iinc</span> buyrug'ida stek ishlatilmaydi: u o'zgaruvchini joyida o'zgartiradi. <span class="num">i--</span> shunchalik ko'p uchraydiki, unga alohida qisqa buyruq berilgan.</li>
+  <li>Siklni «Oxirigacha bajarish» bilan yuriting va bajarilgan buyruqlar soniga qarang. Uch marta aylangan sikl uchun 32 ta buyruq: har aylanishga sakkiztadan. Sikl million marta aylansa, bu sakkiz million bayt-kod buyrug'i.</li>
+</ol>
+
+<h3>Interpretator nega sekin</h3>
+<p>Yuqoridagi modelda «Bir qadam» tugmasi ortida nima borligini o'ylab ko'ring. Interpretatorning o'zi mana shunday oddiy sikl:</p>
+<pre class="code">while (true) {
+    buyruq = kod[hisoblagich];      // 1. o'qi
+    switch (buyruq) {               // 2. tani
+        case IADD:
+            b = stekdanOl();
+            a = stekdanOl();
+            stekkaQoy(a + b);       // 3. bajar
+            hisoblagich++;
+            break;
+        // ... yana 200 ga yaqin buyruq
+    }
+}</pre>
+<p>Protsessor uchun haqiqiy qo'shish bitta buyruq. Interpretatorda esa bitta <span class="num">iadd</span> uchun avval buyruqni o'qish, uni tanish, stekdan ikki marta olish, bir marta qo'yish, hisoblagichni surish kerak. Bularning har biri bir nechta haqiqiy buyruq. Natijada bitta foydali amal uchun o'nlab mashina buyrug'i sarflanadi.</p>
+<p>Eng achinarlisi: sikl million marta aylansa, interpretator <span class="num">iadd</span> ni million marta qaytadan «taniydi». U oldingi aylanishdan hech narsa eslab qolmaydi.</p>
+
+<h3>Bajarish usuli qanday o'zgargan</h3>
+<p>Shu og'riqni yechish uchun JVM ning bajaruvchi qismi bir necha marta qayta yasalgan. Bosqichlarni tartib bilan ko'ring.</p>
+<div class="bench" id="evoExec"></div>
+
+<h3>Qaynoq kod: JIT qachon ishga tushadi</h3>
+<p>HotSpot'ning asosiy kuzatuvi shunday: dastur vaqtining katta qismi kodning kichik qismida o'tadi. Shu kichik qism <strong>qaynoq</strong> deyiladi. Hamma narsani kompilyatsiya qilish shart emas, faqat qaynoq joylarni topib, o'shalarga kuch sarflash kerak.</p>
+<p>Buning uchun JVM har bir metod necha marta chaqirilganini sanab boradi. Pastdagi modelda bitta metodni chaqirib ko'ring va uch xil yondashuvning umumiy vaqtini solishtiring.</p>
+
+<div class="bench" id="jit">
+  <div class="cpu">
+    <div class="reg"><span class="k">Metod chaqirilgan</span><span class="v" id="jitN">0</span></div>
+    <div class="reg pc"><span class="k">Hozir qanday bajarilyapti</span><span class="v" id="jitState" style="font-size:1.125rem"></span></div>
+  </div>
+  <div class="controls" style="margin-top:0">
+    <button type="button" data-add="10">10 marta chaqirish</button>
+    <button type="button" data-add="1000">1 000 marta</button>
+    <button type="button" data-add="100000">100 000 marta</button>
+    <button type="button" data-add="10000000">10 000 000 marta</button>
+    <button type="button" id="jitReset">Nolga qaytarish</button>
+  </div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Yondashuv</th><th class="numr">Sarflangan vaqt</th></tr></thead>
+    <tbody>
+      <tr id="jitR0"><td>Faqat interpretator (JDK 1.0)</td><td class="numr" id="jitT0"></td></tr>
+      <tr id="jitR1"><td>Hammasini oldindan to'liq kompilyatsiya qilish</td><td class="numr" id="jitT1"></td></tr>
+      <tr id="jitR2"><td>HotSpot: avval interpretatsiya, qaynoq bo'lsa kompilyatsiya</td><td class="numr" id="jitT2"></td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="say" id="jitSay" aria-live="polite"></p>
+  <p class="note" style="margin:0.8rem 0 0">Vaqt birliklari shartli. Modelda: interpretatsiya har chaqiruvga 40 birlik; tez kompilyator (C1) bir marta 1 000 birlik oladi, keyin har chaqiruv 8 birlik; kuchli kompilyator (C2) bir marta 20 000 birlik oladi, keyin har chaqiruv 2 birlik. Chegaralar 200 va 5 000 chaqiruv. Haqiqiy HotSpot'da chegaralar shunga yaqin, lekin sikllarning aylanishi ham sanaladi va sozlamalarga bog'liq.</p>
+</div>
+
+<p>Jadvaldan uchta xulosa chiqadi. Kam chaqiriladigan metod uchun kompilyatsiya zarar: tarjimaga ketgan vaqt hech qachon qaytmaydi. Ko'p chaqiriladigan metod uchun interpretator halokat. HotSpot esa ikkala holatda ham eng yaxshi natijaga yaqin turadi, chunki u qaror qabul qilishdan oldin kuzatadi.</p>
+<p>Ikkinchi, kamroq ko'rinadigan foyda: JIT dasturni ish paytida kuzatgani uchun oddiy kompilyator bilmaydigan narsalarni biladi. Masalan, interfeys metodi amalda doim bitta klassda chaqirilayotganini ko'rsa, u chaqiruvni olib tashlab, metod tanasini to'g'ridan-to'g'ri o'rniga qo'yadi. Taxmin keyin noto'g'ri chiqsa, kompilyatsiya qilingan kod tashlab yuboriladi va metod yana interpretatorga qaytadi.</p>
+
+<dl class="terms">
+  <dt>Qaynoq metod (hot method)</dt>
+  <dd>Juda ko'p chaqirilayotgan yoki ichida uzoq aylanadigan sikli bor metod. HotSpot nomi shundan: «qaynoq nuqta».</dd>
+  <dt>C1 va C2</dt>
+  <dd>HotSpot ichidagi ikki JIT kompilyator. C1 tez tarjima qiladi, lekin kodi o'rtacha. C2 sekin va qimmat tarjima qiladi, lekin kodi juda tez.</dd>
+  <dt>Bosqichli kompilyatsiya (tiered compilation)</dt>
+  <dd>Metod avval interpretatsiya qilinadi, isigach C1 ga, yanada qizigach C2 ga o'tadi. Yuqoridagi modelda aynan shu ko'rsatilgan.</dd>
+  <dt>Inlining</dt>
+  <dd>Metod chaqiruvini olib tashlab, o'rniga metod tanasini qo'yish. JIT ning eng muhim optimizatsiyasi: getter kabi kichik metodlar butunlay «erib ketadi».</dd>
+  <dt>Deoptimizatsiya</dt>
+  <dd>JIT taxmini buzilganda kompilyatsiya qilingan kodni tashlab, interpretatorga qaytish.</dd>
+  <dt>Isish (warm-up)</dt>
+  <dd>Dastur ishga tushgandan to qaynoq kodi kompilyatsiya qilinguncha o'tadigan davr. Bu davrda dastur o'zining to'liq tezligida ishlamaydi.</dd>
+</dl>
+
+<h3>Android'da xuddi shu yo'l</h3>
+<p>Android o'z virtual mashinasini yasagan, lekin deyarli bir xil og'riqlardan o'tgan, faqat telefon sharoitida: kam xotira, zaif protsessor, batareya.</p>
+<div class="bench" id="evoArt"></div>
+
+<h3>Og'riq: nima yechilmay qoldi</h3>
+<ul class="pain">
+  <li><strong>Isish davri.</strong> Yangi ishga tushgan Java servisi birinchi soniyalarda yoki daqiqalarda sekin javob beradi, chunki kodi hali interpretatsiya qilinyapti. Deploy'dan keyingi birinchi so'rovlar sekin bo'lishining sababi shu.</li>
+  <li><strong>Sekin ishga tushish.</strong> JVM ning o'zi yuklanishi, minglab klassni o'qib tekshirishi kerak. Uzoq ishlaydigan server uchun bu ahamiyatsiz, qisqa yashaydigan dastur uchun esa jiddiy.</li>
+  <li><strong>Qo'shimcha xotira.</strong> Kompilyatsiya qilingan kod alohida joyda saqlanadi, JIT ning o'zi ham xotira va protsessor vaqtini oladi.</li>
+  <li><strong>Oldindan aytib bo'lmaslik.</strong> Bir xil kod bir safar tez, bir safar sekin ishlashi mumkin: hammasi JIT qaysi paytda nimaga qaror qilganiga bog'liq.</li>
+</ul>
+<p>Hisob-kitob tezligi shu bilan asosan yechildi: isigan Java kodi ko'p masalalarda C++ ga yaqin ishlaydi. Lekin J0 dagi ikkinchi narx hali joyida: GC ishlaganda dastur to'xtab turadi. Bu endi tezlik emas, xotira masalasi. Obyektlar qayerda yashaydi, ularni kim va qachon tozalaydi: bu J2-qavat.</p>
+
+<h3>Tug'ilishi mumkin bo'lgan savollar</h3>
+<details>
+  <summary>JIT dan keyin kod protsessorda ishlaydimi? Undan oldin-chi?</summary>
+  <p>Protsessorda hamma narsa ishlaydi, boshqa bajaruvchi yo'q. Farq protsessor aynan kimning buyruqlarini bajarayotganida. Interpretatsiya paytida u interpretatorning mashina kodini bajaradi, interpretator esa sizning bayt-kodingizni ma'lumot sifatida o'qib, o'rniga amalni o'zi bajarib beradi: o'rtada vositachi bor. JIT dan keyin protsessor sizning metodingizning o'z mashina kodini to'g'ridan-to'g'ri bajaradi. Bu C kompilyatori chiqargan kod bilan bir xil turdagi narsa, faqat u diskdagi faylda emas, JVM xotirasida turadi va dastur yopilganda yo'qoladi.</p>
+</details>
+<details>
+  <summary>Nega JVM registrli emas, stekli qilib qurilgan?</summary>
+  <p>Uch sabab bor. Birinchisi, bayt-kod ixcham chiqadi: <span class="num">iadd</span> ga «qaysi registrlar» deb yozish shart emas, bitta bayt yetadi. 1995-yilda kod sekin tarmoq orqali yuklab olinardi, hajm muhim edi. Ikkinchisi, kompilyator yozish oson. Uchinchisi, haqiqiy protsessorda nechta registr borligi haqida hech qanday taxmin yo'q: x86 da kam, boshqalarida ko'p, stek esa hammasiga bir xil to'g'ri keladi. Registrlarni taqsimlashni keyin JIT o'zi, aniq protsessorga qarab bajaradi.</p>
+</details>
+<details>
+  <summary>O'z kodimning bayt-kodini qanday ko'raman?</summary>
+  <p>JDK tarkibidagi <span class="num">javap -c KlassNomi</span> buyrug'i bilan. IntelliJ IDEA va Android Studio'da ham bayt-kodni ko'rsatish imkoni bor, Kotlin uchun «Show Kotlin Bytecode». Kotlin'ning biror qulayligi ostida nima yotganini bilishning eng to'g'ri yo'li shu.</p>
+</details>
+<details>
+  <summary>.class fayl ichida bayt-koddan boshqa nima bor?</summary>
+  <p>Fayl CAFEBABE degan to'rt baytli belgi bilan boshlanadi, JVM shunga qarab uni taniydi. Keyin versiya raqami keladi: eski JVM yangi kompilyator chiqargan faylni ochmasligi shundan. Undan keyin konstantalar jadvali: klassdagi barcha nomlar, satrlar va sonlar. So'ng maydonlar va metodlar ro'yxati, har bir metodning bayt-kodi bilan.</p>
+</details>
+<details>
+  <summary>Kotlin ham shu bayt-kodga aylanadimi?</summary>
+  <p>Ha. Kotlin kompilyatori ham <span class="num">.class</span> fayl chiqaradi va JVM uning Kotlin'dan kelganini bilmaydi ham. Shu sababli Kotlin va Java bitta loyihada erkin aralashadi. Kotlin'ning null tekshiruvlari, data klasslari, lambda'lari — bularning hammasi kompilyator yozib beradigan oddiy bayt-kod.</p>
+</details>
+<details>
+  <summary>JIT kompilyatsiya qilgan kod keyingi ishga tushirishda saqlanib qoladimi?</summary>
+  <p>An'anaviy ravishda yo'q: har safar dastur noldan isiydi. Aynan shu og'riq uchun so'nggi yillarda Leyden loyihasi ustida ish ketmoqda. JDK 24 dan boshlab JVM sinov yurgizish paytida yuklangan va tekshirilgan klasslarni keshga saqlab, keyingi ishga tushishda tayyorini oladi. JDK 25 da keshga metodlarning «qaynoqlik» statistikasi ham qo'shildi, shunda JIT kuzatishni noldan boshlamaydi.</p>
+</details>
+<details>
+  <summary>JIT kod C dan tez bo'lishi mumkinmi?</summary>
+  <p>Ayrim hollarda ha. Oddiy kompilyator dasturni ishga tushirmasdan tarjima qiladi va barcha ehtimollarga tayyor kod chiqarishi kerak. JIT esa amalda nima bo'layotganini ko'radi va faqat o'sha holat uchun eng tez kodni chiqaradi. Lekin umumiy hisobda Java ko'proq xotira ishlatadi va isish davri bor, shuning uchun «Java C dan tez» degan umumiy xulosa noto'g'ri.</p>
+</details>
+<details>
+  <summary>Benchmark yozsam, nega natijalar g'alati chiqadi?</summary>
+  <p>Chunki siz ko'pincha isish davrini o'lchaysiz: kod avval interpretatorda, keyin C1 da, keyin C2 da ishlaydi va vaqt har safar boshqacha. Bundan tashqari JIT natijasi ishlatilmaydigan hisob-kitobni butunlay o'chirib tashlashi mumkin. Shu sababli Java'da tezlikni <span class="num">System.currentTimeMillis()</span> bilan emas, JMH kabi maxsus vosita bilan o'lchashadi: u avval kodni isitadi.</p>
+</details>
+<details>
+  <summary>HotSpot'dan boshqa JVM ham bormi?</summary>
+  <p>Bor. JVM aslida spetsifikatsiya, ya'ni «bayt-kod qanday bajarilishi kerak» degan hujjat, va uni har kim amalga oshirishi mumkin. HotSpot eng keng tarqalgani va OpenJDK tarkibida keladi. Undan tashqari IBM dan chiqqan OpenJ9 va GraalVM bor. Android'dagi ART esa JVM emas, lekin o'sha g'oyaning boshqa ko'rinishi.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu qavatdan olib ketadigan narsa.</strong> JVM stek mashinasi: buyruqlar operand steki va lokal o'zgaruvchilar bilan ishlaydi. Interpretator har bir buyruqni qaytadan tanigani uchun sekin. HotSpot kodni kuzatadi va faqat qaynoq qismini mashina kodiga aylantiradi. Narxi: isish davri.</p>
+  <p><strong>Keyingi qavat.</strong> Xotira: stack va heap, obyekt qayerda yashaydi, GC uni qanday topadi va GC ning o'zi qanday o'zgargan.</p>
+</div>
+
+<h2 id="j2">J2-qavat. Xotira: stack, heap va axlat yig'uvchi</h2>
+<p class="lead">J1 da hisob-kitob tezligi yechildi. J0 dagi ikkinchi narx hali joyida: GC ishlaganda dastur to'xtab turadi. Bu qavatda Java xotirasi qanday tuzilganini, GC axlatni qanday topishini va uning o'zi yigirma besh yil ichida qanday qayta yasalganini ko'ramiz.</p>
+
+<h3>Ikki xil xotira: stack va heap</h3>
+<p>JVM dasturga ikki xil joy beradi, va ular butunlay boshqacha ishlaydi.</p>
+<p><strong>Stack</strong> metod chaqiruvlari uchun. Metod chaqirilganda uning ustiga yangi <strong>kadr</strong> qo'yiladi: ichida shu metodning lokal o'zgaruvchilari turadi. Metod tugaganda kadr butunligicha olib tashlanadi. Tozalash kerak emas, hech narsa qidirilmaydi. J1 dagi operand steki va lokal o'zgaruvchilar jadvali aynan shu kadrning ichida.</p>
+<p><strong>Heap</strong> obyektlar uchun. <span class="num">new</span> har doim heapda joy ochadi. Obyekt metod tugagandan keyin ham yashab qolishi mumkin, shuning uchun uni kadr ichiga qo'yib bo'lmaydi. Heapdagi obyekt unga yetib boradigan havola bor ekan yashaydi.</p>
+<p>Bu ikkisini bog'laydigan narsa <strong>havola</strong>. <span class="num">User u = new User()</span> deganda obyekt heapda, kadrdagi <span class="num">u</span> ichida esa faqat unga olib boradigan havola turadi. Pastdagi dasturni qadam-baqadam bajaring.</p>
+
+<div class="bench" id="scA">
+  <div class="asm-grid" style="margin-bottom:0.8rem">
+    <div>
+      <h4>Java matni</h4>
+      <div class="listing"><table><tbody id="aCode"></tbody></table></div>
+    </div>
+    <div class="mem2" style="grid-template-columns:minmax(0,1fr)">
+      <div><h4>Stack (ustki kadr yuqorida)</h4><div class="frames" id="aFrames"></div></div>
+      <div><h4>Heap</h4><div class="heapbox" id="aHeap"></div></div>
+    </div>
+  </div>
+</div>
+
+<dl class="terms">
+  <dt>Stack (stek)</dt>
+  <dd>Metod chaqiruvlari kadrlari ustma-ust turadigan xotira. Har bir oqimning (thread) o'z steki bor. Hajmi kichik va oldindan belgilangan.</dd>
+  <dt>Kadr (frame)</dt>
+  <dd>Bitta metod chaqiruviga tegishli joy: lokal o'zgaruvchilar, operand steki va qaytish manzili. Metod qaytganda yo'qoladi.</dd>
+  <dt>Heap</dt>
+  <dd>Barcha obyektlar va massivlar yashaydigan umumiy xotira. Hamma oqimlar uchun bitta. Uni GC boshqaradi.</dd>
+  <dt>Primitiv tip</dt>
+  <dd><span class="num">int, long, double, boolean</span> va shunga o'xshashlar. Qiymatning o'zi o'zgaruvchi ichida turadi, heap ishlatilmaydi.</dd>
+  <dt>Havola tipi</dt>
+  <dd>Qolgan hamma narsa: klasslar, massivlar, <span class="num">String</span>. O'zgaruvchi ichida obyekt emas, unga havola turadi.</dd>
+  <dt>Axlat (garbage)</dt>
+  <dd>Heapda turgan, lekin dastur endi hech qanday yo'l bilan yeta olmaydigan obyekt.</dd>
+</dl>
+
+<p>Yuqoridagi modeldan uch narsani olib qoling. Birinchisi: metodga obyekt berilganda obyekt nusxalanmaydi, havola nusxalanadi. Shuning uchun <span class="num">rename</span> ichidagi o'zgarish <span class="num">main</span> da ham ko'rindi. Ikkinchisi: kadr o'zi yo'qoladi, obyekt esa yo'q. Uchinchisi: obyekt <span class="num">null</span> berilgan zahoti o'chmaydi, u GC kelguncha axlat bo'lib yotadi.</p>
+
+<h3>GC axlatni qanday topadi</h3>
+<p>GC «qaysi obyekt axlat?» deb so'ramaydi. U teskarisini so'raydi: «qaysi obyektlarga hali yetib bo'ladi?» Buning uchun u aniq ma'lum bo'lgan boshlang'ich nuqtalardan, ya'ni <strong>ildizlardan</strong> boshlaydi: barcha kadrlardagi lokal o'zgaruvchilar va statik maydonlar. Ulardan havolalar bo'ylab yurib, yetgan har bir obyektni belgilaydi. Belgilanmay qolgan hamma narsa axlat.</p>
+<p>Pastda 16 katakli heap bor. Bosqichlarni tartib bilan bosing va oxirida nega «zichlash» kerakligiga e'tibor bering.</p>
+
+<div class="bench" id="scB">
+  <p class="memlabel">Havolalar: ildiz → A, ildiz → C, A → D, C → E. F va G bir-birini ko'rsatadi, lekin ularga tashqaridan hech kim qaramaydi. B va H ga ham havola yo'q.</p>
+  <div class="mem" id="bMem"></div>
+  <div class="legend">
+    <span class="l-own">belgilangan: yetib bo'ladi</span>
+    <span class="l-lost">axlat</span>
+    <span class="l-touch">yangi obyekt</span>
+  </div>
+</div>
+
+<dl class="terms">
+  <dt>GC ildizi (GC root)</dt>
+  <dd>GC qidiruvni boshlaydigan joy: steklardagi lokal o'zgaruvchilar, statik maydonlar va JVM ning ichki havolalari.</dd>
+  <dt>Yetib bo'ladigan obyekt (reachable)</dt>
+  <dd>Biror ildizdan havolalar zanjiri orqali borish mumkin bo'lgan obyekt. Faqat shular tirik hisoblanadi.</dd>
+  <dt>Belgilash (mark)</dt>
+  <dd>Ildizlardan boshlab yetib bo'ladigan barcha obyektlarni topib chiqish bosqichi.</dd>
+  <dt>Supurish (sweep)</dt>
+  <dd>Belgilanmagan obyektlar joyini bo'sh deb e'lon qilish bosqichi.</dd>
+  <dt>Zichlash (compact)</dt>
+  <dd>Tirik obyektlarni bir tomonga surib, bo'sh joyni bitta yaxlit bo'lakka yig'ish.</dd>
+  <dt>Fragmentatsiya</dt>
+  <dd>Bo'sh joy ko'p, lekin mayda bo'laklarga sochilgan holat. Jami yetadi, yaxlit joy yo'q.</dd>
+  <dt>Stop-the-world</dt>
+  <dd>GC ishlashi uchun dasturning barcha oqimlari to'xtatib qo'yiladigan payt. Obyektlar ko'chirilayotganda dastur ularga tegsa, havolalar buziladi, shuning uchun to'xtatish kerak. J0 dagi «pauzalar» shu.</dd>
+</dl>
+
+<h3>Avlodlar: ko'p obyekt yosh o'ladi</h3>
+<p>Butun heapni har safar aylanib chiqish qimmat. 1980-yillarda bitta kuzatuv buni o'zgartirdi: dasturlarda obyektlarning katta qismi juda qisqa yashaydi. So'rov keladi, bir nechta vaqtinchalik obyekt yaratiladi, javob qaytadi, ular endi kerak emas. Uzoq yashaydigan obyektlar esa oz va ular odatda juda uzoq yashaydi.</p>
+<p>Shundan g'oya chiqdi: heapni yoshga qarab bo'lamiz. Yangi obyektlar kichik <strong>yosh avlod</strong> maydonida tug'iladi va u tez-tez tozalanadi. Bir necha tozalashdan omon qolganlari <strong>keksa avlod</strong> maydoniga ko'chiriladi, u esa kamdan-kam tozalanadi.</p>
+
+<div class="bench" id="scC">
+  <div class="gen">
+    <div class="region young"><h4>Eden (yosh)</h4><div class="chips" id="cEden"></div></div>
+    <div class="region young"><h4>Survivor 0</h4><div class="chips" id="cS0"></div></div>
+    <div class="region young"><h4>Survivor 1</h4><div class="chips" id="cS1"></div></div>
+    <div class="region"><h4>Keksa avlod</h4><div class="chips" id="cOld"></div></div>
+  </div>
+  <p class="note" style="margin:0.6rem 0 0">Qavs ichidagi son obyektning yoshi: nechta tozalashdan omon qolgani. Punktir chegarali obyekt axlat.</p>
+</div>
+
+<p>Bu yerdagi eng muhim nozik joy: yosh avlodni tozalash narxi axlat soniga emas, tirik obyektlar soniga bog'liq. GC faqat tiriklarni ko'chiradi, qolganiga tegmaydi va maydonni butunligicha bo'sh deb e'lon qiladi. Ko'p obyekt yosh o'lgani uchun ko'chiriladigani oz, tozalash esa tez.</p>
+
+<dl class="terms">
+  <dt>Yosh avlod (young generation)</dt>
+  <dd>Yangi obyektlar yaratiladigan maydon. Uch qismdan iborat: Eden va ikkita Survivor.</dd>
+  <dt>Eden</dt>
+  <dd>Har bir <span class="num">new</span> joy oladigan qism. Joy ajratish juda arzon: bo'sh joy ko'rsatkichi obyekt hajmicha oldinga suriladi, xolos.</dd>
+  <dt>Survivor</dt>
+  <dd>Tozalashdan omon qolganlar vaqtincha turadigan ikki kichik maydon. Har doim bittasi bo'sh turadi: tiriklar biridan ikkinchisiga ko'chiriladi.</dd>
+  <dt>Keksa avlod (old generation)</dt>
+  <dd>Uzoq yashagan obyektlar maydoni. Katta va kam tozalanadi.</dd>
+  <dt>Kichik tozalash (minor GC)</dt>
+  <dd>Faqat yosh avlodni tozalash. Tez-tez bo'ladi, odatda qisqa.</dd>
+  <dt>Katta va to'liq tozalash (major GC, full GC)</dt>
+  <dd>Keksa avlodni yoki butun heapni tozalash. Kam bo'ladi, lekin eng uzun pauzalar shu yerdan chiqadi.</dd>
+  <dt>Ko'tarilish (promotion)</dt>
+  <dd>Obyektning yosh avloddan keksa avlodga ko'chirilishi.</dd>
+</dl>
+
+<h3>GC ning o'zi qanday o'zgargan</h3>
+<p>Barcha GC lar bir xil ishni qiladi: tiriklarni topadi, qolganini bo'shatadi. Farqi bitta savolda: bu ish paytida dastur qancha kutadi? Olti bosqichni tartib bilan ko'ring.</p>
+<div class="bench" id="evoGc"></div>
+
+<h3>Og'riq: nima yechilmay qoldi</h3>
+<ul class="pain">
+  <li><strong>GC bepul emas.</strong> Pauzalar deyarli yo'qoldi, lekin ish yo'qolmadi: u dastur bilan parallel bajariladi va protsessor vaqtini oladi. Pauza qisqargani sari umumiy unumdorlik biroz pasayadi.</li>
+  <li><strong>Xotira zaxirasi kerak.</strong> GC bemalol ishlashi uchun heap tirik ma'lumotdan ancha katta bo'lishi kerak. Java servisi shu sababli C++ dagi o'xshashidan ko'proq xotira yeydi.</li>
+  <li><strong>Har bir obyektning ustama haqi bor.</strong> Obyekt oldida JVM uchun xizmat ma'lumoti turadi, odatda 12–16 bayt. <span class="num">int</span> 4 bayt, <span class="num">Integer</span> obyekti esa 16 bayt va yana unga havola.</li>
+  <li><strong>Oqish hamon mumkin.</strong> GC faqat yetib bo'lmaydigan obyektni tozalaydi. Unutilgan havola obyektni abadiy tirik ushlab turadi.</li>
+  <li><strong>Sozlash murakkab.</strong> Heap hajmi, GC turi, pauza maqsadi: bularni noto'g'ri tanlash servisni sekinlashtiradi yoki yiqitadi.</li>
+</ul>
+<p>Xotira shu bilan avtomatik va xavfsiz bo'ldi. Keyingi og'riq xotirada emas, tilning o'zida edi. 1990-yillar oxirida Java kolleksiyalari har qanday obyektni qabul qilardi: ro'yxatga <span class="num">String</span> ham, <span class="num">Integer</span> ham qo'shish mumkin edi, va xato faqat dastur ishlab turganda, <span class="num">ClassCastException</span> bilan chiqardi. Bu J3-qavat: tiplar.</p>
+
+<h3>Tug'ilishi mumkin bo'lgan savollar</h3>
+<details>
+  <summary>RAM va CPU nima? O'zgaruvchilar va obyektlar protsessorda joy egallaydimi?</summary>
+  <p>Bular kompyuter ichidagi ikki alohida qism. CPU (protsessor) hisoblaydi: buyruqlarni birma-bir bajaradi va hech narsani uzoq saqlamaydi. RAM (operativ xotira) eslab turadi: bu raqamlangan kataklar qatori, u hech narsani hisoblamaydi. Oshxona misolida RAM ish stoli, CPU oshpaz, disk esa omborxona. Stack ham, heap ham RAM ning bo'laklari. Demak, o'zgaruvchilar va obyektlar protsessorda emas, xotirada turadi. Protsessorga qiymat faqat ustida amal bajarilayotgan lahzada, registrga olinadi va natija darhol xotiraga qaytadi. Obyektlar protsessordan joy emas, vaqt oladi.</p>
+</details>
+<details>
+  <summary>StackOverflowError va OutOfMemoryError farqi nima?</summary>
+  <p>Birinchisi stek to'lganini bildiradi: kadrlar juda ko'p ustma-ust qo'yilgan. Deyarli har doim sababi to'xtamaydigan rekursiya. Ikkinchisi heap to'lganini bildiradi: GC ishladi, lekin yangi obyekt uchun yetarli joy bo'shata olmadi. Sababi yo xotira oqishi, yo heap shunchaki kichik berilgan.</p>
+</details>
+<details>
+  <summary>Java'da argumentlar qiymat bo'yicha uzatiladimi yoki havola bo'yichami?</summary>
+  <p>Har doim qiymat bo'yicha. Lekin obyekt uchun o'sha «qiymat» havolaning o'zi. Modelda ko'rdingiz: <span class="num">x</span> ga <span class="num">u</span> dagi havolaning nusxasi berildi. Shuning uchun metod ichida obyektni o'zgartirsangiz, tashqarida ham ko'rinadi. Lekin <span class="num">x = new User()</span> deb yozsangiz, faqat nusxa boshqa obyektga qaraydigan bo'ladi, <span class="num">u</span> o'zgarmaydi.</p>
+</details>
+<details>
+  <summary>Nega GC oddiygina havolalarni sanab qo'ya qolmaydi?</summary>
+  <p>Havola sanash degan usul bor: har bir obyektda unga nechta havola borligi yoziladi, nolga tushsa o'chiriladi. Kamchiligi ikkinchi modelda ko'rindi: F va G bir-birini ko'rsatadi, sanoqlari hech qachon nolga tushmaydi, holbuki ikkalasi ham axlat. Bundan tashqari har bir havola o'zgarganda sanoqni yangilash kerak, bu ko'p oqimli dasturda qimmat. Java shu sababli ildizlardan qidirish usulini tanlagan.</p>
+</details>
+<details>
+  <summary>Obyekt hech qachon stekda yaratilmaydimi?</summary>
+  <p>Til nuqtai nazaridan yo'q, <span class="num">new</span> doim heap. Lekin JIT bu yerda ham aralashadi. Agar u obyekt metoddan tashqariga chiqmasligini isbotlay olsa (bu qochish tahlili, escape analysis deyiladi), obyektni umuman yaratmay, uning maydonlarini oddiy lokal o'zgaruvchilarga aylantirib yuborishi mumkin. Ya'ni kodda <span class="num">new</span> bor, amalda esa heapga hech narsa tushmaydi.</p>
+</details>
+<details>
+  <summary>PermGen va Metaspace nima?</summary>
+  <p>Heapdan tashqari JVM klasslarning o'zi haqidagi ma'lumotni ham saqlashi kerak: metodlar, maydon nomlari, bayt-kod. Java 7 gacha bu PermGen degan qat'iy hajmli maydonda turardi va ko'p klass yuklaydigan ilovalarda <span class="num">OutOfMemoryError: PermGen space</span> xatosi mashhur edi. Java 8 da PermGen olib tashlandi, o'rniga Metaspace keldi: u oddiy tizim xotirasidan joy oladi va kerak bo'lganda o'sadi.</p>
+</details>
+<details>
+  <summary>Xotira oqishini qanday topaman?</summary>
+  <p>Belgisi: har bir to'liq tozalashdan keyin band xotira oldingisidan balandroq qoladi. Topish usuli: heap nusxasini (heap dump) olib, tahlil vositasida ochish. Serverda bu Eclipse MAT yoki VisualVM, Android'da LeakCanary va Android Studio Profiler. Ular obyektni tirik ushlab turgan havolalar zanjirini ildizgacha ko'rsatib beradi. Tipik aybdorlar: statik kolleksiya, o'chirilmagan listener, tozalanmaydigan kesh, Android'da Activity ni ushlab qolgan uzoq yashovchi obyekt.</p>
+</details>
+<details>
+  <summary>System.gc() ni chaqirsam bo'ladimi?</summary>
+  <p>Bu buyruq emas, iltimos: JVM uni e'tiborsiz qoldirishi mumkin. Bajarsa, odatda to'liq tozalash bo'ladi, ya'ni eng qimmat turi. JVM qachon tozalash kerakligini sizdan yaxshiroq biladi. Ishlab chiqarish kodida uni chaqirishning deyarli hech qachon asosi yo'q.</p>
+</details>
+<details>
+  <summary>Qaysi GC ni tanlash kerak?</summary>
+  <p>Ko'p hollarda tanlash shart emas: Java 9 dan beri sukut bo'yicha G1 ishlaydi va oddiy servis uchun yetarli. Javob vaqti juda muhim va heap katta bo'lsa, ZGC ni ko'rib chiqishadi. Eng yuqori umumiy unumdorlik kerak bo'lgan, pauzaga befarq paket hisob-kitoblarida Parallel GC hamon ishlatiladi. Birinchi sozlanadigan narsa esa GC turi emas, heap hajmi: <span class="num">-Xmx</span> eng katta hajmni, <span class="num">-Xms</span> boshlang'ich hajmni belgilaydi.</p>
+</details>
+<details>
+  <summary>Docker ichida JVM xotirani qanday ko'radi?</summary>
+  <p>Eski JVM lar konteyner chegarasini ko'rmasdi: ular butun serverning xotirasiga qarab heap hajmini tanlar, konteyner chegarasidan oshib ketar va tizim uni o'ldirardi. Java 10 dan (va Java 8 ning keyingi yangilanishlaridan) boshlab JVM konteyner chegaralarini taniydi. Bugun odatda heapni chegaraning foizi sifatida berishadi: <span class="num">-XX:MaxRAMPercentage</span>. Heapdan tashqari Metaspace, oqimlar steklari va JIT kodi ham joy olishini unutmaslik kerak.</p>
+</details>
+<details>
+  <summary>Weak va soft havolalar nima?</summary>
+  <p>Oddiy havola obyektni tirik ushlab turadi. Ba'zan «obyektga qarab turay, lekin uni ushlab qolmay» degan narsa kerak bo'ladi. <span class="num">WeakReference</span> shunday: GC uni hisobga olmaydi, obyektga boshqa havola qolmasa, u tozalanadi. <span class="num">SoftReference</span> yumshoqroq: obyekt faqat xotira tanqis bo'lganda tozalanadi. Android'da Activity ga uzoq yashovchi joydan qarash kerak bo'lsa, zaif havola ishlatilishi shundan.</p>
+</details>
+<details>
+  <summary>Android'da GC qanday?</summary>
+  <p>Yo'li o'xshash. Dalvik GC si dasturni to'liq to'xtatardi va pauzalar animatsiyalar qotishiga sabab bo'lardi: «GC_FOR_ALLOC» yozuvlari o'sha davrdan. ART bilan tozalashning katta qismi dastur bilan parallel bajariladigan bo'ldi, Android 8 dan obyektlarni parallel ko'chiradigan GC keldi, Android 10 da unga avlodlar qo'shildi. Telefonda qoida o'sha: sikl ichida va <span class="num">onDraw</span> da keraksiz obyekt yaratmaslik.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu qavatdan olib ketadigan narsa.</strong> Lokal o'zgaruvchilar stekdagi kadrda yashaydi va metod bilan birga yo'qoladi. Obyektlar heapda yashaydi va ularga ildizlardan yetib bo'lmay qolganda axlatga aylanadi. GC tiriklarni belgilaydi, qolganini bo'shatadi, joyni zichlaydi. Avlodlarga bo'lish buni arzonlashtiradi. GC tarixi pauzani qisqartirish tarixi.</p>
+  <p><strong>Keyingi qavat.</strong> Tiplar: nega kolleksiyalar xavfli edi va Java 5 buni qanday o'zgartirdi. Generics, autoboxing, enum, annotatsiyalar.</p>
+</div>
+
+<h2 id="j3">J3-qavat. Tiplar: generics, enum, annotatsiyalar</h2>
+<p class="lead">Xotira xavfsiz bo'ldi, tezlik yechildi. 2000-yillar boshida Java dasturchilarining asosiy og'rig'i endi mashinada emas, tilning o'zida edi: kompilyator juda ko'p xatoni o'tkazib yuborar va ular faqat dastur ishlab turganda yuzaga chiqardi. 2004-yildagi Java 5 shu og'riqlarga javob. Bu Java tarixidagi eng katta til yangilanishlaridan biri.</p>
+
+<h3>Og'riq: kolleksiya ichida nima borligini hech kim bilmaydi</h3>
+<p>Avval ikki so'zni aniqlab olaylik. <strong>Tip</strong> qiymatning turi: bu son, bu matn, bu <span class="num">User</span>. Java'da har bir o'zgaruvchining tipi oldindan yoziladi, va kompilyator noto'g'ri tipdagi narsani qo'yishga yo'l qo'ymaydi. <strong>Kolleksiya</strong> bir nechta qiymatni birga saqlaydigan obyekt: ro'yxat, to'plam, lug'at.</p>
+<p>1998-yilda Java'ga kolleksiyalar kutubxonasi qo'shildi: <span class="num">ArrayList</span>, <span class="num">HashMap</span> va boshqalar. Ular har qanday obyektni saqlay olishi kerak edi, shuning uchun ichidagi elementlar tipi eng umumiy tip qilib olingan: <span class="num">Object</span>. Natijada ro'yxatga istalgan narsani qo'shish mumkin, olayotganda esa «bu aslida String» deb o'zingiz aytishingiz kerak. Shu aytish <strong>cast</strong> deyiladi.</p>
+<p>Pastdagi modelda avval eski usulda ro'yxatga ism va son qo'shib, keyin hammasini o'qib ko'ring. So'ng Java 5 usuliga o'tib, xuddi shuni takrorlang.</p>
+
+<div class="bench" id="gen">
+  <div class="evo-tabs" id="genMode"></div>
+  <div class="listing"><table><tbody id="genCode"></tbody></table></div>
+  <div class="kv2"><span class="k">Ro'yxat ichida:</span><span class="chips" id="genItems"></span></div>
+  <div class="controls">
+    <button type="button" id="genStr">Ism qo'shish</button>
+    <button type="button" id="genInt">Son qo'shish</button>
+    <button type="button" class="primary" id="genRead">Hammasini String sifatida o'qish</button>
+    <button type="button" id="genClear">Tozalash</button>
+  </div>
+  <p class="say" id="genSay" aria-live="polite"></p>
+</div>
+
+<p>Farq xato borligida emas, u qachon va kimning oldida chiqishida. Eski usulda son qo'shilgan qator hech qanday shikoyat bermaydi. Xato butunlay boshqa joyda, o'qish paytida, dastur ishlab turganda chiqadi, ehtimol oylar o'tib va mijoz oldida. Yangi usulda kompilyator noto'g'ri qatorning o'zini ko'rsatadi va dastur umuman yig'ilmaydi.</p>
+
+<dl class="terms">
+  <dt>Tip</dt>
+  <dd>Qiymatning turi va u bilan nima qilish mumkinligi. <span class="num">int</span> ni qo'shish mumkin, <span class="num">String</span> ning uzunligini so'rash mumkin.</dd>
+  <dt>Object</dt>
+  <dd>Java'dagi barcha klasslarning umumiy ajdodi. <span class="num">Object</span> tipidagi o'zgaruvchiga har qanday obyektni qo'yish mumkin.</dd>
+  <dt>Cast (tipga keltirish)</dt>
+  <dd>Kompilyatorga «menga ishon, bu aslida falon tip» deyish: <span class="num">(String) obj</span>. JVM buni ish paytida tekshiradi va noto'g'ri bo'lsa <span class="num">ClassCastException</span> tashlaydi.</dd>
+  <dt>Kompilyatsiya vaqtidagi xato</dt>
+  <dd>Kompilyator topgan xato. Dastur yig'ilmaydi, xatoni faqat dasturchi ko'radi. Eng arzon xato turi.</dd>
+  <dt>Ish vaqtidagi xato (runtime)</dt>
+  <dd>Dastur ishlab turganda chiqqan xato. Uni foydalanuvchi ko'radi. Eng qimmat xato turi.</dd>
+  <dt>Generics</dt>
+  <dd>Klass yoki metodga tipni parametr qilib berish imkoniyati. <span class="num">List&lt;String&gt;</span> «faqat String saqlaydigan ro'yxat» degani. Burchakli qavs ichidagi narsa tip parametri.</dd>
+</dl>
+
+<h3>Generics ichkarida: tiplar o'chirib yuboriladi</h3>
+<p>Generics qo'shilayotganda qattiq cheklov bor edi: olti yil davomida yozilgan barcha eski kod va eski kutubxonalar ishlashda davom etishi kerak, JVM ning o'zi esa o'zgarmasligi kerak. Yechim kutilmagan bo'ldi: generics faqat kompilyator uchun mavjud.</p>
+<p>Kompilyator avval tiplarni tekshiradi. Hammasi to'g'ri bo'lsa, burchakli qavslarni o'chirib tashlaydi va kerakli joylarga cast ni o'zi yozib qo'yadi. Bayt-kodga yetib borgan narsa eski usuldagi kod bilan bir xil. Bu <strong>tiplarni o'chirish</strong> (type erasure) deyiladi.</p>
+
+<div class="bench" id="era">
+  <div class="evo-tabs" id="eraTabs"></div>
+  <pre class="code" id="eraCode"></pre>
+  <p class="say" id="eraSay" aria-live="polite"></p>
+</div>
+
+<p>Ya'ni dastur ishlayotgan paytda <span class="num">List&lt;String&gt;</span> va <span class="num">List&lt;Integer&gt;</span> orasida hech qanday farq yo'q: ikkalasi ham shunchaki <span class="num">List</span>. Generics bilan bog'liq g'alati cheklovlarning deyarli hammasi shundan kelib chiqadi:</p>
+<ul class="pain">
+  <li><span class="num">new T()</span> deb yozib bo'lmaydi: ish paytida T nima ekani noma'lum.</li>
+  <li><span class="num">if (list instanceof List&lt;String&gt;)</span> deb tekshirib bo'lmaydi: tekshiradigan ma'lumot yo'q.</li>
+  <li><span class="num">List&lt;int&gt;</span> yozib bo'lmaydi: o'chirilgandan keyin element <span class="num">Object</span> bo'lishi kerak, <span class="num">int</span> esa obyekt emas.</li>
+</ul>
+
+<dl class="terms">
+  <dt>Tiplarni o'chirish (type erasure)</dt>
+  <dd>Kompilyator tekshiruvdan keyin generic tip ma'lumotini olib tashlashi. Bayt-kodda tip parametrlari qolmaydi.</dd>
+  <dt>Orqaga moslik (backward compatibility)</dt>
+  <dd>Eski kod yangi versiyada o'zgarishsiz ishlashi. Java'ning eng qattiq qoidasi va ko'p g'alati qarorlarining sababi.</dd>
+  <dt>Xom tip (raw type)</dt>
+  <dd>Generic klassni tip parametrisiz ishlatish: shunchaki <span class="num">List</span>. Eski kod ishlashi uchun hamon ruxsat etilgan, lekin kompilyator ogohlantiradi.</dd>
+</dl>
+
+<h3>Autoboxing: son ham obyekt bo'lishi kerak bo'lganda</h3>
+<p>Oxirgi cheklov darhol yangi og'riq tug'dirdi. Sonlar ro'yxati juda ko'p kerak, <span class="num">List&lt;int&gt;</span> esa mumkin emas. Buning uchun har bir primitiv tipning obyekt ko'rinishi bor: <span class="num">int</span> uchun <span class="num">Integer</span>, <span class="num">long</span> uchun <span class="num">Long</span>. Bular <strong>o'rovchi klasslar</strong> deyiladi: ichida bitta son turgan obyekt.</p>
+<p>Java 5 gacha sonni o'rash va ochishni qo'lda yozish kerak edi. Java 5 dan kompilyator buni o'zi qiladi.</p>
+
+<div class="code2">
+  <figure>
+    <figcaption>Java 5 gacha</figcaption>
+<pre class="code">list.add(new Integer(5));
+int x = ((Integer) list.get(0))
+            .intValue();</pre>
+  </figure>
+  <figure>
+    <figcaption>Java 5 dan</figcaption>
+<pre class="code">list.add(5);
+int x = list.get(0);</pre>
+  </figure>
+</div>
+
+<p>Qulay, lekin obyekt yaratish yo'qolmadi, u faqat ko'zdan yashirildi. J2 dan eslang: <span class="num">int</span> 4 bayt, <span class="num">Integer</span> obyekti esa 16 bayt va unga havola. Yashirin obyektning yana bir oqibati bor, uni pastda sinab ko'ring: sonni o'zgartiring va ikki natijaga qarang.</p>
+
+<div class="bench" id="box">
+  <div class="kv2">
+    <label class="k" for="boxN">Son:</label>
+    <input class="numin" id="boxN" type="number" value="100" min="-100000" max="100000">
+    <button type="button" data-n="127">127</button>
+    <button type="button" data-n="128">128</button>
+    <button type="button" data-n="1000">1000</button>
+  </div>
+  <pre class="code" id="boxCode"></pre>
+  <div class="objrow" id="boxObjs"></div>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Ifoda</th><th>Natija</th><th>Nimani solishtiradi</th></tr></thead>
+    <tbody>
+      <tr><td class="num">a == b</td><td class="num" id="boxEq"></td><td>Ikki havola bitta obyektga qarayaptimi</td></tr>
+      <tr><td class="num">a.equals(b)</td><td class="num">true</td><td>Ichidagi sonlar tengmi</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="say" id="boxSay" aria-live="polite"></p>
+</div>
+
+<dl class="terms">
+  <dt>O'rovchi klass (wrapper)</dt>
+  <dd>Primitiv qiymatni obyekt ichiga solib beruvchi klass: Integer, Long, Double, Boolean.</dd>
+  <dt>Boxing va unboxing</dt>
+  <dd>Sonni obyektga o'rash va obyektdan sonni chiqarib olish.</dd>
+  <dt>Autoboxing</dt>
+  <dd>Shu ikki amalni kompilyator o'zi, ko'rinmas holda yozib qo'yishi.</dd>
+</dl>
+
+<h3>Enum: son o'rniga nomlangan qiymat</h3>
+<p>Yana bir eski odat: holat, tur, valyuta kabi cheklangan ro'yxatlarni oddiy sonlar bilan belgilash. Kompilyator uchun bular shunchaki <span class="num">int</span>, shuning uchun u hech narsani himoya qila olmaydi.</p>
+
+<div class="code2">
+  <figure>
+    <figcaption>Java 5 gacha</figcaption>
+<pre class="code">static final int STATUS_NEW  = 0;
+static final int STATUS_PAID = 1;
+static final int CURRENCY_UZS = 0;
+
+void setStatus(int status) { }
+
+setStatus(CURRENCY_UZS); // o'tadi
+setStatus(7);            // o'tadi</pre>
+  </figure>
+  <figure>
+    <figcaption>Java 5 dan</figcaption>
+<pre class="code">enum Status { NEW, PAID, FAILED }
+
+void setStatus(Status status) { }
+
+setStatus(Status.PAID);  // to'g'ri
+setStatus(7);            // xato:
+                         // yig'ilmaydi</pre>
+  </figure>
+</div>
+
+<p>Chap tomonda holat o'rniga valyuta berilgan va kompilyator jim. Logda esa <span class="num">status=1</span> deb yoziladi va bu nima ekanini bilish uchun kodni ochish kerak. <strong>Enum</strong> bu to'liq huquqli klass, faqat uning obyektlari soni oldindan qat'iy belgilangan. Boshqa qiymat yaratib bo'lmaydi, logda <span class="num">PAID</span> deb chiqadi, ichiga maydon va metod qo'shish mumkin.</p>
+
+<h3>Annotatsiyalar: kod ustidagi yozuvlar</h3>
+<p>2000-yillar boshida «bu klass servis», «bu maydonga falon obyektni ula», «bu metod tranzaksiya ichida ishlasin» kabi ma'lumotlar koddan tashqarida, alohida XML fayllarda yozilardi. Kod bir joyda, u haqidagi ma'lumot boshqa joyda. Klass nomini o'zgartirsangiz, XML ni ham topib tuzatish kerak, unutsangiz xato faqat ishga tushirganda chiqadi.</p>
+
+<div class="code2">
+  <figure>
+    <figcaption>Oldin: alohida XML fayl</figcaption>
+<pre class="code">&lt;bean id="paymentService"
+      class="uz.bank.PaymentService"&gt;
+  &lt;property name="repository"
+            ref="paymentRepository"/&gt;
+&lt;/bean&gt;</pre>
+  </figure>
+  <figure>
+    <figcaption>Keyin: kodning o'zida</figcaption>
+<pre class="code">@Service
+class PaymentService {
+    @Autowired
+    PaymentRepository repository;
+}</pre>
+  </figure>
+</div>
+
+<p><strong>Annotatsiya</strong> kodga yopishtirilgan yorliq. Eng muhim narsa, uni tushunmasdan Spring ham, Dagger ham «sehr» bo'lib qoladi: annotatsiyaning o'zi hech narsa qilmaydi. U faqat yozuv. Ish uni o'qiydigan dastur tomonidan bajariladi. O'quvchilar uch xil:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Kim o'qiydi</th><th>Qachon</th><th>Misollar</th></tr></thead>
+  <tbody>
+    <tr><td>Kompilyatorning o'zi</td><td>Kompilyatsiyada</td><td><span class="num">@Override</span>, <span class="num">@Deprecated</span></td></tr>
+    <tr><td>Annotatsiya protsessori: kompilyatsiya paytida ishlab, yangi kod yozib beradigan dastur</td><td>Kompilyatsiyada</td><td>Dagger va Hilt, Room, MapStruct</td></tr>
+    <tr><td>Freymvork, reflection orqali</td><td>Dastur ishlab turganda</td><td>Spring <span class="num">@Autowired</span> va <span class="num">@Transactional</span>, Retrofit <span class="num">@GET</span>, Jackson <span class="num">@JsonProperty</span></td></tr>
+  </tbody>
+</table>
+</div>
+
+<dl class="terms">
+  <dt>Annotatsiya</dt>
+  <dd>Klass, metod, maydon yoki parametrga qo'shiladigan <span class="num">@</span> belgili yorliq. Kod haqidagi ma'lumot, kodning o'zi emas.</dd>
+  <dt>Reflection</dt>
+  <dd>Dasturning ish paytida o'z klasslarini tekshira olishi: «bu klassda qanday maydonlar bor, ularda qanday annotatsiyalar turibdi». Spring shu orqali <span class="num">@Autowired</span> maydonlarni topadi va to'ldiradi.</dd>
+  <dt>Annotatsiya protsessori</dt>
+  <dd>Kompilyatorga ulanadigan qo'shimcha. Annotatsiyalarni kompilyatsiya paytida o'qiydi va ular asosida yangi Java fayllar yaratadi. Dagger yozib beradigan klasslar shunday paydo bo'ladi.</dd>
+</dl>
+
+<h3>Tiplar tizimi qanday o'zgargan</h3>
+<p>Generics bir kunda paydo bo'lmagan va unda to'xtab ham qolmagan. Bosqichlarni tartib bilan ko'ring.</p>
+<div class="bench" id="evoType"></div>
+
+<h3>Java 5 da yana nima keldi</h3>
+<div class="scroll">
+<table>
+  <thead><tr><th>Yangilik</th><th>Oldingi og'riq</th></tr></thead>
+  <tbody>
+    <tr><td><span class="num">for (String s : list)</span></td><td>Har bir aylanish uchun indeks yoki iterator bilan uch qator shablon kod</td></tr>
+    <tr><td>O'zgaruvchan sonli argumentlar: <span class="num">log(String... args)</span></td><td>Har safar qo'lda massiv yaratib berish</td></tr>
+    <tr><td><span class="num">import static</span></td><td><span class="num">Math.max</span> kabi klass nomini har joyda takrorlash</td></tr>
+    <tr><td><span class="num">java.util.concurrent</span> paketi</td><td>Ko'p oqimli kodni faqat <span class="num">Thread</span> va <span class="num">synchronized</span> bilan qo'lda yozish. Bu J4-qavatning mavzusi</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>Og'riq: nima yechilmay qoldi</h3>
+<ul class="pain">
+  <li><strong>O'chirishning cheklovlari.</strong> Ish paytida tip parametri yo'q. Buni aylanib o'tish uchun <span class="num">Class&lt;T&gt;</span> ni qo'lda uzatish kabi noqulay usullar kerak.</li>
+  <li><strong>Boxing narxi.</strong> Million sonli ro'yxat million alohida obyekt degani: xotira ham, GC ishi ham ko'payadi.</li>
+  <li><strong>null tip tizimidan tashqarida.</strong> <span class="num">String</span> tipidagi o'zgaruvchida matn o'rniga <span class="num">null</span> turishi mumkin va kompilyator buni bilmaydi. <span class="num">NullPointerException</span> eng ko'p uchraydigan xato bo'lib qolaverdi.</li>
+  <li><strong>Ko'p yozuv.</strong> <span class="num">Map&lt;String, List&lt;Payment&gt;&gt; m = new HashMap&lt;String, List&lt;Payment&gt;&gt;()</span>: bir xil narsa ikki marta.</li>
+</ul>
+<p>Tiplar shu bilan asosan tartibga keldi. Lekin aynan shu yillarda temirning o'zida katta o'zgarish yuz berdi. 2004–2005-yillarda protsessorlar tezlashishdan to'xtadi va o'rniga yadrolari ko'paya boshladi. Dastur tezroq ishlashi uchun endi bir vaqtda bir nechta ish qilishni o'rganishi kerak edi. Java 5 ga <span class="num">java.util.concurrent</span> bejiz qo'shilmagan. Bu J4-qavat: ko'p oqimlilik.</p>
+
+<h3>Tug'ilishi mumkin bo'lgan savollar</h3>
+<details>
+  <summary>Nega List&lt;String&gt; ni List&lt;Object&gt; kutilgan joyga berib bo'lmaydi?</summary>
+  <p>String bu Object, lekin String'lar ro'yxati Object'lar ro'yxati emas. Sababi: agar ruxsat berilganda, metod o'sha ro'yxatga <span class="num">Integer</span> qo'shib qo'yishi mumkin edi, chunki uning nazarida bu <span class="num">List&lt;Object&gt;</span>. Siz esa uni hamon <span class="num">List&lt;String&gt;</span> deb o'ylaysiz va birinchi o'qishda qulaysiz. Generics aynan shu xatoni yo'q qilish uchun kiritilgan, shuning uchun kompilyator bunga yo'l qo'ymaydi.</p>
+</details>
+<details>
+  <summary>? extends va ? super nima?</summary>
+  <p>Yuqoridagi qat'iylikni kerakli joyda yumshatish usuli. <span class="num">List&lt;? extends Number&gt;</span> «Number yoki uning biror avlodi ro'yxati» degani: undan Number sifatida o'qish xavfsiz, lekin unga qo'shib bo'lmaydi, chunki aniq qaysi tip ekani noma'lum. <span class="num">List&lt;? super Integer&gt;</span> teskarisi: unga Integer qo'shish xavfsiz, lekin o'qiganda faqat Object olasiz. Eslab qolish qoidasi: ro'yxatdan faqat olsangiz extends, faqat qo'shsangiz super. Kotlin'da bular <span class="num">out</span> va <span class="num">in</span> deb ataladi.</p>
+</details>
+<details>
+  <summary>Integer nega aynan −128 dan 127 gacha keshlangan?</summary>
+  <p>Kichik sonlar juda ko'p ishlatiladi: sanoqlar, indekslar, holat kodlari. Har safar yangi obyekt yaratmaslik uchun JVM shu oraliqdagi 256 ta Integer ni oldindan yaratib qo'yadi va avtomatik o'rashda o'shalarni beradi. Oraliq bir baytga sig'adigan sonlar. Bundan chiqadigan amaliy qoida bitta: o'rovchi tiplarni hech qachon <span class="num">==</span> bilan solishtirmang, doim <span class="num">equals</span> ishlating.</p>
+</details>
+<details>
+  <summary>Unboxing qanday qilib NullPointerException berishi mumkin?</summary>
+  <p><span class="num">Integer</span> obyekt, demak u <span class="num">null</span> bo'lishi mumkin. <span class="num">int x = map.get("kalit")</span> deb yozsangiz va lug'atda bunday kalit bo'lmasa, <span class="num">get</span> null qaytaradi, kompilyator esa ko'rinmas holda <span class="num">.intValue()</span> ni chaqirib qo'ygan. Qatorda hech qanday nuqta ko'rinmaydi, lekin xato chiqadi. Ma'lumotlar bazasidan keladigan bo'sh ustunlar bilan ishlashda bu tez-tez uchraydi.</p>
+</details>
+<details>
+  <summary>Kotlin tiplar o'chirilishini qanday aylanib o'tadi?</summary>
+  <p>Kotlin ham JVM da ishlaydi, demak unda ham tiplar o'chiriladi. Lekin <span class="num">inline</span> funksiyada <span class="num">reified</span> so'zi bor. Inline funksiya chaqirilmaydi, uning tanasi chaqirilgan joyga nusxalanadi, o'sha joyda esa aniq tip ma'lum. Kompilyator T o'rniga haqiqiy tipni yozib qo'yadi. <span class="num">gson.fromJson&lt;User&gt;(json)</span> kabi yozuvlar shu tufayli mumkin. Kotlin null muammosini ham tip tizimiga kiritgan: <span class="num">String</span> va <span class="num">String?</span> ikki xil tip.</p>
+</details>
+<details>
+  <summary>Dagger va Spring ikkalasi ham annotatsiya ishlatadi. Farqi nimada?</summary>
+  <p>O'qish vaqtida. Dagger annotatsiyalarni kompilyatsiya paytida o'qiydi va bog'lanishlarni bajaradigan oddiy Java kodini yozib beradi: xato bo'lsa dastur yig'ilmaydi, ish paytida esa reflection yo'q va ishga tushish tez. Android'da shu sababli tanlangan. Spring an'anaviy ravishda annotatsiyalarni ishga tushganda reflection orqali o'qiydi: moslashuvchan, lekin ishga tushish sekinroq va xato faqat o'shanda chiqadi. J1 dagi «oldindan tayyorlash» yo'nalishi Spring'ni ham shu ishning bir qismini yig'ish vaqtiga ko'chirishga undadi.</p>
+</details>
+<details>
+  <summary>@Override yozmasam nima bo'ladi?</summary>
+  <p>Dastur ishlaydi. Lekin metod nomida yoki parametrida kichik xato qilsangiz, siz ota klass metodini qayta yozdim deb o'ylaysiz, aslida esa yangi, hech kim chaqirmaydigan metod yaratgan bo'lasiz. <span class="num">@Override</span> kompilyatorga «bu metod albatta nimanidir qayta yozishi kerak, tekshir» deydi. Bu annotatsiya nima uchun kerakligining eng sodda misoli: ish paytidagi sirli xatoni kompilyatsiya xatosiga aylantiradi.</p>
+</details>
+<details>
+  <summary>Lombok ham annotatsiya protsessorimi?</summary>
+  <p>Shaklan ha, lekin u qoidani buzadi. Oddiy protsessor faqat yangi fayl yaratishi mumkin. Lombok esa kompilyatorning ichki tuzilmalariga kirib, mavjud klassning o'ziga getter va setterlarni qo'shib qo'yadi. Shu sababli u IDE da alohida plagin talab qiladi va ba'zan yangi Java versiyalarida muammo chiqaradi. Java 16 dagi <span class="num">record</span> uning eng ko'p ishlatiladigan qismini til darajasida beradi, bu J5-qavatda.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu qavatdan olib ketadigan narsa.</strong> Java 5 xatolarni ish vaqtidan kompilyatsiya vaqtiga ko'chirdi. Generics kolleksiyaga tip berdi, lekin faqat kompilyator uchun: bayt-kodda tiplar o'chiriladi. Autoboxing sonlarni ko'rinmas obyektlarga o'raydi. Enum sonli konstantalar o'rnini bosdi. Annotatsiya o'zi hech narsa qilmaydigan yorliq, ishni uni o'qigan dastur bajaradi.</p>
+  <p><strong>Keyingi qavat.</strong> Ko'p oqimlilik: bitta protsessordan ko'p yadroga, <span class="num">Thread</span> dan virtual oqimlargacha.</p>
+</div>
+
+</main>
+
+<script>
+(function () {
+  function evo(id, items) {
+    var root = document.getElementById(id);
+    var tabs = document.createElement('div'); tabs.className = 'evo-tabs';
+    var body = document.createElement('div'); body.className = 'evo-body'; body.setAttribute('aria-live', 'polite');
+    var nav = document.createElement('div'); nav.className = 'evo-nav';
+    var prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Oldingisi';
+    var next = document.createElement('button'); next.type = 'button'; next.textContent = 'Keyingisi';
+    nav.appendChild(prev); nav.appendChild(next);
+    root.appendChild(tabs); root.appendChild(body); root.appendChild(nav);
+    var idx = 0, btns = [];
+    items.forEach(function (it, i) {
+      var b = document.createElement('button'); b.type = 'button';
+      b.textContent = (i + 1) + '. ' + it.name;
+      b.addEventListener('click', function () { idx = i; render(); });
+      tabs.appendChild(b); btns.push(b);
+    });
+    function row(label, text, cls) {
+      return text ? '<dt' + (cls ? ' class="' + cls + '"' : '') + '>' + label + '</dt><dd>' + text + '</dd>' : '';
+    }
+    function render() {
+      var it = items[idx];
+      btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === idx ? 'true' : 'false'); });
+      body.innerHTML =
+        '<svg viewBox="0 0 120 100" aria-hidden="true">' + it.art + '</svg>' +
+        '<div><h4>' + it.name + '</h4><p class="years">' + it.years + '</p><dl>' +
+        row('Qanday ishlaydi', it.how) +
+        row('Oldingisidan nimasi yaxshi', it.better) +
+        row('Og\'rig\'i', it.pain, 'pain') +
+        row('Misollar', it.ex) +
+        '</dl></div>';
+      prev.disabled = idx === 0;
+      next.disabled = idx === items.length - 1;
+    }
+    prev.addEventListener('click', function () { if (idx > 0) { idx--; render(); } });
+    next.addEventListener('click', function () { if (idx < items.length - 1) { idx++; render(); } });
+    render();
+  }
+
+  window.evoStepper = evo;
+})();
+</script>
+<script>
+(function () {
+/*C0*/
+  var N = 16;
+  function blank() {
+    var s = { v: [], tag: [], cls: [], vars: [], hit: [] };
+    for (var i = 0; i < N; i++) { s.v.push(0); s.tag.push(''); s.cls.push(''); }
+    return s;
+  }
+  function own(s, from, name) {
+    for (var i = from; i < from + 4; i++) { s.tag[i] = name; s.cls[i] = 'own'; }
+    s.hit = [from, from + 1, from + 2, from + 3];
+  }
+  function setVar(s, k, val) {
+    for (var i = 0; i < s.vars.length; i++) if (s.vars[i][0] === k) { s.vars[i][1] = val; return; }
+    s.vars.push([k, val]);
+  }
+  function leakStep(i) {
+    var msgs = [
+      `Birinchi so'rov keldi. malloc 0-katakdan boshlab 4 ta katak berdi, manzil p ga yozildi.`,
+      `Ikkinchi so'rov. p ga yangi manzil (4) yozildi va eski manzil (0) ustidan yozilib ketdi. 0–3 kataklar hamon band, lekin ularning manzilini endi hech kim bilmaydi. Ularni qaytarib bo'lmaydi.`,
+      `Uchinchi so'rov. Yana 4 ta katak egasiz qoldi. Dastur to'g'ri ishlayapti, hech qanday xato yo'q, faqat bo'sh joy kamayyapti.`,
+      `To'rtinchi so'rov. Oxirgi bo'sh kataklar ham olindi.`,
+      `Beshinchi so'rov. Bo'sh katak qolmadi, malloc joy bera olmadi. Xotiraning hammasi band, lekin undan hech kim foydalanmayapti. Haqiqiy serverda bu soatlab yoki kunlab sekin to'planadi va oxirida dastur qulaydi.`
+    ];
+    return { line: 1, bad: i === 4, msg: msgs[i], run: function (s) {
+      if (i > 0) for (var j = (i - 1) * 4; j < i * 4; j++) { s.tag[j] = 'egasiz'; s.cls[j] = 'lost'; }
+      if (i < 4) { own(s, i * 4, 'p'); setVar(s, 'p', i * 4); }
+      else setVar(s, 'p', 'NULL');
+    } };
+  }
+  var SCEN = [
+    {
+      name: `Xotira oqishi`,
+      code: [`while (true) {`, `    p = malloc(4);   // so'rov uchun joy`, `    handle(p);       // so'rovni bajar`, `}                    // free(p) unutilgan`],
+      steps: [leakStep(0), leakStep(1), leakStep(2), leakStep(3), leakStep(4)]
+    },
+    {
+      name: `Osilgan pointer`,
+      code: [`p = malloc(4);`, `*p = 50;`, `free(p);`, `q = malloc(4);`, `*q = 7;`, `*p = 99;`],
+      steps: [
+        { line: 0, msg: `4 ta katak olindi, manzili (0) p da.`, run: function (s) { own(s, 0, 'p'); setVar(s, 'p', 0); } },
+        { line: 1, msg: `p ko'rsatgan katakka 50 yozildi. Yulduzcha «p ning o'ziga emas, u ko'rsatgan katakka» degani.`, run: function (s) { s.v[0] = 50; s.hit = [0]; } },
+        { line: 2, msg: `Joy qaytarildi, kataklar yana bo'sh hisoblanadi. Lekin ikki narsaga qarang: katakdagi 50 o'chmadi, va p da hamon 0 turibdi. free pointerning o'zini tozalamaydi.`, run: function (s) { for (var i = 0; i < 4; i++) { s.tag[i] = ''; s.cls[i] = ''; } } },
+        { line: 3, msg: `Dasturning boshqa qismi joy so'radi. malloc bo'shagan o'sha kataklarni berdi. Endi p ham, q ham 0-katakni ko'rsatyapti.`, run: function (s) { own(s, 0, 'q'); setVar(s, 'q', 0); } },
+        { line: 4, msg: `Yangi ega o'z ma'lumotini yozdi: 7.`, run: function (s) { s.v[0] = 7; s.hit = [0]; } },
+        { line: 5, bad: true, msg: `Eski pointer orqali yozildi. q ning ma'lumoti 7 edi, endi 99. Hech qanday xato chiqmadi. q egasi o'z ma'lumoti nega o'zgarganini bilmaydi, va xato kodning butunlay boshqa joyida yuzaga chiqadi. Bunday xatoni topish kunlab vaqt olishi mumkin.`, run: function (s) { s.v[0] = 99; s.hit = [0]; } }
+      ]
+    },
+    {
+      name: `Chegaradan chiqish`,
+      code: [`char name[4];`, `char isAdmin = 0;`, `strcpy(name, "SADULLA");`, `if (isAdmin) openAdminPanel();`],
+      steps: [
+        { line: 0, msg: `Ism uchun 4 ta katak ajratildi. Bu soddalashtirilgan model: haqiqiy kompilyator kataklarni boshqacha joylashtirishi mumkin, lekin g'oya shu.`, run: function (s) { for (var i = 0; i < 4; i++) { s.tag[i] = 'name'; s.cls[i] = 'own'; } s.hit = []; } },
+        { line: 1, msg: `Uning yonidagi katakda «administratormi» degan belgi turibdi. 0, ya'ni yo'q.`, run: function (s) { s.tag[4] = 'isAdmin'; s.cls[4] = 'own'; s.hit = [4]; } },
+        { line: 2, msg: `Foydalanuvchi 7 harfli ism kiritdi. strcpy harflarni tugaguncha ko'chiradi va joy yetadimi deb tekshirmaydi. 4 katakli joyga 8 ta bayt yozildi: 7 harf va oxirida 0. Ortig'i qo'shni kataklarga tushdi. 0-qavatdan eslang: harf ham son, «L» harfi 76.`, run: function (s) { var b = [83, 65, 68, 85, 76, 76, 65, 0]; s.hit = []; for (var i = 0; i < 8; i++) { s.v[i] = b[i]; s.hit.push(i); } } },
+        { line: 3, bad: true, msg: `isAdmin endi 76. C da noldan farqli har qanday son «ha» degani, demak shart bajariladi va oddiy foydalanuvchiga administrator paneli ochiladi. Hech kim parolni buzmadi, shunchaki uzun ism kiritildi. Haqiqiy hujumlar shu g'oyaga qurilgan.`, run: function (s) { s.hit = [4]; } }
+      ]
+    }
+  ];
+  function stateAt(sc, k) {
+    var s = blank();
+    for (var i = 0; i <= k; i++) { s.hit = []; sc.steps[i].run(s); }
+    return s;
+  }
+/*ENDC0*/
+  if (typeof document === 'undefined') return;
+
+  // ----- C xotira modeli -----
+  var cur = 0, k = -1, cells = [], tabBtns = [];
+  var memEl = document.getElementById('cmMem'), codeEl = document.getElementById('cmCode');
+  var varsEl = document.getElementById('cmVars'), sayEl = document.getElementById('cmSay');
+  for (var i = 0; i < N; i++) {
+    var c = document.createElement('div'); c.className = 'cell';
+    var a = document.createElement('span'); a.className = 'addr'; a.textContent = i;
+    var v = document.createElement('span'); v.className = 'val';
+    var g = document.createElement('span'); g.className = 'tag';
+    c.appendChild(a); c.appendChild(v); c.appendChild(g);
+    memEl.appendChild(c); cells.push({ el: c, val: v, tag: g });
+  }
+  SCEN.forEach(function (sc, idx) {
+    var b = document.createElement('button'); b.type = 'button'; b.textContent = sc.name;
+    b.addEventListener('click', function () { cur = idx; k = -1; draw(); });
+    document.getElementById('cmTabs').appendChild(b); tabBtns.push(b);
+  });
+  function draw() {
+    var sc = SCEN[cur], s = k >= 0 ? stateAt(sc, k) : blank();
+    var step = k >= 0 ? sc.steps[k] : null;
+    tabBtns.forEach(function (b, idx) { b.setAttribute('aria-pressed', idx === cur ? 'true' : 'false'); });
+    codeEl.textContent = '';
+    sc.code.forEach(function (line, idx) {
+      var tr = document.createElement('tr'), td = document.createElement('td');
+      td.textContent = line; tr.appendChild(td);
+      if (step && step.line === idx) tr.className = 'cur';
+      codeEl.appendChild(tr);
+    });
+    varsEl.textContent = '';
+    if (!s.vars.length) {
+      var em = document.createElement('p'); em.className = 'note'; em.style.margin = '0';
+      em.textContent = cur === 2 ? 'Bu ssenariyda pointer yo\'q.' : 'Hali yo\'q.';
+      varsEl.appendChild(em);
+    }
+    s.vars.forEach(function (p) {
+      var r = document.createElement('div'); r.className = 'reg';
+      var kk = document.createElement('span'); kk.className = 'k'; kk.textContent = p[0] + ' ichidagi manzil';
+      var vv = document.createElement('span'); vv.className = 'v'; vv.textContent = p[1];
+      r.appendChild(kk); r.appendChild(vv); varsEl.appendChild(r);
+    });
+    cells.forEach(function (cell, idx) {
+      cell.val.textContent = s.v[idx];
+      cell.tag.textContent = s.tag[idx];
+      var cls = 'cell' + (s.cls[idx] ? ' ' + s.cls[idx] : '');
+      if (s.hit.indexOf(idx) !== -1) cls += ' touched';
+      cell.el.className = cls;
+    });
+    sayEl.textContent = step ? step.msg : '«Keyingi qadam» tugmasini bosing.';
+    sayEl.className = step && step.bad ? 'say bad' : 'say';
+    document.getElementById('cmNext').disabled = k >= sc.steps.length - 1;
+  }
+  document.getElementById('cmNext').addEventListener('click', function () { if (k < SCEN[cur].steps.length - 1) { k++; draw(); } });
+  document.getElementById('cmBack').addEventListener('click', function () { k = -1; draw(); });
+  draw();
+
+  // ----- Platforma modeli -----
+  var PL = [
+    { n: `Windows, Intel x86`, cpu: `x86` },
+    { n: `Solaris, SPARC`, cpu: `SPARC` },
+    { n: `Mac, PowerPC`, cpu: `PowerPC` }
+  ];
+  var st = { lang: 0, build: 0, run: 1 };
+  function group(id, labels, key) {
+    var root = document.getElementById(id), btns = [];
+    labels.forEach(function (t, idx) {
+      var b = document.createElement('button'); b.type = 'button'; b.textContent = t;
+      b.addEventListener('click', function () { st[key] = idx; drawPl(); });
+      root.appendChild(b); btns.push(b);
+    });
+    return function () { btns.forEach(function (b, idx) { b.setAttribute('aria-pressed', idx === st[key] ? 'true' : 'false'); }); };
+  }
+  var names = PL.map(function (p) { return p.n; });
+  var syncs = [group('plLang', ['C', 'Java'], 'lang'), group('plBuild', names, 'build'), group('plRun', names, 'run')];
+  function drawPl() {
+    syncs.forEach(function (f) { f(); });
+    var B = PL[st.build], R = PL[st.run], pipe = document.getElementById('plPipe'), say = document.getElementById('plSay');
+    var boxes, text, bad = false;
+    if (st.lang === 0) {
+      boxes = [['hello.c', 0], [B.cpu + ' uchun C kompilyatori', 0], ['hello: ' + B.cpu + ' mashina kodi', 1], [R.n, 0]];
+      if (st.build === st.run) text = `Ishlaydi. Fayl ichidagi sonlar aynan shu protsessorning buyruqlari.`;
+      else { bad = true; text = `Ishlamaydi. Fayl ichida ` + B.cpu + ` protsessorining buyruq sonlari turibdi, ` + R.cpu + ` protsessori esa bu sonlarni boshqa buyruq deb o'qiydi yoki umuman tanimaydi. Yechim: matnni ` + R.cpu + ` uchun qayta kompilyatsiya qilish, va ko'pincha operatsion tizimga bog'liq joylarini qayta yozish.`; }
+    } else {
+      boxes = [['Hello.java', 0], ['javac', 0], ['Hello.class: bayt-kod', 1], [R.cpu + ' uchun JVM', 0], [R.n, 0]];
+      text = `Ishlaydi. Hello.class qayerda yaratilgani ahamiyatsiz: uning ichida hech qaysi haqiqiy protsessorning sonlari yo'q. Uni ` + R.cpu + ` uchun yozilgan JVM o'qib, shu protsessor tushunadigan amallarga aylantiradi. Shart bitta: bu kompyuterda JVM o'rnatilgan bo'lishi kerak.`;
+    }
+    pipe.textContent = '';
+    boxes.forEach(function (bx, idx) {
+      if (idx) { var ar = document.createElement('span'); ar.className = 'ar'; ar.setAttribute('aria-hidden', 'true'); ar.textContent = '→'; pipe.appendChild(ar); }
+      var d = document.createElement('span'); d.className = bx[1] ? 'box key' : 'box'; d.textContent = bx[0]; pipe.appendChild(d);
+    });
+    say.textContent = text; say.className = bad ? 'say bad' : 'say';
+  }
+  drawPl();
+
+  // ----- Tillar zanjiri -----
+  window.evoStepper('evoLang', [
+    {
+      name: `FORTRAN`,
+      years: `1957-yil`,
+      art: `<path d="M14 30h34M14 50h34M14 70h34"/><path d="M56 50h10M61 44l6 6-6 6" class="acc"/><rect x="74" y="16" width="34" height="12"/><rect x="74" y="34" width="34" height="12" class="lit"/><rect x="74" y="52" width="34" height="12"/><rect x="74" y="70" width="34" height="12"/>`,
+      how: `Dasturchi formulani matematikada yozilgandek yozadi: C = A + B. Kompilyator uni o'zi mashina buyruqlariga yoyadi. Nomi ham shundan: FORmula TRANslation, formula tarjimasi.`,
+      better: `Bitta qator bir nechta buyruq o'rnini bosdi. Dastur matni protsessorga emas, masalaga yaqinlashdi. Uni boshqa mashinaga ko'chirish uchun o'sha mashinaga kompilyator yozilsa yetardi.`,
+      pain: `Faqat hisob-kitob uchun mo'ljallangan. Mashinaning o'ziga yaqin ishlarni, masalan operatsion tizim yozishni, unda qilib bo'lmasdi: xotira kataklariga to'g'ridan-to'g'ri murojaat yo'q. Bunday dasturlar hamon assemblerda yozilardi.`,
+      ex: `IBM, John Backus jamoasi, IBM 704 kompyuteri uchun. O'sha paytda ko'pchilik kompilyator chiqargan kod qo'lda yozilgandan ancha sekin bo'ladi deb o'ylagan. Jamoa buning aksini isbotlagach, yuqori darajali tillarga yo'l ochildi.`
+    },
+    {
+      name: `C`,
+      years: `1972-yil`,
+      art: `<rect x="12" y="38" width="22" height="24" class="lit"/><path d="M34 50h22M50 44l6 6-6 6" class="acc"/><rect x="60" y="38" width="16" height="24"/><rect x="76" y="38" width="16" height="24"/><rect x="92" y="38" width="16" height="24"/>`,
+      how: `Yuqori darajali tilning qulayligi (ifodalar, if, while, funksiyalar) va assemblerning kuchi bitta tilda: pointer orqali istalgan xotira katagiga to'g'ridan-to'g'ri murojaat qilish mumkin.`,
+      better: `Operatsion tizimni ham yuqori darajali tilda yozish mumkin bo'ldi. 1973-yilda Unix C da qayta yozildi va shu tufayli turli kompyuterlarga ko'chirila oldi. Kompilyator chiqargan kod assemblerga yaqin tezlikda ishlardi.`,
+      pain: `Til dasturchiga to'liq ishonadi va hech narsani tekshirmaydi. Xotirani qo'lda so'rash va qaytarish kerak. Pastdagi uchta ssenariy shu haqida. Dastur kattalashgani sari uni tartibga soladigan vosita ham yetishmaydi: faqat funksiyalar va ma'lumot tuzilmalari bor.`,
+      ex: `Dennis Ritchie, Bell Labs. Bugun ham Linux yadrosi, ma'lumotlar bazalari va JVM ning o'zagi C va C++ da yozilgan.`
+    },
+    {
+      name: `C++`,
+      years: `1979–1985-yillar`,
+      art: `<rect x="40" y="10" width="40" height="22" class="lit"/><path d="M60 32v14M30 46h60M30 46v12M90 46v12"/><rect x="12" y="58" width="36" height="22"/><rect x="72" y="58" width="36" height="22"/>`,
+      how: `C ustiga klasslar qo'shildi: ma'lumot va u bilan ishlaydigan funksiyalar bitta obyektga birlashtiriladi, klasslar bir-biridan vorislik oladi. C ning hamma narsasi, shu jumladan pointerlar ham saqlanib qoldi.`,
+      better: `Juda katta dasturlarni bo'laklarga ajratib tuzish mumkin bo'ldi. Tezlik C darajasida qoldi.`,
+      pain: `C ning barcha xavflari joyida qoldi, ustiga til juda murakkablashdi: ko'p vorislik, operatorlarni qayta aniqlash, header fayllar, preprotsessor. Xotira hamon qo'lda. Tayyor fayl hamon bitta platformaga bog'liq.`,
+      ex: `Bjarne Stroustrup, Bell Labs. Dastlab «C with Classes» deb atalgan, 1983-yilda C++ nomini olgan, 1985-yilda ommaga chiqqan.`
+    },
+    {
+      name: `Java`,
+      years: `1995-yil`,
+      art: `<rect x="34" y="14" width="52" height="18" class="lit"/><rect x="34" y="42" width="52" height="18"/><path d="M60 32v10M60 60v8M24 68h72M24 68v8M60 68v8M96 68v8" class="acc"/><rect x="10" y="76" width="28" height="14"/><rect x="46" y="76" width="28" height="14"/><rect x="82" y="76" width="28" height="14"/>`,
+      how: `Ko'rinishi C++ ga o'xshatilgan, toki dasturchilar oson o'tsin. Lekin xavfli qismlar olib tashlangan: pointer arifmetikasi, qo'lda free, ko'p vorislik yo'q. Dastur haqiqiy protsessorda emas, JVM ichida ishlaydi.`,
+      better: `Xotira xatolarining butun bir sinfi tilning o'zida mumkin bo'lmay qoldi. Bitta tayyor fayl hamma platformada ishlaydi.`,
+      pain: `Tezlik va xotira evaziga. Buni shu qavatning oxirida va J1 da ko'ramiz.`,
+      ex: `James Gosling va jamoasi, Sun Microsystems. Qanday tug'ilgani pastda alohida zanjirda.`
+    }
+  ]);
+
+  // ----- Java'ning tug'ilishi -----
+  window.evoStepper('evoJava', [
+    {
+      name: `Green loyihasi`,
+      years: `1991-yil`,
+      art: `<rect x="18" y="22" width="60" height="42" rx="3"/><path d="M36 64v12M60 64v12M28 76h40"/><rect x="88" y="34" width="20" height="42" rx="3" class="lit"/>`,
+      how: `Sun Microsystems'da kichik guruh (Patrick Naughton, Mike Sheridan, James Gosling) «kompyuterlardan keyingi to'lqin nima bo'ladi» degan savol bilan ish boshladi. Javoblari: maishiy elektronika. Televizorlar, pristavkalar, qo'l qurilmalari bir-biri bilan gaplashadigan bo'ladi.`,
+      pain: `Bunday qurilmalarda protsessorlar har xil va arzon, ishlab chiqaruvchi ularni tez-tez almashtiradi. C++ dasturini har biri uchun qayta kompilyatsiya qilish kerak. Televizor esa kompyuter emas: u «qotib qolishi» mumkin emas, xotira xatosi bu yerda kechirilmaydi. Gosling avval C++ ni moslashtirishga urindi, keyin yangi til yozish osonroq degan xulosaga keldi.`,
+      ex: `Loyiha nomi Green, jamoa o'zini Green Team deb atagan.`
+    },
+    {
+      name: `Oak va *7`,
+      years: `1992-yil`,
+      art: `<rect x="34" y="12" width="52" height="76" rx="6"/><rect x="42" y="22" width="36" height="40" class="lit"/><circle cx="60" cy="76" r="5"/>`,
+      how: `Yangi til Oak deb ataldi. Uni sinash uchun jamoa *7 (Star Seven) degan qo'l qurilmasini yasadi: sensorli ekran, animatsiyali interfeys, uy jihozlarini boshqarish. Oak dasturi qurilmadagi virtual mashinada ishlardi. Java'ning Duke nomli maskoti ilk bor shu ekranda paydo bo'lgan.`,
+      better: `G'oya ishladi: xavfsiz til, oraliq kod va virtual mashina birgalikda haqiqiy qurilmada namoyish qilindi.`,
+      pain: `Texnologiya tayyor, xaridor yo'q. Maishiy elektronika ishlab chiqaruvchilari bunga qiziqmadi: qurilmalar hali bunday dasturlar uchun juda zaif va qimmat edi.`,
+      ex: `*7 1992-yil sentabrida Sun rahbariyatiga ko'rsatilgan.`
+    },
+    {
+      name: `Interaktiv televideniye`,
+      years: `1993–1994-yillar`,
+      art: `<rect x="14" y="20" width="92" height="50" rx="3"/><path d="M40 86h40M60 70v16"/><path d="M34 34l52 22M86 34L34 56" class="acc"/>`,
+      how: `Jamoa FirstPerson nomli alohida sho'ba korxonaga aylantirildi va kabel televideniyesi pristavkalari bozoriga kirishga urindi: tomoshabin filmni o'zi tanlab buyurtma qiladigan tizimlar.`,
+      pain: `Eng yirik shartnoma raqobatchiga, Silicon Graphics'ga ketdi. Boshqa buyurtmalar ham chiqmadi. 1994-yilga kelib FirstPerson yopildi, jamoa tarqalish arafasida edi. Qo'lda ishlaydigan texnologiya bor, lekin uni qo'llaydigan joy yo'q.`,
+      ex: `Time Warner'ning interaktiv televideniye loyihasi.`
+    },
+    {
+      name: `Veb`,
+      years: `1994–1995-yillar`,
+      art: `<circle cx="60" cy="50" r="36"/><path d="M24 50h72M60 14c-18 12-18 60 0 72M60 14c18 12 18 60 0 72" class="acc"/>`,
+      how: `Bu orada Mosaic brauzeri internetni ommaga ochdi. Jamoa payqadi: internet aynan ular yechgan muammoning o'zi. Tarmoqda har xil protsessorli, har xil tizimli millionlab kompyuter bor, va ularga notanish joydan kelgan dasturni xavfsiz bajarish kerak. Oak buning uchun tayyor edi. Jamoa sahifa ichida kichik dasturlar (appletlar) ishlata oladigan brauzer yozdi.`,
+      better: `O'sha paytda veb-sahifalar faqat matn va rasm edi. Sahifa ichida harakatlanuvchi, bosilganda javob beradigan dastur katta taassurot qoldirdi.`,
+      pain: `Oak nomi boshqa kompaniyaning tovar belgisi bo'lib chiqdi, til Java deb qayta nomlandi. Jiddiyrog'i: til hali sinov holatida va faqat bitta brauzerda ishlaydi.`,
+      ex: `Brauzer avval WebRunner, keyin HotJava deb atalgan. Java 1995-yil 23-mayda SunWorld konferensiyasida e'lon qilindi. O'sha kuni Netscape o'z brauzeriga Java'ni qo'shishini ma'lum qildi.`
+    },
+    {
+      name: `JDK 1.0`,
+      years: `1996-yil yanvar`,
+      art: `<rect x="26" y="34" width="68" height="50" rx="3"/><path d="M26 48h68"/><path d="M48 34V20h24v14" class="acc"/><rect x="50" y="58" width="20" height="14" class="lit"/>`,
+      how: `Birinchi rasmiy versiya: til, javac kompilyatori, JVM va standart kutubxona. Shiori: «Bir marta yoz, hamma joyda ishlat» (Write Once, Run Anywhere).`,
+      better: `Java endi tajriba emas, hamma yuklab olib ishlatishi mumkin bo'lgan mahsulot. Bir necha oy ichida yuz minglab dasturchi uni sinab ko'rdi.`,
+      pain: `JVM bayt-kodni faqat interpretatsiya qiladi, shuning uchun dasturlar sekin. Kutubxona kichik. Kolleksiyalar ham, generics ham hali yo'q. Shu og'riqlarning har biri keyingi qavatlarning mavzusi.`,
+      ex: `1996-yil 23-yanvar. Tarkibida 200 dan sal ortiq klass bo'lgan. Bugungi JDK da ular minglab.`
+    }
+  ]);
+})();
+</script>
+<script>
+(function () {
+/*J1*/
+  function I(a, op, arg, text, arg2) { return { a: a, op: op, arg: arg, text: text, arg2: arg2 }; }
+  var PROGS = {
+    add: {
+      src: `int add(int a, int b) {\n    int c = a + b;\n    return c;\n}`,
+      names: { 1: 'a', 2: 'b', 3: 'c' },
+      init: { 1: 5, 2: 3 },
+      code: [
+        I(0, 'iload', 1, 'iload_1'), I(1, 'iload', 2, 'iload_2'), I(2, 'iadd', null, 'iadd'),
+        I(3, 'istore', 3, 'istore_3'), I(4, 'iload', 3, 'iload_3'), I(5, 'ireturn', null, 'ireturn')
+      ]
+    },
+    loop: {
+      src: `int sum = 0;\nint i = 3;\nwhile (i != 0) {\n    sum = sum + 4;\n    i--;\n}\nreturn sum;`,
+      names: { 1: 'sum', 2: 'i' },
+      init: {},
+      code: [
+        I(0, 'iconst', 0, 'iconst_0'), I(1, 'istore', 1, 'istore_1'),
+        I(2, 'iconst', 3, 'iconst_3'), I(3, 'istore', 2, 'istore_2'),
+        I(4, 'iload', 2, 'iload_2'), I(5, 'ifeq', 18, 'ifeq 18'),
+        I(8, 'iload', 1, 'iload_1'), I(9, 'iconst', 4, 'iconst_4'),
+        I(10, 'iadd', null, 'iadd'), I(11, 'istore', 1, 'istore_1'),
+        I(12, 'iinc', 2, 'iinc 2, -1', -1), I(15, 'goto', 4, 'goto 4'),
+        I(18, 'iload', 1, 'iload_1'), I(19, 'ireturn', null, 'ireturn')
+      ]
+    }
+  };
+  function start(prog) {
+    var loc = {}, k;
+    for (k in prog.names) loc[k] = prog.init.hasOwnProperty(k) ? prog.init[k] : null;
+    return { pc: 0, stack: [], loc: loc, done: false, count: 0, prog: prog };
+  }
+  function idxOf(prog, addr) { for (var i = 0; i < prog.code.length; i++) if (prog.code[i].a === addr) return i; return -1; }
+  function exec(st) {
+    var ins = st.prog.code[st.pc], nm = st.prog.names, v, a, b, msg, next = st.pc + 1;
+    st.count++;
+    switch (ins.op) {
+      case 'iconst': st.stack.push(ins.arg); msg = ins.arg + ` soni stek tepasiga qo'yildi.`; break;
+      case 'iload': v = st.loc[ins.arg]; st.stack.push(v); msg = nm[ins.arg] + ` o'zgaruvchisidagi ` + v + ` stek tepasiga nusxalandi. O'zgaruvchining o'zi o'zgarmadi.`; break;
+      case 'istore': v = st.stack.pop(); st.loc[ins.arg] = v; msg = `Stek tepasidagi ` + v + ` olindi va ` + nm[ins.arg] + ` ga yozildi.`; break;
+      case 'iadd': b = st.stack.pop(); a = st.stack.pop(); st.stack.push(a + b); msg = `Stekdan ikki son olindi (` + a + ` va ` + b + `), yig'indisi ` + (a + b) + ` stekka qo'yildi.`; break;
+      case 'iinc': v = st.loc[ins.arg]; st.loc[ins.arg] = v + ins.arg2; msg = nm[ins.arg] + ` joyida o'zgartirildi: ` + v + ` edi, ` + (v + ins.arg2) + ` bo'ldi. Stek ishlatilmadi.`; break;
+      case 'ifeq': v = st.stack.pop();
+        if (v === 0) { next = idxOf(st.prog, ins.arg); msg = `Stekdan ` + v + ` olindi. U nolga teng, shuning uchun ` + ins.arg + `-manzilga sakraymiz. Sikl tugadi.`; }
+        else msg = `Stekdan ` + v + ` olindi. U nolga teng emas, sakramaymiz va sikl tanasiga kiramiz.`;
+        break;
+      case 'goto': next = idxOf(st.prog, ins.arg); msg = ins.arg + `-manzilga, ya'ni shartni tekshirishga qaytamiz.`; break;
+      case 'ireturn': v = st.stack.pop(); st.done = true; st.ret = v; next = st.pc; msg = `Stek tepasidagi ` + v + ` metod natijasi sifatida chaqiruvchiga qaytarildi. Metod tugadi.`; break;
+    }
+    st.pc = next;
+    return ins.text + `: ` + msg;
+  }
+  function fmt(n) { return String(Math.round(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function jitCost(n) {
+    var hs = Math.min(n, 200) * 40;
+    if (n >= 200) hs += 1000 + (Math.min(n, 5000) - 200) * 8;
+    if (n >= 5000) hs += 20000 + (n - 5000) * 2;
+    return { interp: n * 40, upfront: 20000 + n * 2, hotspot: hs, state: n < 200 ? 0 : (n < 5000 ? 1 : 2) };
+  }
+/*ENDJ1*/
+  if (typeof document === 'undefined') return;
+
+  // ----- Stek mashinasi -----
+  var st, timer = null, rows = [];
+  var codeEl = document.getElementById('jvCode'), stackEl = document.getElementById('jvStack');
+  var locEl = document.getElementById('jvLoc'), sayEl = document.getElementById('jvSay');
+  function halt() { if (timer !== null) { clearInterval(timer); timer = null; } }
+  function load(prog) {
+    halt();
+    st = start(prog);
+    document.getElementById('jvSrc').textContent = prog.src;
+    codeEl.textContent = ''; rows = [];
+    prog.code.forEach(function (ins) {
+      var tr = document.createElement('tr');
+      [String(ins.a), ins.text].forEach(function (t) { var td = document.createElement('td'); td.textContent = t; tr.appendChild(td); });
+      codeEl.appendChild(tr); rows.push(tr);
+    });
+    sayEl.textContent = '«Bir qadam» tugmasini bosing.'; sayEl.className = 'say';
+    draw();
+  }
+  function draw() {
+    rows.forEach(function (tr, i) { tr.className = !st.done && i === st.pc ? 'cur' : ''; });
+    stackEl.textContent = '';
+    if (!st.stack.length) { var e = document.createElement('span'); e.className = 'empty'; e.textContent = 'bo\'sh'; stackEl.appendChild(e); }
+    st.stack.forEach(function (v, i) {
+      var d = document.createElement('div'); d.className = i === st.stack.length - 1 ? 'slot top' : 'slot'; d.textContent = v; stackEl.appendChild(d);
+    });
+    locEl.textContent = '';
+    Object.keys(st.loc).forEach(function (k) {
+      var r = document.createElement('div'); r.className = 'reg';
+      var a = document.createElement('span'); a.className = 'k'; a.textContent = k + '-o\'rin: ' + st.prog.names[k];
+      var b = document.createElement('span'); b.className = 'v'; b.textContent = st.loc[k] === null ? '—' : st.loc[k];
+      r.appendChild(a); r.appendChild(b); locEl.appendChild(r);
+    });
+    document.getElementById('jvCount').textContent = st.count;
+    document.getElementById('jvStep').disabled = st.done;
+    document.getElementById('jvRun').disabled = st.done || timer !== null;
+  }
+  function step() {
+    if (st.done) return;
+    sayEl.textContent = exec(st);
+    if (st.done || st.count >= 200) { st.done = true; halt(); }
+    draw();
+  }
+  document.getElementById('jvStep').addEventListener('click', step);
+  document.getElementById('jvRun').addEventListener('click', function () {
+    if (st.done || timer !== null) return;
+    step();
+    if (!st.done) { timer = setInterval(step, 350); draw(); }
+  });
+  document.getElementById('jvReset').addEventListener('click', function () { load(st.prog); });
+  document.getElementById('jvAdd').addEventListener('click', function () { load(PROGS.add); });
+  document.getElementById('jvLoop').addEventListener('click', function () { load(PROGS.loop); });
+  load(PROGS.add);
+
+  // ----- JIT modeli -----
+  var n = 0;
+  var STATES = [`interpretatorda`, `C1 kodi (tez tarjima)`, `C2 kodi (kuchli tarjima)`];
+  function drawJit() {
+    var c = jitCost(n), vals = [c.interp, c.upfront, c.hotspot], min = Math.min.apply(null, vals), text;
+    document.getElementById('jitN').textContent = fmt(n);
+    document.getElementById('jitState').textContent = STATES[c.state];
+    vals.forEach(function (v, i) {
+      document.getElementById('jitT' + i).textContent = fmt(v);
+      document.getElementById('jitR' + i).className = n > 0 && v === min ? 'best' : '';
+    });
+    if (n === 0) text = `Metod hali chaqirilmadi. E'tibor bering: «oldindan kompilyatsiya» yondashuvi hech narsa bajarmasdan turib 20 000 birlik sarflab bo'ldi. Dasturda minglab metod bo'lsa, bu ishga tushishdagi uzoq kutishga aylanadi.`;
+    else if (c.state === 0) text = `Metod hali «sovuq». HotSpot uni interpretatsiya qilyapti va sanayapti. Oldindan kompilyatsiya bu yerda sof zarar: tarjimaga ketgan vaqt o'zini oqlamadi.`;
+    else if (c.state === 1) text = `Metod 200 martadan o'tdi va isidi. HotSpot uni tez kompilyator (C1) bilan tarjima qildi. Faqat interpretator yondashuvi orqada qola boshladi.`;
+    else text = `Metod qaynoq. HotSpot uni kuchli kompilyator (C2) bilan qayta tarjima qildi. Interpretator endi ` + Math.round(c.interp / c.hotspot) + ` baravar sekin. HotSpot esa oldindan kompilyatsiyaga deyarli yetib oldi, holbuki kam chaqiriladigan metodlarga umuman vaqt sarflamadi.`;
+    document.getElementById('jitSay').textContent = text;
+  }
+  Array.prototype.forEach.call(document.querySelectorAll('#jit [data-add]'), function (b) {
+    b.addEventListener('click', function () { n += +b.getAttribute('data-add'); drawJit(); });
+  });
+  document.getElementById('jitReset').addEventListener('click', function () { n = 0; drawJit(); });
+  drawJit();
+
+  // ----- Bajarish usuli evolyutsiyasi -----
+  window.evoStepper('evoExec', [
+    {
+      name: `Interpretator`,
+      years: `1996-yil, JDK 1.0`,
+      art: `<rect x="14" y="20" width="26" height="14"/><rect x="14" y="40" width="26" height="14" class="lit"/><rect x="14" y="60" width="26" height="14"/><path d="M46 47h20M60 41l6 6-6 6" class="acc"/><circle cx="88" cy="47" r="18"/><path d="M88 37v10l7 5"/>`,
+      how: `JVM bayt-kodni buyruqma-buyruq o'qiydi va har birini shu zahoti bajaradi. Hech narsa oldindan tarjima qilinmaydi.`,
+      better: `Sodda va ko'chma: interpretatorni yangi platformaga o'tkazish oson. Dastur kutmasdan darhol ishlay boshlaydi.`,
+      pain: `Har bir buyruq har safar qaytadan o'qiladi va taniladi. Hisob-kitobga boy dasturlar C dagi shu dasturdan o'nlab marta sekin ishlaydi.`,
+      ex: `JDK 1.0 dagi «klassik» JVM.`
+    },
+    {
+      name: `Birinchi JIT`,
+      years: `1997–1998-yillar, JDK 1.1 va 1.2`,
+      art: `<rect x="10" y="38" width="30" height="24"/><path d="M44 50h14M52 44l6 6-6 6" class="acc"/><rect x="62" y="38" width="48" height="24" class="lit"/><path d="M68 46h36M68 54h24" style="stroke:var(--lamp-ink)"/>`,
+      how: `Metod birinchi marta chaqirilganda u butunlay mashina kodiga tarjima qilinadi. Keyingi chaqiruvlar tayyor mashina kodini ishlatadi.`,
+      better: `Takrorlanadigan kod bir necha baravar tezlashdi: buyruqlarni qaytadan tanish yo'qoldi.`,
+      pain: `Hamma metod kompilyatsiya qilinadi, hatto bir marta chaqiriladigani ham. Dastur ishga tushishda uzoq «o'ylanib» qoladi. Tarjima tez bo'lishi kerak bo'lgani uchun jiddiy optimizatsiyaga vaqt yo'q, natijada kod o'rtacha.`,
+      ex: `Sun Windows uchun JDK ga Symantec kompaniyasining JIT kompilyatorini qo'shgan. JDK 1.2 da JIT standart qismga aylangan.`
+    },
+    {
+      name: `HotSpot`,
+      years: `1999–2000-yillar`,
+      art: `<rect x="12" y="62" width="14" height="22"/><rect x="32" y="52" width="14" height="32"/><rect x="52" y="18" width="14" height="66" class="lit"/><rect x="72" y="58" width="14" height="26"/><rect x="92" y="66" width="14" height="18"/><path d="M8 84h104"/>`,
+      how: `Hamma kod avval interpretatsiya qilinadi. JVM har bir metod va sikl necha marta ishlaganini sanaydi. Faqat qaynoq bo'lib chiqqanlari kompilyatsiya qilinadi, lekin jiddiy optimizatsiya bilan.`,
+      better: `Ishga tushish tez, chunki hech narsa oldindan tarjima qilinmaydi. Qaynoq kod esa juda tez, chunki kompilyator kuchini kam joyga sarflaydi va dasturning haqiqiy ishlashini ko'rib turadi.`,
+      pain: `Ikki xil kompilyator bor va birini tanlash kerak: «client» tez ishga tushadi, lekin kodi sustroq; «server» sekin isiydi, lekin kodi tez. Qaysi biri kerakligini dasturchi oldindan hal qilishi kerak.`,
+      ex: `Texnologiya Smalltalk va Self tillari ustidagi tadqiqotlardan chiqqan. Uni yaratgan kichik kompaniyani Sun 1997-yilda sotib olgan. HotSpot 1999-yilda chiqdi, JDK 1.3 dan boshlab standart JVM.`
+    },
+    {
+      name: `Bosqichli kompilyatsiya`,
+      years: `2011–2014-yillar, Java 7 va 8`,
+      art: `<path d="M10 84h28V62h28V40h28V18h18"/><circle cx="24" cy="74" r="4"/><circle cx="52" cy="52" r="4" class="acc"/><circle cx="80" cy="30" r="5" class="lit"/>`,
+      how: `Ikki kompilyator birga ishlaydi. Metod interpretatordan boshlaydi, isigach tez kompilyator (C1) ga o'tadi, yanada qizigach kuchli kompilyator (C2) ga. C1 kodi ishlab turgan paytda C2 uchun statistika yig'adi.`,
+      better: `Tanlash shart emas: tez ishga tushish ham, yuqori cho'qqi tezlik ham bitta JVM da.`,
+      pain: `Har safar dastur noldan isiydi. Kecha yig'ilgan bilim bugun yo'q. Qisqa yashaydigan dasturlar va tez-tez qayta ishga tushadigan servislar hech qachon to'liq tezlikka chiqmaydi.`,
+      ex: `Java 7 da qo'shilgan, Java 8 dan boshlab sukut bo'yicha yoqilgan. Bugun siz ishlatayotgan JVM shu rejimda ishlaydi.`
+    },
+    {
+      name: `Oldindan tayyorlash`,
+      years: `2017-yildan hozirgacha`,
+      art: `<rect x="12" y="24" width="40" height="52" rx="3"/><path d="M20 38h24M20 50h24M20 62h14" class="acc"/><path d="M58 50h14M66 44l6 6-6 6"/><path d="M92 20L78 52h12l-6 28 20-36H92z" class="lit"/>`,
+      how: `Ishning bir qismi dastur ishga tushishidan oldin bajarib qo'yiladi. Ikki yo'nalish bor. Birinchisi: butun dasturni yig'ish paytida mashina kodiga aylantirish (GraalVM Native Image). Ikkinchisi: sinov yurgizishda yig'ilgan bilimni keshga saqlab, keyingi ishga tushishda tayyorini olish (Leyden loyihasi).`,
+      better: `Ishga tushish soniyalardan soniyaning ulushlariga tushadi. Bulutda tez-tez ko'tarilib-tushadigan servislar uchun bu hal qiluvchi.`,
+      pain: `To'liq oldindan kompilyatsiyada JIT ning ish paytidagi kuzatuvi yo'qoladi, reflection va dinamik klass yuklash cheklanadi, yig'ish uzoq davom etadi. Kesh yo'li yumshoqroq, lekin hali rivojlanmoqda.`,
+      ex: `GraalVM Native Image 2019-yilda chiqdi, Spring Boot uni 3-versiyadan (2022) qo'llaydi. Leyden loyihasining birinchi qismlari JDK 24 va JDK 25 ga (2025) kirdi.`
+    }
+  ]);
+
+  // ----- Android -----
+  window.evoStepper('evoArt', [
+    {
+      name: `Dalvik`,
+      years: `2008-yil, Android 1.0`,
+      art: `<rect x="36" y="10" width="48" height="80" rx="6"/><path d="M46 28h28M46 40h28M46 52h18" class="acc"/><circle cx="60" cy="78" r="4"/>`,
+      how: `Android Java tilini oldi, lekin JVM ni emas. Java bayt-kodi yig'ish paytida DEX formatiga o'tkaziladi va uni Dalvik virtual mashinasi interpretatsiya qiladi. Dalvik stekli emas, registrli mashina.`,
+      better: `Registrli bayt-kodda bir xil ish uchun kamroq buyruq kerak, DEX fayl esa barcha klasslarni bitta ixcham faylga jamlaydi. 2008-yildagi telefonlar xotirasi uchun bu muhim edi.`,
+      pain: `Faqat interpretator, zaif protsessorda. Ilovalar sezilarli sekin ishlardi.`,
+      ex: `Nomi Islandiyadagi baliqchilar qishlog'idan olingan. Muallifi Dan Bornstein.`
+    },
+    {
+      name: `Dalvik JIT`,
+      years: `2010-yil, Android 2.2`,
+      art: `<rect x="36" y="10" width="48" height="80" rx="6"/><path d="M66 22L50 50h10l-4 22 16-30H62z" class="lit"/>`,
+      how: `Dalvik'ka JIT qo'shildi: ko'p ishlatiladigan kod bo'laklari ish paytida mashina kodiga aylantiriladi.`,
+      better: `Hisob-kitobga boy kod bir necha baravar tezlashdi.`,
+      pain: `Har safar ilova ochilganda kompilyatsiya noldan boshlanadi. Bu protsessor vaqtini va batareyani yeydi, ilova ochilgandan keyingi birinchi soniyalar esa sekin.`,
+      ex: `Android 2.2 Froyo.`
+    },
+    {
+      name: `ART: o'rnatishda kompilyatsiya`,
+      years: `2014-yil, Android 5.0`,
+      art: `<rect x="36" y="10" width="48" height="80" rx="6"/><path d="M60 24v30M50 44l10 10 10-10" class="acc"/><rect x="46" y="62" width="28" height="12" class="lit"/>`,
+      how: `Dalvik o'rniga yangi mashina keldi: ART. Ilova o'rnatilayotgan paytda uning butun DEX kodi bir yo'la mashina kodiga aylantirib qo'yiladi.`,
+      better: `Ilova birinchi soniyadanoq to'liq tezlikda ishlaydi. Ish paytida kompilyatsiyaga batareya sarflanmaydi.`,
+      pain: `O'rnatish uzoq davom etadi, kompilyatsiya qilingan kod ko'p joy egallaydi. Tizim yangilanganda telefon barcha ilovalarni qayta kompilyatsiya qiladi: «Ilovalar optimallashtirilmoqda» degan uzoq ekran shundan edi.`,
+      ex: `ART Android 4.4 da sinov tariqasida paydo bo'lgan, 5.0 dan yagona mashina.`
+    },
+    {
+      name: `ART: aralash rejim`,
+      years: `2016-yildan hozirgacha, Android 7.0+`,
+      art: `<rect x="36" y="10" width="48" height="80" rx="6"/><path d="M46 70V52M56 70V34M66 70V44M76 70V58" class="acc"/><path d="M56 34v36" class="lit" style="fill:none;stroke-width:5"/>`,
+      how: `Uchala usul birga. Ilova darhol o'rnatiladi va avval interpretator hamda JIT bilan ishlaydi. ART qaysi metodlar qaynoq ekanini profil fayliga yozib boradi. Telefon bo'sh va quvvatda turganda faqat o'sha metodlar oldindan kompilyatsiya qilinadi.`,
+      better: `Tez o'rnatish, kam joy, va vaqt o'tishi bilan tezlashadigan ilova. Keyinroq profillarni do'kondan tayyor holda olish va ilova bilan birga yetkazish (Baseline Profiles) qo'shildi, shunda birinchi ochilish ham tez.`,
+      pain: `Tezlik endi profil sifatiga bog'liq. Profilsiz yangi o'rnatilgan ilovaning birinchi ochilishlari sekinroq.`,
+      ex: `HotSpot bilan taqqoslang: bu o'sha «kuzat, keyin qaynoq joyni kompilyatsiya qil» g'oyasi, faqat natija diskda saqlanadi. Leyden loyihasi hozir serverdagi Java uchun aynan shunga intilmoqda.`
+    }
+  ]);
+})();
+</script>
+<script>
+(function () {
+/*J2*/
+  var A_CODE = [
+    `void main() {`, `    int n = 2;`, `    User u = new User("Ali");`, `    rename(u);`, `    u = null;`, `}`, ``,
+    `void rename(User x) {`, `    x.name = "Vali";`, `    User t = new User("Tmp");`, `}`
+  ];
+  function F(name, vars) { return { name: name, vars: vars }; }
+  function O(id, name, st) { return { id: id, name: name, st: st }; }
+  var A_STEPS = [
+    { line: 0, frames: [F('main', [['n', '—'], ['u', '—']])], heap: [],
+      msg: `main chaqirildi. Stekda uning uchun kadr ochildi, ichida ikki o'zgaruvchiga joy bor. Heap bo'sh.` },
+    { line: 1, frames: [F('main', [['n', '2'], ['u', '—']])], heap: [],
+      msg: `n oddiy son. Qiymatning o'zi kadr ichida turadi. Heap ishlatilmadi.` },
+    { line: 2, frames: [F('main', [['n', '2'], ['u', '→ #1']])], heap: [O(1, 'Ali', 'live')],
+      msg: `new heapda obyekt yaratdi. Kadrdagi u ichida obyektning o'zi emas, unga olib boradigan havola turibdi.` },
+    { line: 7, frames: [F('main', [['n', '2'], ['u', '→ #1']]), F('rename', [['x', '→ #1'], ['t', '—']])], heap: [O(1, 'Ali', 'live')],
+      msg: `rename chaqirildi. Yangi kadr eskisining ustiga qo'yildi. x ga u dagi havolaning nusxasi berildi. Obyekt nusxalanmadi: ikki havola, bitta obyekt.` },
+    { line: 8, frames: [F('main', [['n', '2'], ['u', '→ #1']]), F('rename', [['x', '→ #1'], ['t', '—']])], heap: [O(1, 'Vali', 'live')],
+      msg: `x orqali obyekt o'zgartirildi. main dagi u ham shu obyektga qaraydi, demak u ham o'zgarishni ko'radi.` },
+    { line: 9, frames: [F('main', [['n', '2'], ['u', '→ #1']]), F('rename', [['x', '→ #1'], ['t', '→ #2']])], heap: [O(1, 'Vali', 'live'), O(2, 'Tmp', 'live')],
+      msg: `Ikkinchi obyekt yaratildi. Unga faqat rename kadridagi t qarab turibdi.` },
+    { line: 10, frames: [F('main', [['n', '2'], ['u', '→ #1']])], heap: [O(1, 'Vali', 'live'), O(2, 'Tmp', 'dead')],
+      msg: `rename tugadi. Uning kadri butunligicha olib tashlandi: x va t yo'qoldi, buning uchun hech qanday tozalash kerak bo'lmadi. Lekin #2 obyekti heapda qoldi va unga endi hech qanday havola yo'q. U axlatga aylandi.` },
+    { line: 4, frames: [F('main', [['n', '2'], ['u', 'null']])], heap: [O(1, 'Vali', 'dead'), O(2, 'Tmp', 'dead')],
+      msg: `u dan havola olib tashlandi. #1 ga ham endi yetib bo'lmaydi. E'tibor bering: ikkala obyekt hamon heapda yotibdi, null yozish hech narsani o'chirmaydi.` },
+    { line: 5, frames: [F('main', [['n', '2'], ['u', 'null']])], heap: [],
+      msg: `Biror payt GC ishga tushdi. U kadrlardagi havolalardan boshlab yetib bo'ladigan obyektlarni qidirdi, hech narsa topmadi va ikkala obyekt joyini bo'shatdi. Bu qachon bo'lishini JVM o'zi hal qiladi, siz emas.` }
+  ];
+
+  function row(str) { // 16 ta katak: harf + holat belgisi
+    return str.split(' ').map(function (t) { return t === '.' ? { l: '', k: '' } : { l: t[0], k: t.slice(1) }; });
+  }
+  // holat: (yo'q)=belgilanmagan, +=tirik, x=axlat, *=yangi
+  var B_STEPS = [
+    { cells: row('A A B C C F F G D H H H E . . .'),
+      msg: `Boshlang'ich holat. Heapda sakkizta obyekt bor, ba'zilari bir necha katak egallaydi. Qaysi biri kerakligini GC hali bilmaydi.` },
+    { cells: row('A+ A+ B C+ C+ F F G D+ H H H E+ . . .'),
+      msg: `Belgilash. GC ildizlardan boshladi: A va C ga yetdi, A orqali D ga, C orqali E ga. To'rttasi belgilandi. F va G bir-birini ko'rsatsa ham, ularga ildizdan yo'l yo'q, shuning uchun belgilanmadi.` },
+    { cells: row('A+ A+ Bx C+ C+ Fx Fx Gx D+ Hx Hx Hx E+ . . .'),
+      msg: `Belgilanmay qolgan hamma narsa axlat: B, F, G va H. Dastur ularga hech qanday yo'l bilan yeta olmaydi.` },
+    { cells: row('A+ A+ . C+ C+ . . . D+ . . . E+ . . .'),
+      msg: `Supurish. Axlat egallagan kataklar bo'sh deb e'lon qilindi. Endi 10 ta bo'sh katak bor. Lekin ular to'rt bo'lakka sochilgan: 1, 3, 3 va 3 katakdan.` },
+    { cells: row('A+ A+ . C+ C+ . . . D+ . . . E+ . . .'), bad: true,
+      msg: `Dastur 4 katakli yangi obyekt so'radi. Jami 10 ta bo'sh katak bor, lekin eng katta yaxlit bo'lak 3 katak. Obyekt sig'maydi. Bu fragmentatsiya: joy bor, lekin undan foydalanib bo'lmaydi.` },
+    { cells: row('A+ A+ C+ C+ D+ E+ . . . . . . . . . .'),
+      msg: `Zichlash. Tirik obyektlar chap tomonga surildi, bo'sh joy bitta yaxlit bo'lakka yig'ildi. Narxi: obyektlar manzili o'zgardi, demak ularga qarab turgan barcha havolalarni yangilash kerak. Shu payt dastur ishlab tursa, eski manzilga murojaat qilib qo'yadi. Shuning uchun dastur to'xtatiladi.` },
+    { cells: row('A+ A+ C+ C+ D+ E+ N* N* N* N* . . . . . .'),
+      msg: `Endi 4 katakli obyekt bemalol sig'di. Yangi joy ajratish ham osonlashdi: bo'sh joy qayerdan boshlanishini bilish kifoya.` }
+  ];
+
+  function chips(str) { // "a0 b0x c1" -> harf, yosh, x=axlat, n=yangi
+    if (!str) return [];
+    return str.split(' ').map(function (t) { var m = t.match(/^([a-z])(\d)([xn]?)$/); return { l: m[1], age: +m[2], k: m[3] }; });
+  }
+  function G(e, s0, s1, old, msg, bad) { return { eden: chips(e), s0: chips(s0), s1: chips(s1), old: chips(old), msg: msg, bad: bad }; }
+  var C_STEPS = [
+    G('a0n b0n c0n d0n e0n f0n', '', '', '', `Dastur ishlayapti va obyektlar yaratyapti. Hammasi Eden'da tug'iladi.`),
+    G('a0 b0x c0 d0x e0x f0x', '', '', '', `Eden to'ldi. Kichik tozalash boshlandi. GC ildizlardan qaradi: faqat a va c ga yetib bo'ladi. Qolgan to'rttasi allaqachon kerak emas.`),
+    G('', 'a1 c1', '', '', `Tirik ikkitasi Survivor 0 ga ko'chirildi va yoshi 1 bo'ldi. Eden butunligicha bo'sh deb e'lon qilindi. To'rtta axlat obyektga umuman tegilmadi: ish hajmi tiriklar soniga bog'liq bo'ldi.`),
+    G('g0n h0n i0n j0n k0n l0n', 'a1 c1', '', '', `Dastur davom etyapti, Eden yana to'lyapti.`),
+    G('g0x h0 i0x j0x k0x l0x', 'a1 c1x', '', '', `Ikkinchi kichik tozalash. Bu safar Eden va band Survivor birga tekshiriladi. Tiriklar: a va h. c bu orada keraksiz bo'lib qolgan.`),
+    G('', '', 'a2 h1', '', `Tiriklar ikkinchi Survivor'ga ko'chirildi, Eden va Survivor 0 bo'shadi. a ning yoshi 2, h niki 1. Ikki Survivor'dan biri doim bo'sh turadi: ko'chirish uchun joy shu.`),
+    G('m0x n0x o0x p0 q0x r0x', '', 'a2 h1', '', `Uchinchi tozalash oldidan. Tiriklar: a, h va yangi p.`),
+    G('', 'h2 p1', '', 'a3', `a uchinchi marta omon qoldi va keksa avlodga ko'tarildi. JVM xulosa qildi: bu obyekt uzoq yashaydi, uni har safar u yoqdan bu yoqqa ko'chirib yurish befoyda. Modelda chegara 3, haqiqiy JVM da u 15 gacha bo'lishi mumkin va JVM uni o'zi moslaydi.`),
+    G('', 'h2 p1', '', 'a3', `Keksa avlod shu tarzda sekin to'ladi. U to'lganda katta tozalash kerak bo'ladi: maydon katta, tirik obyekt ko'p, ko'chirish qimmat. Eng uzun pauzalar shu yerdan chiqadi, va GC tarixining asosiy kurashi aynan shu pauza ustida.`, true)
+  ];
+/*ENDJ2*/
+  if (typeof document === 'undefined') return;
+
+  function scene(rootId, steps, render) {
+    var root = document.getElementById(rootId), k = 0;
+    var ctl = document.createElement('div'); ctl.className = 'controls';
+    var next = document.createElement('button'); next.type = 'button'; next.className = 'primary'; next.textContent = 'Keyingi qadam';
+    var prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Oldingi qadam';
+    var back = document.createElement('button'); back.type = 'button'; back.textContent = 'Boshidan';
+    var num = document.createElement('span'); num.className = 'stepnum';
+    ctl.appendChild(next); ctl.appendChild(prev); ctl.appendChild(back); ctl.appendChild(num);
+    var say = document.createElement('p'); say.className = 'say'; say.setAttribute('aria-live', 'polite');
+    root.appendChild(ctl); root.appendChild(say);
+    function draw() {
+      var st = steps[k];
+      render(st);
+      say.textContent = st.msg; say.className = st.bad ? 'say bad' : 'say';
+      num.textContent = (k + 1) + ' / ' + steps.length;
+      next.disabled = k === steps.length - 1; prev.disabled = k === 0;
+    }
+    next.addEventListener('click', function () { if (k < steps.length - 1) { k++; draw(); } });
+    prev.addEventListener('click', function () { if (k > 0) { k--; draw(); } });
+    back.addEventListener('click', function () { k = 0; draw(); });
+    draw();
+  }
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+
+  // A: stack va heap
+  var aCode = document.getElementById('aCode'), aRows = [];
+  A_CODE.forEach(function (line) { var tr = el('tr'); tr.appendChild(el('td', '', line || ' ')); aCode.appendChild(tr); aRows.push(tr); });
+  scene('scA', A_STEPS, function (st) {
+    aRows.forEach(function (tr, i) { tr.className = i === st.line ? 'cur' : ''; });
+    var fr = document.getElementById('aFrames'); fr.textContent = '';
+    st.frames.forEach(function (f, i) {
+      var d = el('div', i === st.frames.length - 1 ? 'frame top' : 'frame');
+      d.appendChild(el('b', '', f.name + ' kadri'));
+      f.vars.forEach(function (v) { d.appendChild(el('div', '', v[0] + ' = ' + v[1])); });
+      fr.appendChild(d);
+    });
+    var hp = document.getElementById('aHeap'); hp.textContent = '';
+    if (!st.heap.length) hp.appendChild(el('span', 'empty', 'bo\'sh'));
+    st.heap.forEach(function (o) {
+      var d = el('div', 'obj ' + o.st);
+      d.appendChild(el('b', '', '#' + o.id + ' User' + (o.st === 'dead' ? ' (axlat: havola yo\'q)' : '')));
+      d.appendChild(el('div', '', 'name = "' + o.name + '"'));
+      hp.appendChild(d);
+    });
+  });
+
+  // B: belgilash, supurish, zichlash
+  var bMem = document.getElementById('bMem'), bCells = [];
+  for (var i = 0; i < 16; i++) {
+    var c = el('div', 'cell'); c.appendChild(el('span', 'addr', String(i)));
+    var v = el('span', 'val'), g = el('span', 'tag'); c.appendChild(v); c.appendChild(g);
+    bMem.appendChild(c); bCells.push({ el: c, val: v, tag: g });
+  }
+  var KCLS = { '': '', '+': ' own', 'x': ' lost', '*': ' touched' }, KTAG = { '': '', '+': 'tirik', 'x': 'axlat', '*': 'yangi' };
+  scene('scB', B_STEPS, function (st) {
+    st.cells.forEach(function (cell, i) {
+      bCells[i].val.textContent = cell.l || '·';
+      bCells[i].tag.textContent = cell.l ? KTAG[cell.k] : 'bo\'sh';
+      bCells[i].el.className = 'cell' + KCLS[cell.k];
+    });
+  });
+
+  // C: avlodlar
+  function fill(id, list) {
+    var box = document.getElementById(id); box.textContent = '';
+    list.forEach(function (o) { box.appendChild(el('span', 'chip' + (o.k === 'x' ? ' dead' : (o.k === 'n' ? ' new' : '')), o.l + ' (' + o.age + ')')); });
+  }
+  scene('scC', C_STEPS, function (st) { fill('cEden', st.eden); fill('cS0', st.s0); fill('cS1', st.s1); fill('cOld', st.old); });
+
+  // GC evolyutsiyasi
+  var bar = function (segs) { // dastur ishlashi (chiziq) va pauza (to'ldirilgan) tasviri
+    var x = 8, out = '<path d="M8 86h104" style="stroke:var(--line)"/>';
+    segs.forEach(function (s) {
+      if (s[0] === 'r') out += '<path d="M' + x + ' 50h' + s[1] + '" class="acc"/>';
+      else out += '<rect x="' + x + '" y="34" width="' + s[1] + '" height="32" class="lit"/>';
+      x += s[1];
+    });
+    return out;
+  };
+  window.evoStepper('evoGc', [
+    {
+      name: `Oddiy belgilash va supurish`,
+      years: `1996-yil, JDK 1.0`,
+      art: bar([['r', 30], ['p', 44], ['r', 30]]),
+      how: `Heap bitta yaxlit maydon. Joy tugaganda dastur to'xtatiladi, GC butun heapni ildizlardan boshlab aylanib chiqadi va axlatni bo'shatadi. Rasmda chiziq dastur ishlayotgan vaqt, to'ldirilgan to'rtburchak pauza.`,
+      better: `C dagi qo'lda free ga nisbatan: xotira xatolarining butun sinfi yo'qoldi.`,
+      pain: `Har safar butun heap tekshiriladi. Heap kattalashgani sari pauza ham uzayadi. Fragmentatsiya to'planadi.`,
+      ex: `Ilk «klassik» JVM.`
+    },
+    {
+      name: `Avlodli ketma-ket (Serial)`,
+      years: `1999–2000-yillar, HotSpot bilan`,
+      art: bar([['r', 22], ['p', 8], ['r', 22], ['p', 8], ['r', 14], ['p', 30]]),
+      how: `Heap yosh va keksa avlodga bo'lindi. Yosh avlod tez-tez va tez tozalanadi, keksa avlod kamdan-kam. Yuqoridagi uchinchi model aynan shuni ko'rsatadi.`,
+      better: `Pauzalarning ko'pi qisqa bo'lib qoldi, chunki odatda faqat kichik yosh avlod tekshiriladi.`,
+      pain: `GC bitta oqimda ishlaydi. Serverda sakkizta protsessor yadrosi bo'lsa ham, tozalash paytida bittasi ishlaydi, yettitasi kutib turadi. Keksa avlodni tozalash hamon uzoq.`,
+      ex: `Bugun ham mavjud (Serial GC) va kichik heapli, bir yadroli muhitlarda ishlatiladi.`
+    },
+    {
+      name: `Parallel`,
+      years: `2002–2004-yillar, JDK 1.4 va 5`,
+      art: bar([['r', 26], ['p', 5], ['r', 26], ['p', 5], ['r', 22], ['p', 20]]),
+      how: `O'sha avlodli sxema, lekin tozalashni bir necha oqim birgalikda bajaradi. Dastur hamon to'liq to'xtatiladi, lekin ish yadrolar orasida bo'linadi.`,
+      better: `Pauzalar yadro soniga yaqin marta qisqardi. Umumiy unumdorlik eng yuqori: GC ga eng kam jami vaqt ketadi.`,
+      pain: `Bu hamon stop-the-world. Heap gigabaytlarga yetganda keksa avlodni tozalash soniyalab davom etadi. Foydalanuvchi javob kutayotgan servis uchun bir necha soniyalik qotish qabul qilib bo'lmaydi.`,
+      ex: `Java 5 dan Java 8 gacha serverlarda sukut bo'yicha shu ishlagan.`
+    },
+    {
+      name: `CMS`,
+      years: `2002-yildan, JDK 1.4.1`,
+      art: bar([['r', 24], ['p', 4], ['r', 40], ['p', 4], ['r', 32]]) + '<path d="M36 72h40" class="lit" style="fill:none;stroke-width:5"/>',
+      how: `Concurrent Mark Sweep. Keksa avlodni belgilash ishining asosiy qismi dastur bilan bir vaqtda bajariladi. Dastur faqat ikki qisqa lahzaga to'xtaydi: boshida va oxirida. Rasmdagi pastki chiziq dastur bilan parallel ishlayotgan GC.`,
+      better: `Keksa avlod uchun pauzalar soniyalardan o'nlab millisekundlarga tushdi.`,
+      pain: `Zichlash yo'q, chunki obyektlarni dastur ishlab turganda ko'chirishni hali bilishmasdi. Fragmentatsiya to'planadi va bir kun joy topilmay qoladi. Shunda CMS taslim bo'lib, eski usulda, bitta oqimda to'liq tozalashga o'tadi: eng uzun pauza aynan eng yomon paytda keladi. Sozlamalari ham juda ko'p edi.`,
+      ex: `Java 9 da eskirgan deb e'lon qilindi, Java 14 da olib tashlandi.`
+    },
+    {
+      name: `G1`,
+      years: `2012-yildan, Java 9 dan sukut bo'yicha`,
+      art: '<g>' + [0,1,2,3,4].map(function (r) { return [0,1,2,3,4,5].map(function (c) { var lit = (r * 6 + c) % 5 === 1; return '<rect x="' + (12 + c * 16) + '" y="' + (12 + r * 16) + '" width="14" height="14"' + (lit ? ' class="lit"' : '') + '/>'; }).join(''); }).join('') + '</g>',
+      how: `Garbage First. Heap ikki katta bo'lakka emas, yuzlab teng hududlarga bo'linadi. Har bir hudud Eden, Survivor yoki keksa bo'lishi mumkin. G1 qaysi hududlarda axlat ko'pligini biladi va avval o'shalarni tozalaydi: nomi shundan. Tozalashda tiriklar boshqa hududga ko'chiriladi, ya'ni zichlash o'z-o'zidan bo'ladi.`,
+      better: `Fragmentatsiya muammosi yo'qoldi. Dasturchi maqsad beradi: «pauza 200 millisekunddan oshmasin», va G1 har safar shu vaqtga sig'adigan miqdordagi hududni tanlaydi. Sozlash ancha soddalashdi.`,
+      pain: `Obyektlarni ko'chirish hamon dastur to'xtatilgan holda bajariladi. Pauzalar boshqariladigan bo'ldi, lekin yo'qolmadi: odatda o'nlab, ba'zan yuzlab millisekund.`,
+      ex: `Java 7 da rasmiy qo'llana boshladi, Java 9 dan (2017) sukut bo'yicha. Bugun siz hech narsa sozlamasangiz, ishlayotgani shu.`
+    },
+    {
+      name: `ZGC va Shenandoah`,
+      years: `2018-yildan hozirgacha`,
+      art: bar([['r', 104]]) + '<path d="M8 72h104" class="lit" style="fill:none;stroke-width:5"/><path d="M40 40v20M78 40v20"/>',
+      how: `Oxirgi to'siq olindi: obyektlar dastur ishlab turgan paytda ko'chiriladi. Buning uchun dasturning havola o'qiydigan har bir joyiga kichik tekshiruv qo'shiladi: «bu obyekt ko'chirilganmi? Ko'chirilgan bo'lsa, yangi manzilini ol». Deyarli butun GC ishi dastur bilan parallel ketadi.`,
+      better: `Pauzalar bir millisekunddan qisqa va heap hajmiga bog'liq emas: 2 gigabayt uchun ham, yuzlab gigabayt uchun ham bir xil.`,
+      pain: `Har bir havola o'qishdagi tekshiruv va parallel ishlayotgan GC oqimlari protsessor vaqtini oladi: umumiy unumdorlik bir necha foizga pasayishi mumkin. Xotira zaxirasi ham ko'proq kerak. Pauza muammosi yechildi, narxi boshqa joyga ko'chdi.`,
+      ex: `ZGC Java 11 da tajriba sifatida chiqdi, Java 15 da ishlab chiqarishga tayyor deb e'lon qilindi, Java 21 da unga avlodlar qo'shildi. Shenandoah Red Hat tomonidan yaratilgan o'xshash GC.`
+    }
+  ]);
+})();
+</script>
+<script>
+(function () {
+/*J3*/
+  var NAMES = ['Ali', 'Vali', 'Sardor', 'Aziza'], NUMS = [42, 7, 100];
+  function genAdd(st, kind) { // {ok, msg, bad}
+    if (kind === 'int' && st.mode === 1) {
+      return { ok: false, bad: true, msg: `Kompilyatsiya xatosi: list.add(` + NUMS[st.ni % NUMS.length] + `) qatorida String kutilgan, int berilgan. Dastur yig'ilmadi va qator qo'shilmadi. Xatoni dasturchi o'z kompyuterida, shu qatorning o'zida ko'rdi.` };
+    }
+    var v = kind === 'str' ? NAMES[st.si++ % NAMES.length] : NUMS[st.ni++ % NUMS.length];
+    st.items.push({ t: kind, v: v });
+    return { ok: true, msg: kind === 'str' ? `"` + v + `" qo'shildi.` : (v + ` qo'shildi. Kompilyator hech narsa demadi: ro'yxat Object saqlaydi, son ham obyektga o'ralib kiradi.`) };
+  }
+  function genRead(st) {
+    if (!st.items.length) return { msg: `Ro'yxat bo'sh. Avval biror narsa qo'shing.` };
+    for (var i = 0; i < st.items.length; i++) {
+      if (st.items[i].t === 'int') return { bad: true, at: i, msg: `ClassCastException: ` + i + `-element o'qilayotganda dastur quladi. U yerda String emas, Integer (` + st.items[i].v + `) turgan ekan. E'tibor bering: xato sonni qo'shgan qatorda emas, uni o'qigan qatorda chiqdi. Haqiqiy dasturda bu ikki joy turli fayllarda bo'ladi.` };
+    }
+    return { msg: `Hammasi o'qildi: ` + st.items.map(function (x) { return x.v; }).join(', ') + `.` + (st.mode === 1 ? ` Cast yozish kerak bo'lmadi: kompilyator bu yerda faqat String borligini biladi.` : ` Bu safar omad keldi, chunki ro'yxatda faqat ismlar bor edi.`) };
+  }
+  function genCode(st) {
+    var out = [st.mode === 0 ? `List list = new ArrayList();` : `List<String> list = new ArrayList<String>();`];
+    st.items.forEach(function (x) { out.push(`list.add(` + (x.t === 'str' ? `"` + x.v + `"` : x.v) + `);`); });
+    out.push(st.mode === 0 ? `String s = (String) list.get(i);   // har bir element uchun` : `String s = list.get(i);            // har bir element uchun`);
+    return out;
+  }
+  function boxSame(n) { return n >= -128 && n <= 127; }
+/*ENDJ3*/
+  if (typeof document === 'undefined') return;
+  function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+  function tabs(id, labels, onPick) {
+    var root = document.getElementById(id), btns = [];
+    labels.forEach(function (t, i) { var b = el('button', '', t); b.type = 'button'; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+
+  // ----- Generics modeli -----
+  var st = { mode: 0, items: [], si: 0, ni: 0 }, errAt = -1;
+  var gSay = document.getElementById('genSay');
+  var gSync = tabs('genMode', [`Java 1.4: List`, `Java 5: List<String>`], function (i) { st = { mode: i, items: [], si: 0, ni: 0 }; errAt = -1; say(`Ro'yxat bo'sh. Ism va son qo'shib ko'ring, keyin o'qing.`); gDraw(); });
+  function say(text, bad) { gSay.textContent = text; gSay.className = bad ? 'say bad' : 'say'; }
+  function gDraw() {
+    gSync(st.mode);
+    var code = document.getElementById('genCode'); code.textContent = '';
+    var lines = genCode(st);
+    lines.forEach(function (line, i) {
+      var tr = el('tr'); tr.appendChild(el('td', '', line));
+      if (errAt >= 0 && i === lines.length - 1) tr.className = 'err';
+      code.appendChild(tr);
+    });
+    var box = document.getElementById('genItems'); box.textContent = '';
+    if (!st.items.length) box.appendChild(el('span', 'note', 'hech narsa'));
+    st.items.forEach(function (x, i) { box.appendChild(el('span', 'chip' + (i === errAt ? ' dead' : ''), (x.t === 'str' ? '"' + x.v + '"' : x.v) + ' : ' + (x.t === 'str' ? 'String' : 'Integer'))); });
+  }
+  function gAdd(kind) { errAt = -1; var r = genAdd(st, kind); say(r.msg, r.bad); gDraw(); }
+  document.getElementById('genStr').addEventListener('click', function () { gAdd('str'); });
+  document.getElementById('genInt').addEventListener('click', function () { gAdd('int'); });
+  document.getElementById('genRead').addEventListener('click', function () { var r = genRead(st); errAt = r.bad ? r.at : -1; say(r.msg, r.bad); gDraw(); });
+  document.getElementById('genClear').addEventListener('click', function () { st.items = []; errAt = -1; say(`Ro'yxat tozalandi.`); gDraw(); });
+  say(`Ro'yxat bo'sh. Ism va son qo'shib ko'ring, keyin o'qing.`); gDraw();
+
+  // ----- Tiplarni o'chirish -----
+  var ERA = [
+    { code: `List<String> names = new ArrayList<String>();\nnames.add("Ali");\nString s = names.get(0);`,
+      msg: `Siz yozgan kod. Kompilyator shu ko'rinishda tekshiradi: names ga faqat String qo'shilyaptimi, get dan chiqqan narsa String o'zgaruvchiga qo'yilyaptimi.` },
+    { code: `List names = new ArrayList();\nnames.add("Ali");\nString s = (String) names.get(0);   // cast ni kompilyator qo'shdi`,
+      msg: `Tekshiruvdan keyin bayt-kodga yozilgan narsa. Burchakli qavslar yo'q, cast paydo bo'ldi. Bu yuqoridagi modeldagi Java 1.4 kodi bilan bir xil. JVM generics borligini bilmaydi ham.` }
+  ];
+  var eSync = tabs('eraTabs', [`Siz yozgan kod`, `Kompilyatordan keyin qolgani`], function (i) { eDraw(i); });
+  function eDraw(i) { eSync(i); document.getElementById('eraCode').textContent = ERA[i].code; document.getElementById('eraSay').textContent = ERA[i].msg; }
+  eDraw(0);
+
+  // ----- Integer keshi -----
+  var inp = document.getElementById('boxN');
+  function bDraw() {
+    var n = parseInt(inp.value, 10); if (isNaN(n)) n = 0;
+    var same = boxSame(n), objs = document.getElementById('boxObjs');
+    document.getElementById('boxCode').textContent = 'Integer a = ' + n + ';\nInteger b = ' + n + ';';
+    objs.textContent = '';
+    function obj(id, who) { var d = el('div', 'obj live'); d.appendChild(el('b', '', '#' + id + ' Integer')); d.appendChild(el('div', '', 'qiymat = ' + n)); d.appendChild(el('div', '', who)); return d; }
+    if (same) objs.appendChild(obj(1, 'a va b shunga qaraydi'));
+    else { objs.appendChild(obj(1, 'a shunga qaraydi')); objs.appendChild(obj(2, 'b shunga qaraydi')); }
+    document.getElementById('boxEq').textContent = same ? 'true' : 'false';
+    var say = document.getElementById('boxSay');
+    say.textContent = same
+      ? n + ` soni −128 va 127 orasida. JVM bu oraliqdagi Integer obyektlarini oldindan yaratib qo'ygan va har safar o'shani beradi. a va b bitta obyektga qaraydi, shuning uchun == rost chiqadi. Lekin bu tasodifiy omad.`
+      : n + ` soni keshlangan oraliqdan tashqarida. Har bir o'rash yangi obyekt yaratdi. Ichidagi son bir xil, lekin obyektlar ikkita, == esa havolalarni solishtiradi va yolg'on chiqadi. Testda kichik sonlar bilan ishlagan kod ishlab chiqarishda katta sonlarda sinadi.`;
+    say.className = same ? 'say' : 'say bad';
+  }
+  inp.addEventListener('input', bDraw);
+  Array.prototype.forEach.call(document.querySelectorAll('#box [data-n]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-n'); bDraw(); }); });
+  bDraw();
+
+  // ----- Tiplar evolyutsiyasi -----
+  window.evoStepper('evoType', [
+    {
+      name: `Massivlar`,
+      years: `1996-yil, JDK 1.0`,
+      art: `<rect x="10" y="38" width="20" height="24" class="lit"/><rect x="30" y="38" width="20" height="24" class="lit"/><rect x="50" y="38" width="20" height="24" class="lit"/><rect x="70" y="38" width="20" height="24" class="lit"/><path d="M90 38v24" /><path d="M96 50h14" stroke-dasharray="3 4"/>`,
+      how: `Bir xil tipdagi elementlar qatori: String[] yoki int[]. Tip yozilgan va kompilyator uni tekshiradi. Primitivlarni ham to'g'ridan-to'g'ri saqlaydi.`,
+      pain: `Hajmi yaratilganda belgilanadi va keyin o'zgarmaydi. Element qo'shish uchun kattaroq yangi massiv yaratib, hammasini ko'chirish kerak. Qidirish, saralash, o'chirish uchun tayyor amallar yo'q.`,
+      ex: `Bugun ham barcha kolleksiyalarning ichida aynan massiv yotadi: ArrayList uni sizning o'rningizga kattalashtirib turadi.`
+    },
+    {
+      name: `Kolleksiyalar`,
+      years: `1998-yil, JDK 1.2`,
+      art: `<rect x="14" y="30" width="92" height="40" rx="4"/><circle cx="34" cy="50" r="9" class="lit"/><rect x="52" y="42" width="16" height="16" class="acc"/><path d="M80 58l9-16 9 16z"/>`,
+      how: `Collections Framework: List, Set, Map interfeyslari va ularning ArrayList, HashSet, HashMap kabi tayyor ko'rinishlari. Hajmi o'zi o'sadi, kerakli amallar tayyor.`,
+      better: `Har bir loyihada o'z ro'yxat va lug'atini yozish zarurati yo'qoldi. Bugungi Java kodining asosiy qurilish materiali shu.`,
+      pain: `Har qanday tipni saqlashi uchun elementlar Object qilib olingan. Ro'yxatda nima borligini kompilyator bilmaydi: istalgan narsa qo'shiladi, olishda cast kerak, xato esa ish paytida chiqadi.`,
+      ex: `Muallifi Joshua Bloch. Undan oldingi Vector va Hashtable ham shu muammoga ega edi.`
+    },
+    {
+      name: `Generics`,
+      years: `2004-yil, Java 5`,
+      art: `<rect x="14" y="30" width="92" height="40" rx="4"/><circle cx="34" cy="50" r="9" class="lit"/><circle cx="60" cy="50" r="9" class="lit"/><circle cx="86" cy="50" r="9" class="lit"/><path d="M8 40l-4 10 4 10M112 40l4 10-4 10" class="acc"/>`,
+      how: `Kolleksiyaga tip parametri beriladi: List<String>. Kompilyator qo'shishni ham, olishni ham tekshiradi. Tekshiruvdan keyin tip ma'lumoti o'chiriladi, shuning uchun eski kod va JVM o'zgarishsiz qoldi.`,
+      better: `ClassCastException xatolarining katta qismi kompilyatsiya xatosiga aylandi. Cast yozish yo'qoldi. Kod o'zini o'zi hujjatlaydi: tipga qarab ro'yxatda nima borligi ko'rinadi.`,
+      pain: `Yozuv uzaydi: tip ikki marta takrorlanadi. Primitivlar ishlamaydi, boxing kerak. Ish paytida tip yo'q.`,
+      ex: `G'oya 1998-yildagi «Generic Java» tadqiqot loyihasidan olingan, mualliflari orasida Martin Odersky bor, u keyinchalik Scala tilini yaratgan.`
+    },
+    {
+      name: `Olmos operatori`,
+      years: `2011-yil, Java 7`,
+      art: `<path d="M44 30L24 50l20 20M76 30l20 20-20 20" class="acc"/><path d="M60 38v24" stroke-dasharray="3 5"/>`,
+      how: `O'ng tomonda tipni takrorlash shart emas: new HashMap<>() deb yozilsa, kompilyator tipni chap tomondan o'zi oladi. Bo'sh burchakli qavslar olmosga o'xshagani uchun shunday nom olgan.`,
+      better: `Map<String, List<Payment>> m = new HashMap<>(). Takror yo'qoldi.`,
+      pain: `Chap tomondagi uzun tip hamon qo'lda yoziladi, holbuki o'ng tomonga qarab u ham ma'lum.`,
+      ex: `Kompilyatorning tipni o'zi topishi «tip chiqarish» (type inference) deyiladi. Bu uning birinchi katta qadami edi.`
+    },
+    {
+      name: `var`,
+      years: `2018-yil, Java 10`,
+      art: `<rect x="10" y="40" width="34" height="20" rx="3" class="lit"/><path d="M50 50h12M56 44l6 6-6 6" class="acc"/><rect x="68" y="34" width="42" height="32" rx="3"/>`,
+      how: `Lokal o'zgaruvchi tipini yozish o'rniga var deyiladi: var payments = new ArrayList<Payment>(). Tip yo'qolmaydi: kompilyator uni o'ng tomondan aniqlaydi va o'zgaruvchi shu tipda qat'iy qoladi.`,
+      better: `Uzun generic tiplar bilan ishlash yengillashdi. Kotlin'dagi val va var ga yaqinlashdi.`,
+      pain: `Faqat lokal o'zgaruvchilarda ishlaydi: maydon, parametr va qaytish tipida mumkin emas. Asosiy muammo, ya'ni primitivlar va boxing, hamon yechilmagan.`,
+      ex: `var kalit so'z emas, shuning uchun var nomli eski o'zgaruvchilar sinmadi. Orqaga moslik yana birinchi o'rinda.`
+    },
+    {
+      name: `Valhalla loyihasi`,
+      years: `2014-yildan, hali tugamagan`,
+      art: `<rect x="12" y="34" width="20" height="32" class="lit"/><rect x="32" y="34" width="20" height="32" class="lit"/><rect x="52" y="34" width="20" height="32" class="lit"/><rect x="72" y="34" width="20" height="32" class="lit"/><path d="M98 50h12" stroke-dasharray="3 4"/>`,
+      how: `Maqsad: obyekt kabi yoziladigan, lekin son kabi saqlanadigan «qiymat klasslari». Ularning alohida kimligi va sarlavhasi bo'lmaydi, massiv ichida havolalarsiz, yonma-yon joylashadi. Shiori: «klass kabi yoz, int kabi ishlasin». Uzoq maqsad: generics primitivlar bilan ham ishlasin.`,
+      better: `Boxing narxi va J2 da ko'rilgan har bir obyektning ustama haqi yo'qoladi.`,
+      pain: `Loyiha o'n yildan ortiq davom etyapti: JVM ning eng chuqur qatlamlariga tegadi va eski kodni sindirmasligi kerak.`,
+      ex: `Hozirgi aniq holatini J8-qavatda, so'nggi versiyalarni ko'rib chiqishda tekshiramiz.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>

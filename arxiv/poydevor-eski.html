@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Dasturlash: pastdan tepaga</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #EDF0F3;
+  --panel: #FFFFFF;
+  --ink: #18212C;
+  --muted: #566373;
+  --line: #C9D1DA;
+  --accent: #274690;
+  --accent-soft: #DCE5F7;
+  --lamp: #E8A317;
+  --lamp-soft: #FBEBC4;
+  --lamp-ink: #3A2A00;
+  --off: #D5DBE2;
+  --bad: #B3261E;
+  --sans: "IBM Plex Sans", "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  box-sizing: border-box;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #131922;
+    --panel: #1B2330;
+    --ink: #E7ECF2;
+    --muted: #9AA7B6;
+    --line: #2F3A4A;
+    --accent: #8FB0FF;
+    --accent-soft: #24324F;
+    --lamp: #F2B632;
+    --lamp-soft: #43371A;
+    --lamp-ink: #2A1E00;
+    --off: #2A3442;
+    --bad: #FF8A80;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #131922;
+  --panel: #1B2330;
+  --ink: #E7ECF2;
+  --muted: #9AA7B6;
+  --line: #2F3A4A;
+  --accent: #8FB0FF;
+  --accent-soft: #24324F;
+  --lamp: #F2B632;
+  --lamp-soft: #43371A;
+  --lamp-ink: #2A1E00;
+  --off: #2A3442;
+  --bad: #FF8A80;
+}
+*, *::before, *::after { box-sizing: inherit; }
+html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 1.0625rem;
+  line-height: 1.6;
+}
+main { max-width: 46rem; margin: 0 auto; padding: 2.5rem 1.25rem 5rem; }
+h1 { font-size: clamp(2rem, 6vw, 3rem); line-height: 1.1; margin: 0 0 1rem; font-weight: 700; letter-spacing: -0.02em; }
+h2 { font-size: 1.75rem; line-height: 1.2; margin: 4rem 0 0.5rem; font-weight: 700; letter-spacing: -0.01em; }
+h3 { font-size: 1.25rem; line-height: 1.3; margin: 3rem 0 0.5rem; font-weight: 600; }
+p { margin: 0 0 1rem; max-width: 40rem; }
+.lead { font-size: 1.1875rem; color: var(--muted); }
+strong { font-weight: 600; }
+.num { font-family: var(--mono); }
+
+/* Qavatlar minorasi */
+.tower { list-style: none; margin: 2rem 0 0.75rem; padding: 0; display: flex; flex-direction: column-reverse; gap: 4px; max-width: 26rem; }
+.tower li { display: flex; align-items: baseline; gap: 0.75rem; padding: 0.55rem 0.9rem; border: 1px solid var(--line); border-radius: 3px; color: var(--muted); background: transparent; }
+.tower li .n { font-family: var(--mono); font-weight: 600; min-width: 1ch; }
+.tower li.now { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); font-weight: 600; }
+.tower li.now .here { margin-left: auto; font-weight: 500; font-size: 0.875rem; }
+.note { font-size: 0.9375rem; color: var(--muted); }
+
+/* Atamalar */
+dl.terms { margin: 1.25rem 0; padding: 0.25rem 0 0.25rem 1rem; border-left: 3px solid var(--accent); max-width: 40rem; }
+dl.terms dt { font-weight: 600; margin-top: 0.6rem; }
+dl.terms dt:first-child { margin-top: 0; }
+dl.terms dd { margin: 0; color: var(--muted); }
+
+/* Asbob paneli */
+.bench { background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 1.25rem; margin: 1.5rem 0; }
+.bench > p:last-child { margin-bottom: 0; }
+
+/* Bit kalitlari */
+.bits { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; max-width: 30rem; }
+.bit { display: flex; flex-direction: column; align-items: center; gap: 4px; }
+.bit .w { font-family: var(--mono); font-size: 0.8125rem; color: var(--muted); }
+.bit button {
+  width: 100%; aspect-ratio: 3 / 4; max-height: 4.5rem; border: 1px solid var(--line); border-radius: 4px;
+  background: var(--off); color: var(--muted); font-family: var(--mono); font-size: 1.375rem; font-weight: 600; cursor: pointer;
+}
+.bit button[aria-checked="true"] { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); }
+.readout { margin-top: 1.1rem; display: grid; gap: 0.3rem; }
+.readout .row { display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: baseline; }
+.readout .k { color: var(--muted); min-width: 9.5rem; }
+.readout .v { font-family: var(--mono); font-weight: 500; }
+
+/* Mashina */
+.cpu { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-bottom: 1rem; }
+.reg { border: 1px solid var(--line); border-radius: 4px; padding: 0.5rem 0.85rem; min-width: 10rem; }
+.reg .k { font-size: 0.875rem; color: var(--muted); display: block; }
+.reg .v { font-family: var(--mono); font-size: 1.5rem; font-weight: 600; }
+.reg.pc .v { color: var(--accent); }
+.memlabel { font-size: 0.9375rem; color: var(--muted); margin: 0 0 0.4rem; }
+.mem { display: grid; grid-template-columns: repeat(8, 1fr); gap: 6px; }
+@media (max-width: 560px) { .mem { grid-template-columns: repeat(4, 1fr); } }
+.cell { border: 1px solid var(--line); border-radius: 4px; padding: 0.3rem 0.25rem 0.35rem; text-align: center; background: var(--bg); min-width: 0; }
+.cell .addr { display: block; font-family: var(--mono); font-size: 0.75rem; color: var(--muted); }
+.cell input {
+  width: 100%; border: 0; background: transparent; color: var(--ink); text-align: center;
+  font-family: var(--mono); font-size: 1.25rem; font-weight: 600; padding: 0; -moz-appearance: textfield; appearance: textfield;
+}
+.cell input::-webkit-outer-spin-button, .cell input::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.cell .bin { display: block; font-family: var(--mono); font-size: 0.6875rem; color: var(--muted); letter-spacing: -0.02em; }
+.cell.pc { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.cell.arg { border-color: var(--accent); border-style: dashed; }
+.cell.touched { background: var(--lamp-soft); border-color: var(--lamp); }
+.legend { display: flex; flex-wrap: wrap; gap: 0.4rem 1.25rem; margin: 0.75rem 0 0; font-size: 0.875rem; color: var(--muted); }
+.legend span::before { content: ""; display: inline-block; width: 0.8rem; height: 0.8rem; margin-right: 0.4rem; vertical-align: -1px; border-radius: 2px; border: 1px solid var(--line); }
+.legend .l-pc::before { background: var(--accent-soft); border-color: var(--accent); }
+.legend .l-arg::before { border: 1px dashed var(--accent); }
+.legend .l-touch::before { background: var(--lamp-soft); border-color: var(--lamp); }
+.controls { display: flex; flex-wrap: wrap; gap: 0.5rem; margin: 1.1rem 0 0.9rem; }
+.controls button {
+  font: inherit; font-size: 1rem; font-weight: 500; padding: 0.5rem 0.9rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+}
+.controls button.primary { background: var(--accent); border-color: var(--accent); color: var(--panel); font-weight: 600; }
+.controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+.say { min-height: 3.2rem; margin: 0; padding: 0.7rem 0.9rem; border-radius: 4px; background: var(--bg); border: 1px solid var(--line); max-width: none; }
+.say.bad { border-color: var(--bad); color: var(--bad); }
+button:focus-visible, input:focus-visible, summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+
+/* Texnologiya bosqichlari */
+.evo-tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 1.1rem; }
+.evo-tabs button, .evo-nav button {
+  font: inherit; font-size: 0.9375rem; font-weight: 500; padding: 0.4rem 0.75rem; border-radius: 4px; cursor: pointer;
+  border: 1px solid var(--line); background: transparent; color: var(--ink);
+}
+.evo-tabs button[aria-pressed="true"] { background: var(--lamp); border-color: var(--lamp); color: var(--lamp-ink); font-weight: 600; }
+.evo-body { display: grid; grid-template-columns: 8rem 1fr; gap: 1.25rem; align-items: start; }
+@media (max-width: 560px) { .evo-body { grid-template-columns: 1fr; } .evo-body svg { max-width: 7rem; } }
+.evo-body svg { width: 100%; fill: none; stroke: var(--ink); stroke-width: 2.5; stroke-linecap: round; stroke-linejoin: round; }
+.evo-body svg .lit { fill: var(--lamp); stroke: var(--lamp); }
+.evo-body svg .acc { stroke: var(--accent); }
+.evo-body h4 { margin: 0; font-size: 1.1875rem; font-weight: 600; line-height: 1.3; }
+.evo-body .years { margin: 0 0 0.75rem; color: var(--muted); font-size: 0.9375rem; }
+.evo-body dl { margin: 0; }
+.evo-body dt { font-weight: 600; font-size: 0.9375rem; margin-top: 0.75rem; }
+.evo-body dt.pain { color: var(--bad); }
+.evo-body dd { margin: 0; max-width: 34rem; }
+.evo-nav { display: flex; gap: 0.5rem; margin-top: 1.1rem; }
+.evo-nav button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+
+/* 1-qavat */
+.tower li.done { background: var(--lamp-soft); border-color: var(--lamp); color: var(--ink); }
+.tower li .here { margin-left: auto; font-size: 0.875rem; font-weight: 500; }
+.tower a { color: inherit; }
+.presets { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.9rem; }
+.presets button { font: inherit; font-size: 0.9375rem; font-weight: 500; padding: 0.4rem 0.75rem; border-radius: 4px; cursor: pointer; border: 1px solid var(--line); background: transparent; color: var(--ink); }
+.asm-grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin-bottom: 1.1rem; }
+@media (max-width: 640px) { .asm-grid { grid-template-columns: minmax(0, 1fr); } }
+.asm-grid h4 { margin: 0 0 0.4rem; font-size: 0.9375rem; font-weight: 600; color: var(--muted); }
+textarea.src { width: 100%; min-height: 19rem; font-family: var(--mono); font-size: 0.9375rem; line-height: 1.5; padding: 0.7rem; border: 1px solid var(--line); border-radius: 4px; background: var(--bg); color: var(--ink); resize: vertical; tab-size: 8; white-space: pre; overflow-x: auto; }
+.listing { overflow-x: auto; }
+.listing table { min-width: 0; width: 100%; font-family: var(--mono); font-size: 0.875rem; }
+.listing th { font-family: var(--sans); }
+.listing td, .listing th { padding: 0.25rem 0.75rem 0.25rem 0.3rem; white-space: pre; }
+.listing tr.cur td { background: var(--accent-soft); }
+.kv { margin: 0.8rem 0 0; font-size: 0.9375rem; max-width: none; }
+.kv .k { color: var(--muted); }
+.kv .v { font-family: var(--mono); font-weight: 500; overflow-wrap: anywhere; }
+.asm-err { margin: 0; padding: 0.7rem 0.9rem; border: 1px solid var(--bad); border-radius: 4px; color: var(--bad); max-width: none; }
+.cell .val { display: block; font-family: var(--mono); font-size: 1.125rem; font-weight: 600; }
+.cell .tag { display: block; font-family: var(--mono); font-size: 0.6875rem; color: var(--accent); min-height: 1em; overflow: hidden; text-overflow: ellipsis; }
+.code2 { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 1rem; margin: 1.25rem 0; }
+@media (max-width: 640px) { .code2 { grid-template-columns: minmax(0, 1fr); } }
+.code2 figure { margin: 0; }
+.code2 figcaption { font-size: 0.9375rem; color: var(--muted); margin-bottom: 0.3rem; }
+pre.code { font-family: var(--mono); font-size: 0.875rem; line-height: 1.5; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.9rem; overflow-x: auto; margin: 0; }
+
+
+/* J0 */
+.tower li .n { min-width: 2ch; }
+.cell.own { border-color: var(--accent); background: var(--accent-soft); }
+.cell.lost { border: 1px dashed var(--bad); }
+.cell.own.touched, .cell.lost.touched { background: var(--lamp-soft); }
+.legend .l-own::before { background: var(--accent-soft); border-color: var(--accent); }
+.legend .l-lost::before { border: 1px dashed var(--bad); }
+.pick-label { font-size: 0.9375rem; color: var(--muted); margin: 0 0 0.3rem; }
+.pipe { display: flex; flex-wrap: wrap; align-items: center; gap: 0.4rem; margin: 0.4rem 0 1rem; }
+.pipe .box { border: 1px solid var(--line); border-radius: 4px; padding: 0.4rem 0.6rem; font-family: var(--mono); font-size: 0.875rem; background: var(--bg); }
+.pipe .box.key { border-color: var(--accent); background: var(--accent-soft); }
+.pipe .ar { color: var(--muted); }
+
+.scroll { overflow-x: auto; margin: 1rem 0 1.25rem; }
+table { border-collapse: collapse; min-width: 26rem; }
+th, td { text-align: left; padding: 0.45rem 1rem 0.45rem 0; border-bottom: 1px solid var(--line); vertical-align: top; }
+th { font-weight: 600; font-size: 0.9375rem; color: var(--muted); }
+td.num { font-weight: 600; }
+
+ol.try, ul.pain { max-width: 40rem; padding-left: 1.3rem; }
+ol.try li, ul.pain li { margin-bottom: 0.7rem; }
+
+details { border-bottom: 1px solid var(--line); max-width: 40rem; }
+details:first-of-type { border-top: 1px solid var(--line); }
+summary { cursor: pointer; padding: 0.8rem 0; font-weight: 600; }
+details p { margin: 0 0 1rem; color: var(--muted); }
+
+.next { margin-top: 3rem; padding: 1rem 1.1rem; border: 1px dashed var(--line); border-radius: 6px; max-width: 40rem; }
+.next p:last-child { margin-bottom: 0; }
+</style>
+</head>
+<body>
+<main>
+
+<h1>Dasturlash: pastdan tepaga</h1>
+<p class="lead">Har bir narsa qaysi muammodan tug'ilganini ko'rib, bir qavatdan keyingisiga chiqamiz. Har qavatda bitta g'oya, bitta jonli model va oxirida keyingi qavatga olib boradigan «og'riq».</p>
+
+<ol class="tower" aria-label="O'quv yo'li qavatlari">
+  <li class="done"><span class="n">0</span><a href="#q0">Bit va mashina kodi</a><span class="here">o'tildi</span></li>
+  <li class="done"><span class="n">1</span><a href="#q1">Assembler: raqam o'rniga so'z</a><span class="here">o'tildi</span></li>
+</ol>
+<p class="note">Bu sahifa poydevor: mashina nimani tushunadi. Davomi, ya'ni J harfli qavatlar (Java yo'li), alohida sahifada: «Java: pastdan tepaga».</p>
+
+<h2 id="q0">0-qavat. Bit va mashina kodi</h2>
+<p class="lead">Bu qavatdagi yagona savol: kompyuter aslida nimani tushunadi?</p>
+
+<h3>Kalit: tok bor yoki yo'q</h3>
+<p>Kompyuterning ichi juda ko'p mitti kalitlardan iborat. Har bir kalit faqat ikki holatda bo'la oladi: tok o'tyapti yoki o'tmayapti. Boshqa hech narsa yo'q. Tok o'tayotgan holatni <span class="num">1</span>, o'tmayotgan holatni <span class="num">0</span> deb belgilaymiz.</p>
+<p>Bitta kalit juda kam narsa ayta oladi: «ha» yoki «yo'q». Lekin kalitlarni yonma-yon qo'ysak, ularning holatlari birgalikda son hosil qiladi. Pastdagi sakkizta kalitni bosib ko'ring.</p>
+
+<div class="bench">
+  <div class="bits" id="bits"></div>
+  <div class="readout" aria-live="polite">
+    <div class="row"><span class="k">Kalitlar holati</span><span class="v" id="bBin"></span></div>
+    <div class="row"><span class="k">Son sifatida</span><span class="v" id="bSum"></span></div>
+    <div class="row"><span class="k">Harf sifatida</span><span class="v" id="bChar"></span></div>
+  </div>
+</div>
+
+<p>Har bir kalitning ustida uning «vazni» yozilgan: <span class="num">128, 64, 32 … 1</span>. Yoniq kalitlarning vaznlari qo'shiladi, shu son chiqadi. Sakkizta kalit bilan <span class="num">0</span> dan <span class="num">255</span> gacha bo'lgan 256 xil sonni ko'rsatish mumkin.</p>
+<p>E'tibor bering: xuddi shu kalitlar holati bir vaqtning o'zida ham son, ham harf bo'lib ko'rinyapti. Kalitlarning o'zida «men sonman» yoki «men harfman» degan belgi yo'q. Ma'noni ularga kim qanday o'qishi beradi. Bu g'oya biroz pastda juda kerak bo'ladi.</p>
+
+<dl class="terms">
+  <dt>Tranzistor</dt>
+  <dd>O'sha mitti kalit. Uni qo'l bilan emas, boshqa tok bilan yoqib-o'chiriladi, shuning uchun kalitlar bir-birini boshqara oladi. Zamonaviy protsessorda ular milliardlab.</dd>
+  <dt>Bit</dt>
+  <dd>Bitta kalitning holati: 0 yoki 1. Ma'lumotning eng kichik bo'lagi.</dd>
+  <dt>Bayt</dt>
+  <dd>Yonma-yon turgan 8 ta bit. Bitta bayt 0 dan 255 gacha bo'lgan bitta sonni saqlaydi.</dd>
+  <dt>Ikkilik sanoq tizimi</dt>
+  <dd>Sonni faqat 0 va 1 bilan yozish usuli. Biz odatda ishlatadigan o'nlik tizimda xonalar 1, 10, 100 ga teng, ikkilikda esa 1, 2, 4, 8 ga.</dd>
+</dl>
+
+<h3>Kalitning o'zi besh marta almashgan</h3>
+<p>Ikki holatli kalit g'oyasi 1940-yillardan beri o'zgarmagan. O'zgargani kalitning nimadan yasalgani. Har safar oldingi kalitning aniq bir kamchiligi keyingisini tug'dirgan. Tartib bilan bosib chiqing: har bosqichda «og'rig'i» qatoriga qarang, keyingi bosqich aynan unga javob.</p>
+<div class="bench" id="evoSwitch"></div>
+
+<h3>Xotira: raqamlangan kataklar</h3>
+<p>Endi shunday baytlardan juda ko'pini bir qatorga terib chiqamiz. Har biri bitta <strong>katak</strong>, har bir katakda bitta son turadi. Kataklarni adashtirmaslik uchun ularni tartib bilan raqamlaymiz: 0-katak, 1-katak, 2-katak. Shu tartib raqami katakning <strong>manzili</strong> deyiladi. Kompyuter xotirasi shu, xolos: manzili bor kataklar qatori.</p>
+<p>Xotiraning yonida <strong>protsessor</strong> turadi. U kataklardan sonlarni o'qiydi, ular ustida amal bajaradi va natijani qaytarib yozadi. Protsessorning o'z ichida ham bir nechta shaxsiy katagi bor, ular <strong>registr</strong> deyiladi. Hisob-kitob aynan registrlarda bajariladi.</p>
+
+<dl class="terms">
+  <dt>Xotira (RAM)</dt>
+  <dd>Manzillangan kataklar qatori. Kompyuter o'chsa, undagi hamma narsa yo'qoladi.</dd>
+  <dt>Manzil</dt>
+  <dd>Katakning tartib raqami. «10-katakdagi son» deganda 10 manzil, ichidagi son esa qiymat.</dd>
+  <dt>Protsessor (CPU)</dt>
+  <dd>Buyruqlarni birma-bir bajaruvchi qism.</dd>
+  <dt>Registr</dt>
+  <dd>Protsessor ichidagi juda tez, lekin juda kam sonli katak. Pastdagi modelimizda bitta registr bor, uni A deb ataymiz.</dd>
+  <dt>Buyruq hisoblagichi</dt>
+  <dd>Protsessor ichidagi maxsus registr. Unda «keyingi buyruq qaysi manzilda turibdi» degan son saqlanadi. Protsessor shunga qarab qayerdan o'qishni biladi.</dd>
+</dl>
+
+<h3>Katakning o'zi nimadan yasalgan</h3>
+<p>Bitta bitni eslab qolish uchun ikki holatdan birida tura oladigan va shu holatni ushlab turadigan narsa kerak. Bu narsa ham uch marta almashgan.</p>
+<div class="bench" id="evoMem"></div>
+
+<h3>Mashina kodi: buyruq ham raqam</h3>
+<p>Protsessorga nima qilishni qanday aytamiz? Unda quloq ham, til ham yo'q, faqat kataklardagi sonlarni o'qiy oladi. Demak, buyruqning o'zi ham son bo'lishi kerak. Protsessorni yasagan muhandislar oldindan kelishib oladi: qaysi son qaysi amalni bildiradi.</p>
+<p>Bizning model mashinamizda to'rtta buyruq bor:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Son</th><th>Ma'nosi</th><th>Keyingi katakda nima turadi</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td>Yukla: katakdagi sonni A registrga ko'chir</td><td>qaysi katakdan olish (manzil)</td></tr>
+    <tr><td class="num">2</td><td>Qo'sh: katakdagi sonni A ga qo'sh</td><td>qaysi katakdan olish (manzil)</td></tr>
+    <tr><td class="num">3</td><td>Saqla: A dagi sonni katakka yoz</td><td>qaysi katakka yozish (manzil)</td></tr>
+    <tr><td class="num">0</td><td>To'xta</td><td>hech narsa</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Pastdagi xotirada tayyor dastur turibdi. U 10-katakdagi sonni 11-katakdagi songa qo'shib, natijani 12-katakka yozadi. Ya'ni Kotlin'dagi <span class="num">c = a + b</span> degan bitta qatorning eng pastki ko'rinishi shu. «Bir qadam» tugmasini bosib, protsessor nima qilayotganini kuzating.</p>
+
+<div class="bench">
+  <div class="cpu">
+    <div class="reg"><span class="k">A registr</span><span class="v" id="rA">0</span></div>
+    <div class="reg pc"><span class="k">Buyruq hisoblagichi</span><span class="v" id="rPC">0</span></div>
+  </div>
+  <p class="memlabel">Xotira: 16 ta katak. Tepadagi kichik raqam manzil, o'rtadagi katta raqam qiymat (uni o'zgartirish mumkin), pastdagisi o'sha qiymatning haqiqiy bitlari.</p>
+  <div class="mem" id="mem"></div>
+  <div class="legend">
+    <span class="l-pc">hozir bajariladigan buyruq</span>
+    <span class="l-arg">shu buyruqning manzili</span>
+    <span class="l-touch">oxirgi qadamda o'qilgan yoki yozilgan katak</span>
+  </div>
+  <div class="controls">
+    <button class="primary" id="bStep" type="button">Bir qadam</button>
+    <button id="bRun" type="button">Oxirigacha bajarish</button>
+    <button id="bRewind" type="button">Boshiga qaytish</button>
+    <button id="bReset" type="button">Dastlabki dasturni tiklash</button>
+  </div>
+  <p class="say" id="say" aria-live="polite"></p>
+</div>
+
+<p>Dasturchi ko'radigan narsa aslida mana shu qator, xolos: <span class="num">1 10 2 11 3 12 0</span>. Ilk kompyuterlarda dastur aynan shunday yozilgan: sonlar ketma-ketligi sifatida, kalitlar yoki teshilgan kartalar orqali.</p>
+
+<h3>Bu sonlar mashinaga qanday kiritilgan</h3>
+<p>Modelda siz katakka sonni klaviaturadan yozdingiz. Ilk dasturchilarda bunday imkon yo'q edi. Dasturni mashinaga yetkazish usuli ham bosqichma-bosqich o'zgargan, va uchinchi bosqich butun dasturlash tarixidagi eng muhim burilishlardan biri.</p>
+<div class="bench" id="evoLoad"></div>
+
+<h3>O'zingiz sinab ko'ring</h3>
+<ol class="try">
+  <li>10- va 11-kataklardagi sonlarni o'zgartiring, «Boshiga qaytish»ni bosib, dasturni qayta bajaring. Dastur o'zgarmadi, faqat ma'lumot o'zgardi.</li>
+  <li>10-katakka 200, 11-katakka 100 yozing. Natija 300 emas, 44 chiqadi. Sababi: bitta katakka 255 dan katta son sig'maydi, ortig'i shunchaki yo'qoladi. Bu hodisa <strong>to'lib ketish</strong> (overflow) deyiladi va Java'dagi <span class="num">int</span> da ham xuddi shunday ishlaydi, faqat chegara kattaroq.</li>
+  <li>«Dastlabki dasturni tiklash»ni bosing. Keyin 2-katakdagi <span class="num">2</span> ni <span class="num">3</span> ga o'zgartiring va bajaring. Bitta raqam o'zgardi, dastur endi qo'shmaydi, balki 11-katakdagi ma'lumotni o'chirib yuboradi. Hech qanday xato xabari chiqmaydi.</li>
+  <li>Yana tiklang. 1-katakdagi <span class="num">10</span> ni <span class="num">0</span> ga o'zgartiring. Endi protsessor A ga 0-katakdagi sonni yuklaydi, u esa «yukla» buyrug'ining o'zi. Protsessor uchun buyruq va ma'lumot orasida farq yo'q: ikkalasi ham shunchaki katakdagi son.</li>
+</ol>
+
+<h3>Og'riq: nega bu yerda to'xtab qolishmadi</h3>
+<p>Mashina kodi ishlaydi, lekin unda dastur yozish odam uchun azob. Aynan nimasi qiyin:</p>
+<ul class="pain">
+  <li><strong>Sonlarni yodlash kerak.</strong> Bizda to'rtta buyruq bor, haqiqiy protsessorda esa yuzlab. <span class="num">1 10 2 11 3 12 0</span> qatoriga qarab nima qilayotganini aytish qiyin.</li>
+  <li><strong>Xato jim o'tadi.</strong> Uchinchi tajribada ko'rdingiz: bitta raqam adashsa, dastur boshqa ish qiladi va hech kim ogohlantirmaydi.</li>
+  <li><strong>Manzillarni qo'lda sanash kerak.</strong> Dastur o'rtasiga bitta buyruq qo'shsangiz, undan keyingi hamma narsa ikki katakka suriladi. Ma'lumot endi 10-katakda emas, 12-katakda. Dasturdagi barcha manzillarni qo'lda qayta yozib chiqish kerak.</li>
+  <li><strong>Har protsessorning sonlari o'ziga xos.</strong> Bir mashinada «qo'sh» 2 bo'lsa, boshqasida butunlay boshqa son. Dasturni boshqa kompyuterga ko'chirish uni boshidan yozish degani.</li>
+</ul>
+<p>Birinchi ikki og'riqning yechimi oddiy fikrdan boshlangan: sonlar o'rniga qisqa so'zlar yozaylik, ularni songa aylantirishni esa kompyuterning o'ziga topshiraylik. Bu 1-qavat: assembler.</p>
+
+<h3>Tug'ilishi mumkin bo'lgan savollar</h3>
+<details>
+  <summary>Nega aynan ikkilik, nega o'nlik emas?</summary>
+  <p>Kalitda «tok bor» va «tok yo'q» holatlarini ajratish juda oson va ishonchli. O'nlik tizim uchun bitta simda o'n xil kuchlanish darajasini farqlash kerak bo'lardi. Simlar qiziydi, shovqin bo'ladi, 6 bilan 7 ni adashtirish oson. Ikki holatda esa adashish deyarli mumkin emas. Shuning uchun ikkilik tanlangan: u odamga noqulay, lekin temirga eng ishonchli.</p>
+</details>
+<details>
+  <summary>Nega bayt aynan 8 bit?</summary>
+  <p>Bu tabiat qonuni emas, kelishuv. Ilk kompyuterlarda 6 bitli, 7 bitli va boshqa o'lchamlar ham bo'lgan. 1960-yillarda IBM System/360 kompyuterlari 8 bitni tanladi: 256 ta qiymat katta-kichik harflar, raqamlar va belgilarni sig'dirishga yetardi. Bu mashinalar juda keng tarqalgani uchun 8 bit hamma uchun standart bo'lib qoldi.</p>
+</details>
+<details>
+  <summary>Qaysi son qaysi buyruq ekanini kim belgilaydi?</summary>
+  <p>Protsessorni loyihalagan kompaniya. Bu ro'yxat <strong>buyruqlar to'plami</strong> deyiladi. Bugun ikkita asosiy oila bor: x86 (Intel va AMD, ko'pchilik kompyuter va serverlar) va ARM (deyarli barcha telefonlar). Ularning sonlari bir-biriga to'g'ri kelmaydi. Shu sababli kompyuter uchun tayyorlangan dastur telefonda o'z-o'zidan ishlamaydi.</p>
+</details>
+<details>
+  <summary>Protsessor katakdagi son buyruqmi yoki ma'lumotmi, qayerdan biladi?</summary>
+  <p>Bilmaydi. Buyruq hisoblagichi qaysi katakni ko'rsatsa, protsessor o'sha sonni buyruq deb o'qiydi. To'rtinchi tajriba shuni ko'rsatdi. Buyruq va ma'lumotni bitta xotirada saqlash g'oyasi fon Neyman arxitekturasi deyiladi va hozirgi deyarli barcha kompyuterlar shunday qurilgan. Buning yaxshi tomoni: dasturni xuddi ma'lumot kabi diskdan yuklash, tarmoqdan olish, o'zgartirish mumkin. Yomon tomoni: agar kimdir ma'lumot o'rniga zararli sonlarni kiritib, protsessorni o'sha joyga yo'naltirsa, ular buyruq sifatida bajariladi. Ko'p xavfsizlik zaifliklarining ildizi shu yerda.</p>
+</details>
+<details>
+  <summary>Bu model haqiqiy protsessordan nimasi bilan farq qiladi?</summary>
+  <p>Faqat hajmi bilan. Haqiqiy protsessorda bitta emas, o'nlab registr, 16 ta emas, milliardlab katak, to'rtta emas, yuzlab buyruq bor, va u soniyasiga milliardlab qadam bajaradi. Lekin ish tartibi aynan shu: hisoblagich ko'rsatgan katakdan sonni o'qi, uni buyruq deb tushun, bajar, keyingisiga o't.</p>
+</details>
+<details>
+  <summary>Modelda shart va sikl yo'q. Ular qanday ishlaydi?</summary>
+  <p>Yana bitta buyruq turi bilan: «buyruq hisoblagichiga falon sonni yoz». Shunda protsessor keyingi katakka emas, ko'rsatilgan manzilga sakraydi. Orqaga sakrasa, sikl bo'ladi. «Agar A nolga teng bo'lsa sakra» degan varianti esa shart bo'ladi. <span class="num">if</span>, <span class="num">for</span>, <span class="num">while</span> va funksiya chaqirish — barchasi pastda shu sakrashlarga aylanadi. Buni 1-qavatda jonli ko'ramiz.</p>
+</details>
+<details>
+  <summary>Bugungi Kotlin yoki Java kodim ham shunga aylanadimi?</summary>
+  <p>Ha, boshqa yo'l yo'q: protsessor hali ham faqat shu sonlarni tushunadi. Farqi shundaki, siz bilan protsessor orasida endi bir nechta tarjimon qavati turibdi. Ular sizning matningizni bosqichma-bosqich shu sonlarga aylantiradi. Keyingi qavatlar aynan shu tarjimonlar haqida.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu qavatdan olib ketadigan narsa.</strong> Kompyuterda faqat kataklar va ulardagi sonlar bor. Son nimani bildirishi uni kim qanday o'qishiga bog'liq: son, harf yoki buyruq. Dastur bu protsessor birma-bir o'qib bajaradigan sonlar qatori.</p>
+  <p><strong>Keyingi qavat.</strong> Sonlarni yodlash va manzillarni qo'lda sanash azobidan qanday qutulishgan: assembler.</p>
+</div>
+
+<h2 id="q1">1-qavat. Assembler: raqam o'rniga so'z</h2>
+<p class="lead">0-qavat ikkita og'riq bilan tugadi: sonlarni yodlash va manzillarni qo'lda sanash. Bu qavat ikkalasini qanday yechishganini ko'rsatadi, va shu yo'lda <span class="num">if</span> hamda <span class="num">while</span> pastda nimaga aylanishini ham ko'ramiz.</p>
+
+<h3>Birinchi yechim: songa nom beramiz</h3>
+<p>Protsessor uchun «yukla» buyrug'i <span class="num">1</span> soni. Odam uchun esa <span class="num">1</span> hech narsani anglatmaydi. Shuning uchun har bir buyruq soniga qisqa, eslab qolish oson so'z biriktiramiz. Dasturchi so'zlarni yozadi, ularni songa almashtirishni esa maxsus dastur bajaradi. Shu dastur <strong>assembler</strong> deyiladi.</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Oldin</th><th>Endi</th><th>Ma'nosi</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1 10</td><td class="num">LOAD 10</td><td>10-katakdagi sonni A ga yukla</td></tr>
+    <tr><td class="num">2 11</td><td class="num">ADD 11</td><td>11-katakdagi sonni A ga qo'sh</td></tr>
+    <tr><td class="num">3 12</td><td class="num">STORE 12</td><td>A dagi sonni 12-katakka saqla</td></tr>
+    <tr><td class="num">0</td><td class="num">HALT</td><td>To'xta</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>Muhim joyi: protsessor o'zgarmadi. U hamon faqat <span class="num">1 10 2 11 3 12 0</span> ni ko'radi. O'zgargani dasturchi bilan protsessor orasida bitta tarjimon paydo bo'ldi. Bu tarixdagi birinchi «qatlam», va keyingi barcha qavatlar shunday qatlamlarning ustma-ust qo'yilishi.</p>
+
+<dl class="terms">
+  <dt>Mnemonika</dt>
+  <dd>Buyruq soniga biriktirilgan qisqa so'z: LOAD, ADD, STORE. So'zning o'zi «eslatma» degan ma'noni bildiradi.</dd>
+  <dt>Assembler tili</dt>
+  <dd>Shu so'zlar bilan yozilgan dastur matni. Unda bitta qator protsessorning aynan bitta buyrug'iga teng.</dd>
+  <dt>Assembler</dt>
+  <dd>Shu matnni sonlarga aylantiruvchi dastur. Kundalik nutqda tilni ham, dasturni ham «assembler» deyishadi.</dd>
+</dl>
+
+<h3>Ikkinchi yechim: katakka nom beramiz</h3>
+<p>Sonlarni yodlashdan qutuldik, lekin <span class="num">LOAD 10</span> dagi <span class="num">10</span> ni hamon o'zimiz sanayapmiz. Dasturga bitta qator qo'shilsa, hamma manzil siljiydi. Yechim o'sha fikrning davomi: manzilga ham nom beramiz, sanashni esa assemblerga topshiramiz.</p>
+<p>Buning uchun assembler dastur matnini ikki marta o'qiydi:</p>
+<ol class="try">
+  <li><strong>Birinchi o'tish.</strong> Har bir qator nechta katak egallashini sanab boradi va har bir nom qaysi manzilga to'g'ri kelishini jadvalga yozib qo'yadi.</li>
+  <li><strong>Ikkinchi o'tish.</strong> So'zlarni buyruq sonlariga, nomlarni esa jadvaldagi manzillarga almashtiradi.</li>
+</ol>
+<p>Pastda shunday assembler va 32 katakli mashina turibdi. Chapda dastur matni, o'ngda assembler undan nima chiqargani. Matnni o'zgartirsangiz, tarjima darhol yangilanadi.</p>
+
+<div class="bench" id="asm">
+  <div class="presets">
+    <button type="button" id="pAdd">Namuna: qo'shish</button>
+    <button type="button" id="pLoop">Namuna: sikl</button>
+  </div>
+  <div class="asm-grid">
+    <div>
+      <h4>Siz yozadigan matn</h4>
+      <textarea class="src" id="src" spellcheck="false" autocapitalize="off" autocomplete="off" aria-label="Assembler dasturi matni"></textarea>
+    </div>
+    <div>
+      <h4>Assembler chiqargan natija</h4>
+      <div id="asmOut">
+        <div class="listing"><table><thead><tr><th>Manzil</th><th>Sonlar</th><th>Qator</th></tr></thead><tbody id="lst"></tbody></table></div>
+        <p class="kv"><span class="k">Nomlar jadvali: </span><span class="v" id="syms"></span></p>
+        <p class="kv"><span class="k">Protsessor ko'radigan narsa: </span><span class="v" id="raw"></span></p>
+      </div>
+      <p class="asm-err" id="asmErr" hidden></p>
+    </div>
+  </div>
+  <div class="cpu">
+    <div class="reg"><span class="k">A registr</span><span class="v" id="xA">0</span></div>
+    <div class="reg pc"><span class="k">Buyruq hisoblagichi</span><span class="v" id="xPC">0</span></div>
+  </div>
+  <div class="mem" id="xMem"></div>
+  <div class="legend">
+    <span class="l-pc">hozir bajariladigan buyruq</span>
+    <span class="l-arg">shu buyruqning manzili</span>
+    <span class="l-touch">oxirgi qadamda o'qilgan yoki yozilgan katak</span>
+  </div>
+  <div class="controls">
+    <button class="primary" id="xStep" type="button">Bir qadam</button>
+    <button id="xRun" type="button">Oxirigacha bajarish</button>
+    <button id="xRestart" type="button">Qaytadan boshlash</button>
+  </div>
+  <p class="say" id="xSay" aria-live="polite"></p>
+</div>
+
+<p>«Qo'shish» namunasida <span class="num">a</span>, <span class="num">b</span>, <span class="num">c</span> degan nomlar bor. Nomlar jadvaliga qarang: assembler ularning manzilini o'zi hisoblab chiqqan. <span class="num">DATA</span> so'ziga e'tibor bering: u protsessor buyrug'i emas, assemblerga aytilgan gap: «shu joyga shu sonni yozib qo'y».</p>
+
+<dl class="terms">
+  <dt>Belgi (label)</dt>
+  <dd>Katakka berilgan nom. Matnda nomdan keyin ikki nuqta qo'yiladi: <span class="num">a: DATA 5</span>. Bugungi tillardagi o'zgaruvchi nomining eng birinchi ko'rinishi shu.</dd>
+  <dt>Nomlar jadvali (symbol table)</dt>
+  <dd>Assembler birinchi o'tishda tuzadigan ro'yxat: qaysi nom qaysi manzilga teng. Protsessorga bu jadval yetib bormaydi, unga faqat tayyor sonlar boradi.</dd>
+  <dt>Direktiva</dt>
+  <dd>Protsessorga emas, assemblerning o'ziga berilgan ko'rsatma. Bizda bitta: DATA.</dd>
+</dl>
+
+<h3>O'zingiz sinab ko'ring: nomlar</h3>
+<ol class="try">
+  <li>«Namuna: qo'shish»ni bosing. <span class="num">ADD b</span> qatoridan keyin yana bir <span class="num">ADD b</span> qatorini qo'shing. Nomlar jadvaliga qarang: <span class="num">a</span>, <span class="num">b</span>, <span class="num">c</span> manzillari o'zi siljidi, siz hech narsani qayta sanamadingiz. 0-qavatdagi uchinchi og'riq shu bilan yo'qoldi.</li>
+  <li><span class="num">ADD</span> o'rniga <span class="num">ADDD</span> deb yozing. Assembler xatoni darhol aytadi. 0-qavatda esa noto'g'ri son jim bajarilib ketardi. Bu ham yangi narsa: tarjimon xatoni mashinaga yetib bormasdan ushlaydi.</li>
+  <li>Matnni tuzatib, <span class="num">HALT</span> qatorini o'chirib tashlang va bajaring. Protsessor to'xtamaydi va ma'lumot turgan kataklarni buyruq deb o'qishga kirishadi: 5 va 3 sonlari «JMP 3» bo'lib bajariladi, dastur buziladi. Assembler faqat yozuvdagi xatoni ushlaydi, mantiqdagi xatoni emas.</li>
+</ol>
+
+<h3>Sakrash: if va while qayerdan keladi</h3>
+<p>Shu paytgacha protsessor buyruqlarni faqat ketma-ket bajardi. Bunday mashina hech narsani takrorlay olmaydi va hech narsani tanlay olmaydi. Buning uchun yana uchta buyruq kerak:</p>
+
+<div class="scroll">
+<table>
+  <thead><tr><th>Son</th><th>So'z</th><th>Ma'nosi</th></tr></thead>
+  <tbody>
+    <tr><td class="num">4</td><td class="num">SUB</td><td>Katakdagi sonni A dan ayir</td></tr>
+    <tr><td class="num">5</td><td class="num">JMP</td><td>Sakra: buyruq hisoblagichiga shu manzilni yoz</td></tr>
+    <tr><td class="num">6</td><td class="num">JZ</td><td>Agar A nolga teng bo'lsa sakra, aks holda navbatdagi buyruqqa o't</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p>0-qavatda buyruq hisoblagichi har qadamda o'zi oldinga surilar edi. <span class="num">JMP</span> unga boshqa son yozadi, xolos, va protsessor keyingi buyruqni o'sha joydan o'qiydi. Orqaga sakrasak, buyruqlar qayta bajariladi: bu <strong>sikl</strong>. <span class="num">JZ</span> faqat shart bajarilganda sakraydi: bu <strong>tarmoqlanish</strong>, ya'ni <span class="num">if</span>.</p>
+<p>Yuqoridagi panelda «Namuna: sikl»ni bosing. Bu dastur 4 ni 3 marta qo'shadi, ya'ni ko'paytirishni takroriy qo'shish orqali bajaradi. «Bir qadam» bilan yurib, buyruq hisoblagichi qanday orqaga qaytayotganini kuzating. Oxirida <span class="num">sum</span> katagida 12 bo'lishi kerak.</p>
+<p>Xuddi shu dasturning ikki ko'rinishi:</p>
+
+<div class="code2">
+  <figure>
+    <figcaption>Kotlin'da</figcaption>
+<pre class="code">var sum = 0
+var count = 3
+while (count != 0) {
+    count = count - 1
+    sum = sum + a
+}</pre>
+  </figure>
+  <figure>
+    <figcaption>Assemblerda</figcaption>
+<pre class="code">loop:   LOAD  count
+        JZ    end
+        SUB   one
+        STORE count
+        LOAD  sum
+        ADD   a
+        STORE sum
+        JMP   loop
+end:    HALT</pre>
+  </figure>
+</div>
+
+<p>Taqqoslang. <span class="num">while (count != 0)</span> sharti pastda ikki qator: <span class="num">LOAD count</span> va <span class="num">JZ end</span>, ya'ni «sanoqni ol, nol bo'lsa chiqib ket». Yopuvchi qavs <span class="num">}</span> esa <span class="num">JMP loop</span>, ya'ni «boshiga qayt». Protsessorda <span class="num">while</span> degan narsa yo'q, faqat sakrashlar bor.</p>
+
+<dl class="terms">
+  <dt>Sakrash (jump)</dt>
+  <dd>Buyruq hisoblagichiga yangi manzil yozuvchi buyruq. Shartsiz turi har doim sakraydi (JMP).</dd>
+  <dt>Shartli sakrash</dt>
+  <dd>Faqat ma'lum holatda sakraydigan buyruq. Bizda bitta: JZ, «A nol bo'lsa». Haqiqiy protsessorlarda «katta bo'lsa», «manfiy bo'lsa» kabi o'nlab turi bor.</dd>
+  <dt>Sikl</dt>
+  <dd>Orqaga sakrash hisobiga bir necha marta bajariladigan buyruqlar guruhi.</dd>
+</dl>
+
+<h3>O'zingiz sinab ko'ring: sakrash</h3>
+<ol class="try">
+  <li>Sikl namunasida <span class="num">count: DATA 3</span> dagi 3 ni 5 ga o'zgartiring va bajaring. Natija 20 bo'ladi. Dastur matni o'zgarmadi, aylanishlar soni ma'lumotga bog'liq.</li>
+  <li><span class="num">JZ end</span> qatorini o'chirib tashlang va «Oxirigacha bajarish»ni bosing. Sikldan chiqish yo'li qolmadi: sanoq noldan o'tib, aylanib 255 ga tushadi va dastur to'xtovsiz ishlayveradi. Model 300 qadamdan keyin o'zi to'xtatadi, haqiqiy protsessor esa to'xtatmaydi. Ilova «qotib qolishi»ning eng oddiy sababi shu.</li>
+</ol>
+
+<h3>Assemblerning o'zi qanday o'zgargan</h3>
+<p>Assembler ham bir kunda paydo bo'lmagan. To'rt bosqichni tartib bilan ko'ring: har birida tarjimaning yana bir bo'lagi odamdan mashinaga o'tgan.</p>
+<div class="bench" id="evoAsm"></div>
+
+<h3>Og'riq: assembler nega yetmadi</h3>
+<ul class="pain">
+  <li><strong>Bitta fikr, ko'p qator.</strong> <span class="num">c = a + b</span> uchta qator, oddiy sikl to'qqizta. O'rtacha dastur o'n minglab qator bo'lib ketadi va uning nima qilayotganini o'qib tushunish qiyin.</li>
+  <li><strong>Protsessorga bog'langan.</strong> Har bir protsessor oilasining o'z buyruqlari, demak o'z assembler tili bor. Dasturni boshqa turdagi mashinaga ko'chirish uni boshidan yozish degani. 0-qavatdagi to'rtinchi og'riq yechilmay qoldi.</li>
+  <li><strong>Masala tilida emas, mashina tilida o'ylash kerak.</strong> Siz «foizni hisobla» deb o'ylaysiz, yozishingiz kerak bo'lgani esa «falon katakni registrga yukla». Har bir qatorda bu tarjimani miyada qilish charchatadi.</li>
+  <li><strong>Tuzilma yo'q.</strong> Hamma narsa sakrash. Katta dasturda kim qayerdan qayerga sakrashini kuzatib bo'lmay qoladi, bitta noto'g'ri sakrash esa dasturni tasodifiy joyga olib boradi.</li>
+</ul>
+<p>Keyingi qadam o'z-o'zidan kelib chiqadi: agar tarjimon so'zni songa aylantira olsa, balki u <span class="num">c = a + b</span> degan butun ifodani ham bir nechta buyruqqa aylantira olar? Va agar shunday bo'lsa, bitta matnni turli protsessorlar uchun turlicha tarjima qilish mumkin. Bu keyingi qavatning boshi: C va kompilyator, ulardan esa Java.</p>
+
+<h3>Tug'ilishi mumkin bo'lgan savollar</h3>
+<details>
+  <summary>Birinchi assemblerning o'zi nimada yozilgan?</summary>
+  <p>Mashina kodida, qo'lda, sonlar bilan. Boshqa yo'l yo'q edi. Lekin u bir marta yozilgach, keyingi, kattaroq assemblerni endi assembler tilida yozib, eskisi bilan tarjima qilish mumkin bo'ldi. Asbob o'zidan yaxshiroq asbobni yasashga yordam beradi. Bu usul keyingi qavatlarda ham takrorlanadi: C kompilyatori bugun C da yozilgan, Kotlin kompilyatori Kotlin'da.</p>
+</details>
+<details>
+  <summary>Assembler bilan kompilyatorning farqi nima?</summary>
+  <p>Assembler deyarli hech narsani o'zi hal qilmaydi: bitta qator bitta buyruq, so'z o'rniga son, nom o'rniga manzil. Bu jadvaldan almashtirish. Kompilyator esa bitta qatorni bir nechta buyruqqa yoyadi va qaysi registrni ishlatish, qaysi tartibda hisoblash kabi qarorlarni o'zi qabul qiladi. Keyingi qavatda buni ko'ramiz.</p>
+</details>
+<details>
+  <summary>Nega aynan JZ, nega «agar teng bo'lsa» degan buyruq emas?</summary>
+  <p>Chunki ikki sonni solishtirish ayirishning o'zi: a va b teng bo'lsa, a − b nolga teng. Demak, «ayir, keyin nol bo'lsa sakra» ixtiyoriy tenglikni tekshirishga yetadi. Haqiqiy protsessorlar ham shunday ishlaydi: solishtirish buyrug'i ichkarida ayirishni bajaradi, natijaning o'zini tashlab yuboradi va faqat «nol chiqdimi», «manfiy chiqdimi» degan belgilarni eslab qoladi. Shartli sakrashlar shu belgilarga qaraydi.</p>
+</details>
+<details>
+  <summary>Funksiya chaqirish ham sakrashmi?</summary>
+  <p>Ha, lekin bitta qo'shimcha bilan. Funksiyaga sakrash oson, qiyini undan qaytish: funksiya har xil joydan chaqiriladi, demak qaytish manzili har safar boshqa. Shuning uchun sakrashdan oldin «qayerga qaytishim kerak» degan manzilni biror joyga yozib qo'yish kerak. O'sha joy stack deyiladi va u J2-qavatning asosiy mavzusi.</p>
+</details>
+<details>
+  <summary>Bugun assemblerda kim yozadi?</summary>
+  <p>Juda kam odam va juda kam joyda. Operatsion tizim yadrosining kompyuter yonganda birinchi ishlaydigan bo'laklari, xotirasi bir necha kilobayt bo'lgan mikrokontrollerlar, shifrlash va video kodeklarning eng tez ishlashi kerak bo'lgan bir necha qatori. Lekin uni o'qiy olish ko'proq kerak bo'ladi: xavfsizlik tadqiqotida, va Android'da native kutubxona qulaganda chiqadigan hisobotda registrlar va manzillar aynan shu qavat tilida yoziladi.</p>
+</details>
+<details>
+  <summary>Java va Kotlin'ga buning aloqasi bormi?</summary>
+  <p>To'g'ridan-to'g'ri bor. JVM bu dastur ko'rinishida yasalgan xayoliy protsessor, bayt-kod esa uning mashina kodi. Uning ham mnemonikalari bor: <span class="num">c = a + b</span> bayt-kodda <span class="num">iload_1, iload_2, iadd, istore_3</span> bo'ladi, ya'ni «yukla, yukla, qo'sh, saqla». <span class="num">javap -c</span> buyrug'i istalgan .class faylning shu ko'rinishini chiqarib beradi. <span class="num">if</span> va <span class="num">while</span> esa u yerda <span class="num">ifeq</span> va <span class="num">goto</span> ga aylanadi: bular JZ va JMP ning o'zi. Buni J1-qavatda ochamiz.</p>
+</details>
+<details>
+  <summary>Nomlar protsessorga yetib bormasa, xato chiqqanda nomni qayerdan bilamiz?</summary>
+  <p>Assembler nomlar jadvalini alohida faylga saqlab qo'yishi mumkin. Tuzatish vositasi (debugger) manzilni ko'rganda shu jadvaldan nomini topib ko'rsatadi. Bugungi Android'dagi mapping fayli va «symbols» fayllari aynan shu g'oya: tayyor dasturda nomlar yo'q, lekin ularni qayta tiklash uchun jadval alohida saqlanadi.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu qavatdan olib ketadigan narsa.</strong> Assembler sonlarga va manzillarga nom berdi, tarjimani esa dasturga topshirdi. Protsessor o'zgarmadi, o'rtada qatlam paydo bo'ldi. <span class="num">if</span> va <span class="num">while</span> pastda shartli va shartsiz sakrashlar.</p>
+  <p><strong>Keyingi qavat.</strong> Bitta matnni har xil protsessorga tarjima qiladigan va butun ifodalarni tushunadigan tarjimon: C va kompilyator. Bu «Java: pastdan tepaga» sahifasining J0-qavatida.</p>
+</div>
+
+</main>
+
+<script>
+(function () {
+  // ---------- Bit kalitlari ----------
+  var weights = [128, 64, 32, 16, 8, 4, 2, 1];
+  var bitState = [0, 1, 0, 0, 0, 1, 0, 1]; // 69 = "E"
+  var bitsEl = document.getElementById('bits');
+  var bitButtons = [];
+
+  weights.forEach(function (w, i) {
+    var wrap = document.createElement('div');
+    wrap.className = 'bit';
+    var lab = document.createElement('span');
+    lab.className = 'w';
+    lab.textContent = w;
+    var b = document.createElement('button');
+    b.type = 'button';
+    b.setAttribute('role', 'switch');
+    b.addEventListener('click', function () {
+      bitState[i] = bitState[i] ? 0 : 1;
+      drawBits();
+    });
+    wrap.appendChild(lab);
+    wrap.appendChild(b);
+    bitsEl.appendChild(wrap);
+    bitButtons.push(b);
+  });
+
+  function drawBits() {
+    var total = 0;
+    var parts = [];
+    bitState.forEach(function (s, i) {
+      bitButtons[i].textContent = s;
+      bitButtons[i].setAttribute('aria-checked', s ? 'true' : 'false');
+      bitButtons[i].setAttribute('aria-label', 'Vazni ' + weights[i] + ' bo\'lgan kalit');
+      if (s) { total += weights[i]; parts.push(weights[i]); }
+    });
+    document.getElementById('bBin').textContent = bitState.join('');
+    document.getElementById('bSum').textContent =
+      parts.length > 1 ? parts.join(' + ') + ' = ' + total : String(total);
+    var ch;
+    if (total >= 33 && total <= 126) ch = String.fromCharCode(total);
+    else if (total === 32) ch = '(bo\'sh joy)';
+    else ch = '(bu songa ko\'rinadigan harf biriktirilmagan)';
+    document.getElementById('bChar').textContent = ch;
+  }
+  drawBits();
+
+  // ---------- Model mashina ----------
+  var ORIGINAL = [1, 10, 2, 11, 3, 12, 0, 0, 0, 0, 5, 3, 0, 0, 0, 0];
+  var mem, A, PC, halted, touched, timer = null;
+  var memEl = document.getElementById('mem');
+  var sayEl = document.getElementById('say');
+  var cells = [];
+
+  function bin8(n) { return ('00000000' + n.toString(2)).slice(-8); }
+
+  for (var i = 0; i < 16; i++) {
+    (function (idx) {
+      var c = document.createElement('div');
+      c.className = 'cell';
+      var a = document.createElement('span');
+      a.className = 'addr';
+      a.textContent = idx;
+      var inp = document.createElement('input');
+      inp.type = 'number';
+      inp.min = 0; inp.max = 255;
+      inp.inputMode = 'numeric';
+      inp.setAttribute('aria-label', idx + '-katak qiymati');
+      inp.addEventListener('change', function () {
+        var v = parseInt(inp.value, 10);
+        if (isNaN(v)) v = 0;
+        v = Math.max(0, Math.min(255, v));
+        mem[idx] = v;
+        touched = -1;
+        draw();
+      });
+      var bn = document.createElement('span');
+      bn.className = 'bin';
+      c.appendChild(a); c.appendChild(inp); c.appendChild(bn);
+      memEl.appendChild(c);
+      cells.push({ el: c, inp: inp, bin: bn });
+    })(i);
+  }
+
+  function say(text, bad) {
+    sayEl.textContent = text;
+    sayEl.className = bad ? 'say bad' : 'say';
+  }
+
+  function draw() {
+    document.getElementById('rA').textContent = A;
+    document.getElementById('rPC').textContent = PC;
+    var op = PC <= 15 ? mem[PC] : -1;
+    var hasArg = !halted && (op === 1 || op === 2 || op === 3) && PC + 1 <= 15;
+    cells.forEach(function (c, idx) {
+      if (document.activeElement !== c.inp) c.inp.value = mem[idx];
+      c.bin.textContent = bin8(mem[idx]);
+      var cls = 'cell';
+      if (!halted && idx === PC) cls += ' pc';
+      else if (hasArg && idx === PC + 1) cls += ' arg';
+      if (idx === touched) cls += ' touched';
+      c.el.className = cls;
+    });
+    document.getElementById('bStep').disabled = halted;
+    document.getElementById('bRun').disabled = halted || timer !== null;
+  }
+
+  function stop(text, bad) {
+    halted = true;
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    say(text, bad);
+  }
+
+  function step() {
+    if (halted) return;
+    touched = -1;
+    if (PC > 15) { stop('Buyruq hisoblagichi xotiradan tashqariga chiqib ketdi. Dastur to\'xtadi.', true); draw(); return; }
+    var op = mem[PC];
+    if (op === 0) {
+      stop(PC + '-katakda 0 turibdi: «to\'xta». Dastur tugadi. 12-katakdagi natijaga qarang.', false);
+      draw(); return;
+    }
+    if (op !== 1 && op !== 2 && op !== 3) {
+      stop(PC + '-katakda ' + op + ' turibdi. Bu mashinada bunday buyruq yo\'q, protsessor nima qilishni bilmaydi. Dastur to\'xtadi.', true);
+      draw(); return;
+    }
+    if (PC + 1 > 15) { stop(PC + '-katakdagi buyruqqa manzil kerak, lekin xotira tugadi. Dastur to\'xtadi.', true); draw(); return; }
+    var addr = mem[PC + 1];
+    if (addr > 15) {
+      stop(PC + '-katakdagi buyruq ' + addr + '-katakni so\'rayapti, lekin bu mashinada faqat 0 dan 15 gacha kataklar bor. Dastur to\'xtadi.', true);
+      draw(); return;
+    }
+    var v = mem[addr];
+    if (op === 1) {
+      A = v;
+      say(PC + '-katakda 1 turibdi: «yukla». Keyingi katakda ' + addr + ' bor, demak ' + addr + '-katakdagi son (' + v + ') A registrga ko\'chirildi.');
+    } else if (op === 2) {
+      var sum = A + v;
+      var msg = PC + '-katakda 2 turibdi: «qo\'sh». ' + addr + '-katakdagi son A ga qo\'shildi: ' + A + ' + ' + v + ' = ' + sum + '.';
+      if (sum > 255) {
+        msg += ' Lekin ' + sum + ' bitta baytga sig\'maydi, ortig\'i yo\'qoldi va A da ' + (sum - 256) + ' qoldi.';
+        sum -= 256;
+      }
+      A = sum;
+      say(msg);
+    } else {
+      mem[addr] = A;
+      say(PC + '-katakda 3 turibdi: «saqla». A dagi ' + A + ' soni ' + addr + '-katakka yozildi.');
+    }
+    touched = addr;
+    PC += 2;
+    draw();
+  }
+
+  function rewind(silent) {
+    if (timer !== null) { clearInterval(timer); timer = null; }
+    A = 0; PC = 0; halted = false; touched = -1;
+    if (!silent) say('Boshiga qaytdik: A = 0, buyruq hisoblagichi = 0. Xotiradagi o\'zgarishlaringiz saqlanib qoldi.');
+    draw();
+  }
+
+  function reset() {
+    mem = ORIGINAL.slice();
+    rewind(true);
+    say('«Bir qadam» tugmasini bosing. Protsessor 0-katakdan boshlaydi.');
+    draw();
+  }
+
+  document.getElementById('bStep').addEventListener('click', step);
+  document.getElementById('bRun').addEventListener('click', function () {
+    if (halted || timer !== null) return;
+    step();
+    if (!halted) {
+      timer = setInterval(step, 1100);
+      draw();
+    }
+  });
+  document.getElementById('bRewind').addEventListener('click', function () { rewind(false); });
+  document.getElementById('bReset').addEventListener('click', reset);
+
+  reset();
+})();
+</script>
+<script>
+(function () {
+  function evo(id, items) {
+    var root = document.getElementById(id);
+    var tabs = document.createElement('div'); tabs.className = 'evo-tabs';
+    var body = document.createElement('div'); body.className = 'evo-body'; body.setAttribute('aria-live', 'polite');
+    var nav = document.createElement('div'); nav.className = 'evo-nav';
+    var prev = document.createElement('button'); prev.type = 'button'; prev.textContent = 'Oldingisi';
+    var next = document.createElement('button'); next.type = 'button'; next.textContent = 'Keyingisi';
+    nav.appendChild(prev); nav.appendChild(next);
+    root.appendChild(tabs); root.appendChild(body); root.appendChild(nav);
+    var idx = 0, btns = [];
+    items.forEach(function (it, i) {
+      var b = document.createElement('button'); b.type = 'button';
+      b.textContent = (i + 1) + '. ' + it.name;
+      b.addEventListener('click', function () { idx = i; render(); });
+      tabs.appendChild(b); btns.push(b);
+    });
+    function row(label, text, cls) {
+      return text ? '<dt' + (cls ? ' class="' + cls + '"' : '') + '>' + label + '</dt><dd>' + text + '</dd>' : '';
+    }
+    function render() {
+      var it = items[idx];
+      btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === idx ? 'true' : 'false'); });
+      body.innerHTML =
+        '<svg viewBox="0 0 120 100" aria-hidden="true">' + it.art + '</svg>' +
+        '<div><h4>' + it.name + '</h4><p class="years">' + it.years + '</p><dl>' +
+        row('Qanday ishlaydi', it.how) +
+        row('Oldingisidan nimasi yaxshi', it.better) +
+        row('Og\'rig\'i', it.pain, 'pain') +
+        row('Misollar', it.ex) +
+        '</dl></div>';
+      prev.disabled = idx === 0;
+      next.disabled = idx === items.length - 1;
+    }
+    prev.addEventListener('click', function () { if (idx > 0) { idx--; render(); } });
+    next.addEventListener('click', function () { if (idx < items.length - 1) { idx++; render(); } });
+    render();
+  }
+
+  window.evoStepper = evo;
+
+  evo('evoSwitch', [
+    {
+      name: `Rele`,
+      years: `1930–1940-yillar`,
+      art: `<rect x="25" y="58" width="34" height="28" rx="3"/><path d="M31 65h22M31 72h22M31 79h22"/><path d="M14 40 L94 32"/><circle cx="14" cy="40" r="3"/><circle cx="100" cy="42" r="5" class="lit"/><path d="M100 47v40M42 58V44"/>`,
+      how: `Elektromagnitga tok kelsa, u temir tilchani o'ziga tortadi, tilcha kontaktga tegib zanjirni ulaydi. Tok ketsa, prujina tilchani joyiga qaytaradi. Ya'ni kalit haqiqatan ham jismonan qimirlaydi.`,
+      better: `Undan oldingi hisoblash mashinalari tishli g'ildiraklarda ishlagan. Rele kalitni birinchi marta tok bilan boshqarish imkonini berdi: bir kalit boshqasini yoqa oladi, demak kalitlardan mantiq qurish mumkin.`,
+      pain: `Qimirlaydigan qism sekin: bitta ulanish soniyaning mingdan bir necha ulushini oladi. Kontaktlar yeyiladi va kirlanadi. Harvard Mark I ikki sonni ko'paytirishga taxminan 6 soniya sarflagan.`,
+      ex: `Zuse Z3 (1941, Germaniya, 2000 dan ortiq rele), Harvard Mark I (1944, AQSH). 1947-yilda Harvard Mark II relesiga kuya tiqilib qolgan va uni jurnalga yopishtirib qo'yishgan. «Bug» so'zi undan oldin ham ishlatilgan, lekin uni shu voqea mashhur qilgan.`
+    },
+    {
+      name: `Elektron lampa`,
+      years: `1940–1950-yillar`,
+      art: `<path d="M40 82V40a20 20 0 0 1 40 0v42z"/><path d="M48 82v12M60 82v12M72 82v12"/><path d="M50 60h20" class="acc" stroke-dasharray="3 4"/><path d="M48 72h24" class="lit"/><path d="M50 46h20"/>`,
+      how: `Havosi so'rib olingan shisha kolba ichida qizdirilgan sim elektron chiqaradi. O'rtadagi to'rga berilgan kichik kuchlanish bu oqimni o'tkazadi yoki to'sadi. Hech narsa qimirlamaydi, faqat elektronlar uchadi.`,
+      better: `Qimirlaydigan qism yo'qligi uchun reledan taxminan ming marta tez. ENIAC soniyasiga 5000 ga yaqin qo'shish bajargan.`,
+      pain: `Lampa cho'g'lanma lampochka kabi qiziydi va kuyadi. ENIAC'da 17 mingdan ortiq lampa bor edi, u 150 kilovatt atrofida quvvat olib, katta zalni egallagan. Lampalar tez-tez kuyardi va har safar aynan qaysi biri ekanini qidirib topish kerak edi.`,
+      ex: `Colossus (1943–1944, Britaniya), ENIAC (1945, AQSH).`
+    },
+    {
+      name: `Tranzistor`,
+      years: `1947-yilda ixtiro qilingan, kompyuterlarda 1950-yillar oxiridan`,
+      art: `<path d="M42 50a18 18 0 0 1 36 0v12H42z" class="lit"/><path d="M48 62v30M60 62v30M72 62v30"/>`,
+      how: `Kremniy yoki germaniy kabi yarimo'tkazgichdan yasalgan mitti bo'lakcha. Uning o'rta qismiga kichik kuchlanish berilsa, tok o'tadi, berilmasa o'tmaydi. Vakuum ham, qizdirish ham kerak emas: hammasi qattiq jismning ichida sodir bo'ladi.`,
+      better: `Lampadan o'nlab marta kichik, deyarli qizimaydi, juda kam quvvat oladi va yillab buzilmay ishlaydi. Uni Bell Labs'da Bardeen, Brattain va Shockley yaratgan.`,
+      pain: `Har bir tranzistor alohida detal. Ularni platalarga qo'lda kavsharlab, simlar bilan ulash kerak. Minglab tranzistor o'n minglab ulanish degani, bitta yomon kavshar esa butun mashinani ishdan chiqaradi.`,
+      ex: `IBM 7090 (1959).`
+    },
+    {
+      name: `Integral sxema`,
+      years: `1958–1959-yillardan`,
+      art: `<rect x="28" y="36" width="64" height="28" rx="3"/><path d="M38 36V24M50 36V24M62 36V24M74 36V24M86 36V24M38 64v12M50 64v12M62 64v12M74 64v12M86 64v12"/><circle cx="37" cy="44" r="2.5" class="lit"/>`,
+      how: `Bitta kremniy plastinkaning o'zida bir nechta tranzistor va ularni ulovchi yo'lakchalar birga yasaladi. Sxema plastinkaga fotosurat chiqarishga o'xshash usulda tushiriladi.`,
+      better: `Qo'lda kavsharlash yo'qoladi: ulanishlar zavodda, bir yo'la va ishonchli tayyorlanadi. Bitta mikrosxemada avval o'nlab, keyin minglab tranzistor joylashdi.`,
+      pain: `Protsessor hali ham ko'plab mikrosxemalardan yig'ilgan bir nechta plata edi. Kompyuter shkaf o'lchamida va faqat tashkilotlarning cho'ntagi ko'taradigan narxda.`,
+      ex: `Jack Kilby (Texas Instruments) va Robert Noyce (Fairchild) uni deyarli bir vaqtda, mustaqil ravishda yaratgan. Apollo kemasining bort kompyuteri integral sxemalarda qurilgan.`
+    },
+    {
+      name: `Mikroprotsessor`,
+      years: `1971-yildan hozirgacha`,
+      art: `<rect x="30" y="20" width="60" height="60" rx="3"/><rect x="46" y="36" width="28" height="28" class="lit"/><path d="M42 20V10M54 20V10M66 20V10M78 20V10M42 80v10M54 80v10M66 80v10M78 80v10M30 32H20M30 44H20M30 56H20M30 68H20M90 32h10M90 44h10M90 56h10M90 68h10"/>`,
+      how: `Butun protsessor bitta mikrosxemaga sig'dirildi. Kalit hamon tranzistor, faqat u shu qadar kichrayganki, endi ko'z bilan emas, oddiy mikroskop bilan ham ko'rib bo'lmaydi.`,
+      better: `Kompyuter arzonlashib avval stolga, keyin cho'ntakka sig'di. Intel 4004 (1971) da 2300 ta tranzistor bo'lgan, bugungi telefon protsessorida o'n milliarddan ortiq.`,
+      pain: `Tranzistorni cheksiz kichraytirib va tezlatib bo'lmaydi: u qizib ketadi. Shu sababli 2000-yillar o'rtasidan boshlab bitta yadroni tezlatish o'rniga yadrolar soni oshirila boshladi. Bu «Ko'p oqimlilik» zanjirining boshlanish nuqtasi. Ikkinchi og'riq endi temirda emas, odamda: shuncha quvvatli mashinaga sonlar bilan dastur yozib ulgurib bo'lmaydi.`,
+      ex: `Intel 4004 (1971), Intel 8086 (1978, x86 oilasining boshi), ARM (1985, bugungi telefonlar protsessorlarining boshi).`
+    }
+  ]);
+
+  evo('evoMem', [
+    {
+      name: `Kechikish liniyasi`,
+      years: `1940-yillar oxiri`,
+      art: `<rect x="18" y="42" width="84" height="20" rx="10"/><circle cx="36" cy="52" r="3" class="lit"/><circle cx="58" cy="52" r="3" class="lit"/><circle cx="70" cy="52" r="3" class="lit"/><path d="M102 52h8V24H10v28h8" class="acc"/>`,
+      how: `Simob to'ldirilgan trubaning bir uchidan tovush impulsi yuboriladi. U narigi uchiga yetib borguncha «eslab turiladi», keyin qayta boshiga uzatiladi. Bitlar truba ichida to'xtovsiz aylanib yuradi. Shu davrning boshqa usuli: televizor trubkasi ekranidagi zaryadlangan nuqtalar (Williams trubkasi).`,
+      better: `Xotirani lampalardan yasash juda qimmat edi: bitta bitga bir nechta lampa ketardi. Bu usullar bitta qurilmada yuzlab va minglab bit saqlay oldi.`,
+      pain: `Kerakli bit truba ichida aylanib, chiqishga yetib kelishini kutish kerak. Qurilma haroratga juda sezgir va ishonchsiz.`,
+      ex: `EDSAC (1949) simob liniyalarida, Manchester Baby (1948) Williams trubkasida ishlagan.`
+    },
+    {
+      name: `Magnit o'zak`,
+      years: `1950–1970-yillar`,
+      art: `<circle cx="60" cy="50" r="18" stroke-width="7" class="lit" style="fill:none"/><path d="M18 92 L102 8M18 8 L102 92" class="acc"/>`,
+      how: `Har bir bit mitti ferrit halqa. Halqa bir yo'nalishda magnitlangan bo'lsa 1, teskari yo'nalishda bo'lsa 0. Halqalar ichidan o'tkazilgan simlar orqali ularni o'qish va yozish mumkin.`,
+      better: `Istalgan katakka birdek tez murojaat qilinadi, navbat kutish yo'q. «Ixtiyoriy murojaatli xotira» (RAM) degan nom shundan. Tok o'chsa ham ma'lumot saqlanib qoladi.`,
+      pain: `Halqalarga simlarni asosan qo'lda, lupa ostida o'tkazishgan. Qimmat va katta: bir megabayt xotira butun shkafni egallardi.`,
+      ex: `Apollo bort kompyuteri. Dastur qulaganda xotira nusxasini «core dump» deb atash aynan shu davrdan qolgan: core bu o'sha o'zak.`
+    },
+    {
+      name: `Yarimo'tkazgich xotira`,
+      years: `1970-yildan hozirgacha`,
+      art: `<path d="M14 40h30M44 40l22-12M70 40h22v14"/><path d="M78 54h28M78 64h28" class="lit"/><path d="M92 64v18M82 82h20"/><circle cx="44" cy="40" r="2.5"/><circle cx="70" cy="40" r="2.5"/>`,
+      how: `Har bir bit bitta tranzistor va bitta mitti kondensatordan iborat. Kondensator zaryadlangan bo'lsa 1, bo'sh bo'lsa 0. Zaryad asta-sekin oqib ketadi, shuning uchun xotira o'z tarkibini soniyasiga ko'p marta qayta yozib turadi.`,
+      better: `Protsessor bilan bir xil zavod usulida yasaladi, shu sababli u bilan birga kichrayib va arzonlashib bordi. Intel 1103 (1970) 1024 bit saqlagan, bugungi telefonda o'nlab milliard bit bor.`,
+      pain: `Tok o'chsa, hammasi yo'qoladi. Shuning uchun kompyuterda ikki xil xotira bor: tez, lekin unutuvchan RAM va sekin, lekin doimiy disk. Dasturlashdagi «saqlash», «fayl», «ma'lumotlar bazasi» tushunchalari shu ikkilikdan kelib chiqadi.`,
+      ex: `Intel 1103 (1970). Bugungi DDR va LPDDR xotiralar shu g'oyaning davomi.`
+    }
+  ]);
+
+  evo('evoLoad', [
+    {
+      name: `Simlarni qayta ulash`,
+      years: `1940-yillar o'rtasi`,
+      art: `<circle cx="28" cy="28" r="5"/><circle cx="60" cy="28" r="5"/><circle cx="92" cy="28" r="5"/><circle cx="28" cy="74" r="5"/><circle cx="60" cy="74" r="5"/><circle cx="92" cy="74" r="5"/><path d="M28 28C38 62 82 40 92 74" class="acc"/><path d="M60 28C56 54 34 48 28 74" class="lit" style="fill:none"/>`,
+      how: `Dastur xotirada emas, mashinaning o'zida: qaysi kabel qaysi uyaga ulangani va kalitlar qanday turgani dasturning o'zi. Yangi masala uchun kabellar sug'urib olinib, boshqacha ulab chiqiladi.`,
+      pain: `Bitta dasturni «terib chiqish» kunlab vaqt olardi. Dastur mashinadan ajralmas: uni saqlab qo'yib ham, boshqa odamga berib ham bo'lmaydi.`,
+      ex: `ENIAC. Uni dasturlagan olti nafar ayol matematik aynan shu kabellar va kalitlar bilan ishlagan.`
+    },
+    {
+      name: `Teshilgan karta va lenta`,
+      years: `1940–1970-yillar`,
+      art: `<path d="M26 24h80v52H14V36z"/><path d="M28 38v6M40 50v6M40 38v6M58 62v6M70 38v6M70 50v6M88 62v6M94 44v6" class="lit" stroke-width="5"/>`,
+      how: `Qog'ozda teshik bor joy 1, teshik yo'q joy 0. Mashina kartalarni birma-bir o'qiydi. G'oyaning o'zi ancha eski: 1804-yilda Jacquard to'quv dastgohi gazlama naqshini shunday kartalardan o'qigan.`,
+      better: `Dastur endi alohida buyum. Uni javonda saqlash, nusxalash, boshqa shahardagi mashinaga olib borish mumkin.`,
+      pain: `Xato topilsa, kartani qayta teshish kerak. Yuzlab kartali dasta qo'ldan tushib sochilsa, tartibini tiklash azob. Dasturchi kartalarni operatorga topshirib, natijani soatlab, ba'zan ertasigacha kutgan.`,
+      ex: `Harvard Mark I buyruqlarni teshilgan lentadan o'qigan. 80 ustunli IBM kartalari o'nlab yillar standart bo'lgan.`
+    },
+    {
+      name: `Saqlangan dastur`,
+      years: `1948-yildan hozirgacha`,
+      art: `<rect x="10" y="38" width="20" height="24" class="lit"/><rect x="30" y="38" width="20" height="24" class="lit"/><rect x="50" y="38" width="20" height="24" class="lit"/><rect x="70" y="38" width="20" height="24"/><rect x="90" y="38" width="20" height="24"/><path d="M20 22v10M15 27l5 5 5-5" class="acc"/>`,
+      how: `Buyruqlar ma'lumot bilan bir xil xotira kataklarida turadi. Karta endi faqat sonlarni xotiraga yuklab olish uchun kerak, bajarish esa to'g'ridan-to'g'ri xotiradan ketadi. Yuqoridagi modelimiz aynan shunday mashina.`,
+      better: `Dasturni almashtirish kunlar emas, soniyalar ishi. Eng muhimi: dastur ham ma'lumot bo'lgani uchun bir dastur boshqa dasturni o'qiy oladi, o'zgartira oladi va yarata oladi. Assembler, kompilyator va operatsion tizim faqat shu imkoniyat tufayli paydo bo'la oldi.`,
+      pain: `Xotiraga yozilayotgan narsa hamon sonlar. Mashina tez va qulay bo'ldi, lekin odam uchun til hali yo'q.`,
+      ex: `G'oya 1945-yilda EDVAC loyihasi hisobotida (Jon fon Neyman) bayon qilingan. Amalda birinchi bo'lib Manchester Baby (1948) va EDSAC (1949) da ishlagan.`
+    }
+  ]);
+})();
+</script>
+<script>
+(function () {
+/*CORE*/
+  var OPS = { HALT: 0, LOAD: 1, ADD: 2, STORE: 3, SUB: 4, JMP: 5, JZ: 6 };
+  var OPNAME = ['HALT', 'LOAD', 'ADD', 'STORE', 'SUB', 'JMP', 'JZ'];
+  var SIZE = 32;
+
+  function assemble(src) {
+    var lines = src.split('\n'), items = [], syms = {}, addr = 0, i;
+    function fail(n, text) { return { ok: false, error: n + '-qator: ' + text }; }
+    for (i = 0; i < lines.length; i++) {
+      var n = i + 1;
+      var t = lines[i].replace(/;.*$/, '').trim();
+      if (!t) continue;
+      var m = t.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$/);
+      if (m) {
+        var name = m[1], up = name.toUpperCase();
+        if (OPS.hasOwnProperty(up) || up === 'DATA') return fail(n, '«' + name + '» buyruq nomi, uni katak nomi sifatida ishlatib bo\'lmaydi.');
+        if (syms.hasOwnProperty(name)) return fail(n, '«' + name + '» nomi ikki marta berilgan. Har bir nom faqat bitta katakni bildirishi kerak.');
+        syms[name] = addr;
+        t = m[2].trim();
+        if (!t) continue;
+      }
+      var parts = t.split(/\s+/), mn = parts[0].toUpperCase(), arg = parts[1];
+      if (parts.length > 2) return fail(n, 'bitta qatorda bitta buyruq va ko\'pi bilan bitta nom yoki son bo\'lishi kerak.');
+      if (mn === 'DATA') {
+        if (arg === undefined || !/^\d+$/.test(arg) || +arg > 255) return fail(n, 'DATA dan keyin 0 dan 255 gacha son yozilishi kerak.');
+        items.push({ addr: addr, data: true, val: +arg, src: t, line: n }); addr += 1;
+      } else if (mn === 'HALT') {
+        if (arg !== undefined) return fail(n, 'HALT dan keyin hech narsa yozilmaydi.');
+        items.push({ addr: addr, op: 0, src: t, line: n }); addr += 1;
+      } else if (OPS.hasOwnProperty(mn)) {
+        if (arg === undefined) return fail(n, mn + ' dan keyin katak nomi yoki manzili yozilishi kerak.');
+        items.push({ addr: addr, op: OPS[mn], arg: arg, src: t, line: n }); addr += 2;
+      } else {
+        return fail(n, '«' + parts[0] + '» degan buyruq yo\'q. Mavjudlari: LOAD, ADD, SUB, STORE, JMP, JZ, HALT, DATA.');
+      }
+    }
+    if (!items.length) return { ok: false, error: 'Dastur bo\'sh. Kamida bitta buyruq yozing yoki namunalardan birini tanlang.' };
+    if (addr > SIZE) return { ok: false, error: 'Dastur ' + addr + ' ta katak egallaydi, mashinada esa faqat ' + SIZE + ' ta bor.' };
+    var mem = [], rows = [];
+    for (i = 0; i < SIZE; i++) mem.push(0);
+    for (i = 0; i < items.length; i++) {
+      var it = items[i];
+      if (it.data) { mem[it.addr] = it.val; rows.push({ addr: it.addr, bytes: [it.val], src: it.src }); continue; }
+      if (it.arg === undefined) { mem[it.addr] = 0; rows.push({ addr: it.addr, bytes: [0], src: it.src }); continue; }
+      var target;
+      if (/^\d+$/.test(it.arg)) {
+        target = +it.arg;
+        if (target >= SIZE) return fail(it.line, it.arg + '-katak yo\'q, manzillar 0 dan ' + (SIZE - 1) + ' gacha.');
+      } else if (syms.hasOwnProperty(it.arg)) {
+        target = syms[it.arg];
+      } else {
+        return fail(it.line, '«' + it.arg + '» degan nom hech qayerda berilmagan. Nom berish uchun qator boshiga «' + it.arg + ':» deb yozing.');
+      }
+      mem[it.addr] = it.op; mem[it.addr + 1] = target;
+      rows.push({ addr: it.addr, bytes: [it.op, target], src: it.src });
+    }
+    var names = {};
+    for (var k in syms) if (syms.hasOwnProperty(k) && names[syms[k]] === undefined) names[syms[k]] = k;
+    return { ok: true, mem: mem, rows: rows, syms: syms, names: names, used: addr };
+  }
+
+  // st: {mem, A, PC, halted, names}. Bitta buyruqni bajaradi.
+  function exec(st) {
+    var PC = st.PC, mem = st.mem;
+    function stop(text, bad) { st.halted = true; return { msg: text, bad: !!bad, touched: -1 }; }
+    function where(a) { return a + '-katak' + (st.names[a] !== undefined ? ' (' + st.names[a] + ')' : ''); }
+    if (PC >= SIZE) return stop('Buyruq hisoblagichi xotiradan tashqariga chiqib ketdi. Dastur to\'xtadi.', true);
+    var op = mem[PC];
+    if (op === 0) return stop(PC + '-katak: HALT. Dastur tugadi.');
+    if (op > 6) return stop(PC + '-katakda ' + op + ' turibdi. Bunday buyruq yo\'q. Protsessor ma\'lumotni buyruq deb o\'qiganga o\'xshaydi. Dastur to\'xtadi.', true);
+    if (PC + 1 >= SIZE) return stop(PC + '-katakdagi buyruqqa manzil kerak, lekin xotira tugadi. Dastur to\'xtadi.', true);
+    var a = mem[PC + 1];
+    if (a >= SIZE) return stop(PC + '-katak: ' + OPNAME[op] + ' ' + a + '. Bunday katak yo\'q, manzillar 0 dan ' + (SIZE - 1) + ' gacha. Dastur to\'xtadi.', true);
+    var v = mem[a], head = PC + '-katak: ' + OPNAME[op] + '. ', msg, touched = a, old = st.A;
+    st.PC = PC + 2;
+    if (op === 1) {
+      st.A = v; msg = where(a) + ' ichidagi ' + v + ' soni A registrga ko\'chirildi.';
+    } else if (op === 2) {
+      var sum = old + v;
+      msg = where(a) + ' ichidagi ' + v + ' A ga qo\'shildi: ' + old + ' + ' + v + ' = ' + sum + '.';
+      if (sum > 255) { sum -= 256; msg += ' Bu bitta baytga sig\'maydi, ortig\'i yo\'qoldi va A da ' + sum + ' qoldi.'; }
+      st.A = sum;
+    } else if (op === 4) {
+      var d = old - v;
+      msg = 'A dan ' + where(a) + ' ichidagi ' + v + ' ayirildi: ' + old + ' − ' + v + ' = ' + d + '.';
+      if (d < 0) { d += 256; msg += ' Bayt noldan pastga tusha olmaydi, shuning uchun son aylanib ' + d + ' bo\'ldi.'; }
+      st.A = d;
+    } else if (op === 3) {
+      mem[a] = st.A; msg = 'A dagi ' + st.A + ' soni ' + where(a) + ' ichiga yozildi.';
+    } else if (op === 5) {
+      st.PC = a; touched = -1;
+      msg = 'Buyruq hisoblagichiga ' + a + ' yozildi. Keyingi buyruq navbatdagi katakdan emas, shu yerdan o\'qiladi: ' + where(a) + '.';
+    } else {
+      touched = -1;
+      if (st.A === 0) { st.PC = a; msg = 'A nolga teng, shuning uchun sakraymiz: ' + where(a) + '.'; }
+      else msg = 'A nolga teng emas (A = ' + st.A + '), sakramaymiz va navbatdagi buyruqqa o\'tamiz.';
+    }
+    return { msg: head + msg, bad: false, touched: touched };
+  }
+
+  var P_ADD = [
+    '        LOAD  a',
+    '        ADD   b',
+    '        STORE c',
+    '        HALT',
+    'a:      DATA  5',
+    'b:      DATA  3',
+    'c:      DATA  0'
+  ].join('\n');
+  var P_LOOP = [
+    'loop:   LOAD  count   ; sanoqni ol',
+    '        JZ    end     ; nol bo\'lsa chiq',
+    '        SUB   one     ; sanoqdan 1 ayir',
+    '        STORE count',
+    '        LOAD  sum     ; yig\'indini ol',
+    '        ADD   a       ; unga a ni qo\'sh',
+    '        STORE sum',
+    '        JMP   loop    ; boshiga qayt',
+    'end:    HALT',
+    'a:      DATA  4',
+    'count:  DATA  3',
+    'one:    DATA  1',
+    'sum:    DATA  0'
+  ].join('\n');
+/*ENDCORE*/
+
+  if (typeof document === 'undefined') return;
+
+  var srcEl = document.getElementById('src');
+  var lstEl = document.getElementById('lst');
+  var memEl = document.getElementById('xMem');
+  var sayEl = document.getElementById('xSay');
+  var errEl = document.getElementById('asmErr');
+  var outEl = document.getElementById('asmOut');
+  var prog = null, st = null, touched = -1, timer = null, steps = 0, cells = [], rowEls = [];
+
+  for (var i = 0; i < SIZE; i++) {
+    var c = document.createElement('div'); c.className = 'cell';
+    var a = document.createElement('span'); a.className = 'addr'; a.textContent = i;
+    var v = document.createElement('span'); v.className = 'val';
+    var g = document.createElement('span'); g.className = 'tag';
+    c.appendChild(a); c.appendChild(v); c.appendChild(g);
+    memEl.appendChild(c); cells.push({ el: c, val: v, tag: g });
+  }
+
+  function say(text, bad) { sayEl.textContent = text; sayEl.className = bad ? 'say bad' : 'say'; }
+  function halt() { if (timer !== null) { clearInterval(timer); timer = null; } }
+
+  function draw() {
+    var ok = !!(prog && prog.ok);
+    document.getElementById('xA').textContent = ok ? st.A : 0;
+    document.getElementById('xPC').textContent = ok ? st.PC : 0;
+    var op = ok && st.PC < SIZE ? st.mem[st.PC] : -1;
+    var hasArg = ok && !st.halted && op >= 1 && op <= 6 && st.PC + 1 < SIZE;
+    cells.forEach(function (c, idx) {
+      c.val.textContent = ok ? st.mem[idx] : 0;
+      c.tag.textContent = ok && st.names[idx] !== undefined ? st.names[idx] : '';
+      var cls = 'cell';
+      if (ok && !st.halted && idx === st.PC) cls += ' pc';
+      else if (hasArg && idx === st.PC + 1) cls += ' arg';
+      if (idx === touched) cls += ' touched';
+      c.el.className = cls;
+    });
+    rowEls.forEach(function (r) { r.el.className = ok && !st.halted && r.addr === st.PC ? 'cur' : ''; });
+    document.getElementById('xStep').disabled = !ok || st.halted;
+    document.getElementById('xRun').disabled = !ok || st.halted || timer !== null;
+  }
+
+  function build() {
+    halt();
+    prog = assemble(srcEl.value);
+    touched = -1; steps = 0; rowEls = [];
+    lstEl.textContent = '';
+    if (!prog.ok) {
+      outEl.hidden = true; errEl.hidden = false; errEl.textContent = prog.error;
+      st = null;
+      say('Matnda xato bor, shuning uchun mashinaga hech narsa yuklanmadi. Xatoni tuzating.', true);
+      draw(); return;
+    }
+    outEl.hidden = false; errEl.hidden = true;
+    prog.rows.forEach(function (r) {
+      var tr = document.createElement('tr');
+      [String(r.addr), r.bytes.join(' '), r.src].forEach(function (text) {
+        var td = document.createElement('td'); td.textContent = text; tr.appendChild(td);
+      });
+      lstEl.appendChild(tr); rowEls.push({ el: tr, addr: r.addr });
+    });
+    var sy = [];
+    for (var k in prog.syms) if (prog.syms.hasOwnProperty(k)) sy.push(k + ' = ' + prog.syms[k]);
+    document.getElementById('syms').textContent = sy.length ? sy.join(',  ') : 'nomlar yo\'q';
+    document.getElementById('raw').textContent = prog.mem.slice(0, prog.used).join(' ');
+    st = { mem: prog.mem.slice(), A: 0, PC: 0, halted: false, names: prog.names };
+    say('Dastur tarjima qilindi va xotiraga yuklandi. «Bir qadam» tugmasini bosing.');
+    draw();
+  }
+
+  function step() {
+    if (!st || st.halted) return;
+    var r = exec(st);
+    touched = r.touched; steps++;
+    if (st.halted) halt();
+    else if (steps >= 300) {
+      st.halted = true; halt();
+      r = { msg: '300 qadam bajarildi va dastur hamon to\'xtamadi. U cheksiz aylanayotganga o\'xshaydi, shuning uchun model uni to\'xtatdi.', bad: true };
+    }
+    say(r.msg, r.bad);
+    draw();
+  }
+
+  document.getElementById('xStep').addEventListener('click', step);
+  document.getElementById('xRun').addEventListener('click', function () {
+    if (!st || st.halted || timer !== null) return;
+    step();
+    if (st && !st.halted) { timer = setInterval(step, 450); draw(); }
+  });
+  document.getElementById('xRestart').addEventListener('click', build);
+  document.getElementById('pAdd').addEventListener('click', function () { srcEl.value = P_ADD; build(); });
+  document.getElementById('pLoop').addEventListener('click', function () { srcEl.value = P_LOOP; build(); });
+  var deb = null;
+  srcEl.addEventListener('input', function () { clearTimeout(deb); deb = setTimeout(build, 350); });
+
+  srcEl.value = P_ADD;
+  build();
+
+  window.evoStepper('evoAsm', [
+    {
+      name: `Qog'ozda qo'lda tarjima`,
+      years: `1940-yillar`,
+      art: `<path d="M34 12h52v76H34z"/><path d="M42 28h36M42 40h36M42 52h24M42 64h30" class="acc"/>`,
+      how: `Dasturchi dasturni qog'ozga odam o'qiy oladigan qisqartmalar bilan yozadi. Keyin jadvalga qarab har bir qisqartmani o'zi songa aylantiradi va manzillarni o'zi sanab chiqadi. Mashinaga faqat tayyor sonlar kiritiladi.`,
+      better: `Fikrlash sonlarda emas, so'zlarda ketadi. Qog'ozdagi dasturni boshqa odam ham o'qiy oladi.`,
+      pain: `Tarjimani odam bajaradi: zerikarli, sekin, va xatolarning ko'pi aynan shu yerda qilinadi. Holbuki bu ish qat'iy qoida bo'yicha jadvaldan almashtirish, ya'ni mashinaning o'zi qila oladigan ish.`,
+      ex: `Ilk mashinalar dasturchilarining «kodlash varaqlari». Kathleen Booth 1947-yilda Londonda mashina buyruqlarini belgilar bilan yozish usulini bayon qilgan, uni assembler tilining asoschisi deb hisoblashadi.`
+    },
+    {
+      name: `Yuklovchi tarjimon`,
+      years: `1949-yil`,
+      art: `<path d="M8 30h46v24H8z"/><path d="M16 38v8M26 38v8M40 38v8" class="lit" stroke-width="5"/><path d="M60 42h16M70 36l6 6-6 6" class="acc"/><rect x="82" y="26" width="28" height="14"/><rect x="82" y="44" width="28" height="14"/><rect x="82" y="62" width="28" height="14"/>`,
+      how: `Mashina xotirasida doim turadigan kichik dastur lentadan harf o'qiydi va uni tegishli buyruq soniga aylantirib xotiraga joylaydi. Dasturchi lentaga «A» (qo'sh), «S» (ayir) kabi bitta harfli buyruqlarni teradi.`,
+      better: `Tarjimani birinchi marta mashinaning o'zi bajardi. Bu faqat saqlangan dastur tufayli mumkin bo'ldi: tarjimon ham dastur, u boshqa dasturni ma'lumot sifatida o'qiydi.`,
+      pain: `Manzillar hamon asosan son bilan yoziladi. Dastur o'rtasiga qator qo'shilsa, ularni qo'lda qayta sanash kerak.`,
+      ex: `EDSAC kompyuterining «boshlang'ich buyruqlari» (initial orders), David Wheeler, Kembrij, 1949. Butun tarjimon bir necha o'n buyruqdan iborat bo'lgan.`
+    },
+    {
+      name: `Nomli assembler`,
+      years: `1950-yillar o'rtasi`,
+      art: `<rect x="66" y="20" width="40" height="18"/><rect x="66" y="42" width="40" height="18" class="lit"/><rect x="66" y="64" width="40" height="18"/><path d="M12 42h30l10 9-10 9H12z" class="acc"/><path d="M52 51h12"/>`,
+      how: `Manzil o'rniga nom yoziladi. Assembler matnni ikki marta o'qiydi: avval har bir nomning manzilini hisoblab jadvalga yozadi, keyin nomlarni shu manzillarga almashtiradi. Yuqoridagi modelimiz aynan shu turdagi assembler.`,
+      better: `Manzillarni qo'lda sanash butunlay yo'qoldi. Dasturga qator qo'shish yoki olib tashlash xavfsiz bo'ldi.`,
+      pain: `Bir xil buyruqlar ketma-ketligi dasturda o'nlab marta takrorlanadi va har safar qaytadan yozib chiqiladi.`,
+      ex: `IBM 701 uchun Nathaniel Rochester yozgan assembler (1954), IBM 650 uchun SOAP (1955).`
+    },
+    {
+      name: `Makroassembler`,
+      years: `1950-yillar oxiri – 1960-yillar`,
+      art: `<rect x="10" y="40" width="32" height="20" class="lit"/><path d="M46 50h14M54 44l6 6-6 6" class="acc"/><rect x="68" y="14" width="42" height="18"/><rect x="68" y="41" width="42" height="18"/><rect x="68" y="68" width="42" height="18"/>`,
+      how: `Takrorlanadigan buyruqlar guruhiga nom beriladi, bu makros deyiladi. Dasturchi shu nomni yozsa, assembler uning o'rniga butun guruhni qo'yib chiqadi.`,
+      better: `Bitta qator endi bir nechta buyruqqa aylanishi mumkin. Operatsion tizim kabi juda katta dasturlarni yozish amalda mumkin bo'ldi.`,
+      pain: `Bu hali ham bitta aniq protsessorning tili. Dasturni boshqa turdagi mashinaga ko'chirish uni noldan yozish degani. Tashkilot kompyuterini almashtirsa, barcha dasturlari yaroqsiz bo'lib qoladi.`,
+      ex: `IBM OS/360 operatsion tizimi, Apollo bort kompyuterining dasturlari, Unix'ning ilk versiyalari (1969–1972) assemblerda yozilgan. Unix 1973-yilda C tilida qayta yozilgan, bu keyingi qavatning mavzusi.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>

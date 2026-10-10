@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>1-dars. Kalit va bit</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>1-dars. Kalit va bit</h1>
+<p class="lead">Savol: kompyuter sonni nimada saqlaydi va nega faqat 0 va 1 bilan ishlaydi?</p>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Nega ikki holat, nega o'n emas</li>
+      <li>Bit, bayt, ikkilik sanoq</li>
+      <li>Nechta kalit nechta qiymat beradi</li>
+      <li>Kalitning o'zi: reledan mikroprotsessorgacha</li>
+      <li>Xotira o'lchov birliklari, <span class="num">int</span> chegarasi</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Manfiy va kasr sonlar, matn kodirovkasi: 2-dars</li>
+      <li>Kalitlardan xotira qanday yig'iladi: 3-dars</li>
+      <li>Kalitlardan hisoblash qanday yig'iladi: qisqacha «Chuqurroq» bo'limida, to'liq 4-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Mashina sonni qanday eslab qolsin</h3>
+<p>Hisoblaydigan mashina yasamoqchi bo'lsangiz, birinchi masala hisoblash emas, eslab qolish. Sonni biror jismoniy narsaning holati sifatida saqlash kerak: narsa bir holatda tursa bir son, boshqa holatda tursa boshqa son.</p>
+<p>Elektron kompyuterlardan oldingi mashinalar buni tishli g'ildiraklar bilan qilgan. Har bir g'ildirak o'n holatda tura olardi: 0 dan 9 gacha. Bu odamga qulay, chunki biz o'nlik sanoqda o'ylaymiz. Lekin g'ildirak og'ir, sekin aylanadi va yeyiladi.</p>
+<p>Elektr bilan ishlaydigan mashinada «holat» simdagi tok bo'ladi. Shu yerda asosiy to'siq chiqadi. Bitta simda o'n xil holatni farqlash uchun o'n xil kuchlanish darajasini aniq o'lchash kerak: 0 volt, 1 volt, 2 volt va hokazo. Haqiqiy simlar esa qiziydi, tebranadi, yonidagi simdan ta'sir oladi. 6 volt bilan 7 voltni adashtirish oson, va bitta adashish butun hisobni buzadi.</p>
+<p>Yechim sonni soddalashtirish bo'ldi: har bir simda faqat ikki holatni farqlaymiz. Tok bor yoki tok yo'q. Bularni adashtirish deyarli mumkin emas. Buning narxi: bitta sim endi juda kam narsa ayta oladi, shuning uchun simlar ko'p kerak bo'ladi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Sakkizta kalitdan bitta son</h3>
+<p>Tokni o'tkazadigan yoki to'sadigan narsa <strong>kalit</strong>. Bitta kalitning holati <strong>bit</strong> deyiladi: tok o'tsa 1, o'tmasa 0. Bitta bit faqat «ha» yoki «yo'q» deya oladi.</p>
+<p>Kalitlarni yonma-yon qo'ysak, ular birgalikda son hosil qiladi. Buning uchun har bir kalitga <strong>vazn</strong> beriladi: eng o'ngdagisi 1, undan chapdagisi 2, keyin 4, 8 va hokazo, har safar ikki baravar. Yoniq kalitlarning vaznlari qo'shiladi. Pastdagi chizmada kalitlarni bosib ko'ring.</p>
+
+<figure class="wide">
+  <div class="scrollx">
+    <svg class="dg" id="bitDg" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="group" aria-label="Sakkizta kalit bitta baytni hosil qiladi. Bayt son sifatida ham, harf sifatida ham o'qilishi mumkin"></svg>
+  </div>
+  <figcaption>Sakkizta kalitning holati bitta bayt. Xuddi shu holat o'ng tomonda ikki xil o'qilgan: son sifatida va harf sifatida. Kalitni bosib holatini o'zgartiring.</figcaption>
+  <div class="controls">
+    <button type="button" id="bitZero">Hammasini o'chirish</button>
+    <button type="button" id="bitOne">Hammasini yoqish</button>
+    <button type="button" id="bitPlus">1 qo'shish</button>
+  </div>
+  <p class="say" id="bitSay" aria-live="polite"></p>
+</figure>
+
+<p>Chizmadan uch narsani olib qoling.</p>
+<p><strong>Birinchisi.</strong> Sakkizta kalit bilan 0 dan 255 gacha bo'lgan sonlarni ko'rsatish mumkin: jami 256 xil holat. Shu sakkizlik <strong>bayt</strong> deyiladi va u xotiraning asosiy o'lchov birligi.</p>
+<p><strong>Ikkinchisi.</strong> «1 qo'shish» tugmasini bir necha marta bosing. Sanoq o'nlikdagidek ishlaydi, faqat har bir xona 9 ga emas, 1 ga yetganda to'ladi va keyingi xonaga o'tadi. 255 dan keyin 1 qo'shsangiz, hamma kalit o'chadi va son 0 ga qaytadi: to'qqizinchi kalit yo'q, ortig'i yo'qoladi.</p>
+<p><strong>Uchinchisi, eng muhimi.</strong> Kalitlarning o'zida «men sonman» yoki «men harfman» degan belgi yo'q. Bir xil holat o'ng tomonda ikki xil o'qilgan. Ma'noni kalitlarga ularni o'qigan beradi. Bu g'oya keyin ko'p marta qaytadi: bir xil baytlar son, harf, rasm nuqtasi yoki protsessor buyrug'i bo'lishi mumkin.</p>
+
+<p>Kalit qo'shilgan sari qiymatlar soni ikki baravar oshadi:</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Kalitlar (bitlar) soni</th><th class="numr">Nechta xil qiymat</th><th>Qayerda uchraydi</th></tr></thead>
+  <tbody>
+    <tr><td class="num">1</td><td class="numr">2</td><td>ha yoki yo'q</td></tr>
+    <tr><td class="num">8</td><td class="numr">256</td><td>bir bayt, Java'da <span class="num">byte</span></td></tr>
+    <tr><td class="num">16</td><td class="numr">65 536</td><td>Java'da <span class="num">short</span> va <span class="num">char</span></td></tr>
+    <tr><td class="num">32</td><td class="numr">4 294 967 296</td><td>Java'da <span class="num">int</span></td></tr>
+    <tr><td class="num">64</td><td class="numr">18 446 744 073 709 551 616</td><td>Java'da <span class="num">long</span></td></tr>
+  </tbody>
+</table>
+</div>
+<p>Qoida: n ta bit 2 ning n-darajasicha qiymat beradi. Bitta bit qo'shish imkoniyatlarni ikki baravar qiladi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Kalitning o'zi besh marta almashgan</h3>
+<p>Ikki holatli kalit g'oyasi 1940-yillardan beri o'zgarmagan. O'zgargani kalitning nimadan yasalgani. Har safar oldingi kalitning aniq bir kamchiligi keyingisini tug'dirgan. Tartib bilan bosib chiqing va har bosqichda «og'rig'i» qatoriga qarang: keyingi bosqich aynan unga javob.</p>
+<div class="bench" id="evoSwitch"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Kalit</dt>
+  <dd>Tokni o'tkazadigan yoki to'sadigan qurilma. Kompyuterda uni qo'l emas, boshqa tok boshqaradi, shuning uchun kalitlar bir-birini yoqib-o'chira oladi.</dd>
+  <dt>Tranzistor</dt>
+  <dd>Bugungi kompyuterlardagi kalit. Yarimo'tkazgichdan yasalgan, ko'zga ko'rinmas darajada kichik. Bitta protsessorda ular milliardlab.</dd>
+  <dt>Bit</dt>
+  <dd>Bitta kalitning holati: 0 yoki 1. Ma'lumotning eng kichik bo'lagi. So'z inglizcha «binary digit», ya'ni «ikkilik raqam» dan qisqartirilgan.</dd>
+  <dt>Bayt</dt>
+  <dd>Yonma-yon turgan 8 ta bit. 256 xil qiymat saqlaydi.</dd>
+  <dt>Ikkilik sanoq tizimi</dt>
+  <dd>Sonni faqat 0 va 1 bilan yozish usuli. O'nlik tizimda xonalar vazni 1, 10, 100, ikkilikda 1, 2, 4, 8.</dd>
+  <dt>Vazn (xona qiymati)</dt>
+  <dd>Raqam turgan o'rinning qiymati. O'nlik 305 sonida 3 ning vazni 100. Ikkilik 101 sonida chapdagi 1 ning vazni 4.</dd>
+  <dt>Kilobayt, megabayt, gigabayt</dt>
+  <dd>Baytning karralari. Aniq hajmi haqida pastdagi «Amaliyotda» bo'limiga qarang.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Bu bilim ishda qayerda kerak bo'ladi</h3>
+
+<div class="rule">
+  <b>Qoida: tur tanlaganda uning eng katta qiymatini biling</b>
+  <p>Java'da <span class="num">int</span> 32 bit. Yarmi manfiy sonlarga ketadi (nega shunday, 2-darsda), shuning uchun eng katta qiymati 2 147 483 647, ya'ni ikki milliarddan sal ortiq. Undan oshsa, Java xato bermaydi: son jimgina manfiy tomonga aylanib ketadi. Chizmadagi 255 dan 0 ga qaytishning o'zi, faqat 32 kalitda.</p>
+  <p class="why">Sababi: to'lov tizimlarida summa ko'pincha tiyinda saqlanadi. 30 million so'm bu 3 milliard tiyin, va u <span class="num">int</span> ga sig'maydi. Pul, identifikator va hisoblagichlar uchun <span class="num">long</span> ishlatiladi: uning chegarasi to'qqiz kvintilliondan ortiq.</p>
+</div>
+
+<div class="rule">
+  <b>Haqiqiy voqealar</b>
+  <p>2014-yilda YouTube'dagi bitta videoning ko'rishlar soni 2 147 483 647 dan oshib ketdi. Hisoblagich 32 bitli edi, va kompaniya uni 64 bitga o'tkazishga majbur bo'ldi.</p>
+  <p>2015-yilda Boeing 787 samolyotlarida xato topildi: generator boshqaruv bloki 248 kun to'xtovsiz ishlasa, ichidagi 32 bitli vaqt hisoblagichi to'lib, blok o'chib qolishi mumkin edi. Yechim topilguncha ularni vaqti-vaqti bilan o'chirib yoqish buyurilgan.</p>
+  <p class="why">Ikkalasida ham kod to'g'ri edi. Xato tur tanlangan kuni, «bu son hech qachon bunchalik katta bo'lmaydi» degan taxminda qilingan.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: «gigabayt» ikki xil ma'noda ishlatiladi</b>
+  <p>Kompyuter uchun qulay karra 1024, chunki u 2 ning 10-darajasi: 1 kilobayt 1024 bayt, 1 megabayt 1024 kilobayt. Disk ishlab chiqaruvchilar esa 1000 ga ko'paytirishadi. Shuning uchun «500 GB» deb sotilgan diskni kompyuter 465 GB deb ko'rsatadi: baytlar soni bir xil, bo'luvchi boshqa.</p>
+  <p class="why">Sababi: JVM xotirasini sozlashda <span class="num">-Xmx2g</span> aynan 2 × 1024 × 1024 × 1024 bayt degani. Bulut xizmatlarida esa ba'zan 1000 lik, ba'zan 1024 lik birlik ishlatiladi, va chegaraga yaqin sozlamalarda bu farq servisni yiqitishi mumkin.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> 13 va 200 sonlarini qog'ozda ikkilik ko'rinishda yozing. Usul: eng katta sig'adigan vaznni oling, ayiring, qolganiga takrorlang. Keyin chizmada kalitlarni shunday qo'yib tekshiring.</li>
+  <li><strong>Chizmada.</strong> Kalitlarni shunday qo'yingki, harf sifatida «S» chiqsin. Keyin faqat bitta kalitni o'zgartirib, kichik «s» ni hosil qiling. Qaysi kalit o'zgardi va uning vazni nechchi?</li>
+  <li><strong>Kodda.</strong> Java yoki Kotlin'da bajaring va natijani tushuntiring:
+    <pre class="code" style="margin-top:0.5rem">System.out.println(Integer.toBinaryString(13));
+System.out.println(Integer.MAX_VALUE);
+System.out.println(Integer.MAX_VALUE + 1);</pre>
+  </li>
+  <li><strong>O'z ishingizda.</strong> O'zingiz ishlaydigan loyihada pul summasi qaysi turda saqlanishini toping: Java kodida va bazadagi ustunda. Shu tur eng ko'pi bilan qancha summani sig'dira oladi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga o'z so'zingiz bilan yozing. Qisqa bo'lsa ham mayli, muhimi o'zingizniki bo'lsin.</p>
+<ol class="check">
+  <li>Nega kompyuter o'nlik emas, ikkilik sanoqdan foydalanadi? «Chunki shunday» emas, jismoniy sababini ayting.</li>
+  <li>10 ta kalit bilan nechta xil qiymat ko'rsatish mumkin va ulardan eng kattasi nechchi?</li>
+  <li>Elektron lampa reledan nimasi bilan yaxshi edi, va uning qaysi kamchiligi tranzistorni tug'dirdi?</li>
+  <li>Xotirada <span class="num">01000001</span> turibdi. Bu nima?</li>
+  <li>Hamkasbingiz tranzaksiyalar sonini <span class="num">int</span> da sanayapti va «ikki milliard yetarli» deyapti. Unga nima deysiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Nega bayt aynan 8 bit?</summary>
+  <p>Bu tabiat qonuni emas, kelishuv. Ilk kompyuterlarda 6 bitli, 7 bitli va boshqa o'lchamlar ham bo'lgan. 1964-yilda IBM System/360 kompyuterlari 8 bitni tanladi: 256 ta qiymat katta-kichik harflar, raqamlar va belgilarni sig'dirishga yetardi, va 8 ikkining darajasi bo'lgani uchun qulay edi. Bu mashinalar juda keng tarqalgani uchun 8 bit hamma uchun standart bo'lib qoldi.</p>
+</details>
+<details>
+  <summary>Kalitlardan hisoblash qanday chiqadi?</summary>
+  <p>Kalitlar bir-birini boshqara olgani uchun ularni shunday ulash mumkinki, chiqishdagi tok kirishdagi toklarga bog'liq bo'ladi. Ikki kalitni ketma-ket ulasangiz, tok faqat ikkalasi ham yoniq bo'lganda o'tadi: bu «VA» amali. Yonma-yon ulasangiz, bittasi yoniq bo'lsa yetadi: bu «YOKI». Shunday bir necha oddiy sxemadan ikki bitni qo'shadigan qurilma yig'iladi, ulardan sakkiztasini zanjir qilib ulasangiz, ikki baytni qo'shadigan qurilma chiqadi. Protsessor shunday sxemalarning juda katta to'plami. Buni 4-darsda ko'ramiz.</p>
+</details>
+<details>
+  <summary>Ikkilikdan boshqa yo'l sinab ko'rilganmi?</summary>
+  <p>Ha. 1958-yilda Moskva davlat universitetida «Setun» nomli kompyuter qurilgan, u uch holatli elementlarda ishlagan: manfiy, nol va musbat. Nazariy jihatdan uchlik tizim tejamliroq, va mashina ishlagan. Lekin ikki holatli elementlarni ishlab chiqarish ancha oson va arzon bo'lgani uchun butun sanoat ikkilikda qoldi.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>Claude Shannon, «A Symbolic Analysis of Relay and Switching Circuits», 1937: kalitlar bilan mantiq qurish mumkinligini ko'rsatgan ish. «Bit» so'zi ilk bor uning 1948-yildagi «A Mathematical Theory of Communication» maqolasida bosilgan, Shannon uni John Tukey taklif qilganini yozgan. Tranzistor haqida: Bell Labs, 1947, Bardeen, Brattain va Shockley, 1956-yilgi fizika bo'yicha Nobel mukofoti.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Kompyuter ikki holatli kalitlardan iborat, chunki ikki holatni adashtirib bo'lmaydi. Bitta kalit holati bit, sakkiztasi bayt. n ta bit 2 ning n-darajasicha qiymat beradi. Bitlarning ma'nosi ularni kim qanday o'qishiga bog'liq.</p>
+  <p><strong>Keyingi dars.</strong> Sonlar va matn bitlarda: manfiy son qanday saqlanadi, nega 0.1 + 0.2 aniq 0.3 emas, va harflar qanday baytga aylanadi.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><span class="dim">Bu birinchi dars</span><span class="dim">Keyingi: 2. Sonlar va matn bitlarda (navbatda)</span></nav>
+</main>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+/*BIT*/
+  var W = [128, 64, 32, 16, 8, 4, 2, 1];
+  function total(bits) { var t = 0; bits.forEach(function (b, i) { if (b) t += W[i]; }); return t; }
+  function sumText(bits) { var p = []; bits.forEach(function (b, i) { if (b) p.push(W[i]); }); var t = total(bits); return p.length > 1 ? p.join(' + ') + ' = ' + t : String(t); }
+  function charText(n) { if (n >= 33 && n <= 126) return String.fromCharCode(n); if (n === 32) return 'bo\'sh joy'; return null; }
+  function fromNum(n) { return W.map(function (w) { if (n >= w) { n -= w; return 1; } return 0; }); }
+/*ENDBIT*/
+  if (typeof document === 'undefined') return;
+  var NS = 'http://www.w3.org/2000/svg', svg = document.getElementById('bitDg');
+  var bits = fromNum(69);
+  function S(tag, attrs, text, parent) { var e = document.createElementNS(NS, tag), a; for (a in attrs) e.setAttribute(a, attrs[a]); if (text !== undefined && text !== null) e.textContent = text; (parent || svg).appendChild(e); return e; }
+  function say(t) { document.getElementById('bitSay').textContent = t; }
+  function toggle(i) { bits[i] = bits[i] ? 0 : 1; say('Vazni ' + W[i] + ' bo\'lgan kalit ' + (bits[i] ? 'yoqildi: yig\'indiga ' + W[i] + ' qo\'shildi.' : 'o\'chirildi: yig\'indidan ' + W[i] + ' ayirildi.')); draw(); }
+  function draw(focusIdx) {
+    svg.textContent = '';
+    var defs = S('defs', {}), m = S('marker', { id: 'bmk', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto' }, null, defs);
+    S('path', { d: 'M0 0L10 5L0 10z', 'class': 'mk' }, null, m);
+    // guruh
+    S('rect', { x: 20, y: 40, width: 800, height: 320, rx: 4, 'class': 'grp' });
+    S('rect', { x: 20, y: 40, width: 250, height: 24, 'class': 'tab' });
+    S('text', { x: 30, y: 57, 'class': 'tabt' }, 'Bayt: yonma-yon 8 ta kalit');
+    var nodes = [];
+    bits.forEach(function (b, i) {
+      var x = 44 + i * 96, g = S('g', { role: 'switch', tabindex: '0', 'aria-checked': b ? 'true' : 'false', 'aria-label': 'Vazni ' + W[i] + ' bo\'lgan kalit' });
+      S('rect', { x: x, y: 84, width: 84, height: 200, rx: 5, 'class': 'box' + (b ? ' live' : '') }, null, g);
+      S('text', { x: x + 42, y: 108, 'text-anchor': 'middle', 'class': 'sub' }, 'vazni', g);
+      S('text', { x: x + 42, y: 130, 'text-anchor': 'middle', 'class': 'val' }, String(W[i]), g);
+      // kalit rasmi
+      S('circle', { cx: x + 22, cy: 172, r: 4, 'class': 'mk' }, null, g);
+      S('circle', { cx: x + 62, cy: 172, r: 4, 'class': 'mk' }, null, g);
+      S('line', { x1: x + 22, y1: 172, x2: b ? x + 62 : x + 56, y2: b ? 172 : 150, 'class': 'arr' }, null, g);
+      S('text', { x: x + 42, y: 232, 'text-anchor': 'middle', 'class': 'big' }, String(b), g);
+      S('text', { x: x + 42, y: 266, 'text-anchor': 'middle', 'class': 'sub' }, b ? 'tok bor' : 'tok yo\'q', g);
+      g.addEventListener('click', function () { toggle(i); nodes[i] && draw(i); });
+      g.addEventListener('keydown', function (ev) { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(i); draw(i); } });
+      nodes.push(g);
+    });
+    S('text', { x: 44, y: 326, 'class': 'sub' }, 'Kalitlar holati:');
+    S('text', { x: 160, y: 327, 'class': 'val' }, bits.join(''));
+    // o'qishlar
+    var n = total(bits), ch = charText(n);
+    function reader(y, title, sub, value) {
+      S('rect', { x: 920, y: y, width: 300, height: 130, rx: 5, 'class': 'box on' });
+      S('text', { x: 936, y: y + 28, 'class': 'ttl' }, title);
+      S('text', { x: 936, y: y + 48, 'class': 'sub' }, sub);
+      S('text', { x: 936, y: y + 96, 'class': value.length > 22 ? 'mono' : 'val' }, value);
+    }
+    reader(60, 'Son sifatida o\'qilsa', 'Yoniq kalitlar vaznlari qo\'shiladi', sumText(bits));
+    reader(220, 'Harf sifatida o\'qilsa', 'ASCII jadvalidan shu son qidiriladi', ch === null ? 'ko\'rinadigan harf yo\'q' : ch);
+    [[125, 'vaznlar yig\'indisi'], [285, 'jadvaldan qidirish']].forEach(function (a) {
+      S('line', { x1: 820, y1: a[0], x2: 918, y2: a[0], 'class': 'arr', 'marker-end': 'url(#bmk)' });
+      S('text', { x: 869, y: a[0] - 22, 'text-anchor': 'middle', 'class': 'lbl' }, a[1].split(' ')[0]);
+      S('text', { x: 869, y: a[0] - 8, 'text-anchor': 'middle', 'class': 'lbl' }, a[1].split(' ')[1]);
+    });
+    if (focusIdx !== undefined && nodes[focusIdx]) nodes[focusIdx].focus();
+  }
+  document.getElementById('bitZero').addEventListener('click', function () { bits = fromNum(0); say('Hamma kalit o\'chiq: son 0.'); draw(); });
+  document.getElementById('bitOne').addEventListener('click', function () { bits = fromNum(255); say('Hamma kalit yoniq: 8 ta kalit ko\'rsata oladigan eng katta son, 255.'); draw(); });
+  document.getElementById('bitPlus').addEventListener('click', function () {
+    var n = total(bits);
+    if (n === 255) { bits = fromNum(0); say('255 ga 1 qo\'shildi. Natija 256 bo\'lishi kerak edi, lekin uning uchun to\'qqizinchi kalit kerak. U yo\'q, shuning uchun ortig\'i yo\'qoldi va son 0 ga qaytdi. Bu to\'lib ketish (overflow) deyiladi.'); }
+    else { bits = fromNum(n + 1); say(n + ' ga 1 qo\'shildi: ' + (n + 1) + '. O\'ngdan boshlab qaysi kalitlar o\'zgarganiga qarang.'); }
+    draw();
+  });
+  say('Hozir kalitlar 69 sonini ko\'rsatyapti. Xuddi shu holat harf sifatida o\'qilsa, «E» chiqadi.');
+  draw();
+})();
+</script>
+<script>
+(function () {
+  window.evoStepper('evoSwitch', [
+    {
+      name: `Rele`,
+      years: `1930–1940-yillar`,
+      art: `<rect x="25" y="58" width="34" height="28" rx="3"/><path d="M31 65h22M31 72h22M31 79h22"/><path d="M14 40 L94 32"/><circle cx="14" cy="40" r="3"/><circle cx="100" cy="42" r="5" class="lit"/><path d="M100 47v40M42 58V44"/>`,
+      how: `Elektromagnitga tok kelsa, u temir tilchani o'ziga tortadi, tilcha kontaktga tegib zanjirni ulaydi. Tok ketsa, prujina tilchani joyiga qaytaradi. Ya'ni kalit haqiqatan ham jismonan qimirlaydi.`,
+      better: `Undan oldingi hisoblash mashinalari tishli g'ildiraklarda ishlagan. Rele kalitni birinchi marta tok bilan boshqarish imkonini berdi: bir kalit boshqasini yoqa oladi, demak kalitlardan mantiq qurish mumkin.`,
+      pain: `Qimirlaydigan qism sekin: bitta ulanish soniyaning mingdan bir necha ulushini oladi. Kontaktlar yeyiladi va kirlanadi. Harvard Mark I ikki sonni ko'paytirishga taxminan 6 soniya sarflagan.`,
+      ex: `Zuse Z3 (1941, Germaniya, 2000 dan ortiq rele), Harvard Mark I (1944, AQSH). 1947-yilda Harvard Mark II relesiga kuya tiqilib qolgan va uni jurnalga yopishtirib qo'yishgan. «Bug» so'zi undan oldin ham ishlatilgan, lekin uni shu voqea mashhur qilgan.`
+    },
+    {
+      name: `Elektron lampa`,
+      years: `1940–1950-yillar`,
+      art: `<path d="M40 82V40a20 20 0 0 1 40 0v42z"/><path d="M48 82v12M60 82v12M72 82v12"/><path d="M50 60h20" class="acc" stroke-dasharray="3 4"/><path d="M48 72h24" class="lit"/><path d="M50 46h20"/>`,
+      how: `Havosi so'rib olingan shisha kolba ichida qizdirilgan sim elektron chiqaradi. O'rtadagi to'rga berilgan kichik kuchlanish bu oqimni o'tkazadi yoki to'sadi. Hech narsa qimirlamaydi, faqat elektronlar uchadi.`,
+      better: `Qimirlaydigan qism yo'qligi uchun reledan taxminan ming marta tez. ENIAC soniyasiga 5000 ga yaqin qo'shish bajargan.`,
+      pain: `Lampa cho'g'lanma lampochka kabi qiziydi va kuyadi. ENIAC'da 17 mingdan ortiq lampa bor edi, u 150 kilovatt atrofida quvvat olib, katta zalni egallagan. Lampalar tez-tez kuyardi va har safar aynan qaysi biri ekanini qidirib topish kerak edi.`,
+      ex: `Colossus (1943–1944, Britaniya), ENIAC (1945, AQSH).`
+    },
+    {
+      name: `Tranzistor`,
+      years: `1947-yilda ixtiro qilingan, kompyuterlarda 1950-yillar oxiridan`,
+      art: `<path d="M42 50a18 18 0 0 1 36 0v12H42z" class="lit"/><path d="M48 62v30M60 62v30M72 62v30"/>`,
+      how: `Kremniy yoki germaniy kabi yarimo'tkazgichdan yasalgan mitti bo'lakcha. Uning o'rta qismiga kichik kuchlanish berilsa, tok o'tadi, berilmasa o'tmaydi. Vakuum ham, qizdirish ham kerak emas: hammasi qattiq jismning ichida sodir bo'ladi.`,
+      better: `Lampadan o'nlab marta kichik, deyarli qizimaydi, juda kam quvvat oladi va yillab buzilmay ishlaydi. Uni Bell Labs'da Bardeen, Brattain va Shockley yaratgan.`,
+      pain: `Har bir tranzistor alohida detal. Ularni platalarga qo'lda kavsharlab, simlar bilan ulash kerak. Minglab tranzistor o'n minglab ulanish degani, bitta yomon kavshar esa butun mashinani ishdan chiqaradi.`,
+      ex: `IBM 7090 (1959).`
+    },
+    {
+      name: `Integral sxema`,
+      years: `1958–1959-yillardan`,
+      art: `<rect x="28" y="36" width="64" height="28" rx="3"/><path d="M38 36V24M50 36V24M62 36V24M74 36V24M86 36V24M38 64v12M50 64v12M62 64v12M74 64v12M86 64v12"/><circle cx="37" cy="44" r="2.5" class="lit"/>`,
+      how: `Bitta kremniy plastinkaning o'zida bir nechta tranzistor va ularni ulovchi yo'lakchalar birga yasaladi. Sxema plastinkaga fotosurat chiqarishga o'xshash usulda tushiriladi.`,
+      better: `Qo'lda kavsharlash yo'qoladi: ulanishlar zavodda, bir yo'la va ishonchli tayyorlanadi. Bitta mikrosxemada avval o'nlab, keyin minglab tranzistor joylashdi.`,
+      pain: `Protsessor hali ham ko'plab mikrosxemalardan yig'ilgan bir nechta plata edi. Kompyuter shkaf o'lchamida va faqat tashkilotlarning cho'ntagi ko'taradigan narxda.`,
+      ex: `Jack Kilby (Texas Instruments) va Robert Noyce (Fairchild) uni deyarli bir vaqtda, mustaqil ravishda yaratgan. Apollo kemasining bort kompyuteri integral sxemalarda qurilgan.`
+    },
+    {
+      name: `Mikroprotsessor`,
+      years: `1971-yildan hozirgacha`,
+      art: `<rect x="30" y="20" width="60" height="60" rx="3"/><rect x="46" y="36" width="28" height="28" class="lit"/><path d="M42 20V10M54 20V10M66 20V10M78 20V10M42 80v10M54 80v10M66 80v10M78 80v10M30 32H20M30 44H20M30 56H20M30 68H20M90 32h10M90 44h10M90 56h10M90 68h10"/>`,
+      how: `Butun protsessor bitta mikrosxemaga sig'dirildi. Kalit hamon tranzistor, faqat u shu qadar kichrayganki, endi ko'z bilan emas, oddiy mikroskop bilan ham ko'rib bo'lmaydi.`,
+      better: `Kompyuter arzonlashib avval stolga, keyin cho'ntakka sig'di. Intel 4004 (1971) da 2300 ta tranzistor bo'lgan, bugungi telefon protsessorida o'n milliarddan ortiq.`,
+      pain: `Tranzistorni cheksiz kichraytirib va tezlatib bo'lmaydi: u qizib ketadi. Shu sababli 2000-yillar o'rtasidan boshlab bitta yadroni tezlatish o'rniga yadrolar soni oshirila boshladi. Bu «Ko'p oqimlilik» zanjirining boshlanish nuqtasi. Ikkinchi og'riq endi temirda emas, odamda: shuncha quvvatli mashinaga sonlar bilan dastur yozib ulgurib bo'lmaydi.`,
+      ex: `Intel 4004 (1971), Intel 8086 (1978, x86 oilasining boshi), ARM (1985, bugungi telefonlar protsessorlarining boshi).`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
