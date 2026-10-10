@@ -346,3 +346,29 @@ main { padding-left: 2rem; padding-right: 2rem; }
 @media (max-width: 640px) { main { padding-left: 1rem; padding-right: 1rem; } }
 .wide { position: static; left: auto; transform: none; width: 100%; }
 .dg { margin: 0 auto; }
+
+/* Sxemalar */
+.fig { margin: 1.5rem 0 2rem; }
+.fig .scrollx { overflow-x: auto; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; }
+.fig figcaption { font-size: 0.9375rem; color: var(--muted); margin-top: 0.5rem; }
+.dg .tick { font-family: var(--mono); font-size: 13px; }
+.dg .band { fill: var(--bg); stroke: var(--line); }
+.dg .band.hit { fill: var(--lamp-soft); stroke: var(--lamp); stroke-width: 2; }
+.dg .band.miss { fill: none; stroke: var(--bad); stroke-width: 2.5; stroke-dasharray: 6 4; }
+.dg .dot { fill: var(--muted); opacity: 0.45; }
+.dg .dot.cur { fill: var(--ink); opacity: 1; }
+.dg .sent { fill: var(--accent); }
+.dg .wheel { fill: var(--bg); stroke: var(--ink); stroke-width: 2; }
+.dg .tooth { stroke: var(--ink); stroke-width: 6; stroke-linecap: round; }
+.dg .rot { transition: transform 0.45s ease; transform-box: view-box; }
+@media (prefers-reduced-motion: reduce) { .dg .rot { transition: none; } }
+.dg .box.bad { fill: var(--bg); stroke: var(--bad); stroke-width: 2.5; }
+.dg .wire { stroke: var(--line); stroke-width: 6; stroke-linecap: round; }
+.dg .wire.on { stroke: var(--lamp); }
+.slider { display: flex; flex-wrap: wrap; align-items: center; gap: 0.8rem; margin: 1rem 0 0.6rem; }
+.slider input[type=range] { width: min(22rem, 100%); accent-color: var(--accent); }
+.slider .v { font-family: var(--mono); font-weight: 600; min-width: 5rem; }
+.beat { font-size: 1.125rem; font-weight: 600; margin: 2.2rem 0 0.4rem; }
+.dg .ring { fill: none; stroke: var(--line); stroke-width: 14; }
+.dg .ruler { stroke: var(--ink); stroke-width: 1.5; }
+.dg .bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }

@@ -37,10 +37,50 @@
 </div>
 
 <h3><span class="part">1. Og'riq</span>Mashina sonni qanday eslab qolsin</h3>
-<p>Hisoblaydigan mashina yasamoqchi bo'lsangiz, birinchi masala hisoblash emas, eslab qolish. Sonni biror jismoniy narsaning holati sifatida saqlash kerak: narsa bir holatda tursa bir son, boshqa holatda tursa boshqa son.</p>
-<p>Elektron kompyuterlardan oldingi mashinalar buni tishli g'ildiraklar bilan qilgan. Har bir g'ildirak o'n holatda tura olardi: 0 dan 9 gacha. Bu odamga qulay, chunki biz o'nlik sanoqda o'ylaymiz. Lekin g'ildirak og'ir, sekin aylanadi va yeyiladi.</p>
-<p>Elektr bilan ishlaydigan mashinada «holat» simdagi tok bo'ladi. Shu yerda asosiy to'siq chiqadi. Bitta simda o'n xil holatni farqlash uchun o'n xil kuchlanish darajasini aniq o'lchash kerak: 0 volt, 1 volt, 2 volt va hokazo. Haqiqiy simlar esa qiziydi, tebranadi, yonidagi simdan ta'sir oladi. 6 volt bilan 7 voltni adashtirish oson, va bitta adashish butun hisobni buzadi.</p>
-<p>Yechim sonni soddalashtirish bo'ldi: har bir simda faqat ikki holatni farqlaymiz. Tok bor yoki tok yo'q. Bularni adashtirish deyarli mumkin emas. Buning narxi: bitta sim endi juda kam narsa ayta oladi, shuning uchun simlar ko'p kerak bo'ladi.</p>
+<p>Hisoblaydigan mashina yasashda birinchi masala hisoblash emas, eslab qolish. Sonni biror jismoniy narsaning holati sifatida saqlash kerak: narsa bir holatda tursa bir son, boshqa holatda tursa boshqa son.</p>
+
+<p class="beat">Birinchi urinish: tishli g'ildirak</p>
+<p>Elektron kompyuterlardan oldingi mashinalarda son g'ildirakning burilish holati edi. Har bir g'ildirak o'n holatda tura oladi. «1 qo'shish» tugmasini bir necha marta bosing va 9 dan keyin nima bo'lishiga qarang.</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="wh" style="width:1000px;height:330px" viewBox="0 0 1000 330" role="img" aria-label="Ikki tishli g'ildirak: birlar g'ildiragi to'liq aylanganda o'nlar g'ildiragini bir tishga suradi"></svg>
+  </div>
+  <figcaption>Har bir g'ildirak bitta o'nlik raqamni saqlaydi. Tepadagi uchburchak hozirgi raqamni ko'rsatadi.</figcaption>
+  <div class="controls">
+    <button class="primary" type="button" id="whPlus">1 qo'shish</button>
+    <button type="button" id="whZero">Nolga qaytarish</button>
+  </div>
+  <p class="say" id="whSay" aria-live="polite"></p>
+</figure>
+<p>Bu odamga qulay, chunki biz o'nlik sanoqda o'ylaymiz. Lekin g'ildirak jismonan aylanadi: og'ir, sekin, tishlari yeyiladi. Soniyasiga bir necha amaldan tez ishlay olmaydi.</p>
+
+<p class="beat">Ikkinchi urinish: g'ildirak o'rniga simdagi tok</p>
+<p>Elektr mashinada «holat» simdagi kuchlanish bo'ladi. O'n holatni saqlamoqchi bo'lsak, o'n xil kuchlanish kerak: 0 volt nolni, 1 volt birni, 6 volt oltini bildiradi. Muammo shundaki, haqiqiy sim hech qachon aniq 6 volt bermaydi: u qiziydi, tebranadi, yonidagi simdan ta'sir oladi. Bu <strong>shovqin</strong> deyiladi.</p>
+<p>Pastdagi chizmada ikkala usul bir xil shovqin ostida turibdi. Shovqinni oshiring va ikkala qabul qiluvchiga qarang.</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="nz" style="width:1270px;height:500px" viewBox="0 0 1270 500" role="img" aria-label="Bir xil shovqin ostida o'n darajali sim sonni noto'g'ri o'qiydi, ikki darajali sim esa to'g'ri o'qiydi"></svg>
+  </div>
+  <figcaption>Yuqorida: bitta simda o'n daraja. Pastda: bitta simda ikki daraja. Shovqin ikkalasida bir xil. Nuqtalar ketma-ket 20 ta o'lchov, qora nuqta oxirgisi.</figcaption>
+  <div class="slider">
+    <label for="nzAmp">Shovqin kuchi:</label>
+    <input type="range" id="nzAmp" min="0" max="2" step="0.1" value="0.3">
+    <span class="v" id="nzVal"></span>
+    <button type="button" id="nzNew">Yangi o'lchovlar</button>
+  </div>
+  <p class="say" id="nzSay" aria-live="polite"></p>
+</figure>
+<p>O'n darajali simda har bir raqamga atigi bir voltlik yo'lak tegadi. Shovqin yarim voltdan oshishi bilan 6 o'rniga 5 yoki 7 o'qiladi, va bitta noto'g'ri raqam butun hisobni buzadi. Ikki darajali simda esa yo'lak juda keng: «tok yo'q» va «tok bor» orasida adashish uchun shovqin bir necha volt bo'lishi kerak.</p>
+
+<p class="beat">Yechimning narxi: simlar ko'payadi</p>
+<p>Ikki darajali sim ishonchli, lekin u juda kam narsa ayta oladi: faqat 0 yoki 1. Bitta o'nlik raqamni saqlash uchun endi bitta emas, to'rtta sim kerak.</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="cost" style="width:1000px;height:300px" viewBox="0 0 1000 300" role="img" aria-label="6 sonini saqlash: o'n darajali usulda bitta sim, ikki darajali usulda to'rtta sim"></svg>
+  </div>
+  <figcaption>Xuddi shu 6 soni ikki usulda. Chapda bitta sim va nozik o'lchov. O'ngda to'rtta sim, har biri faqat «bor» yoki «yo'q».</figcaption>
+</figure>
+<p>Muhandislar shu savdoni tanlashdi: ko'p, lekin sodda va ishonchli qismlar. To'rtta sim qanday qilib 6 ni bildirishi keyingi bo'limning mavzusi.</p>
 
 <h3><span class="part">2. Ichkarida</span>Sakkizta kalitdan bitta son</h3>
 <p>Tokni o'tkazadigan yoki to'sadigan narsa <strong>kalit</strong>. Bitta kalitning holati <strong>bit</strong> deyiladi: tok o'tsa 1, o'tmasa 0. Bitta bit faqat «ha» yoki «yo'q» deya oladi.</p>
@@ -108,6 +148,18 @@
   <p>Java'da <span class="num">int</span> 32 bit. Yarmi manfiy sonlarga ketadi (nega shunday, 2-darsda), shuning uchun eng katta qiymati 2 147 483 647, ya'ni ikki milliarddan sal ortiq. Undan oshsa, Java xato bermaydi: son jimgina manfiy tomonga aylanib ketadi. Chizmadagi 255 dan 0 ga qaytishning o'zi, faqat 32 kalitda.</p>
   <p class="why">Sababi: to'lov tizimlarida summa ko'pincha tiyinda saqlanadi. 30 million so'm bu 3 milliard tiyin, va u <span class="num">int</span> ga sig'maydi. Pul, identifikator va hisoblagichlar uchun <span class="num">long</span> ishlatiladi: uning chegarasi to'qqiz kvintilliondan ortiq.</p>
 </div>
+<p>Buni o'zingiz ko'ring. Pastda bitta hisob ikki xil turda yuritilyapti. To'lovlarni qo'shib boring.</p>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="ov" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Bir xil summa int va long turida: int ikki milliarddan oshganda manfiy songa aylanadi, long esa to'g'ri saqlaydi"></svg>
+  </div>
+  <figcaption>Har bir to'lov tiyinga aylantirilib, ikkala o'zgaruvchiga bir xil qo'shiladi. Farq faqat ularning hajmida: 32 bit va 64 bit.</figcaption>
+  <div class="controls">
+    <button class="primary" type="button" id="ovAdd">10 million so'm qo'shish</button>
+    <button type="button" id="ovZero">Nolga qaytarish</button>
+  </div>
+  <p class="say" id="ovSay" aria-live="polite"></p>
+</figure>
 
 <div class="rule">
   <b>Haqiqiy voqealar</b>
@@ -121,6 +173,12 @@
   <p>Kompyuter uchun qulay karra 1024, chunki u 2 ning 10-darajasi: 1 kilobayt 1024 bayt, 1 megabayt 1024 kilobayt. Disk ishlab chiqaruvchilar esa 1000 ga ko'paytirishadi. Shuning uchun «500 GB» deb sotilgan diskni kompyuter 465 GB deb ko'rsatadi: baytlar soni bir xil, bo'luvchi boshqa.</p>
   <p class="why">Sababi: JVM xotirasini sozlashda <span class="num">-Xmx2g</span> aynan 2 × 1024 × 1024 × 1024 bayt degani. Bulut xizmatlarida esa ba'zan 1000 lik, ba'zan 1024 lik birlik ishlatiladi, va chegaraga yaqin sozlamalarda bu farq servisni yiqitishi mumkin.</p>
 </div>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="gb" style="width:1240px;height:270px" viewBox="0 0 1240 270" role="img" aria-label="Bir xil baytlar soni 1000 lik birlikda 500 GB, 1024 lik birlikda 465,7 GB bo'lib o'lchanadi"></svg>
+  </div>
+  <figcaption>Disk bitta, baytlar soni bitta. Ikki chizg'ich uni ikki xil o'lchaydi, chunki ularning «bir gigabayt»i har xil uzunlikda.</figcaption>
+</figure>
 
 <h3><span class="part">6. Mashq</span></h3>
 <ol class="task">
@@ -169,6 +227,169 @@ System.out.println(Integer.MAX_VALUE + 1);</pre>
 
 <nav class="pager" aria-label="Darslar orasida"><span class="dim">Bu birinchi dars</span><span class="dim">Keyingi: 2. Sonlar va matn bitlarda (navbatda)</span></nav>
 </main>
+<script src="../assets/diagram.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  // ---------- 1. G'ildiraklar ----------
+  (function () {
+    var svg = document.getElementById('wh'), n = 0, rot = [null, null];
+    marker(svg, 'whmk');
+    group(svg, 20, 30, 620, 280, 'Mexanik hisoblagich: har xonaga bitta g\'ildirak');
+    function wheel(cx, cy, label, idx) {
+      S(svg, 'text', { x: cx, y: 82, 'text-anchor': 'middle', 'class': 'ttl' }, label);
+      S(svg, 'path', { d: 'M' + (cx - 9) + ' 92h18l-9 14z', 'class': 'sent' });
+      var g = S(svg, 'g', { 'class': 'rot' }); g.style.transformOrigin = cx + 'px ' + cy + 'px';
+      for (var i = 0; i < 10; i++) { var a = (i * 36 - 90) * Math.PI / 180; S(svg, 'line', { x1: cx + 78 * Math.cos(a), y1: cy + 78 * Math.sin(a), x2: cx + 88 * Math.cos(a), y2: cy + 88 * Math.sin(a), 'class': 'tooth' }, null, g); }
+      S(svg, 'circle', { cx: cx, cy: cy, r: 78, 'class': 'wheel' }, null, g);
+      for (i = 0; i < 10; i++) { a = (i * 36 - 90) * Math.PI / 180; S(svg, 'text', { x: cx + 58 * Math.cos(a), y: cy + 58 * Math.sin(a) + 6, 'text-anchor': 'middle', 'class': 'val', transform: 'rotate(' + (i * 36) + ' ' + (cx + 58 * Math.cos(a)) + ' ' + (cy + 58 * Math.sin(a)) + ')' }, String(i), g); }
+      S(svg, 'circle', { cx: cx, cy: cy, r: 7, 'class': 'mk' }, null, g);
+      rot[idx] = g;
+    }
+    wheel(170, 200, 'O\'nlar g\'ildiragi', 0);
+    wheel(490, 200, 'Birlar g\'ildiragi', 1);
+    S(svg, 'line', { x1: 398, y1: 200, x2: 264, y2: 200, 'class': 'arr', 'marker-end': 'url(#whmk)' });
+    S(svg, 'text', { x: 331, y: 178, 'text-anchor': 'middle', 'class': 'lbl' }, '9 dan 0 ga o\'tganda');
+    S(svg, 'text', { x: 331, y: 192, 'text-anchor': 'middle', 'class': 'lbl' }, 'bir tishga suradi');
+    box(svg, 700, 70, 280, 110, 'Saqlangan son', 'G\'ildiraklar holatidan o\'qiladi');
+    var out = S(svg, 'text', { x: 716, y: 160, 'class': 'big' }, '00');
+    box(svg, 700, 200, 280, 100, 'Kamchiligi', 'Jismonan aylanadi: og\'ir, sekin,');
+    S(svg, 'text', { x: 716, y: 264, 'class': 'sub' }, 'tishlari yeyiladi');
+    function draw(msg) {
+      rot[1].style.transform = 'rotate(' + (-36 * n) + 'deg)';
+      rot[0].style.transform = 'rotate(' + (-36 * Math.floor(n / 10)) + 'deg)';
+      var v = n % 100; out.textContent = (v < 10 ? '0' : '') + v;
+      document.getElementById('whSay').textContent = msg;
+    }
+    document.getElementById('whPlus').addEventListener('click', function () {
+      n++;
+      draw(n % 10 === 0 ? 'Birlar g\'ildiragi to\'liq aylanib 0 ga qaytdi va o\'nlar g\'ildiragini bir tishga surdi. Maktabdagi «bir dilda» qoidasi shu, faqat temirda.' : 'Birlar g\'ildiragi bir tishga burildi.');
+    });
+    document.getElementById('whZero').addEventListener('click', function () { n = 0; draw('Ikkala g\'ildirak 0 da.'); });
+    draw('«1 qo\'shish» ni bosing. To\'qqizdan keyingi bosishga e\'tibor bering.');
+  })();
+
+  // ---------- 2. Shovqin ----------
+  (function () {
+    var svg = document.getElementById('nz'), amp = 0.3, seed = 7, noise = [];
+    function rnd() { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648 * 2 - 1; }
+    function resample() { noise = []; for (var i = 0; i < 20; i++) noise.push(rnd()); }
+    var PX = 62; // bir voltga piksel, ikkala qatorda bir xil
+    function row(y, title, sentLabel, sentV, bands, x0, read) {
+      group(svg, 20, y, 1230, 210, title);
+      box(svg, 44, y + 60, 190, 110, 'Yuboruvchi', sentLabel);
+      S(svg, 'text', { x: 60, y: y + 148, 'class': 'val' }, sentV + ' volt');
+      S(svg, 'line', { x1: 234, y1: y + 115, x2: x0 + bands[0].from * PX - 8, y2: y + 115, 'class': 'arr', 'marker-end': 'url(#nzmk)' });
+      S(svg, 'text', { x: (234 + x0 + bands[0].from * PX - 8) / 2, y: y + 105, 'text-anchor': 'middle', 'class': 'lbl' }, 'simga beradi');
+      // shkala
+      var errs = 0, last = null;
+      var vals = noise.map(function (u) { return sentV + u * amp; });
+      vals.forEach(function (v, i) { var r = read(v); if (r.wrong) errs++; if (i === vals.length - 1) last = r; });
+      bands.forEach(function (b) {
+        var cls = 'band';
+        if (last.band === b.name) cls += last.wrong ? ' miss' : ' hit';
+        S(svg, 'rect', { x: x0 + b.from * PX, y: y + 86, width: (b.to - b.from) * PX, height: 58, 'class': cls });
+        S(svg, 'text', { x: x0 + (b.from + b.to) / 2 * PX, y: y + 166, 'text-anchor': 'middle', 'class': 'tick' }, b.name);
+      });
+      S(svg, 'text', { x: x0 + bands[0].from * PX, y: y + 190, 'class': 'sub' }, 'Yo\'lak ostidagi raqam: shu oraliqdagi kuchlanish qanday o\'qiladi');
+      S(svg, 'path', { d: 'M' + (x0 + sentV * PX - 8) + ' ' + (y + 62) + 'h16l-8 14z', 'class': 'sent' });
+      S(svg, 'text', { x: x0 + sentV * PX, y: y + 54, 'text-anchor': 'middle', 'class': 'lbl' }, 'yuborilgan');
+      var lo = bands[0].from, hi = bands[bands.length - 1].to;
+      vals.forEach(function (v, i) {
+        var c = Math.max(lo + 0.08, Math.min(hi - 0.08, v));
+        S(svg, 'circle', { cx: x0 + c * PX, cy: y + 96 + (i % 5) * 9.5, r: i === vals.length - 1 ? 7 : 4.5, 'class': i === vals.length - 1 ? 'dot cur' : 'dot' });
+      });
+      var rx = 1020;
+      S(svg, 'line', { x1: x0 + hi * PX + 8, y1: y + 115, x2: rx - 2, y2: y + 115, 'class': 'arr', 'marker-end': 'url(#nzmk)' });
+      S(svg, 'text', { x: (x0 + hi * PX + 8 + rx) / 2, y: y + 105, 'text-anchor': 'middle', 'class': 'lbl' }, 'o\'lchaydi');
+      box(svg, rx, y + 50, 210, 130, 'Qabul qiluvchi', 'Oxirgi o\'lchov: ' + vals[vals.length - 1].toFixed(1) + ' volt', last.wrong ? 'bad' : 'on');
+      S(svg, 'text', { x: rx + 16, y: y + 128, 'class': 'val' }, 'O\'qidi: ' + last.band + (last.wrong ? '  (xato)' : ''));
+      S(svg, 'text', { x: rx + 16, y: y + 160, 'class': 'sub' }, '20 o\'lchovdan ' + errs + ' tasi xato');
+      return errs;
+    }
+    function draw() {
+      svg.textContent = ''; marker(svg, 'nzmk');
+      var ten = []; for (var i = 0; i < 10; i++) ten.push({ name: String(i), from: i - 0.5, to: i + 0.5 });
+      var e1 = row(20, 'O\'n darajali sim: har raqamga 1 voltlik yo\'lak', 'Yubormoqchi: 6', 6, ten, 361, function (v) { var d = Math.max(0, Math.min(9, Math.round(v))); return { band: String(d), wrong: d !== 6 }; });
+      var e2 = row(260, 'Ikki darajali sim: chegara 2,5 voltda, undan pasti 0, yuqorisi 1', 'Yubormoqchi: 1 (tok bor)', 5, [{ name: '0', from: 0, to: 2.5 }, { name: '1', from: 2.5, to: 7.5 }], 420, function (v) { var d = v >= 2.5 ? 1 : 0; return { band: String(d), wrong: d !== 1 }; });
+      document.getElementById('nzVal').textContent = '± ' + amp.toFixed(1) + ' volt';
+      var say = document.getElementById('nzSay');
+      if (amp === 0) say.textContent = 'Shovqin yo\'q: ikkala usul ham to\'g\'ri o\'qiydi. Qog\'ozda o\'n darajali sim yaxshi ishlaydi.';
+      else if (e1 === 0) say.textContent = 'Shovqin kichik, yarim voltdan oshmayapti. Nuqtalar hali 6 ning yo\'lagi ichida. Shovqinni oshiring.';
+      else say.textContent = 'O\'n darajali simda 20 o\'lchovdan ' + e1 + ' tasi qo\'shni yo\'lakka tushdi: 6 o\'rniga 5 yoki 7 o\'qildi. Ikki darajali simda xuddi shu shovqin bilan ' + e2 + ' ta xato: nuqtalar tebranyapti, lekin chegaragacha hali uzoq.';
+      say.className = e1 > 0 ? 'say bad' : 'say';
+    }
+    resample();
+    document.getElementById('nzAmp').addEventListener('input', function (ev) { amp = parseFloat(ev.target.value); draw(); });
+    document.getElementById('nzNew').addEventListener('click', function () { resample(); draw(); });
+    draw();
+  })();
+
+  // ---------- 3. Narxi ----------
+  (function () {
+    var svg = document.getElementById('cost');
+    group(svg, 20, 30, 440, 250, 'O\'n darajali: 1 ta sim');
+    S(svg, 'line', { x1: 60, y1: 150, x2: 300, y2: 150, 'class': 'wire on' });
+    S(svg, 'text', { x: 60, y: 130, 'class': 'sub' }, '6 volt');
+    box(svg, 320, 110, 120, 80, '6', 'aniq o\'lchov');
+    S(svg, 'text', { x: 60, y: 240, 'class': 'sub' }, 'Kam sim, lekin shovqinga chidamsiz');
+    group(svg, 540, 30, 440, 250, 'Ikki darajali: 4 ta sim');
+    [0, 1, 1, 0].forEach(function (b, i) {
+      var y = 86 + i * 38;
+      S(svg, 'line', { x1: 580, y1: y, x2: 760, y2: y, 'class': 'wire' + (b ? ' on' : '') });
+      S(svg, 'text', { x: 776, y: y + 5, 'class': 'val' }, String(b));
+      S(svg, 'text', { x: 800, y: y + 5, 'class': 'sub' }, b ? 'tok bor' : 'tok yo\'q');
+    });
+    box(svg, 880, 110, 80, 80, '6', '0110');
+    S(svg, 'text', { x: 580, y: 256, 'class': 'sub' }, 'Ko\'p sim, lekin har biri adashmaydi');
+  })();
+
+  // ---------- int va long ----------
+  (function () {
+    var svg = document.getElementById('ov'), n = 0;
+    function fmt(v) { var neg = v < 0, t = String(Math.abs(v)).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); return (neg ? '−' : '') + t; }
+    function draw() {
+      svg.textContent = ''; marker(svg, 'ovmk');
+      var tiyin = n * 1000000000, asInt = tiyin | 0, bad = asInt !== tiyin;
+      box(svg, 30, 110, 310, 110, 'To\'lovlar', 'Qo\'shilgan: ' + n + ' ta, har biri');
+      S(svg, 'text', { x: 46, y: 200, 'class': 'sub' }, '10 000 000 so\'m = 1 000 000 000 tiyin');
+      group(svg, 480, 30, 730, 280, 'Hisob qoldig\'i tiyinda, ikki xil turda');
+      box(svg, 510, 70, 670, 100, 'int: 32 bit', 'Eng kattasi 2 147 483 647', bad ? 'bad' : 'on');
+      S(svg, 'text', { x: 526, y: 152, 'class': 'val' }, fmt(asInt) + (bad ? '   (noto\'g\'ri: son toshib ketdi)' : ''));
+      box(svg, 510, 190, 670, 100, 'long: 64 bit', 'Eng kattasi 9 223 372 036 854 775 807', 'on');
+      S(svg, 'text', { x: 526, y: 272, 'class': 'val' }, fmt(tiyin));
+      S(svg, 'path', { d: 'M340 165H440V120H508', 'class': 'arr', 'marker-end': 'url(#ovmk)' });
+      S(svg, 'path', { d: 'M440 165V240H508', 'class': 'arr', 'marker-end': 'url(#ovmk)' });
+      S(svg, 'text', { x: 352, y: 155, 'class': 'lbl' }, 'qo\'shiladi');
+      var say = document.getElementById('ovSay');
+      if (n === 0) say.textContent = 'Hisob bo\'sh. Tugmani uch marta bosing.';
+      else if (!bad) say.textContent = 'Qoldiq ' + fmt(tiyin) + ' tiyin. Ikkala tur ham to\'g\'ri saqlayapti: son hali 2 147 483 647 dan kichik.';
+      else say.textContent = 'Qoldiq aslida ' + fmt(tiyin) + ' tiyin, ya\'ni ' + fmt(n * 10) + ' million so\'m. int da esa ' + fmt(asInt) + ' turibdi. Hech qanday xato chiqmadi, dastur ishlashda davom etyapti, mijozning hisobi esa manfiy ko\'rinyapti.';
+      say.className = bad ? 'say bad' : 'say';
+    }
+    document.getElementById('ovAdd').addEventListener('click', function () { if (n < 8) n++; draw(); });
+    document.getElementById('ovZero').addEventListener('click', function () { n = 0; draw(); });
+    draw();
+  })();
+
+  // ---------- gigabayt ----------
+  (function () {
+    var svg = document.getElementById('gb'), x0 = 60, w = 1100;
+    S(svg, 'rect', { x: x0, y: 110, width: w, height: 46, rx: 3, 'class': 'bar' });
+    S(svg, 'text', { x: x0 + w / 2, y: 139, 'text-anchor': 'middle', 'class': 'val' }, 'Disk: 500 000 000 000 bayt');
+    function ruler(y, unitPx, count, label, total, up) {
+      for (var i = 0; i <= count; i++) { var x = x0 + i * unitPx; if (x > x0 + w + 0.5) break; S(svg, 'line', { x1: x, y1: y, x2: x, y2: y + (up ? -1 : 1) * (i % 5 === 0 ? 14 : 8), 'class': 'ruler' }); if (i % 5 === 0) S(svg, 'text', { x: x, y: y + (up ? -20 : 30), 'text-anchor': 'middle', 'class': 'tick' }, String(i * 10)); }
+      S(svg, 'line', { x1: x0, y1: y, x2: x0 + w, y2: y, 'class': 'ruler' });
+      S(svg, 'text', { x: x0, y: y + (up ? -44 : 56), 'class': 'ttl' }, label);
+      S(svg, 'text', { x: x0 + w, y: y + (up ? -44 : 56), 'text-anchor': 'end', 'class': 'val' }, total);
+    }
+    // har bo'lak 10 GB: yuqorida 1000 lik, pastda 1024 lik
+    ruler(100, w / 50, 50, 'Ishlab chiqaruvchi chizg\'ichi: 1 GB = 1 000 000 000 bayt', '500 GB', true);
+    var gib = 500e9 / (1024 * 1024 * 1024);
+    ruler(166, w / gib * 10, 50, 'Kompyuter chizg\'ichi: 1 GB = 1 073 741 824 bayt', gib.toFixed(1).replace('.', ',') + ' GB', false);
+  })();
+})();
+</script>
 <script src="../assets/evo.js"></script>
 <script>
 (function () {
