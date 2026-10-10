@@ -15,6 +15,39 @@
 <h1>2-dars. Manfiy sonlar</h1>
 <p class="lead">Savol: kalitlar faqat «tok bor» va «tok yo'q» ni bilsa, minus ishorasi qayerda saqlanadi?</p>
 
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Qo'shimcha kod</strong> manfiy sonni bitlarda yozish usuli. Unda alohida «minus» belgisi yo'q: bir xil bitlarning yarmi manfiy son deb o'qiladi.</p>
+    <p>Bu dars bitlarning o'zi haqida emas, ularni <strong>qanday o'qish</strong> haqida. 1-darsda bayt 0 dan 255 gacha son edi. Shu baytning o'zi boshqacha o'qilsa, −128 dan 127 gacha son bo'ladi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Java'ning barcha butun sonlarida.</strong> <span class="num">byte, short, int, long</span> shu usulda saqlanadi.</li>
+      <li><strong>Protsessorning har bir qo'shish va ayirish amalida.</strong> Ayirish aslida manfiy sonni qo'shish.</li>
+      <li><strong>Fayl va tarmoq baytlarini o'qishda.</strong> To'lov protokolidan kelgan bayt Java'da kutilmagan manfiy son bo'lib ko'rinishi mumkin.</li>
+      <li><strong>Bazadagi butun son ustunlarida</strong> va vaqtni saqlashda.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>manfiy son bitlarda qanday yoziladi va nega aynan shunday;</li>
+      <li>nega <span class="num">int</span> chegaradan oshganda manfiy bo'lib qoladi;</li>
+      <li>nega <span class="num">(byte) 200</span> bu −56.</li>
+    </ul>
+    <p>Amaliy foydasi: toshib ketish, <span class="num">&amp; 0xFF</span> va <span class="num">Math.abs</span> bilan bog'liq xatolarni kodda ko'rib taniysiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada o'sha qavatlar. Bu dars bayt qavatida qoladi, lekin savol boshqa: undagi sakkiz bit qanday o'qiladi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidagi bitta o'zgaruvchidan kalitgacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Kodingizdagi bitta o'zgaruvchi yuqoridan pastga qanday yo'l bosadi. Ko'k qutilar shu darsning mavzusi.</figcaption>
+</figure>
 <div class="scope">
   <div>
     <h4>Bu dars qamraydi</h4>
@@ -267,6 +300,15 @@ System.out.println(Math.addExact(Integer.MAX_VALUE, 1));</pre>
 <nav class="pager" aria-label="Darslar orasida"><a href="01-kalit-va-bit.html">Oldingi: 1. Kalit va bit</a><span class="dim">Keyingi: 3. Kasr sonlar (navbatda)</span></nav>
 </main>
 <script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'long balans = 3_000_000_000L;', link: 'ishga tushganda JVM bajaradi' },
+    { title: 'JVM', sub: 'O\'zgaruvchi uchun joy ajratadi', ex: 'long turi: 64 bit kerak', link: 'joyni xotiradan oladi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: '64 bit = yonma-yon 8 ta bayt', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [3], 'Bayt: bitlar qanday o\'qiladi');
+</script>
 <script src="../assets/evo.js"></script>
 <script>
 (function () {

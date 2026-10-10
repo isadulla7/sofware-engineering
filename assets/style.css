@@ -372,3 +372,13 @@ main { padding-left: 2rem; padding-right: 2rem; }
 .dg .ring { fill: none; stroke: var(--line); stroke-width: 14; }
 .dg .ruler { stroke: var(--ink); stroke-width: 1.5; }
 .dg .bar { fill: var(--accent-soft); stroke: var(--accent); stroke-width: 1.5; }
+
+/* Dars kirishi: bu nima, qayerda ishlatiladi, maqsad */
+.intro { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; margin: 1.5rem 0 0.5rem; }
+@media (max-width: 860px) { .intro { grid-template-columns: minmax(0, 1fr); } }
+.intro > div { border: 1px solid var(--line); border-top: 4px solid var(--accent); border-radius: 6px; padding: 0.9rem 1.1rem; background: var(--panel); }
+.intro h3 { margin: 0 0 0.5rem; font-size: 1.0625rem; }
+.intro p, .intro ul { margin: 0 0 0.6rem; font-size: 1rem; }
+.intro ul { padding-left: 1.1rem; }
+.intro li { margin-bottom: 0.3rem; }
+.intro > div > :last-child { margin-bottom: 0; }

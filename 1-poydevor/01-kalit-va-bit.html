@@ -15,6 +15,39 @@
 <h1>1-dars. Kalit va bit</h1>
 <p class="lead">Savol: kompyuter sonni nimada saqlaydi va nega faqat 0 va 1 bilan ishlaydi?</p>
 
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Kalit</strong> tokni o'tkazadigan yoki to'sadigan mitti qurilma. Bugungi kompyuterlarda u tranzistor deb ataladi.</p>
+    <p><strong>Bit</strong> bitta kalitning holati: tok o'tyapti (1) yoki o'tmayapti (0).</p>
+    <p>Kompyuterdagi har qanday ma'lumot, ya'ni son, matn, rasm va dasturning o'zi, oxir-oqibat shu bitlar qatoridan iborat. Bundan pastroq qavat yo'q.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Hamma joyda.</strong> Protsessor, xotira va disk kalitlardan yig'ilgan. Telefon protsessorida ular o'n milliarddan ortiq.</li>
+      <li><strong>Sizning kodingizda.</strong> Har bir o'zgaruvchi ma'lum sondagi kalitlarni egallaydi: <span class="num">int</span> 32 ta, <span class="num">long</span> 64 ta.</li>
+      <li><strong>Bazada va tarmoqda.</strong> Jadvaldagi ustun turi ham, tarmoqdan ketayotgan xabar ham bitlar soni bilan o'lchanadi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>nega kompyuter faqat 0 va 1 bilan ishlaydi;</li>
+      <li>nechta bit nechta qiymatni sig'dirishi;</li>
+      <li>nega <span class="num">int</span> ikki milliarddan osha olmaydi va nega pul <span class="num">long</span> da saqlanadi.</li>
+    </ul>
+    <p>Amaliy foydasi: o'zgaruvchi va baza ustuni uchun turni taxmin bilan emas, hisoblab tanlaysiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizma shu mavzu sizning kundalik kodingizga qanday bog'langanini ko'rsatadi. Yuqorida siz yozadigan bitta qator, eng pastda esa u aslida nimaga aylanishi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidagi bitta o'zgaruvchidan kalitgacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Kodingizdagi bitta o'zgaruvchi yuqoridan pastga qanday yo'l bosadi. Ko'k qutilar shu darsning mavzusi.</figcaption>
+</figure>
 <div class="scope">
   <div>
     <h4>Bu dars qamraydi</h4>
@@ -228,6 +261,15 @@ System.out.println(Integer.MAX_VALUE + 1);</pre>
 <nav class="pager" aria-label="Darslar orasida"><span class="dim">Bu birinchi dars</span><a href="02-manfiy-sonlar.html">Keyingi: 2. Manfiy sonlar</a></nav>
 </main>
 <script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'long balans = 3_000_000_000L;', link: 'ishga tushganda JVM bajaradi' },
+    { title: 'JVM', sub: 'O\'zgaruvchi uchun joy ajratadi', ex: 'long turi: 64 bit kerak', link: 'joyni xotiradan oladi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: '64 bit = yonma-yon 8 ta bayt', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [3, 4], 'Bayt va kalit: eng pastki ikki qavat');
+</script>
 <script>
 (function () {
   var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
