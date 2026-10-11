@@ -382,3 +382,31 @@ main { padding-left: 2rem; padding-right: 2rem; }
 .intro ul { padding-left: 1.1rem; }
 .intro li { margin-bottom: 0.3rem; }
 .intro > div > :last-child { margin-bottom: 0; }
+
+/* Bo'lim xulosasi va test */
+.sum { border-top: 1px solid var(--line); padding-top: 0.4rem; margin-top: 1.6rem; }
+.sum-core { font-size: 1.0625rem; max-width: none; }
+.sum-cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(22rem, 100%), 1fr)); gap: 0 2rem; }
+.sum-cols h4 { margin: 0.6rem 0 0.3rem; font-size: 0.9375rem; color: var(--muted); }
+.sum-cols ul { margin: 0 0 0.8rem; padding-left: 1.2rem; }
+.sum-cols li { margin: 0.35rem 0; }
+.quiz-bar { font-size: 0.9375rem; color: var(--muted); margin: 0.2rem 0 0.8rem; }
+.quiz-from { font-size: 0.875rem; color: var(--muted); margin: 0 0 0.3rem; }
+.quiz-q { font-size: 1.125rem; font-weight: 600; margin: 0 0 0.9rem; max-width: none; }
+.quiz-opts { display: grid; gap: 0.5rem; }
+.quiz-opt { text-align: left; font: inherit; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 6px; padding: 0.7rem 0.9rem; cursor: pointer; }
+.quiz-opt:hover:not(:disabled) { border-color: var(--accent); }
+.quiz-opt:focus-visible, .quiz-next:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.quiz-opt:disabled { cursor: default; opacity: 1; }
+.quiz-opt.ok { border-color: var(--accent); background: var(--accent-soft); font-weight: 600; }
+.quiz-opt.no { border-color: var(--bad); border-style: dashed; color: var(--bad); }
+.quiz-fb { margin-top: 0.9rem; }
+.quiz-verdict { font-weight: 600; margin: 0 0 0.3rem; max-width: none; }
+.quiz-verdict.no { color: var(--bad); }
+.quiz-verdict.ok { color: var(--accent); }
+.quiz-why { margin: 0 0 0.5rem; max-width: none; }
+.quiz-link { margin: 0 0 0.8rem; font-size: 0.9375rem; }
+.quiz-next { font: inherit; font-weight: 600; background: var(--accent); color: var(--panel); border: 1px solid var(--accent); border-radius: 6px; padding: 0.55rem 1.1rem; cursor: pointer; }
+.quiz-best { font-size: 0.9375rem; color: var(--muted); margin: 0.9rem 0 0; }
+
+@media (max-width: 40rem) { .num { white-space: normal; overflow-wrap: anywhere; } }
