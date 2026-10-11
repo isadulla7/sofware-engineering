@@ -1,0 +1,676 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>4-dars. Matn va kodirovka</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>4-dars. Matn va kodirovka</h1>
+<p class="lead">Savol: kalitlar faqat sonni bilsa, harf qanday saqlanadi, va nega matn ba'zan tushunarsiz belgilarga aylanib qoladi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Kodirovka</strong> harfni baytlarga va baytlarni harfga aylantirish qoidasi. Kompyuter harfni bilmaydi, u faqat sonni biladi. Qaysi son qaysi harf ekani kelishuv, va shu kelishuv kodirovka deyiladi.</p>
+    <p>Yozgan va o'qigan tomon bir xil kelishuvdan foydalansa, matn to'g'ri chiqadi. Har xil kelishuvdan foydalansa, baytlar o'sha-o'sha, lekin ekranda ma'nosiz belgilar.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Har bir <span class="num">String</span> da.</strong> Java va Kotlin'dagi har bir satr ichkarida ma'lum kodirovkada saqlanadi.</li>
+      <li><strong>Chegaralarda.</strong> Matn dasturdan chiqqan har joyda baytga aylanadi: fayl, tarmoq so'rovi, JSON, baza, SMS.</li>
+      <li><strong>Bazada.</strong> Oracle'da ustun uzunligi baytda yoki belgida o'lchanishi mumkin, va bu ikkisi teng emas.</li>
+      <li><strong>Xatolar aynan shu yerda chiqadi:</strong> ism o'rnida so'roq belgilari, «РЎР°Р»РѕРј» kabi yozuvlar, bazaga sig'may qolgan matn.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>harf, uning raqami va uning baytlari uch xil narsa ekani;</li>
+      <li>Unicode va UTF-8 nima va ular qaysi og'riqdan chiqqan;</li>
+      <li>UTF-8 ichkarida qanday tuzilgan;</li>
+      <li>Java'da <span class="num">"😀".length()</span> nega 2;</li>
+      <li>o'n oltilik yozuvni o'qish.</li>
+    </ul>
+    <p>Amaliy foydasi: buzilgan matnni ko'rib, qaysi joyda qaysi kodirovka adashganini aytib bera olasiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada o'sha qavatlar. Bu dars bayt qavatidagi uchinchi va oxirgi o'qish usuli: 2-darsda bitlar manfiy son, 3-darsda kasr son edi, bu yerda ular harf.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidagi bitta o'zgaruvchidan kalitgacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Kodingizdagi bitta o'zgaruvchi yuqoridan pastga qanday yo'l bosadi. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>ASCII: birinchi umumiy kelishuv</li>
+      <li>O'n oltilik yozuv: baytni ixcham yozish</li>
+      <li>Kod sahifalari va buzilgan matn muammosi</li>
+      <li>Unicode: belgi va kod nuqtasi</li>
+      <li>UTF-8 ichkaridan, UTF-16 va Java'dagi <span class="num">char</span></li>
+      <li>Amaliy tuzoqlar: sukut bo'yicha kodirovka, bayt va belgi uzunligi, bir xil ko'rinadigan har xil belgilar</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Shrift va harfning ekranga chizilishi: bu grafika mavzusi</li>
+      <li>Matnni saralash va til qoidalari bo'yicha solishtirish: ma'lumotlar bazasi yo'nalishida</li>
+      <li><span class="num">String</span> obyektining xotiradagi tuzilishi: Java yo'nalishida</li>
+      <li>Shifrlash: «kodlash» so'ziga o'xshasa ham, butunlay boshqa mavzu</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Harf uchun kalit yo'q</h3>
+<p>Oldingi darslarda bitta haqiqat qayta-qayta chiqdi: bitlarning o'zida ma'no yo'q, ma'noni o'qigan beradi. Matn bu haqiqatning eng yorqin misoli. Kalitlar «A» harfini bilmaydi. Harfni saqlashning yagona yo'li har bir harfga son biriktirib, o'sha sonni saqlash. Qiyinligi texnikada emas, kelishuvda: hamma bir xil jadvaldan foydalanishi kerak.</p>
+
+<p class="beat">Birinchi kelishuv: ASCII</p>
+<p>1960-yillar boshida har bir kompyuter ishlab chiqaruvchining o'z jadvali bor edi: bir mashinada 65 soni «A», boshqasida butunlay boshqa belgi. Ikki mashina orasida matn uzatib bo'lmasdi. 1963-yilda AQSHda yagona jadval qabul qilindi: <strong>ASCII</strong>. Unda 128 ta o'rin bor: lotin alifbosining katta va kichik harflari, raqamlar, tinish belgilari va bir nechta boshqaruv belgisi (yangi qator, tabulyatsiya). 128 ta o'rin uchun yetti bit yetadi.</p>
+<p>Pastdagi chizmada bitta belgi kiriting va u qanday yo'l bosishini ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="asc" style="width:1240px;height:230px" viewBox="0 0 1240 230" role="img" aria-label="Belgi ASCII jadvali orqali songa, son esa bitlarga aylanadi"></svg>
+  </div>
+  <figcaption>Uch bosqich: belgi, jadvaldagi raqami, va shu raqamning bitlari. Xotirada faqat oxirgisi turadi.</figcaption>
+  <div class="slider">
+    <label for="ascC">Belgi:</label>
+    <input class="numin" id="ascC" type="text" maxlength="2" value="A" style="width:5rem">
+    <button type="button" data-asc="A">A</button>
+    <button type="button" data-asc="a">a</button>
+    <button type="button" data-asc="7">7</button>
+    <button type="button" data-asc=" ">bo'sh joy</button>
+    <button type="button" data-asc="Ж">Ж</button>
+    <button type="button" data-asc="ў">ў</button>
+  </div>
+  <p class="say" id="ascSay" aria-live="polite"></p>
+</figure>
+
+<p>Ikki narsaga e'tibor bering. Birinchisi: «7» belgisi 7 soni emas. Uning raqami 55. Matndagi raqam va hisoblashdagi son ikki xil narsa, shuning uchun <span class="num">"7" + "7"</span> bu «77», 14 emas. Ikkinchisi: «Ж» va «ў» uchun jadvalda o'rin yo'q. ASCII faqat ingliz tili uchun tuzilgan.</p>
+
+<p class="beat">Ikkinchi urinish: har bir tilga o'z jadvali</p>
+<p>Bayt sakkiz bit, ASCII esa faqat yettitasini ishlatadi. Sakkizinchi bit yana 128 ta bo'sh o'rin beradi: 128 dan 255 gacha. Har bir mamlakat shu bo'sh o'rinlarga o'z harflarini joyladi. Bunday jadval <strong>kod sahifasi</strong> deyiladi. Kirill alifbosi uchun bir nechta raqobatchi kod sahifasi paydo bo'ldi: Unix tizimlarida KOI8-R, Windows'da Windows-1251. G'arbiy Yevropa tillari uchun Windows-1252, va yana o'nlab boshqalar.</p>
+<p>Muammo shundaki, 128 ta o'rin hammaga yetmaydi, va har bir jadval o'sha o'rinlarni o'zicha to'ldirgan. Bir xil bayt bir jadvalda «С», boshqasida «я», uchinchisida «Ñ». Faylning o'zida esa u qaysi jadvalda yozilgani haqida hech qanday belgi yo'q. Pastdagi chizmada yozuvchi va o'quvchi uchun har xil jadval tanlab ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="moji" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Matn bir kodirovkada baytlarga aylantirilib, boshqa kodirovkada o'qilganda buziladi"></svg>
+  </div>
+  <figcaption>Chapda yozuvchi matnni baytlarga aylantiradi. O'rtada simdan yoki fayldan o'tadigan baytlar, o'n oltilik yozuvda. O'ngda o'quvchi o'sha baytlarni harflarga aylantiradi.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">So'z</p>
+  <div class="evo-tabs" id="mjWord"></div>
+  <p class="pick-label">Yozuvchi qaysi kodirovkada yozdi</p>
+  <div class="evo-tabs" id="mjW"></div>
+  <p class="pick-label">O'quvchi qaysi kodirovkada o'qidi</p>
+  <div class="evo-tabs" id="mjR"></div>
+  <p class="say" id="mjSay" aria-live="polite"></p>
+</figure>
+
+<p>Chizmadan uch narsani olib qoling.</p>
+<p><strong>Baytlar buzilmaydi.</strong> O'rtadagi baytlar yozuvchi ularni qanday yozgan bo'lsa, shunday yetib boradi. Buzilish o'qish paytida, noto'g'ri jadval qo'llanganda sodir bo'ladi. Shuning uchun bunday xatoni ko'pincha tuzatish mumkin: to'g'ri jadval bilan qayta o'qish kifoya.</p>
+<p><strong>Har bir adashishning o'z «qo'l izi» bor.</strong> UTF-8 da yozilgan kirill matn Windows-1251 da o'qilsa, «РЎР°Р»РѕРј» ko'rinishidagi, «Р» va «С» harflari takrorlanadigan yozuv chiqadi. Windows-1252 da o'qilsa, «Ð¡Ð°Ð»Ð¾Ð¼» chiqadi. Bu naqshlarni tanib olsangiz, xato qayerda ekanini bir qarashda aytasiz.</p>
+<p><strong>Kod sahifalari bir hujjatda ikki tilni aralashtirishga yo'l qo'ymaydi.</strong> Bitta faylda faqat bitta jadval ishlaydi. O'zbek kirill yozuvi uchun yana bir muammo bor edi: Windows-1251 da «Ў» bor, lekin «Қ», «Ғ» va «Ҳ» yo'q. O'zbek matnini to'liq yozish uchun maxsus, standart bo'lmagan shriftlar va jadvallar ishlatilgan, va bunday hujjat boshqa kompyuterda ochilmagan.</p>
+<p>Kerak bo'lgan narsa aniq: dunyodagi barcha belgilar uchun bitta umumiy jadval.</p>
+
+<h3><span class="part">2. Ichkarida</span>Unicode va UTF-8</h3>
+
+<p class="beat">Avval asbob: o'n oltilik yozuv</p>
+<p>Yuqoridagi chizmada baytlar «D0 A1» ko'rinishida yozilgan edi. Bu <strong>o'n oltilik</strong> yozuv, va bundan keyin u har qadamda uchraydi. Uning vazifasi bitta: baytni qisqa yozish. Sakkizta 0 va 1 ni o'qish qiyin, o'nlik yozuv esa (masalan 202) bitlarni yashiradi. O'n oltilik yozuv ikkalasining o'rtasi.</p>
+<p>G'oyasi sodda. Baytni ikki yarimga, to'rt bitdan bo'lamiz. To'rt bit 16 xil qiymat oladi: 0 dan 15 gacha. Har bir qiymatga bitta belgi beramiz: 0 dan 9 gacha raqamlar o'z holicha, 10 dan 15 gacha esa A, B, C, D, E, F harflari. Natijada har qanday bayt aynan ikkita belgi bilan yoziladi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="hx" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Bayt ikki yarimga bo'linadi, har bir yarim bitta o'n oltilik raqam bilan yoziladi"></svg>
+  </div>
+  <figcaption>Yuqorida baytning sakkiz biti ikki guruhda. Har bir guruh ostida uning qiymati va o'n oltilik belgisi. O'ngda baytning uch xil yozilishi.</figcaption>
+  <div class="slider">
+    <label for="hxN">Bayt qiymati (0 dan 255 gacha):</label>
+    <input class="numin" id="hxN" type="number" min="0" max="255" value="202">
+    <button type="button" data-hx="65">65</button>
+    <button type="button" data-hx="202">202</button>
+    <button type="button" data-hx="255">255</button>
+    <button type="button" data-hx="16">16</button>
+    <button type="button" data-hx="10">10</button>
+  </div>
+  <p class="say" id="hxSay" aria-live="polite"></p>
+</figure>
+
+<p>Kodda o'n oltilik son <span class="num">0x</span> bilan boshlanadi: <span class="num">0xFF</span> bu 255, ya'ni sakkizta yoniq bit. 2-darsdagi <span class="num">b &amp; 0xFF</span> yozuvi endi tushunarli: «faqat pastki sakkiz bitni qoldir». O'n oltilik yozuvni har kuni ko'rasiz: ranglarda (<span class="num">#FF8800</span>), xotira manzillarida, xesh va kalitlarda, Java klass fayllarining boshidagi <span class="num">CAFEBABE</span> belgisida.</p>
+
+<p class="beat">Unicode: ikki savolni ajratish</p>
+<p>Kod sahifalarida ikki narsa bitta edi: harfning raqami va uning bayti. Raqam 0 dan 255 gacha, bayt ham shu. Unicode 1991-yilda shu ikkisini ajratdi, va bu uning asosiy g'oyasi.</p>
+<p><strong>Birinchi savol: qaysi belgi qaysi raqam?</strong> Unicode dunyodagi har bir belgiga yagona raqam beradi: lotin, kirill, arab, xitoy yozuvlari, matematik belgilar, emoji. Bu raqam <strong>kod nuqtasi</strong> deyiladi va <span class="num">U+</span> dan keyin o'n oltilikda yoziladi: «A» bu U+0041, «ў» bu U+045E, «😀» bu U+1F600. Jadvalda bir milliondan ortiq o'rin bor.</p>
+<p><strong>Ikkinchi savol: bu raqam baytlarga qanday yoziladi?</strong> Bu alohida masala, va uning bir nechta javobi bor. Javoblar <strong>UTF-8</strong>, <strong>UTF-16</strong> va <strong>UTF-32</strong> deb ataladi. Uchalasi ham bir xil kod nuqtalarini saqlaydi, faqat baytlarga har xil yoyadi.</p>
+<p>Pastdagi chizmada bir nechta belgi kiriting. Har bir belgi uchun uning kod nuqtasi va ikki xil baytga yoyilishi ko'rsatiladi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="uni" role="img" aria-label="Har bir belgi uchun kod nuqtasi, UTF-8 baytlari va UTF-16 birliklari"></svg>
+  </div>
+  <figcaption>Har bir qator bitta belgi. Chapdan o'ngga: belgining o'zi, Unicode'dagi raqami, UTF-8 da baytlari, UTF-16 da birliklari. Pastda butun matn bo'yicha uch xil «uzunlik».</figcaption>
+  <div class="slider">
+    <label for="uniT">Matn (6 belgigacha):</label>
+    <input class="numin" id="uniT" type="text" value="Aў€😀" style="width:12rem">
+    <button type="button" data-uni="Aў€😀">Aў€😀</button>
+    <button type="button" data-uni="Salom">Salom</button>
+    <button type="button" data-uni="Салом">Салом</button>
+    <button type="button" data-uni="oʻzbek">oʻzbek</button>
+  </div>
+  <p class="say" id="uniSay" aria-live="polite"></p>
+</figure>
+
+<p>Chizmaning pastki qismi shu darsning eng amaliy xulosasi: <strong>matnning uzunligi degan yagona son yo'q</strong>. Belgilar soni, baytlar soni va Java'dagi <span class="num">length()</span> uch xil narsa. Lotin harflarida uchalasi bir xil chiqadi, shuning uchun ingliz tilidagi matn bilan sinalgan kod boshqa tillarda sinadi.</p>
+
+<p class="beat">UTF-8 ichkaridan</p>
+<p>UTF-8 kod nuqtasini birdan to'rttagacha baytga yozadi: kichik raqamlar uchun kam bayt, kattalari uchun ko'p. Savol tug'iladi: o'quvchi navbatdagi belgi necha bayt ekanini qayerdan biladi? Javob har bir baytning boshidagi bitlarda.</p>
+<div class="scroll">
+<table>
+  <thead><tr><th>Kod nuqtasi oralig'i</th><th>Baytlar</th><th>Andoza (x o'rniga kod nuqtasi bitlari)</th><th>Nima sig'adi</th></tr></thead>
+  <tbody>
+    <tr><td class="num">U+0000 – U+007F</td><td class="num">1</td><td class="num">0xxxxxxx</td><td>ASCII: lotin harflari, raqamlar</td></tr>
+    <tr><td class="num">U+0080 – U+07FF</td><td class="num">2</td><td class="num">110xxxxx 10xxxxxx</td><td>kirill, yunon, arab, ibroniy</td></tr>
+    <tr><td class="num">U+0800 – U+FFFF</td><td class="num">3</td><td class="num">1110xxxx 10xxxxxx 10xxxxxx</td><td>xitoy, yapon, koreys, ko'p belgilar</td></tr>
+    <tr><td class="num">U+10000 – U+10FFFF</td><td class="num">4</td><td class="num">11110xxx 10xxxxxx 10xxxxxx 10xxxxxx</td><td>emoji, kam uchraydigan yozuvlar</td></tr>
+  </tbody>
+</table>
+</div>
+<p>Birinchi baytning boshidagi birliklar soni belgining necha baytligini aytadi. Davomiy baytlar doim <span class="num">10</span> bilan boshlanadi. Pastdagi chizmada belgini tanlang va uning bitlari andozaga qanday joylashishini ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="u8" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Kod nuqtasining bitlari UTF-8 andozasidagi bo'sh o'rinlarga joylashadi"></svg>
+  </div>
+  <figcaption>Chapda belgi va uning kod nuqtasi ikkilikda. O'ngda UTF-8 baytlari: har birida andoza, to'ldirilgan bitlar va o'n oltilik yozuvi.</figcaption>
+  <div class="slider">
+    <label for="u8C">Belgi:</label>
+    <input class="numin" id="u8C" type="text" value="ў" style="width:5rem">
+    <button type="button" data-u8="A">A</button>
+    <button type="button" data-u8="ў">ў</button>
+    <button type="button" data-u8="€">€</button>
+    <button type="button" data-u8="😀">😀</button>
+  </div>
+  <p class="say" id="u8Say" aria-live="polite"></p>
+</figure>
+
+<p>Bu tuzilish tasodifiy emas, undan uchta foydali xususiyat chiqadi:</p>
+<ul class="pain">
+  <li><strong>ASCII bilan to'liq mos.</strong> Faqat lotin harflaridan iborat matn UTF-8 da va ASCII da bir xil baytlar. Eski dasturlar va protokollar o'zgarishsiz ishlayveradi. UTF-8 ning g'alabasiga asosan shu sabab bo'lgan.</li>
+  <li><strong>O'z-o'zini tiklaydi.</strong> Oqimning o'rtasidan o'qishni boshlasangiz yoki bitta bayt yo'qolsa, <span class="num">10</span> bilan boshlanmaydigan birinchi baytgacha o'tkazib yuborasiz va keyingi belgidan to'g'ri davom etasiz. Faqat bitta belgi yo'qoladi, qolgan matn emas.</li>
+  <li><strong>Baytlar tartibi muammosi yo'q.</strong> UTF-16 va UTF-32 da ko'p baytli birlikning baytlari qaysi tartibda yozilishi mashinaga bog'liq, va buni faylning boshida maxsus belgi bilan ko'rsatish kerak. UTF-8 bayt ketma-ketligi, unda bunday savol yo'q.</li>
+</ul>
+
+<p class="beat">Java va Kotlin ichida: UTF-16</p>
+<p>Java 1995-yilda yaratilganda Unicode 65 536 ta o'rindan iborat edi va 16 bitga to'liq sig'ar edi. Shuning uchun Java'da <span class="num">char</span> 16 bit qilib olingan, va <span class="num">String</span> shunday 16 bitli birliklar ketma-ketligi. Bu UTF-16.</p>
+<p>Bir yil o'tib Unicode kengaydi: 65 536 ta o'rin yetmasligi aniq bo'ldi. 16 bitga sig'maydigan belgilar uchun yechim topildi: ular ikkita 16 bitli birlik bilan yoziladi, bu <strong>surrogat juftlik</strong> deyiladi. Yuqoridagi chizmada «😀» ning UTF-16 ustunida ikkita birlik turgani shundan.</p>
+<p>Oqibati: Java va Kotlin'da <span class="num">length()</span> belgilar sonini emas, 16 bitli birliklar sonini qaytaradi. <span class="num">"😀".length()</span> bu 2. <span class="num">charAt</span>, <span class="num">substring</span> va indeks bo'yicha har qanday amal ham birliklar bilan ishlaydi, va surrogat juftlikni o'rtasidan kesib qo'yishi mumkin: natijada yaroqsiz yarim belgi qoladi. Haqiqiy belgilar bilan ishlash uchun <span class="num">codePointCount</span>, <span class="num">codePoints()</span> kabi metodlar bor.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Besh bitdan butun dunyo yozuvlarigacha</h3>
+<p>Harfni songa aylantirish kompyuterdan eski: telegraf davridan boshlangan. Har bosqichda o'rinlar soni oshgan, va har safar «endi hammaga yetadi» deb o'ylangan.</p>
+<div class="bench" id="evoText"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Belgi</dt>
+  <dd>Yozuvning bitta birligi: harf, raqam, tinish belgisi, emoji. Kompyuter uchun mavhum tushuncha: u faqat belgining raqamini saqlaydi.</dd>
+  <dt>Kodirovka</dt>
+  <dd>Belgilarni baytlarga va baytlarni belgilarga aylantirish qoidasi. Java'da <span class="num">Charset</span>.</dd>
+  <dt>ASCII</dt>
+  <dd>128 belgidan iborat birinchi keng tarqalgan jadval, 1963-yil. Faqat ingliz tili uchun yetarli.</dd>
+  <dt>Kod sahifasi</dt>
+  <dd>Baytning 128 dan 255 gacha bo'lgan o'rinlarini biror til harflari bilan to'ldirgan jadval: Windows-1251, KOI8-R va boshqalar.</dd>
+  <dt>Unicode</dt>
+  <dd>Dunyodagi barcha belgilarga yagona raqam beradigan standart. Raqamni beradi, lekin uni baytga qanday yozishni belgilamaydi.</dd>
+  <dt>Kod nuqtasi</dt>
+  <dd>Belgining Unicode'dagi raqami. <span class="num">U+0041</span> ko'rinishida yoziladi.</dd>
+  <dt>UTF-8</dt>
+  <dd>Kod nuqtasini birdan to'rttagacha baytga yozadigan kodirovka. ASCII bilan mos. Bugun fayllar, veb va tarmoq protokollarining amaldagi standarti.</dd>
+  <dt>UTF-16</dt>
+  <dd>Kod nuqtasini bir yoki ikkita 16 bitli birlikka yozadigan kodirovka. Java, Kotlin, JavaScript va Windows ichkarida shundan foydalanadi.</dd>
+  <dt>Surrogat juftlik</dt>
+  <dd>UTF-16 da 16 bitga sig'maydigan belgini ifodalaydigan ikki birlik. Alohida olingan har biri yaroqli belgi emas.</dd>
+  <dt>O'n oltilik yozuv (hex)</dt>
+  <dd>Sonni 16 ta belgi bilan yozish: 0–9 va A–F. Bitta bayt aynan ikkita o'n oltilik raqam. Kodda <span class="num">0x</span> bilan boshlanadi.</dd>
+  <dt>Yarim bayt (nibble)</dt>
+  <dd>To'rt bit. Bitta o'n oltilik raqamga teng.</dd>
+  <dt>Buzilgan matn (mojibake)</dt>
+  <dd>Baytlar bir kodirovkada yozilib, boshqasida o'qilganda chiqadigan ma'nosiz belgilar. So'z yaponchadan olingan.</dd>
+  <dt>O'rinbosar belgi</dt>
+  <dd>«�» belgisi, U+FFFD. O'quvchi baytlarni tanlangan kodirovkada hech qanday belgiga aylantira olmaganda uning o'rniga qo'yiladi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar va qoidalar</h3>
+
+<div class="rule">
+  <b>Qoida: kodirovkani har doim aniq ko'rsating</b>
+  <p>Java'da <span class="num">new String(baytlar)</span>, <span class="num">matn.getBytes()</span>, <span class="num">new FileReader(fayl)</span> kabi chaqiruvlarda kodirovka ko'rsatilmasa, tizimning sukut bo'yicha kodirovkasi ishlatiladi. Java 17 gacha u operatsion tizimga bog'liq edi: rus tilidagi Windows'da Windows-1251, Linux serverida odatda UTF-8. Dasturchi kompyuterida to'g'ri ishlagan kod serverda matnni buzadi, yoki aksincha.</p>
+  <p class="why">To'g'risi: <span class="num">new String(baytlar, StandardCharsets.UTF_8)</span> va <span class="num">matn.getBytes(StandardCharsets.UTF_8)</span>. Java 18 dan boshlab sukut bo'yicha kodirovka hamma joyda UTF-8, lekin eski versiyada ishlaydigan loyihalar hali ko'p, va aniq yozilgan kod har qanday versiyada bir xil ishlaydi.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: ustun uzunligi baytdami yoki belgida</b>
+  <p>Oracle'da <span class="num">VARCHAR2(10)</span> deb yozilsa, sukut bo'yicha bu 10 <em>bayt</em> degani, 10 belgi emas. Baza UTF-8 da ishlasa, har bir kirill harfi ikki bayt oladi. Demak, bu ustunga lotin yozuvida 10 ta harf, kirill yozuvida esa faqat 5 ta harf sig'adi. Oltinchi harfda <span class="num">ORA-12899: value too large for column</span> xatosi chiqadi.</p>
+</div>
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="ora" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Bir xil matn belgilar soni bo'yicha ustunga sig'adi, baytlar soni bo'yicha sig'maydi"></svg>
+  </div>
+  <figcaption>Chapda matn. O'rtada uning ikki xil o'lchami. O'ngda ikki xil e'lon qilingan ustun: biri baytda, biri belgida o'lchaydi.</figcaption>
+  <div class="slider">
+    <label for="oraT">Matn:</label>
+    <input class="numin" id="oraT" type="text" value="Sadulla" style="width:14rem">
+    <label for="oraN">Ustun uzunligi:</label>
+    <input class="numin" id="oraN" type="number" min="1" max="50" value="10" style="width:5rem">
+    <button type="button" data-ora="Sadulla">Sadulla</button>
+    <button type="button" data-ora="Садулла">Садулла</button>
+    <button type="button" data-ora="Oʻzbekiston">Oʻzbekiston</button>
+  </div>
+  <p class="say" id="oraSay" aria-live="polite"></p>
+</figure>
+<div class="rule">
+  <p>To'g'risi: ustunni <span class="num">VARCHAR2(10 CHAR)</span> deb e'lon qilish. Shunda uzunlik belgilarda o'lchanadi.</p>
+  <p class="why">Qayerda uchraydi: forma faqat lotin harflari bilan sinalgan, ishga tushgach birinchi kirill yozuvida ism kiritgan mijozda xato chiqadi. Xuddi shu hodisa Java tomonida ham bor: «50 belgidan oshmasin» degan tekshiruv <span class="num">length()</span> bilan qilinsa, u birliklarni sanaydi, baza esa baytlarni.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: bir xil ko'rinadigan har xil belgilar</b>
+  <p>Lotin «a» (U+0061) va kirill «а» (U+0430) ekranda bir xil, lekin ular ikki xil kod nuqtasi. «o» va «о», «c» va «с», «p» va «р» ham shunday. <span class="num">equals</span> ularni teng demaydi, qidiruv topmaydi.</p>
+  <p>O'zbek lotin yozuvida bu yanada keskin. «Oʻzbekiston» so'zidagi belgi rasman U+02BB, lekin amalda uning o'rniga to'rt-besh xil belgi yoziladi: oddiy apostrof <span class="num">'</span>, o'ng tirnoq <span class="num">’</span>, chap tirnoq <span class="num">‘</span>, teskari apostrof <span class="num">`</span>. Ekranda deyarli farq yo'q, baytlarda esa bular butunlay boshqa matnlar.</p>
+  <p class="why">Qayerda uchraydi: mijoz ismi bo'yicha qidiruv ishlamaydi, bir xil ko'ringan ikki yozuv dublikat deb topilmaydi, hujjatdagi ism bilan bazadagi ism «mos kelmaydi». Yechim: matnni saqlashdan oldin bitta ko'rinishga keltirish, ya'ni barcha variantlarni bitta tanlangan belgiga almashtirish.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: bitta belgi SMS narxini ikki baravar qiladi</b>
+  <p>SMS ikki xil kodirovkada yuboriladi. Matn faqat oddiy lotin harflari va asosiy belgilardan iborat bo'lsa, 7 bitli kodirovka ishlatiladi va bitta xabarga 160 belgi sig'adi. Matnda shu to'plamga kirmaydigan bitta belgi bo'lsa ham, butun xabar 16 bitli kodirovkaga o'tadi va sig'im 70 belgiga tushadi.</p>
+  <p class="why">Kirill harflari, «ʻ» (U+02BB) va «’» tirnoqlari shu to'plamga kirmaydi, oddiy apostrof <span class="num">'</span> esa kiradi. 100 belgili bildirishnomada bitta «ʻ» uni bir xabardan ikki xabarga aylantiradi. Kuniga millionlab SMS yuboradigan tizimda bu sezilarli xarajat.</p>
+</div>
+
+<div class="rule">
+  <b>Buzilgan matnni tanib olish</b>
+  <p>Belgilarning ko'rinishi sababni aytib beradi:</p>
+  <div class="scroll">
+  <table>
+    <thead><tr><th>Ekranda</th><th>Sababi</th><th>Tuzatsa bo'ladimi</th></tr></thead>
+    <tbody>
+      <tr><td class="num">РЎР°Р»РѕРј</td><td>UTF-8 da yozilgan, Windows-1251 da o'qilgan</td><td>Ha: baytlar butun, to'g'ri kodirovkada qayta o'qiladi</td></tr>
+      <tr><td class="num">Ð¡Ð°Ð»Ð¾Ð¼</td><td>UTF-8 da yozilgan, Windows-1252 yoki Latin-1 da o'qilgan</td><td>Ha</td></tr>
+      <tr><td class="num">�����</td><td>Bir baytli kodirovkada yozilgan, UTF-8 da o'qilgan</td><td>Asl baytlar saqlangan bo'lsa ha. O'rinbosar belgi bilan qayta saqlangan bo'lsa yo'q</td></tr>
+      <tr><td class="num">?????</td><td>Matn o'sha harflari bo'lmagan kodirovkaga yozilgan, masalan kirill matn Latin-1 ga</td><td>Yo'q: harflar yozish paytida so'roq belgisiga almashtirilgan, ma'lumot yo'qolgan</td></tr>
+    </tbody>
+  </table>
+  </div>
+  <p class="why">Oxirgi qator eng xavflisi. Dastlabki uchtasida xato o'qishda, va baytlar joyida. To'rtinchisida xato yozishda: bazaga so'roq belgilarining o'zi tushgan, va asl ismni qaytarib bo'lmaydi.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: har bir chegarada kodirovka kelishilgan bo'lsin</b>
+  <p>Matn tizimlar orasidan o'tganda har bir o'tish joyida baytga aylanadi va qaytadan matnga aylanadi: mobil ilova, HTTP so'rov, server, bazaga ulanish, bazaning o'zi, log fayl. Zanjirning bitta halqasi boshqa kodirovkada bo'lsa, matn buziladi.</p>
+  <p class="why">Tekshiriladigan joylar: HTTP sarlavhasidagi <span class="num">Content-Type: application/json; charset=utf-8</span>, bazaning kodirovkasi (Oracle'da <span class="num">AL32UTF8</span>), bazaga ulanish sozlamalari, fayl o'qish va yozishdagi kodirovka, loglar yoziladigan muhit. Hammasida UTF-8 bo'lsa, bu sinf xatolar yo'qoladi.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> 77 sonini o'n oltilikda yozing: avval ikkilikda, keyin to'rt bitdan ajratib. Chizmada tekshiring. Keyin <span class="num">0x3F</span> qaysi o'nlik son ekanini toping.</li>
+  <li><strong>Buzilgan matn chizmasida.</strong> «Банк» so'zini UTF-8 da yozib, Windows-1251 da o'qing. Hosil bo'lgan yozuvni eslab qoling: uni ishda uchratsangiz, sababini darhol bilasiz. Keyin Windows-1251 da yozib, UTF-8 da o'qing.</li>
+  <li><strong>UTF-8 chizmasida.</strong> O'z ismingizning birinchi harfini kirill yozuvida kiriting. U necha bayt va qaysi andozaga tushdi?</li>
+  <li><strong>Kodda.</strong> Bajaring va har bir natijani tushuntiring:
+    <pre class="code" style="margin-top:0.5rem">String s = "Aў€😀";
+System.out.println(s.length());
+System.out.println(s.codePointCount(0, s.length()));
+System.out.println(s.getBytes(StandardCharsets.UTF_8).length);
+System.out.println(s.getBytes(StandardCharsets.UTF_16BE).length);
+System.out.println("a".equals("а"));   // biri lotin, biri kirill
+System.out.println(new String("Салом".getBytes(StandardCharsets.UTF_8), Charset.forName("windows-1251")));
+System.out.println(new String("Салом".getBytes(StandardCharsets.ISO_8859_1), StandardCharsets.UTF_8));</pre>
+  </li>
+  <li><strong>O'z ishingizda.</strong> Loyihangizda <span class="num">getBytes()</span> va <span class="num">new String(</span> ni qidiring: nechta joyda kodirovka ko'rsatilmagan? Bazada mijoz ismi turadigan ustun qanday e'lon qilingan: <span class="num">BYTE</span> mi yoki <span class="num">CHAR</span>? Mijozlarga yuboriladigan SMS matnlarida «ʻ» yoki kirill harfi bormi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga o'z so'zingiz bilan yozing.</p>
+<ol class="check">
+  <li>Belgi, kod nuqtasi va bayt: bu uch tushunchaning farqini «ў» harfi misolida tushuntiring.</li>
+  <li>Unicode bilan UTF-8 ning farqi nima? Nega ikkalasi ham kerak?</li>
+  <li>UTF-8 da o'quvchi navbatdagi belgi necha baytdan iboratligini qayerdan biladi?</li>
+  <li>Mijoz shikoyat qildi: ilovada uning ismi «РЎР°РґСѓР»Р»Р°» bo'lib ko'rinyapti. Nima bo'lgan va ma'lumot yo'qolganmi?</li>
+  <li>Ro'yxatdan o'tish formasida ism 20 belgi bilan cheklangan, bazadagi ustun <span class="num">VARCHAR2(20)</span>. Sinovda hammasi ishlagan. Ishga tushgach, ayrim mijozlar ro'yxatdan o'ta olmayapti. Sababi nima va qanday tuzatiladi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Bitta harf ikki xil yozilishi mumkinmi?</summary>
+  <p>Ha, va bu yana bir tuzoq. «é» harfini Unicode'da ikki usulda yozish mumkin: tayyor bitta belgi sifatida (U+00E9), yoki oddiy «e» va undan keyin keladigan urg'u belgisi sifatida (U+0065 va U+0301). Ekranda ikkalasi aynan bir xil, baytlarda har xil, <span class="num">equals</span> yolg'on qaytaradi. Buning yechimi me'yorlashtirish: matn solishtirishdan oldin bitta shaklga keltiriladi. Java'da <span class="num">java.text.Normalizer</span>, eng ko'p ishlatiladigan shakl NFC, ya'ni iloji boricha tayyor belgilar. Fayl nomlari va login bilan ishlashda bu muhim.</p>
+</details>
+<details>
+  <summary>BOM nima?</summary>
+  <p>Bayt tartibi belgisi: faylning eng boshiga qo'yiladigan ko'rinmas U+FEFF belgisi. UTF-16 da u baytlar qaysi tartibda yozilganini bildiradi. UTF-8 da tartib muammosi yo'q, lekin ba'zi Windows dasturlari uni baribir qo'yadi: fayl boshida <span class="num">EF BB BF</span> baytlari paydo bo'ladi. Oqibati: CSV faylining birinchi ustuni nomi «topilmaydi», JSON «noto'g'ri», skript birinchi qatorida xato beradi, chunki birinchi so'z oldida ko'rinmas belgi turibdi.</p>
+</details>
+<details>
+  <summary>Java String ichkarida hali ham UTF-16 mi?</summary>
+  <p>Tashqi ko'rinishi ha: <span class="num">length()</span> va <span class="num">charAt</span> 16 bitli birliklar bilan ishlaydi. Lekin Java 9 dan boshlab ichki saqlash o'zgargan. Agar satrdagi barcha belgilar bir baytga sig'sa (Latin-1 oralig'i), u har belgiga bir bayt sarflab saqlanadi, aks holda ikki bayt. Bu «ixcham satrlar» deyiladi va ko'p ilovalarda xotirani sezilarli tejaydi, chunki satrlarning katta qismi lotin harflaridan iborat: kalitlar, manzillar, kodlar. Dasturchi uchun hech narsa o'zgarmaydi.</p>
+</details>
+<details>
+  <summary>Surrogat juftlik qanday hisoblanadi?</summary>
+  <p>Unicode jadvalida U+D800 dan U+DFFF gacha bo'lgan oraliq hech qanday belgiga berilmagan, u aynan shu maqsadga ajratilgan. 16 bitga sig'maydigan kod nuqtasidan 0x10000 ayiriladi, qolgan 20 bit ikkiga bo'linadi: yuqori o'n biti 0xD800 ga, pastki o'n biti 0xDC00 ga qo'shiladi. «😀» uchun bu D83D va DE00. Birinchi birlik doim D800–DBFF oralig'ida, ikkinchisi DC00–DFFF oralig'ida, shuning uchun ularni adashtirib bo'lmaydi.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>Unicode standarti va uning jadvallari: unicode.org. UTF-8 ning ta'rifi: RFC 3629. UTF-8 qanday yaratilgani haqida Rob Pike'ning xotirasi: «UTF-8 history». Java'da sukut bo'yicha UTF-8: JEP 400. Ixcham satrlar: JEP 254. Joel Spolsky, «The Absolute Minimum Every Software Developer Absolutely, Positively Must Know About Unicode and Character Sets», 2003.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Harf, uning Unicode'dagi raqami va uning baytlari uch xil narsa. Unicode raqamni beradi, UTF-8 uni baytlarga yozadi. UTF-8 da belgi birdan to'rt baytgacha, va birinchi bayt uzunlikni aytadi. Java ichkarida UTF-16, shuning uchun <span class="num">length()</span> belgilar soni emas. Buzilgan matn noto'g'ri kodirovkada o'qilgan to'g'ri baytlardir.</p>
+  <p><strong>Shu bilan baytni o'qishning to'rt usuli tugadi:</strong> ishorasiz son, ishorali son, kasr son, harf. Keyingi darsda bitta baytdan milliardlab baytga o'tamiz.</p>
+  <p><strong>Keyingi dars.</strong> Xotira: RAM va disk. Baytlar qayerda turadi, ular qanday topiladi, va nega xotira ikki xil.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="03-kasr-sonlar.html">Oldingi: 3. Kasr sonlar</a><span class="dim">Keyingi: 5. Xotira: RAM va disk (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'long balans = 3_000_000_000L;', link: 'ishga tushganda JVM bajaradi' },
+    { title: 'JVM', sub: 'O\'zgaruvchi uchun joy ajratadi', ex: 'long turi: 64 bit kerak', link: 'joyni xotiradan oladi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: '64 bit = yonma-yon 8 ta bayt', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [3], 'Bayt: bitlar harf sifatida');
+</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function hex2(n) { return ('0' + n.toString(16).toUpperCase()).slice(-2); }
+  function bin(n, w) { var s = n.toString(2); while (s.length < w) s = '0' + s; return s; }
+  function cps(str) { return Array.from(str); }
+  function utf8(str) { return Array.from(new TextEncoder().encode(str)); }
+  function uplus(cp) { var h = cp.toString(16).toUpperCase(); while (h.length < 4) h = '0' + h; return 'U+' + h; }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function flow(svg, id, x1, x2, y, label) { S(svg, 'line', { x1: x1, y1: y, x2: x2, y2: y, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); S(svg, 'text', { x: (x1 + x2) / 2, y: y - 10, 'text-anchor': 'middle', 'class': 'lbl' }, label); }
+
+  // ---------- 1. ASCII ----------
+  (function () {
+    var svg = $('asc'), inp = $('ascC');
+    function draw() {
+      var ch = cps(inp.value)[0]; svg.textContent = '';
+      var say = $('ascSay');
+      if (ch === undefined) { say.textContent = 'Bitta belgi kiriting.'; say.className = 'say'; return; }
+      marker(svg, 'ascmk');
+      var cp = ch.codePointAt(0), ok = cp < 128;
+      box(svg, 30, 50, 260, 130, 'Belgi', 'Odam ko\'radigan narsa');
+      S(svg, 'text', { x: 46, y: 152, 'class': 'big' }, ch === ' ' ? '(bo\'sh joy)' : ch);
+      box(svg, 470, 50, 300, 130, 'ASCII jadvalidagi raqami', ok ? '128 ta o\'rindan biri' : 'Jadvalda 128 ta o\'rin bor', ok ? 'on' : 'bad');
+      S(svg, 'text', { x: 486, y: 152, 'class': ok ? 'big' : 'val' }, ok ? String(cp) : 'bu belgi yo\'q');
+      box(svg, 950, 50, 270, 130, 'Xotiradagi bayt', ok ? 'Shu raqamning sakkiz biti' : 'Saqlab bo\'lmaydi', ok ? 'on' : '');
+      S(svg, 'text', { x: 966, y: 152, 'class': 'big' }, ok ? bin(cp, 8) : '?');
+      flow(svg, 'ascmk', 290, 468, 115, 'jadvaldan qidiriladi');
+      flow(svg, 'ascmk', 770, 948, 115, 'ikkilikda yoziladi');
+      if (!ok) { say.textContent = '«' + ch + '» ASCII da yo\'q. Jadvalda faqat lotin harflari, raqamlar va tinish belgilari bor. Bu belgining Unicode\'dagi raqami ' + cp + ', u 127 dan katta.'; say.className = 'say bad'; }
+      else if (ch >= '0' && ch <= '9') { say.textContent = '«' + ch + '» belgisining raqami ' + cp + '. Bu ' + ch + ' sonining o\'zi emas: matndagi raqam va hisoblashdagi son har xil saqlanadi. Belgidan son olish uchun 48 ayiriladi, chunki «0» ning raqami 48.'; say.className = 'say'; }
+      else if (ch >= 'a' && ch <= 'z') { say.textContent = 'Kichik «' + ch + '» ning raqami ' + cp + ', katta «' + ch.toUpperCase() + '» niki ' + (cp - 32) + '. Farq aynan 32, ya\'ni bitta bit. Katta-kichik harfni almashtirish bitta kalitni bosish.'; say.className = 'say'; }
+      else if (ch === ' ') { say.textContent = 'Bo\'sh joyning raqami 32. Bo\'sh joy ham belgi: ekranda ko\'rinmaydi, lekin xotirada bitta bayt egallaydi.'; say.className = 'say'; }
+      else if (ch >= 'A' && ch <= 'Z') { say.textContent = 'Katta «' + ch + '» ning raqami ' + cp + ', kichik «' + ch.toLowerCase() + '» niki ' + (cp + 32) + '. Farq aynan 32, ya\'ni bitta bit. Harflar jadvalda alifbo tartibida ketma-ket turadi, shuning uchun matnni saralash raqamlarni solishtirishdan iborat.'; say.className = 'say'; }
+      else { say.textContent = '«' + ch + '» ning raqami ' + cp + '. Tinish belgilari ham jadvalda o\'z raqamiga ega.'; say.className = 'say'; }
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-asc]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-asc'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 2. Buzilgan matn ----------
+  (function () {
+    var svg = $('moji'), WORDS = ['Салом', 'Банк', 'Рахмат'], st = { w: 0, enc: 2, dec: 0 };
+    var KL = 'юабцдефгхийклмнопярстужвьызшэщчъ', KU = 'ЮАБЦДЕФГХИЙКЛМНОПЯРСТУЖВЬЫЗШЭЩЧЪ';
+    var ENC = [
+      { n: 'Windows-1251', f: function (s) { return cps(s).map(function (c) { return 0xC0 + (c.codePointAt(0) - 0x410); }); } },
+      { n: 'KOI8-R', f: function (s) { return cps(s).map(function (c) { var i = KL.indexOf(c); return i >= 0 ? 0xC0 + i : 0xE0 + KU.indexOf(c); }); } },
+      { n: 'UTF-8', f: utf8 }
+    ];
+    var DEC = [{ n: 'Windows-1251', l: 'windows-1251' }, { n: 'KOI8-R', l: 'koi8-r' }, { n: 'Windows-1252', l: 'windows-1252' }, { n: 'UTF-8', l: 'utf-8' }];
+    var s1 = tabs('mjWord', WORDS, function (i) { st.w = i; draw(); });
+    var s2 = tabs('mjW', ENC.map(function (e) { return e.n; }), function (i) { st.enc = i; draw(); });
+    var s3 = tabs('mjR', DEC.map(function (e) { return e.n; }), function (i) { st.dec = i; draw(); });
+    function draw() {
+      s1(st.w); s2(st.enc); s3(st.dec);
+      var word = WORDS[st.w], bytes = ENC[st.enc].f(word), out = new TextDecoder(DEC[st.dec].l).decode(new Uint8Array(bytes)), ok = out === word;
+      out = out.replace(/[\u0000-\u001f\u007f-\u009f ­]/g, '·');
+      svg.textContent = ''; marker(svg, 'mjmk');
+      box(svg, 20, 60, 270, 170, 'Yozuvchi', 'Kodirovkasi: ' + ENC[st.enc].n);
+      S(svg, 'text', { x: 36, y: 170, 'class': 'big' }, word);
+      box(svg, 430, 60, 380, 170, 'Baytlar', bytes.length + ' ta bayt, o\'n oltilikda', 'on');
+      var hx = bytes.map(hex2).join(' ');
+      for (var i = 0, r = 0; i < hx.length; i += 30, r++) S(svg, 'text', { x: 446, y: 150 + r * 26, 'class': 'val' }, hx.slice(i, i + 30));
+      box(svg, 950, 60, 270, 170, 'O\'quvchi', 'Kodirovkasi: ' + DEC[st.dec].n, ok ? 'on' : 'bad');
+      S(svg, 'text', { x: 966, y: 166, 'class': out.length > 8 ? 'val' : 'big' }, out.slice(0, 14));
+      if (out.length > 14) S(svg, 'text', { x: 966, y: 194, 'class': 'val' }, out.slice(14));
+      flow(svg, 'mjmk', 290, 428, 145, 'baytga aylantiradi');
+      flow(svg, 'mjmk', 810, 948, 145, 'harfga aylantiradi');
+      S(svg, 'text', { x: 620, y: 270, 'text-anchor': 'middle', 'class': 'sub' }, 'Fayl yoki tarmoq: bu yerda faqat baytlar bor, ular qaysi jadvalda yozilgani haqida belgi yo\'q');
+      var say = $('mjSay');
+      if (ok) say.textContent = 'Yozuvchi va o\'quvchi bir xil kelishuvdan foydalandi: matn to\'g\'ri chiqdi.';
+      else if (st.enc === 2 && st.dec === 0) say.textContent = 'Klassik holat. UTF-8 da har bir kirill harfi ikki bayt, birinchisi D0 yoki D1. Windows-1251 har baytni alohida harf deb o\'qiydi, D0 esa unda «Р», D1 «С». Shuning uchun natijada «Р» va «С» har ikkinchi o\'rinda takrorlanadi.';
+      else if (st.enc === 2 && st.dec === 2) say.textContent = 'UTF-8 baytlari G\'arbiy Yevropa jadvalida o\'qildi. D0 unda «Ð», D1 «Ñ». Bu naqsh ham tanib olish oson: har ikkinchi belgi «Ð» yoki «Ñ».';
+      else if (st.dec === 3) say.textContent = 'Bir baytli kodirovkada yozilgan baytlar UTF-8 qoidalariga to\'g\'ri kelmadi: C0 dan katta bayt ko\'p baytli belgining boshi bo\'lishi kerak, undan keyin esa davomiy bayt kelmadi. O\'quvchi tushunmagan har bir joyga «�» o\'rinbosar belgisini qo\'ydi.';
+      else say.textContent = 'Baytlar o\'sha, jadval boshqa. Har bir bayt o\'quvchining jadvalidagi butunlay boshqa harfga to\'g\'ri keldi. Harflar soni saqlangan, ma\'no yo\'qolgan.';
+      say.className = ok ? 'say' : 'say bad';
+    }
+    draw();
+  })();
+
+  // ---------- 3. O'n oltilik ----------
+  (function () {
+    var svg = $('hx'), inp = $('hxN'), D = '0123456789ABCDEF';
+    function draw() {
+      var n = parseInt(inp.value, 10); if (isNaN(n)) n = 0; n = Math.max(0, Math.min(255, n));
+      var b = bin(n, 8), hi = n >> 4, lo = n & 15;
+      svg.textContent = ''; marker(svg, 'hxmk');
+      [[0, 'Yuqori yarim bayt', hi], [1, 'Pastki yarim bayt', lo]].forEach(function (g) {
+        var x0 = 30 + g[0] * 400;
+        group(svg, x0, 30, 370, 280, g[1]);
+        for (var i = 0; i < 4; i++) {
+          var bit = b[g[0] * 4 + i], x = x0 + 22 + i * 84;
+          S(svg, 'rect', { x: x, y: 74, width: 74, height: 96, rx: 5, 'class': 'box' + (bit === '1' ? ' live' : '') });
+          S(svg, 'text', { x: x + 37, y: 98, 'text-anchor': 'middle', 'class': 'sub' }, 'vazni ' + [8, 4, 2, 1][i]);
+          S(svg, 'text', { x: x + 37, y: 146, 'text-anchor': 'middle', 'class': 'big' }, bit);
+        }
+        S(svg, 'text', { x: x0 + 22, y: 210, 'class': 'sub' }, 'To\'rt bitning qiymati: ' + g[2]);
+        S(svg, 'text', { x: x0 + 22, y: 240, 'class': 'sub' }, 'O\'n oltilik belgisi:');
+        S(svg, 'text', { x: x0 + 180, y: 282, 'class': 'big', 'style': 'font-size:52px' }, D[g[2]]);
+      });
+      box(svg, 900, 50, 320, 240, 'Bitta bayt, uch xil yozuv', 'Qiymat bir xil, yozilishi boshqa', 'on');
+      S(svg, 'text', { x: 916, y: 140, 'class': 'sub' }, 'Ikkilik:'); S(svg, 'text', { x: 1040, y: 141, 'class': 'val' }, b.slice(0, 4) + ' ' + b.slice(4));
+      S(svg, 'text', { x: 916, y: 190, 'class': 'sub' }, 'O\'n oltilik:'); S(svg, 'text', { x: 1040, y: 191, 'class': 'val' }, '0x' + D[hi] + D[lo]);
+      S(svg, 'text', { x: 916, y: 240, 'class': 'sub' }, 'O\'nlik:'); S(svg, 'text', { x: 1040, y: 241, 'class': 'val' }, String(n));
+      flow(svg, 'hxmk', 802, 898, 170, 'birga');
+      var say = $('hxSay');
+      say.textContent = (hi > 9 || lo > 9 ? '9 dan katta qiymat uchun harf ishlatiladi: 10 bu A, 11 bu B, 12 bu C, 13 bu D, 14 bu E, 15 bu F. ' : '') + 'Tekshiruv: ' + hi + ' × 16 + ' + lo + ' = ' + n + '.' + (n === 255 ? ' Sakkizta bit ham yoniq: 0xFF.' : '') + (n === 16 ? ' 0x10 o\'n olti degani, o\'n emas.' : '') + (n === 10 ? ' O\'nlikdagi 10 o\'n oltilikda bitta belgi: A.' : '');
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-hx]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-hx'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 4. Unicode jadvali ----------
+  (function () {
+    var svg = $('uni'), inp = $('uniT');
+    function draw() {
+      var list = cps(inp.value).slice(0, 6), H = 110 + list.length * 78 + 130, say = $('uniSay');
+      svg.textContent = ''; svg.setAttribute('viewBox', '0 0 1240 ' + H); svg.style.width = '1240px'; svg.style.height = H + 'px';
+      if (!list.length) { say.textContent = 'Kamida bitta belgi kiriting.'; return; }
+      marker(svg, 'unmk');
+      var Y0 = 70, hh = 78 * list.length + 30;
+      group(svg, 20, 30, 150, hh + 30, 'Belgi');
+      group(svg, 250, 30, 250, hh + 30, 'Unicode: kod nuqtasi');
+      group(svg, 580, 30, 300, hh + 30, 'UTF-8: baytlar');
+      group(svg, 960, 30, 260, hh + 30, 'UTF-16: birliklar');
+      var tb = 0, tu = 0;
+      list.forEach(function (ch, i) {
+        var y = Y0 + i * 78, cp = ch.codePointAt(0), b = utf8(ch), u = [];
+        for (var k = 0; k < ch.length; k++) u.push(('000' + ch.charCodeAt(k).toString(16).toUpperCase()).slice(-4));
+        tb += b.length; tu += u.length;
+        S(svg, 'rect', { x: 40, y: y, width: 110, height: 62, rx: 5, 'class': 'box' });
+        S(svg, 'text', { x: 95, y: y + 43, 'text-anchor': 'middle', 'class': 'big' }, ch);
+        S(svg, 'rect', { x: 270, y: y, width: 210, height: 62, rx: 5, 'class': 'box on' });
+        S(svg, 'text', { x: 286, y: y + 27, 'class': 'val' }, uplus(cp));
+        S(svg, 'text', { x: 286, y: y + 48, 'class': 'sub' }, 'o\'nlikda ' + cp);
+        S(svg, 'rect', { x: 600, y: y, width: 260, height: 62, rx: 5, 'class': 'box' + (b.length > 1 ? ' live' : '') });
+        S(svg, 'text', { x: 616, y: y + 27, 'class': 'val' }, b.map(hex2).join(' '));
+        S(svg, 'text', { x: 616, y: y + 48, 'class': 'sub' }, b.length + ' bayt');
+        S(svg, 'rect', { x: 980, y: y, width: 220, height: 62, rx: 5, 'class': 'box' + (u.length > 1 ? ' bad' : '') });
+        S(svg, 'text', { x: 996, y: y + 27, 'class': 'val' }, u.join(' '));
+        S(svg, 'text', { x: 996, y: y + 48, 'class': 'sub' }, u.length + ' birlik' + (u.length > 1 ? ': surrogat juftlik' : ''));
+        [[150, 268], [480, 598], [860, 978]].forEach(function (p) { S(svg, 'line', { x1: p[0], y1: y + 31, x2: p[1], y2: y + 31, 'class': 'arr', 'marker-end': 'url(#unmk)' }); });
+      });
+      var by = Y0 + hh + 30;
+      [[20, 'Belgilar soni', 'Odam sanaganda', list.length, 'on'], [430, 'Java\'da length()', 'UTF-16 birliklari soni', tu, tu !== list.length ? 'bad' : 'on'], [840, 'UTF-8 da baytlar', 'Fayl, tarmoq va bazadagi hajmi', tb, tb !== list.length ? 'live' : 'on']].forEach(function (c) {
+        box(svg, c[0], by, 380, 96, c[1], c[2], c[4]);
+        S(svg, 'text', { x: c[0] + 310, y: by + 62, 'class': 'big' }, String(c[3]));
+      });
+      if (tb === list.length) say.textContent = 'Faqat ASCII belgilar: uchala son bir xil. Aynan shuning uchun lotin harflari bilan sinalgan kod muammoni ko\'rsatmaydi.';
+      else if (tu === list.length) say.textContent = list.length + ' ta belgi, lekin ' + tb + ' bayt. Java\'dagi length() belgilar soniga mos, chunki hamma belgi 16 bitga sig\'adi. Bayt soni esa boshqa: bazadagi ustun yoki tarmoq paketi uchun shu son muhim.';
+      else say.textContent = 'Uch xil son: ' + list.length + ' belgi, length() ' + tu + ' qaytaradi, baytlar ' + tb + ' ta. 16 bitga sig\'maydigan belgi ikki birlik oldi. Bunday satrni length() bo\'yicha kesish belgini o\'rtasidan bo\'lib qo\'yishi mumkin.';
+      say.className = tu !== list.length ? 'say bad' : 'say';
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-uni]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-uni'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 5. UTF-8 andozasi ----------
+  (function () {
+    var svg = $('u8'), inp = $('u8C');
+    var TPL = [['0xxxxxxx'], ['110xxxxx', '10xxxxxx'], ['1110xxxx', '10xxxxxx', '10xxxxxx'], ['11110xxx', '10xxxxxx', '10xxxxxx', '10xxxxxx']];
+    function draw() {
+      var ch = cps(inp.value)[0], say = $('u8Say'); svg.textContent = '';
+      if (ch === undefined) { say.textContent = 'Bitta belgi kiriting.'; return; }
+      marker(svg, 'u8mk');
+      var cp = ch.codePointAt(0), b = utf8(ch), n = b.length, tpl = TPL[n - 1], pay = [7, 11, 16, 21][n - 1], bits = bin(cp, pay);
+      box(svg, 20, 50, 330, 240, 'Belgi va kod nuqtasi', uplus(cp) + ', o\'nlikda ' + cp, 'on');
+      S(svg, 'text', { x: 36, y: 150, 'class': 'big', style: 'font-size:48px' }, ch);
+      S(svg, 'text', { x: 36, y: 200, 'class': 'sub' }, 'Ikkilikda, ' + pay + ' bitga to\'ldirilgan:');
+      S(svg, 'text', { x: 36, y: 228, 'class': 'mono' }, bits);
+      S(svg, 'text', { x: 36, y: 262, 'class': 'sub' }, n + ' baytli andoza tanlandi');
+      var w = n === 4 ? 180 : 200, x0 = 470, pos = 0;
+      group(svg, 450, 30, 770, 290, 'UTF-8 baytlari: ' + n + ' ta');
+      tpl.forEach(function (t, i) {
+        var x = x0 + i * (w + 8), k = (t.match(/x/g) || []).length, fill = bits.slice(pos, pos + k); pos += k;
+        var pre = t.replace(/x/g, '');
+        S(svg, 'rect', { x: x, y: 76, width: w, height: 224, rx: 5, 'class': 'box' + (i === 0 ? ' live' : '') });
+        S(svg, 'text', { x: x + 14, y: 102, 'class': 'ttl' }, (i + 1) + '-bayt');
+        S(svg, 'text', { x: x + 14, y: 122, 'class': 'sub' }, i === 0 ? (n === 1 ? 'yagona bayt' : 'boshlovchi') : 'davomiy');
+        S(svg, 'text', { x: x + 14, y: 156, 'class': 'sub' }, 'andoza'); S(svg, 'text', { x: x + 14, y: 176, 'class': 'mono' }, t);
+        S(svg, 'text', { x: x + 14, y: 206, 'class': 'sub' }, 'belgi: ' + pre + ', yuk: ' + fill);
+        S(svg, 'text', { x: x + 14, y: 240, 'class': 'val' }, pre + fill);
+        S(svg, 'text', { x: x + 14, y: 280, 'class': 'big' }, hex2(b[i]));
+      });
+      flow(svg, 'u8mk', 350, 448, 170, 'bitlar joylashadi');
+      var why = n === 1 ? 'Kod nuqtasi 127 dan oshmaydi, yetti bit yetadi. Bayt 0 bilan boshlanadi va ASCII bilan aynan bir xil.' : n === 2 ? 'Kod nuqtasi 11 bitga sig\'adi. Birinchi bayt 110 bilan boshlanadi: «men ikki baytli belgining boshiman». Ikkinchisi 10 bilan: «men davomman».' : n === 3 ? 'Kod nuqtasi 16 bitgacha. Birinchi bayt 1110 bilan boshlanadi: uchta birlik emas, «uch baytli» degan belgi.' : 'Kod nuqtasi 16 bitga sig\'maydi. Birinchi bayt 11110 bilan boshlanadi, undan keyin uchta davomiy bayt. Java\'da shu belgi ikki char oladi.';
+      say.textContent = why;
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-u8]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-u8'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 6. Oracle: bayt va belgi ----------
+  (function () {
+    var svg = $('ora'), inp = $('oraT'), num = $('oraN');
+    function draw() {
+      var t = inp.value, n = parseInt(num.value, 10) || 1, c = cps(t).length, b = utf8(t).length, say = $('oraSay');
+      svg.textContent = ''; marker(svg, 'ormk');
+      box(svg, 20, 90, 300, 120, 'Kiritilgan matn', 'Baza UTF-8 da ishlaydi');
+      S(svg, 'text', { x: 36, y: 186, 'class': 'val' }, t.length > 24 ? t.slice(0, 24) : t);
+      box(svg, 440, 30, 280, 100, 'Belgilar soni', 'Foydalanuvchi ko\'radigan uzunlik', 'on'); S(svg, 'text', { x: 660, y: 112, 'class': 'big' }, String(c));
+      box(svg, 440, 170, 280, 100, 'Baytlar soni', 'UTF-8 da egallaydigan joy', b !== c ? 'live' : 'on'); S(svg, 'text', { x: 660, y: 252, 'class': 'big' }, String(b));
+      S(svg, 'path', { d: 'M320 150H380V80H438', 'class': 'arr', 'marker-end': 'url(#ormk)' });
+      S(svg, 'path', { d: 'M380 150V220H438', 'class': 'arr', 'marker-end': 'url(#ormk)' });
+      var okC = c <= n, okB = b <= n;
+      box(svg, 860, 30, 360, 100, 'VARCHAR2(' + n + ' CHAR)', okC ? 'Sig\'adi: ' + c + ' belgi, chegara ' + n : 'Sig\'maydi: ' + c + ' belgi, chegara ' + n, okC ? 'on' : 'bad');
+      box(svg, 860, 170, 360, 100, 'VARCHAR2(' + n + ') yoki VARCHAR2(' + n + ' BYTE)', okB ? 'Sig\'adi: ' + b + ' bayt, chegara ' + n : 'ORA-12899: ' + b + ' bayt, chegara ' + n, okB ? 'on' : 'bad');
+      flow(svg, 'ormk', 720, 858, 80, 'belgida o\'lchaydi');
+      flow(svg, 'ormk', 720, 858, 220, 'baytda o\'lchaydi');
+      if (okC && !okB) { say.textContent = 'Aynan shu holat xatoga olib keladi: matn ' + c + ' belgi, foydalanuvchi va forma uchun u chegaradan oshmagan. Lekin u ' + b + ' bayt, va baytda o\'lchaydigan ustunga sig\'maydi.'; say.className = 'say bad'; }
+      else if (okB) { say.textContent = b === c ? 'Har bir belgi bir bayt: ikkala ustun ham bir xil natija beradi. Lotin harflari bilan sinaganda farq ko\'rinmaydi.' : 'Hozircha ikkalasiga ham sig\'adi, lekin baytlar soni belgilardan ko\'p. Matn biroz uzaysa, baytli ustun birinchi bo\'lib to\'ladi.'; say.className = 'say'; }
+      else { say.textContent = 'Matn ikkala o\'lchovda ham chegaradan oshgan.'; say.className = 'say bad'; }
+    }
+    inp.addEventListener('input', draw); num.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ora]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-ora'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- Tarix ----------
+  window.evoStepper('evoText', [
+    {
+      name: `Telegraf kodlari`,
+      years: `1870–1950-yillar`,
+      art: `<circle cx="20" cy="50" r="5" class="lit"/><circle cx="40" cy="50" r="5"/><circle cx="60" cy="50" r="5" class="lit"/><circle cx="80" cy="50" r="5" class="lit"/><circle cx="100" cy="50" r="5"/><path d="M8 34h104M8 66h104"/>`,
+      how: `Teleprinterlar har bir harfni besh bitli kod bilan uzatgan: qog'oz lentadagi besh qator teshik. Besh bit atigi 32 ta o'rin beradi, shuning uchun «harflar» va «raqamlar» rejimlari orasida almashtiruvchi maxsus kod ishlatilgan.`,
+      better: `Morze alifbosidan farqli o'laroq, har bir belgi bir xil uzunlikda. Uni mashina o'zi yuborib, o'zi qabul qila oladi.`,
+      pain: `Kichik harflar yo'q, belgilar juda kam. Rejim almashtiruvchi kod yo'qolsa, undan keyingi butun matn noto'g'ri rejimda o'qiladi: harflar o'rniga raqamlar chiqadi.`,
+      ex: `Baudot kodi va uning davomchilari. Tarmoq tezligini o'lchaydigan «bod» birligi shu ixtirochining nomidan.`
+    },
+    {
+      name: `ASCII`,
+      years: `1963-yil`,
+      art: `<rect x="12" y="26" width="96" height="48" rx="4"/><path d="M26 62l10-26 10 26M30 54h12" class="acc"/><path d="M62 36v26M62 36h10a7 7 0 0 1 0 13H62M72 49a7 7 0 0 1 0 13H62"/>`,
+      how: `Yetti bit, 128 ta o'rin: katta va kichik lotin harflari, raqamlar, tinish belgilari va 33 ta boshqaruv belgisi. Jadval o'ylab tuzilgan: raqamlar ketma-ket, harflar alifbo tartibida, katta va kichik harf orasidagi farq bitta bit.`,
+      better: `Rejim almashtirish yo'q, har bir kod doim bitta belgi. Turli ishlab chiqaruvchilarning kompyuterlari birinchi marta bir-biri bilan matn almasha oldi.`,
+      pain: `Faqat ingliz tili. Hatto fransuz va nemis tillarining urg'uli harflari yo'q, boshqa alifbolar haqida gap ham yo'q.`,
+      ex: `AQSH standartlar qo'mitasi ishlab chiqqan. 1968-yilda AQSH hukumati barcha davlat kompyuterlari uni qo'llashi shartligini e'lon qilgan. Bugungi UTF-8 ning birinchi 128 ta o'rni aynan shu jadval.`
+    },
+    {
+      name: `Kod sahifalari`,
+      years: `1980–1990-yillar`,
+      art: `<rect x="10" y="20" width="44" height="26"/><rect x="66" y="20" width="44" height="26" class="lit"/><rect x="10" y="56" width="44" height="26" class="lit"/><rect x="66" y="56" width="44" height="26"/><path d="M54 33h12M54 69h12M32 46v10M88 46v10" class="acc" stroke-dasharray="3 4"/>`,
+      how: `Baytning sakkizinchi biti ishga solindi: 128 dan 255 gacha yana 128 ta o'rin. Pastki yarmi ASCII bo'lib qoldi, yuqori yarmini har bir til o'z harflari bilan to'ldirdi.`,
+      better: `Har bir mamlakat o'z tilida yoza oldi, va har bir belgi hamon bir bayt: eski dasturlar o'zgarishsiz ishladi.`,
+      pain: `Yuzlab bir-biriga zid jadval. Bir til uchun ham bir nechta raqobatchi: kirill uchun kamida beshta. Bitta hujjatda ikki tilni aralashtirib bo'lmaydi. Fayl qaysi jadvalda ekani hech qayerda yozilmagan. Xitoy va yapon yozuvlari uchun 128 ta o'rin umuman yetmaydi, ular uchun murakkab ko'p baytli sxemalar o'ylab topilgan.`,
+      ex: `Kirill uchun KOI8-R (Unix), CP866 (DOS), Windows-1251. G'arbiy Yevropa uchun ISO-8859-1 va Windows-1252.`
+    },
+    {
+      name: `Unicode`,
+      years: `1991-yil`,
+      art: `<circle cx="60" cy="50" r="34"/><path d="M26 50h68M60 16c-16 10-16 58 0 68M60 16c16 10 16 58 0 68" class="acc"/>`,
+      how: `Barcha yozuvlar uchun bitta jadval. Har bir belgiga yagona raqam, qaysi tilga tegishli bo'lishidan qat'i nazar. Dastlab 16 bit, ya'ni 65 536 ta o'rin rejalashtirilgan: «bu hamma tillarga yetadi» deb hisoblangan.`,
+      better: `Kod sahifalari orasidagi ziddiyat yo'qoldi. Bitta hujjatda istalgan tillar aralashishi mumkin.`,
+      pain: `Har bir belgi ikki bayt: ingliz tilidagi matn ikki baravar kattalashadi. Nol baytlar paydo bo'ladi, eski dasturlar esa nol baytni «satr tugadi» deb tushunadi. Eski fayllar va protokollar bilan mos emas. 1996-yilda 65 536 ta o'rin ham yetmasligi ma'lum bo'ldi, va jadval bir milliondan ortiq o'ringa kengaytirildi.`,
+      ex: `Xerox va Apple muhandislari boshlagan, keyin Unicode konsorsiumi tuzilgan. Java 1995-yilda aynan 16 bitli Unicode'ni tanlagan, char ning 16 bitligi shundan.`
+    },
+    {
+      name: `UTF-8`,
+      years: `1992-yil`,
+      art: `<rect x="10" y="38" width="20" height="24" class="lit"/><rect x="36" y="38" width="20" height="24"/><rect x="56" y="38" width="20" height="24"/><rect x="82" y="38" width="20" height="24" class="lit"/><path d="M14 30h12M40 30h32M86 30h12" class="acc"/>`,
+      how: `Kod nuqtasini o'zgaruvchan uzunlikda yozish: ASCII belgilar bir bayt, qolganlari ikki, uch yoki to'rt bayt. Har bir baytning boshidagi bitlar uning rolini aytadi. Shu darsning asosiy sxemasi.`,
+      better: `ASCII matn o'zgarishsiz UTF-8 matn bo'ladi. Nol baytlar yo'q. Eski dasturlarning ko'pi hech narsa o'zgartirmasdan ishlaydi. Ingliz matni kattalashmaydi.`,
+      pain: `Belgining uzunligi har xil, shuning uchun «n-belgiga sakrash» uchun matnni boshidan sanab chiqish kerak. Bayt soni va belgi soni bir xil emas, va bu yangi tur xatolarni tug'dirdi.`,
+      ex: `Ken Thompson va Rob Pike, Bell Labs. Bir kechki ovqat paytida, oshxona dasturxoniga chizib o'ylab topilgan va bir necha kun ichida Plan 9 operatsion tizimiga kiritilgan. Ken Thompson Unix'ning ham hammuallifi.`
+    },
+    {
+      name: `UTF-8 hamma joyda`,
+      years: `2008-yildan hozirgacha`,
+      art: `<rect x="14" y="18" width="92" height="64" rx="4"/><path d="M32 52l14 14 30-32" class="lit" style="fill:none;stroke-width:6"/>`,
+      how: `UTF-8 amaldagi yagona standartga aylandi: veb-sahifalar, JSON, tarmoq protokollari, Linux va macOS fayl tizimlari, dasturlash tillarining manba fayllari.`,
+      better: `Kodirovka tanlash masalasi deyarli yo'qoldi: yangi tizimda javob doim UTF-8.`,
+      pain: `Eski tizimlar va fayllar yo'qolmagan. Windows ichkarida va Java ichkarida hamon UTF-16. Eski bazalar va integratsiyalar kod sahifalarida. Shuning uchun chegaralarda aylantirish kerak, va xatolar aynan shu chegaralarda yashaydi.`,
+      ex: `2008-yilda UTF-8 vebda eng ko'p ishlatiladigan kodirovka bo'ldi, bugun veb-sahifalarning deyarli hammasi unda. JSON standarti UTF-8 ni talab qiladi. Java 18 dan (2022) sukut bo'yicha kodirovka operatsion tizimdan qat'i nazar UTF-8.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
