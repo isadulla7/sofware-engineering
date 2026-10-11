@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>6-dars. Protsessor</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>6-dars. Protsessor: registr, buyruq hisoblagichi, ish sikli</h1>
+<p class="lead">Savol: xotirada baytlar yotibdi, lekin ular o'zi hech narsa qilmaydi. Hisoblashni kim bajaradi, va u nima qilishni qayerdan biladi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Protsessor</strong> (inglizcha CPU) kompyuterning buyruqlarni bajaradigan qismi. U juda oddiy ishlarni qiladi: xotiradan sonni olish, ikki sonni qo'shish, natijani xotiraga yozish. Lekin bularni sekundiga milliardlab marta bajaradi.</p>
+    <p>Uning ichida bir nechta juda tez katak bor, ular <strong>registr</strong> deyiladi. Hisoblash faqat registrlarda bo'ladi.</p>
+    <p>Protsessor butun umri davomida bitta narsani takrorlaydi: navbatdagi buyruqni xotiradan oladi, nima ekanini aniqlaydi, bajaradi. Bu <strong>ish sikli</strong> deyiladi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Kodingizning har bir qatorida.</strong> Java'dagi <span class="num">a + b</span> oxir-oqibat protsessorning bir nechta buyrug'iga aylanadi.</li>
+      <li><strong>Ko'p oqimli dasturlarda.</strong> «Nega ikki oqim bir vaqtda hisobni o'zgartirsa, pul yo'qoladi» degan savolning javobi shu darsda.</li>
+      <li><strong>Tezlik haqidagi qarorlarda.</strong> Nega massiv bog'langan ro'yxatdan tez, nega serverda yadro soni muhim.</li>
+      <li><strong>Server tanlashda va kuzatishda.</strong> «4 yadro, 3 GHz», «protsessor yuklanishi 90%»: bu sonlar nimani bildiradi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>protsessor qaysi qismlardan iborat va har biri nima qiladi;</li>
+      <li>bitta buyruq qanday bosqichlardan o'tib bajariladi;</li>
+      <li>bitta Java qatori nega bir nechta qadam;</li>
+      <li>gigagers nima va nega u 2005-yildan beri deyarli o'smayapti;</li>
+      <li>kesh xotira nima va u nega kerak.</li>
+    </ul>
+    <p>Amaliy foydasi: «bu amal bitta qadammi yoki bir nechta» deb so'rashni o'rganasiz. Ko'p oqimlilikdagi xatolarning ildizi shu savolda.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada qavatlar. Bu darsda ularga yangi qavat qo'shildi: JVM va xotira orasida protsessor turadi. JVM kodingizni protsessor buyruqlariga aylantiradi, protsessor ularni bajaradi va bajarish davomida xotiradan o'qiydi va unga yozadi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidan kalitgacha bo'lgan qavatlar, protsessor qavati ajratib ko'rsatilgan"></svg></div>
+  <figcaption>Kodingizdagi bitta qator yuqoridan pastga qanday yo'l bosadi. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Protsessorning qismlari: registrlar, buyruq hisoblagichi, buyruq registri, hisoblash bloki, boshqaruv bloki</li>
+      <li>Ish sikli: olish, tushunish, bajarish</li>
+      <li>Hisoblash bloki va bayroqlar</li>
+      <li>Takt va chastota: gigagers nima</li>
+      <li>Kesh xotira</li>
+      <li>Yadro nima va nega ular ko'paydi</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Buyruq baytlarda qanday yoziladi va dastur xotirada qanday saqlanadi: keyingi, 7-darsda</li>
+      <li>Shart va sikl protsessorda qanday bajariladi: 9-darsda</li>
+      <li>Funksiya chaqiruvi va stek: 10-darsda</li>
+      <li>Oqimlar, <span class="num">synchronized</span>, <span class="num">volatile</span>: Java yo'nalishida</li>
+      <li>Operatsion tizim protsessorni dasturlarga qanday bo'lib berishi: Infratuzilma yo'nalishida</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Xotira saqlaydi, lekin hech narsa qilmaydi</h3>
+<p>O'tgan darsdan bilamiz: xotira ikkita ishni biladi, adres bo'yicha baytni berish va adres bo'yicha baytni yozish. U qo'sha olmaydi, solishtira olmaydi, qaror qabul qila olmaydi. Balans 500 va to'lov 100 xotirada yonma-yon yotgan bo'lsa ham, 600 o'z-o'zidan paydo bo'lmaydi.</p>
+<p>Demak yana bir qurilma kerak, va undan uch narsa talab qilinadi.</p>
+<ul>
+  <li><strong>Hisoblay olsin.</strong> Ikki sonni olib, ularni qo'shish, ayirish, solishtirish.</li>
+  <li><strong>Nima qilishni bilsin.</strong> Qaysi sonlarni, qaysi tartibda, qaysi amal bilan. Bu ko'rsatmalar ro'yxati <strong>dastur</strong>, har bir ko'rsatma <strong>buyruq</strong> deyiladi.</li>
+  <li><strong>Qayerga kelganini eslab tursin.</strong> Buyruqlar ko'p, ular birin-ketin bajariladi. Hozir nechanchisi bajarilayotganini kimdir bilishi kerak.</li>
+</ul>
+<p>Birinchi elektron kompyuterlarda bu uchala narsa bor edi, lekin dastur mashinaning ichida emas, tashqarisida edi: operatorlar yuzlab kabellarni qo'lda qayta ulab, mashinaga «endi mana buni hisobla» deyishgan. Yangi masala uchun mashinani qayta ulashga kunlab vaqt ketgan. Bugungi protsessor buyruqlarni xotiradan o'zi oladi. Bu g'oya keyingi darsning mavzusi, bu darsda esa protsessor ichida nima borligini va u bitta buyruqni qanday bajarishini ko'ramiz.</p>
+
+<h3><span class="part">2. Ichkarida</span>Protsessor qismlari va ish sikli</h3>
+
+<p class="beat">Besh qism</p>
+<p>Protsessor ichida besh xil narsa bor. Har birining vazifasi bitta.</p>
+<ul>
+  <li><strong>Registrlar.</strong> Protsessorning o'z ichidagi bir nechta katak. Har biri bitta sonni saqlaydi: 64 bitli protsessorda 64 bitli sonni. Ular xotiradagi kataklardan farqli o'laroq adres bilan emas, nom bilan ataladi, va ular juda kam: o'nlab dona. Protsessor faqat registrdagi sonlar bilan hisoblay oladi. Xotiradagi sonni qo'shish uchun avval uni registrga olib kelish kerak.</li>
+  <li><strong>Hisoblash bloki.</strong> Inglizcha ALU, «arifmetik-mantiqiy qurilma». Ikki sonni oladi, ular ustida bitta amal bajaradi va natijani beradi. 1-darsda kalitlardan qo'shuvchi yig'ilishini ko'rgan edik: hisoblash bloki shunday sxemalarning to'plami.</li>
+  <li><strong>Buyruq hisoblagichi.</strong> Maxsus registr. Unda bitta son turadi: navbatdagi buyruqning xotiradagi adresi. Inglizcha «program counter», qisqacha PC. Protsessor «qayerga kelganini» aynan shu yerda eslab turadi.</li>
+  <li><strong>Buyruq registri.</strong> Yana bir maxsus registr. Xotiradan olib kelingan, hozir bajarilayotgan buyruq shu yerda turadi.</li>
+  <li><strong>Boshqaruv bloki.</strong> Buyruq registridagi buyruqqa qarab, qolgan qismlarga signal beradi: qaysi registrdan o'qilsin, hisoblash bloki qaysi amalni bajarsin, natija qayerga yozilsin. Uni dirijyorga o'xshatish mumkin: o'zi hech narsa hisoblamaydi, lekin hamma unga qarab ishlaydi.</li>
+</ul>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="parts" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Protsessorning besh qismi va ularning xotira bilan bog'lanishi"></svg>
+  </div>
+  <figcaption>Protsessorning besh qismi va xotira. Strelkalar ma'lumot qayerdan qayerga borishini ko'rsatadi.</figcaption>
+</figure>
+
+<p class="beat">Ish sikli: uch bosqich, to'xtovsiz</p>
+<p>Protsessor tok berilgan paytdan o'chirilguncha bitta narsani takrorlaydi.</p>
+<ol>
+  <li><strong>Olish.</strong> Buyruq hisoblagichidagi adresni xotiraga yuboradi, o'sha adresdagi buyruqni oladi va buyruq registriga qo'yadi. Shu zahoti buyruq hisoblagichini keyingi buyruqqa suradi.</li>
+  <li><strong>Tushunish.</strong> Boshqaruv bloki buyruqni o'qiydi: bu qaysi amal, unga qaysi registrlar va qaysi adres kerak.</li>
+  <li><strong>Bajarish.</strong> Amal bajariladi: xotiradan registrga son olinadi, yoki hisoblash bloki ikki registrni qo'shadi, yoki registrdagi son xotiraga yoziladi.</li>
+</ol>
+<p>Keyin yana birinchi bosqich. Protsessor buyruqning ma'nosini, dasturning maqsadini bilmaydi. U faqat navbatdagi buyruqni oladi va bajaradi.</p>
+<p>Pastdagi chizma shu siklni bajaradigan kichik kompyuter. Unda Java'dagi bitta qator bajariladi:</p>
+<pre class="code">natija = balans + summa;</pre>
+<p>Xotiraning 100-adresida balans, 101-adresida summa turibdi, natija 102-adresga yozilishi kerak. Bu bitta qator protsessor uchun to'rtta buyruq. «Bir qadam» tugmasini bosib, har bir bosqichni kuzating. Buyruqlar bu yerda odam o'qiy oladigan ko'rinishda yozilgan; ular xotirada aslida qanday baytlar bo'lib yotishi keyingi darsda.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="sim" style="width:1240px;height:520px" viewBox="0 0 1240 520" role="img" aria-label="Kichik kompyuter: protsessor xotiradan buyruqlarni birin-ketin olib bajaradi"></svg>
+  </div>
+  <figcaption>Chapda protsessor, o'ngda xotira. Xotiraning yuqori qismida dastur (0 dan 4 gacha adreslar), pastida ma'lumot (100 dan 102 gacha). Sariq qator: buyruq hisoblagichi ko'rsatayotgan, navbatdagi buyruq. Ko'k qator: hozir bajarilayotgan buyruq.</figcaption>
+  <div class="slider">
+    <button type="button" id="smStep">Bir qadam</button>
+    <button type="button" id="smIns">Butun buyruq (3 qadam)</button>
+    <button type="button" id="smReset">Boshidan</button>
+    <label for="smA">balans:</label>
+    <input class="numin" id="smA" type="number" value="500" style="width:7rem">
+    <label for="smB">summa:</label>
+    <input class="numin" id="smB" type="number" value="100" style="width:7rem">
+  </div>
+  <p class="say" id="smSay" aria-live="polite"></p>
+</figure>
+
+<p>Chizmadan to'rt narsani olib qoling.</p>
+<p><strong>Bitta Java qatori bir nechta buyruq.</strong> <span class="num">natija = balans + summa</span> to'rt buyruq bo'ldi: ikkita yuklash, bitta qo'shish, bitta saqlash. Har bir buyruq yana uch bosqichdan iborat. Kodda bir qator bo'lib ko'ringan narsa protsessor uchun o'n ikki qadam.</p>
+<p><strong>Hisoblash faqat registrlarda bo'ladi.</strong> Protsessor xotiradagi ikki sonni to'g'ridan-to'g'ri qo'sha olmadi. Avval ikkalasini registrlarga olib keldi, registrlarda qo'shdi, keyin natijani xotiraga qaytarib yozdi. Xotiradagi balans shu vaqt davomida o'zgarmay turdi.</p>
+<p><strong>Buyruq hisoblagichi tartibni belgilaydi.</strong> U har bir olishdan keyin bittaga oshadi, shuning uchun buyruqlar ketma-ket bajariladi. Agar biror buyruq hisoblagichga boshqa son yozsa, protsessor dasturning boshqa joyiga «sakraydi». <span class="num">if</span> va <span class="num">while</span> aynan shunday ishlaydi, bu 9-darsning mavzusi.</p>
+<p><strong>Qadamlar orasida tanaffus bor.</strong> Son registrga olingan, lekin natija hali xotiraga yozilmagan oraliq mavjud. Bitta protsessorda bu sezilmaydi. Lekin shu xotira bilan ikkinchi protsessor ham ishlayotgan bo'lsa, u aynan shu oraliqda eski balansni o'qib olishi mumkin. Bu haqda «Amaliyotda» bo'limida.</p>
+
+<p class="beat">Hisoblash bloki va bayroqlar</p>
+<p>Hisoblash bloki ikki sonni oladi va bitta amal bajaradi. Natijadan tashqari u yana bir narsani beradi: natija haqidagi bir nechta bir bitli belgi. Ular <strong>bayroqlar</strong> deyiladi. Eng muhimlari:</p>
+<ul>
+  <li><strong>Nol:</strong> natija nolga teng chiqdi;</li>
+  <li><strong>Manfiy:</strong> natijaning eng chap biti 1, ya'ni ishorali son sifatida u manfiy (2-darsni eslang);</li>
+  <li><strong>Ko'chirish:</strong> natija ajratilgan bitlarga sig'madi, bitta ortiqcha bit tashqariga chiqdi.</li>
+</ul>
+<p>Bayroqlar nima uchun kerak? Protsessorda «ikki sonni solishtir» degan alohida sehr yo'q. Solishtirish bu ayirish: A dan B ni ayiramiz, natijaning o'zi tashlab yuboriladi, faqat bayroqlar qoladi. Nol bayrog'i ko'tarilgan bo'lsa, sonlar teng. Manfiy bayrog'i ko'tarilgan bo'lsa, A kichik. Kodingizdagi har bir <span class="num">if (a &lt; b)</span> ichkarida shunday bajariladi: ayirish, keyin bayroqqa qarab sakrash yoki sakramaslik.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="alu" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Hisoblash bloki ikki sonni oladi, amal bajaradi, natija va bayroqlarni beradi"></svg>
+  </div>
+  <figcaption>Chapda ikki kirish, o'rtada hisoblash bloki, o'ngda natija va uchta bayroq. Soddalik uchun sonlar 8 bitli.</figcaption>
+  <div class="slider">
+    <label for="alA">A (0 dan 255 gacha):</label>
+    <input class="numin" id="alA" type="number" min="0" max="255" value="100">
+    <label for="alB">B (0 dan 255 gacha):</label>
+    <input class="numin" id="alB" type="number" min="0" max="255" value="100">
+  </div>
+  <p class="pick-label">Amal</p>
+  <div class="evo-tabs" id="alOp"></div>
+  <p class="say" id="alSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Takt: protsessorning yurak urishi</p>
+<p>Protsessor ichidagi milliardlab kalitlar bir vaqtda ishlaydi, va ular bir-birini kutishi kerak: hisoblash bloki natijani tayyorlab bo'lmaguncha, uni registrga yozib bo'lmaydi. Buni tartibga solish uchun protsessorda <strong>takt generatori</strong> bor: u bir tekis urib turadigan signal beradi, soatning chiqillashiga o'xshaydi. Har bir urish <strong>takt</strong> deyiladi. Hamma qismlar faqat takt urilganda keyingi qadamga o'tadi.</p>
+<p>Bir sekundda nechta takt urilishi <strong>chastota</strong> deyiladi va <strong>gers</strong> bilan o'lchanadi. 1 gers sekundiga bitta takt. 3 gigagers sekundiga uch milliard takt. Pastdagi chizmada chastotani o'zgartiring va bitta takt qancha davom etishini ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="clk" style="width:1240px;height:210px" viewBox="0 0 1240 210" role="img" aria-label="Chastota, bitta taktning davomiyligi va shu vaqtda yorug'lik bosib o'tadigan masofa"></svg>
+  </div>
+  <figcaption>Chastota, bitta taktning davomiyligi, va shu vaqt ichida yorug'lik bosib o'tadigan masofa. Elektr signali sim ichida yorug'likdan ham sekin yuradi.</figcaption>
+  <div class="slider">
+    <label for="ckF">Chastota:</label>
+    <input id="ckF" type="range" min="0" max="97" value="95">
+    <button type="button" data-ck="0">1 Hz</button>
+    <button type="button" data-ck="59">740 kHz</button>
+    <button type="button" data-ck="67">5 MHz</button>
+    <button type="button" data-ck="80">100 MHz</button>
+    <button type="button" data-ck="95">3 GHz</button>
+  </div>
+  <p class="say" id="ckSay" aria-live="polite"></p>
+</figure>
+
+<p>Oxirgi qutiga qarang. 3 gigagersda bitta takt ichida yorug'lik atigi o'n santimetr yo'l bosadi. Signal protsessorning bir chetidan ikkinchi chetiga yetib borishi va kalitlar o'z holatini o'zgartirishga ulgurishi kerak. Chastotani yana oshirsak, signal ulgurmay qoladi, kalitlar esa shunchalik qiziydiki, chipni sovitib bo'lmaydi. Shu sababdan protsessorlar chastotasi 2005-yil atrofida 3 dan 4 gigagersgacha bo'lgan oraliqda to'xtab qoldi va o'shandan beri deyarli o'smadi. Bu fakt butun dasturlashni o'zgartirdi, uni «Yaratilishi va o'zgarishi» bo'limida ko'ramiz.</p>
+<p>Bitta eslatma: bitta takt bitta buyruq degani emas. Zamonaviy protsessor bir taktda bir nechta buyruqni bajara oladi, ba'zi buyruqlar esa bir necha takt oladi. Shuning uchun ikki xil protsessorni faqat gigagers bo'yicha solishtirib bo'lmaydi.</p>
+
+<p class="beat">Kesh: protsessor va xotira orasidagi jarlik</p>
+<p>O'tgan darsdagi jadvalni eslang: xotiraga bitta murojaat taxminan 100 nanosekund. 3 gigagersli protsessorda bu vaqt ichida 300 ta takt o'tadi. Ya'ni protsessor xotiradan bitta sonni so'rasa, javobni kutib 300 takt bekor turadi. Bizning kichik kompyuterimizdagi har bir «yukla» buyrug'i shunday kutish bo'lardi.</p>
+<p>Yechim: protsessorning o'z ichiga kichik, lekin juda tez xotira qo'yish va yaqinda ishlatilgan ma'lumotning nusxasini shu yerda ushlab turish. Bu <strong>kesh</strong> deyiladi. Protsessor biror adresni so'raganda avval keshga qaraydi. U yerda bo'lsa, javob bir nanosekund atrofida keladi. Bo'lmasa, xotiraga borishga to'g'ri keladi.</p>
+<p>Kesh ikkita kuzatuvga tayanadi, va ikkalasi ham dasturlarning haqiqiy xulqidan olingan.</p>
+<ul>
+  <li><strong>Yaqinda ishlatilgan narsa yana ishlatiladi.</strong> Sikl ichidagi o'zgaruvchi minglab marta o'qiladi.</li>
+  <li><strong>Bir adres ishlatilgan bo'lsa, qo'shnisi ham tez orada ishlatiladi.</strong> Massiv elementlari yonma-yon yotadi va odatda birin-ketin o'qiladi.</li>
+</ul>
+<p>Ikkinchi kuzatuv tufayli kesh xotiradan bitta baytni emas, birdaniga 64 baytli bo'lakni olib keladi. Bu bo'lak <strong>kesh qatori</strong> deyiladi. Bitta bayt so'ralgan bo'lsa ham, uning atrofidagi 63 tasi ham keshga tushadi, va ular keyin so'ralsa, tayyor turgan bo'ladi.</p>
+<p>Pastdagi chizmada ikki xil o'qishni sinab ko'ring. Soddalik uchun bu yerda kesh qatori 8 bayt va keshga ikkita qator sig'adi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="cache" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Protsessor adresni avval keshdan qidiradi, topilmasa xotiradan butun qatorni olib keladi"></svg>
+  </div>
+  <figcaption>Chapda protsessor, o'rtada ikki qatorli kesh, o'ngda xotira. Pastda hisob: nechta murojaat bo'ldi, nechtasi keshdan topildi, jami qancha vaqt ketdi.</figcaption>
+  <div class="slider">
+    <button type="button" id="chSeq">Keyingi adresni o'qi (ketma-ket)</button>
+    <button type="button" id="chSeq8">Ketma-ket 8 ta o'qi</button>
+    <button type="button" id="chJmp">Uzoq adresni o'qi (sakrab)</button>
+    <button type="button" id="chRst">Tozalash</button>
+  </div>
+  <p class="say" id="chSay" aria-live="polite"></p>
+</figure>
+
+<p>Ketma-ket o'qishda sakkizta murojaatdan bittasi sekin, yettitasi tez. Sakrab o'qishda har biri sekin. Bir xil miqdordagi ma'lumot, o'n baravardan ortiq farq. O'tgan darsda disk uchun ko'rgan qoidamiz bu yerda ham ishlaydi, faqat kichikroq o'lchamda: yonma-yon yotgan ma'lumotni ketma-ket o'qish har doim tez.</p>
+<p>Haqiqiy protsessorda kesh bitta emas, uch qavat: eng kichik va eng tezi L1 (o'nlab kilobayt), keyin L2 (yuzlab kilobayt yoki megabaytlar), keyin L3 (o'nlab megabayt). Har bir keyingisi kattaroq va sekinroq. G'oya bir xil: tez va kichik xotira sekin va katta xotiraning oldida turadi. Bu tuzilma kompyuterda qayta-qayta uchraydi: kesh RAM oldida, RAM disk oldida, va keyinroq ko'ramiz, Redis baza oldida.</p>
+
+<p class="beat">Yadro</p>
+<p>Shu paytgacha tasvirlangan narsa, ya'ni registrlar, hisoblash bloki, buyruq hisoblagichi va boshqaruv bloki birgalikda bitta <strong>yadro</strong> deyiladi. Bitta yadro bir vaqtda bitta buyruqlar ketma-ketligini bajaradi. Bugungi protsessor chipida bunday yadrolar bir nechta: noutbukda sakkizta yoki undan ko'p, serverda o'nlab. Har birining o'z registrlari va o'z buyruq hisoblagichi bor, xotira esa hammasi uchun umumiy.</p>
+<p>Bundan muhim xulosa chiqadi: bitta ketma-ket dastur faqat bitta yadroda ishlaydi. Serverda 32 yadro bo'lsa ham, bitta oqimda yozilgan hisob-kitob ulardan faqat bittasini band qiladi, qolgan 31 tasi bo'sh turadi. Hamma yadrolarni ishlatish uchun ishni bir nechta oqimga bo'lish kerak, va bu dasturchining ishi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Bir xonali mashinadan tirnoqdek chipgacha</h3>
+<p>Protsessor tarixi ikki davrga bo'linadi. Birinchisida har bir avlod oldingisidan tezroq bo'lgan, va dasturchi hech narsa qilmasa ham dasturi tezlashib borgan. Ikkinchisida tezlik to'xtab, o'rniga yadrolar soni o'sa boshlagan.</p>
+<div class="bench" id="evoCpu"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Protsessor</dt>
+  <dd>Buyruqlarni bajaradigan qurilma. Inglizcha CPU, «central processing unit», markaziy hisoblash qurilmasi.</dd>
+  <dt>Buyruq</dt>
+  <dd>Protsessor bajara oladigan bitta oddiy amal: sonni yuklash, qo'shish, saqlash, sakrash. Inglizcha «instruction».</dd>
+  <dt>Registr</dt>
+  <dd>Protsessor ichidagi bitta sonni saqlaydigan juda tez katak. Hisoblash faqat registrlarda bajariladi.</dd>
+  <dt>Buyruq hisoblagichi</dt>
+  <dd>Navbatdagi buyruqning adresini saqlaydigan registr. Inglizcha «program counter» (PC), Intel protsessorlarida «instruction pointer».</dd>
+  <dt>Buyruq registri</dt>
+  <dd>Hozir bajarilayotgan buyruq turadigan registr.</dd>
+  <dt>Hisoblash bloki, ALU</dt>
+  <dd>Arifmetik va mantiqiy amallarni bajaradigan sxema: qo'shish, ayirish, bitlar ustida amallar.</dd>
+  <dt>Boshqaruv bloki</dt>
+  <dd>Buyruqni o'qib, protsessorning qolgan qismlariga nima qilishni bildiradigan sxema.</dd>
+  <dt>Bayroq</dt>
+  <dd>Oxirgi amal natijasi haqidagi bir bitli belgi: nol chiqdimi, manfiymi, sig'madimi. Shartli sakrashlar bayroqlarga qarab ishlaydi.</dd>
+  <dt>Ish sikli</dt>
+  <dd>Protsessor to'xtovsiz takrorlaydigan uch bosqich: olish, tushunish, bajarish. Inglizcha «fetch, decode, execute».</dd>
+  <dt>Takt</dt>
+  <dd>Takt generatorining bitta urishi. Protsessor qismlari faqat takt urilganda keyingi qadamga o'tadi.</dd>
+  <dt>Chastota, gers</dt>
+  <dd>Bir sekunddagi taktlar soni. 1 kilogers (kHz) ming, 1 megagers (MHz) million, 1 gigagers (GHz) milliard takt.</dd>
+  <dt>Kesh</dt>
+  <dd>Sekin xotiraning oldida turadigan, uning tez-tez kerak bo'ladigan qismining nusxasini saqlaydigan kichik tez xotira. Protsessorda L1, L2, L3 qavatlari.</dd>
+  <dt>Kesh qatori</dt>
+  <dd>Kesh xotiradan bir martada olib keladigan bo'lak, odatda 64 bayt.</dd>
+  <dt>Yadro</dt>
+  <dd>O'z registrlari va buyruq hisoblagichiga ega, mustaqil buyruq bajara oladigan protsessor. Bitta chipda bir nechta yadro bo'ladi.</dd>
+  <dt>64 bitli protsessor</dt>
+  <dd>Registrlari 64 bitli protsessor: bitta amalda 64 bitli son bilan ishlaydi va 64 bitli adresni saqlay oladi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar va qoidalar</h3>
+
+<div class="rule">
+  <b>Tuzoq: bitta qator bitta qadam emas</b>
+  <p><span class="num">balans = balans + summa</span> yoki <span class="num">hisoblagich++</span> kodda bitta amal bo'lib ko'rinadi. Protsessor uchun bu uch qadam: xotiradan o'qish, registrda qo'shish, xotiraga yozish. Ikki oqim ikki yadroda shu qatorni bir vaqtda bajarsa, mana bunday bo'lishi mumkin:</p>
+  <figure class="fig" style="margin:0.8rem 0">
+    <div class="scrollx">
+      <svg class="dg" id="race" style="width:1200px;height:330px" viewBox="0 0 1200 330" role="img" aria-label="Ikki yadro bir vaqtda balansni o'qiydi, har biri o'z natijasini yozadi, bitta to'lov yo'qoladi"></svg>
+    </div>
+    <figcaption>Vaqt chapdan o'ngga. Ikkala yadro ham balansni 500 deb o'qidi. Har biri 100 qo'shib, 600 yozdi. Ikki to'lov bajarildi, balans esa bir marta oshdi.</figcaption>
+  </figure>
+  <p class="why">Bu «yo'qolgan yangilanish» deyiladi va to'lov tizimlaridagi eng xavfli xatolardan biri: u sinovda deyarli hech qachon chiqmaydi, yuk ostida esa vaqti-vaqti bilan chiqadi. Himoya usullari keyingi yo'nalishlarda: Java'da <span class="num">synchronized</span> va atom o'zgaruvchilar, bazada tranzaksiya va qulflar. Bazada to'g'risi: balansni Java'ga o'qib olib, qo'shib, qaytarib yozish emas, bitta buyruq bilan <span class="num">UPDATE hisob SET balans = balans + :summa</span>.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: ma'lumot yonma-yon yotsin</b>
+  <p>Java'da <span class="num">ArrayList</span> elementlarga havolalarni bitta uzluksiz massivda saqlaydi. <span class="num">LinkedList</span> esa har bir element uchun xotiraning boshqa joyida alohida obyekt yaratadi va ularni havolalar bilan bog'laydi. Ro'yxatni boshidan oxirigacha aylanib chiqishda birinchisi keshga yoqadi, ikkinchisi har qadamda uzoq adresga sakraydi.</p>
+  <p class="why">Shuning uchun amalda deyarli har doim <span class="num">ArrayList</span> tanlanadi, hatto darsliklarda «o'rtasiga qo'shish <span class="num">LinkedList</span> da tezroq» deb yozilgan holatlarda ham: o'rtadagi joyni topish uchun baribir sakrab-sakrab borish kerak. Eng zich joylashuv <span class="num">int[]</span> kabi oddiy turdagi massivda: u yerda sonlarning o'zi yonma-yon yotadi.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: tezroq protsessorni kutmang, yadrolarni ishlating</b>
+  <p>2005-yilgacha dastur sekin bo'lsa, ikki yildan keyin chiqadigan protsessorda u o'zi tezlashardi. Endi bunday emas: bitta yadroning tezligi sekin o'smoqda, o'rniga yadrolar soni ko'paymoqda. Bitta oqimda yozilgan og'ir hisob-kitob 64 yadroli serverda ham 4 yadroli noutbukdagi kabi ishlaydi.</p>
+  <p class="why">Backend dasturlarda bu odatda o'z-o'zidan hal bo'ladi: har bir so'rov alohida oqimda bajariladi, va yuzlab so'rov yadrolar orasida taqsimlanadi. Lekin bitta so'rovning o'zi og'ir bo'lsa, masalan millionlab yozuvli hisobot, uni bo'laklarga bo'lib parallel hisoblashni o'zingiz tashkil qilishingiz kerak.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: «sekin» degani «protsessor band» degani emas</b>
+  <p>Xizmat sekin javob beryapti, lekin serverda protsessor yuklanishi 5%. Bu ziddiyat emas. Oqim bazadan yoki boshqa xizmatdan javob kutayotganda protsessordan foydalanmaydi: u shunchaki kutadi. O'tgan darsdagi jadvalni eslang: bitta tarmoq so'rovi millionlab takt davom etadi.</p>
+  <p class="why">Shuning uchun tashxis ikki savoldan boshlanadi. Protsessor yuklanishi yuqorimi? Unda dastur haqiqatan ko'p hisoblayapti, kodni va algoritmni ko'rish kerak. Pastmi? Unda dastur nimanidir kutyapti: bazani, diskni, tarmoqni, qulfni. Ko'pchilik backend xizmatlarda javob ikkinchisi, va bunday holda kuchliroq protsessor sotib olish hech narsa bermaydi.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: kichik kodni soat bilan o'lchash</b>
+  <p>Ikki usuldan qaysi biri tezligini bilish uchun kodni <span class="num">System.nanoTime()</span> orasiga olib, bir marta ishga tushirish ishonchsiz natija beradi. Birinchi ishga tushishda ma'lumot keshda yo'q, JVM kodni hali tezlashtirib ulgurmagan, yonida boshqa dasturlar ishlayapti.</p>
+  <p class="why">Kamida kodni ko'p marta takrorlab, birinchi o'tishlarni hisobga olmaslik kerak. Jiddiy o'lchov uchun Java'da maxsus asbob bor: JMH. Unga Java yo'nalishida yetib boramiz.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Kichik kompyuterda.</strong> Dasturni oxirigacha bajaring. Jami necha qadam bo'ldi? Buyruq hisoblagichi oxirida nechaga teng va nega? Keyin balansga 2 000 000 000, summaga 2 000 000 000 kiriting: natija qanday chiqdi va nega (2-darsni eslang)?</li>
+  <li><strong>Qo'lda.</strong> <span class="num">c = a - b</span> uchun shu kichik kompyuterga dastur yozing. <span class="num">a</span> 200-adresda, <span class="num">b</span> 201-adresda, <span class="num">c</span> 202-adresda. Ayirish buyrug'i «ayir R1, R2» deb yoziladi.</li>
+  <li><strong>Hisoblash blokida.</strong> «Solishtirish» amalini tanlang. A va B ning qaysi qiymatlarida nol bayrog'i ko'tariladi? Qaysi qiymatlarida manfiy bayrog'i? Keyin «qo'shish» da 200 va 100 ni kiriting: ko'chirish bayrog'i nimani bildiryapti?</li>
+  <li><strong>Kesh chizmasida.</strong> Tozalab, 16 ta adresni ketma-ket o'qing va jami vaqtni yozib oling. Yana tozalab, 16 marta sakrab o'qing. Farq necha baravar?</li>
+  <li><strong>Kodda.</strong> Bajaring va natijani tushuntiring:
+    <pre class="code" style="margin-top:0.5rem">int n = 20_000_000;
+int[] a = new int[n];
+int[] tartib = new int[n];
+for (int i = 0; i &lt; n; i++) { a[i] = i; tartib[i] = i; }
+
+long t = System.nanoTime(); long s = 0;
+for (int i = 0; i &lt; n; i++) s += a[tartib[i]];          // ketma-ket
+System.out.println("ketma-ket: " + (System.nanoTime() - t) / 1_000_000 + " ms");
+
+java.util.Random r = new java.util.Random(1);
+for (int i = n - 1; i &gt; 0; i--) { int j = r.nextInt(i + 1); int x = tartib[i]; tartib[i] = tartib[j]; tartib[j] = x; }
+
+t = System.nanoTime(); s = 0;
+for (int i = 0; i &lt; n; i++) s += a[tartib[i]];          // aralash tartibda
+System.out.println("aralash:   " + (System.nanoTime() - t) / 1_000_000 + " ms");</pre>
+    Ikkala sikl ham bir xil 20 million sonni qo'shadi, kod bir xil. Vaqt nega farq qiladi? (Yuqoridagi «soat bilan o'lchash» tuzog'i bu yerda ham bor, lekin farq shunchalik kattaki, u baribir ko'rinadi.)</li>
+  <li><strong>O'z ishingizda.</strong> O'zingiz bilgan kodda bir nechta oqim o'zgartirishi mumkin bo'lgan umumiy qiymat bormi: hisoblagich, balans, kesh? U «o'qi, o'zgartir, yoz» ko'rinishida yangilanadimi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni o'z so'zlaringiz bilan chatga yozing.</p>
+<ol class="check">
+  <li>Registr nima va u xotira katagidan nimasi bilan farq qiladi?</li>
+  <li>Buyruq hisoblagichi nimani saqlaydi? U bo'lmasa nima bo'lardi?</li>
+  <li>Ish siklining uch bosqichini ayting. <span class="num">natija = balans + summa</span> nega bitta qadam emas?</li>
+  <li>Kesh nima uchun kerak va nega u bitta baytni emas, butun qatorni olib keladi?</li>
+  <li>Ikki oqim bir vaqtda <span class="num">balans = balans + 100</span> ni bajarsa, nega bitta to'lov yo'qolishi mumkin? Protsessor darajasida tushuntiring.</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Konveyer: protsessor bir vaqtda bir nechta buyruq ustida ishlaydi</summary>
+  <p>Bu darsdagi kichik kompyuter bitta buyruqni to'liq tugatib, keyin keyingisini boshlaydi. Haqiqiy protsessor zavod konveyeriga o'xshab ishlaydi: birinchi buyruq bajarilayotganda ikkinchisi tushunilmoqda, uchinchisi olinmoqda. Zamonaviy protsessorlarda bunday bosqichlar o'ndan ortiq, va bir vaqtda yuzlab buyruq turli bosqichlarda bo'ladi. Bundan tashqari protsessor buyruqlarni yozilgan tartibda emas, o'ziga qulay tartibda bajarishi mumkin, natija yozilgan tartibdagidek chiqsa bo'ldi.</p>
+</details>
+<details>
+  <summary>Shartni oldindan taxmin qilish</summary>
+  <p>Konveyerning muammosi shartli sakrash: <span class="num">if</span> qaysi tomonga ketishi ma'lum bo'lguncha keyingi buyruqlarni olishni to'xtatib turish kerak bo'lardi. Protsessor kutmaydi: u oldingi safarlarga qarab natijani taxmin qiladi va o'sha yo'ldagi buyruqlarni oldindan bajara boshlaydi. To'g'ri topsa, vaqt yutiladi. Xato topsa, bajarilgan ishni tashlab, qaytadan boshlaydi, bu o'nlab takt. Shuning uchun tartiblangan massiv ustidagi shart tartiblanmaganidan bir necha baravar tez ishlashi mumkin: tartiblangan ma'lumotda taxmin deyarli doim to'g'ri chiqadi. 2018-yilda aynan shu oldindan bajarish mexanizmida Spectre va Meltdown nomli xavfsizlik zaifliklari topilgan.</p>
+</details>
+<details>
+  <summary>Mantiqiy yadro nima?</summary>
+  <p>Ko'p protsessorlarda bitta fizik yadro operatsion tizimga ikkita yadro bo'lib ko'rinadi. Intel buni Hyper-Threading deb ataydi. Ichkarida hisoblash bloki bitta, lekin registrlar to'plami va buyruq hisoblagichi ikkita: bir oqim xotirani kutib turganda, ikkinchisi hisoblash blokidan foydalanadi. Shuning uchun «16 yadro» degan yozuv ko'pincha 8 ta fizik yadroni bildiradi. Java'da <span class="num">Runtime.getRuntime().availableProcessors()</span> mantiqiy yadrolar sonini qaytaradi.</p>
+</details>
+<details>
+  <summary>Mur qonuni nima edi?</summary>
+  <p>Intel asoschilaridan biri Gordon Mur 1965-yilda kuzatgan: bitta chipga sig'adigan tranzistorlar soni muntazam ravishda ikki baravar oshib bormoqda. Keyinchalik bu «har ikki yilda ikki baravar» ko'rinishida aytiladigan bo'ldi. Bu tabiat qonuni emas, sanoatning o'ziga qo'ygan maqsadi, va u o'nlab yillar davomida bajarilib keldi: 1971-yildagi 2300 tranzistordan bugungi o'nlab milliardgacha. Tranzistorlar soni o'sishda davom etmoqda, lekin 2005-yildan beri ular chastotani oshirishga emas, ko'proq yadro va kattaroq keshga sarflanmoqda.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>Protsessor tuzilishi bo'yicha asosiy darslik: Patterson va Hennessy, «Computer Organization and Design». Dasturchi nuqtai nazaridan: Bryant va O'Hallaron, «Computer Systems: A Programmer's Perspective», 4-bob (protsessor) va 6-bob (kesh). Chastota o'sishi to'xtagani va uning dasturchilar uchun oqibati haqida: Herb Sutter, «The Free Lunch Is Over», 2005. Mur kuzatuvi: Gordon Moore, «Cramming More Components onto Integrated Circuits», 1965. Kesh haqida chuqur: Ulrich Drepper, «What Every Programmer Should Know About Memory», 2007.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Protsessor xotiradan buyruqni oladi, tushunadi, bajaradi, va buni to'xtovsiz takrorlaydi. Hisoblash faqat registrlarda bo'ladi, shuning uchun koddagi bitta qator bir nechta qadam: o'qi, hisobla, yoz. Buyruq hisoblagichi navbatdagi buyruqning adresini saqlaydi. Kesh protsessor va sekin xotira orasidagi jarlikni yopadi va yonma-yon yotgan ma'lumotni yaxshi ko'radi. Bitta yadroning tezligi to'xtagan, o'rniga yadrolar ko'paygan.</p>
+  <p><strong>Ochiq qolgan savol.</strong> Kichik kompyuterimizda buyruqlar «yukla R1, [100]» deb yozilgan edi. Lekin xotirada faqat baytlar bor. Buyruq baytlarda qanday yoziladi, va dastur ham, ma'lumot ham bitta xotirada yotsa, protsessor ularni qanday ajratadi?</p>
+  <p><strong>Keyingi dars.</strong> Mashina kodi va saqlangan dastur.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="05-xotira-ram-va-disk.html">Oldingi: 5. Xotira: RAM va disk</a><span class="dim">Keyingi: 7. Mashina kodi (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'natija = balans + summa;', link: 'JVM buyruqlarga aylantiradi' },
+    { title: 'JVM', sub: 'Kodni protsessor buyruqlariga aylantiradi', ex: 'yukla, yukla, qo\'sh, saqla', link: 'buyruqlarni bajaradi' },
+    { title: 'Protsessor', sub: 'Buyruqlarni birin-ketin bajaradi', ex: 'sekundiga milliardlab buyruq', link: 'adres bo\'yicha o\'qiydi va yozadi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: 'buyruqlar ham, sonlar ham shu yerda', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [2], 'Protsessor: buyruqlarni bajaruvchi');
+</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function bin(n, w) { var s = n.toString(2); while (s.length < w) s = '0' + s; return s; }
+  function grp3(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function r3(x) { return x >= 100 ? String(Math.round(x)) : x >= 10 ? String(Math.round(x * 10) / 10).replace('.', ',') : String(Math.round(x * 100) / 100).replace('.', ','); }
+
+  // ---------- 1. Qismlar ----------
+  (function () {
+    var svg = $('parts'); marker(svg, 'ptmk');
+    group(svg, 20, 20, 800, 360, 'Protsessor (bitta yadro)');
+    box(svg, 40, 60, 360, 70, 'Buyruq hisoblagichi', 'Navbatdagi buyruqning adresi');
+    box(svg, 440, 60, 360, 70, 'Buyruq registri', 'Hozir bajarilayotgan buyruq');
+    box(svg, 240, 170, 360, 70, 'Boshqaruv bloki', 'Buyruqni o\'qiydi, qolganlarga signal beradi', 'on');
+    box(svg, 40, 290, 360, 70, 'Registrlar', 'Bir nechta tez katak, har birida bitta son');
+    box(svg, 440, 290, 360, 70, 'Hisoblash bloki (ALU)', 'Qo\'shadi, ayiradi, solishtiradi');
+    arrow(svg, 'ptmk', 'M620 130V150H480V168', 'buyruq', 632, 148, 'start');
+    arrow(svg, 'ptmk', 'M300 240V288', 'qaysi registr', 290, 268, 'end');
+    arrow(svg, 'ptmk', 'M540 240V288', 'qaysi amal', 552, 268, 'start');
+    arrow(svg, 'ptmk', 'M400 312H438', null);
+    arrow(svg, 'ptmk', 'M440 340H402', null);
+    S(svg, 'text', { x: 420, y: 304, 'text-anchor': 'middle', 'class': 'lbl' }, 'son');
+    S(svg, 'text', { x: 420, y: 358, 'text-anchor': 'middle', 'class': 'lbl' }, 'natija');
+    group(svg, 940, 20, 280, 360, 'Xotira (RAM)');
+    box(svg, 960, 60, 240, 70, 'Buyruqlar', 'Dastur shu yerda yotadi');
+    box(svg, 960, 290, 240, 70, 'Ma\'lumot', 'Sonlar, matnlar, obyektlar');
+    arrow(svg, 'ptmk', 'M300 60V48H880V80H958', 'adres', 870, 42, 'end');
+    arrow(svg, 'ptmk', 'M960 110H802', 'buyruq', 880, 128);
+    arrow(svg, 'ptmk', 'M400 345V372H880V340H958', null);
+    S(svg, 'text', { x: 880, y: 366, 'text-anchor': 'end', 'class': 'lbl' }, 'son: o\'qish va yozish');
+  })();
+
+  // ---------- 2. Kichik kompyuter ----------
+  (function () {
+    var svg = $('sim'), say = $('smSay');
+    var PROG = [
+      { t: 'yukla R1, [100]', op: 'load', r: 'R1', a: 100, c: '100-adresdagi sonni R1 ga ol' },
+      { t: 'yukla R2, [101]', op: 'load', r: 'R2', a: 101, c: '101-adresdagi sonni R2 ga ol' },
+      { t: 'qo\'sh R1, R2', op: 'add', c: 'R1 ga R2 ni qo\'sh, natija R1 da' },
+      { t: 'saqla [102], R1', op: 'store', r: 'R1', a: 102, c: 'R1 dagi sonni 102-adresga yoz' },
+      { t: 'to\'xta', op: 'halt', c: 'dastur tugadi' }
+    ];
+    var NAMES = { 100: 'balans', 101: 'summa', 102: 'natija' }, st;
+    function reset() {
+      var a = parseInt($('smA').value, 10), b = parseInt($('smB').value, 10); if (isNaN(a)) a = 0; if (isNaN(b)) b = 0;
+      st = { pc: 0, ir: -1, phase: 0, R1: null, R2: null, mem: { 100: a | 0, 101: b | 0, 102: 0 }, halted: false, steps: 0, ch: '', bus: null, alu: '' };
+    }
+    function draw() {
+      svg.textContent = ''; marker(svg, 'smmk');
+      group(svg, 20, 20, 580, 480, 'Protsessor');
+      box(svg, 40, 60, 260, 100, 'Buyruq hisoblagichi', 'Navbatdagi buyruqning adresi', st.ch === 'pc' ? 'live' : '');
+      S(svg, 'text', { x: 56, y: 146, 'class': 'big' }, String(st.pc));
+      box(svg, 320, 60, 260, 100, 'Buyruq registri', 'Hozir bajarilayotgan buyruq', st.ch === 'pc' ? 'live' : '');
+      S(svg, 'text', { x: 336, y: 142, 'class': 'val' }, st.ir < 0 ? 'bo\'sh' : PROG[st.ir].t);
+      ['1. Olish', '2. Tushunish', '3. Bajarish'].forEach(function (p, i) {
+        var done = st.phase === (i + 1) % 3 && st.steps > 0 && !(st.halted && i !== 2) || (st.halted && i === 2);
+        box(svg, 40 + i * 183, 184, 174, 62, p, ['buyruqni xotiradan', 'bu qaysi amal', 'amalni bajar'][i], done ? 'on' : '');
+      });
+      box(svg, 40, 276, 170, 100, 'Registr R1', '', st.ch === 'R1' ? 'live' : '');
+      S(svg, 'text', { x: 56, y: 352, 'class': 'val' }, st.R1 === null ? 'bo\'sh' : grp3(st.R1));
+      box(svg, 225, 276, 170, 100, 'Registr R2', '', st.ch === 'R2' ? 'live' : '');
+      S(svg, 'text', { x: 241, y: 352, 'class': 'val' }, st.R2 === null ? 'bo\'sh' : grp3(st.R2));
+      box(svg, 410, 276, 170, 100, 'Hisoblash bloki', 'ALU', st.alu ? 'on' : '');
+      S(svg, 'text', { x: 426, y: 352, 'class': 'mono' }, st.alu || 'kutmoqda');
+      S(svg, 'text', { x: 40, y: 420, 'class': 'sub' }, 'Bajarilgan qadamlar: ' + st.steps + (st.halted ? '. Dastur to\'xtadi.' : ''));
+      S(svg, 'text', { x: 40, y: 446, 'class': 'sub' }, 'Java\'dagi bitta qator: natija = balans + summa;');
+
+      group(svg, 760, 20, 460, 480, 'Xotira (RAM)');
+      PROG.forEach(function (p, i) {
+        var y = 58 + i * 50, cls = i === st.ir && !st.halted ? 'on' : (i === st.pc && !st.halted ? 'live' : (st.halted && i === st.ir ? 'on' : ''));
+        S(svg, 'rect', { x: 780, y: y, width: 420, height: 42, rx: 5, 'class': 'box ' + cls });
+        S(svg, 'text', { x: 794, y: y + 27, 'class': 'sub' }, 'adres ' + i);
+        S(svg, 'text', { x: 880, y: y + 27, 'class': 'val' }, p.t);
+      });
+      [100, 101, 102].forEach(function (a, i) {
+        var x = 780 + i * 143;
+        box(svg, x, 340, 134, 130, 'adres ' + a, NAMES[a], st.ch === 'm' + a ? 'live' : (st.bus && st.bus.a === a ? 'on' : ''));
+        S(svg, 'text', { x: x + 16, y: 446, 'class': 'val' }, grp3(st.mem[a]));
+      });
+      S(svg, 'text', { x: 780, y: 326, 'class': 'sub' }, 'Ma\'lumot:');
+      if (st.bus) {
+        if (st.bus.w) { arrow(svg, 'smmk', 'M600 200H758', 'adres: ' + st.bus.a, 679, 190); arrow(svg, 'smmk', 'M600 250H758', 'yoz: ' + grp3(st.bus.v), 679, 240); }
+        else { arrow(svg, 'smmk', 'M600 200H758', 'adres: ' + st.bus.a, 679, 190); arrow(svg, 'smmk', 'M758 250H602', st.bus.l, 679, 240); }
+      }
+    }
+    function step() {
+      if (st.halted) { say.textContent = `Dastur to'xtagan. «Boshidan» ni bosing.`; return; }
+      st.ch = ''; st.bus = null; st.alu = ''; st.steps++;
+      var p;
+      if (st.phase === 0) {
+        st.ir = st.pc; p = PROG[st.ir]; st.bus = { a: st.pc, l: 'buyruq' }; st.pc++; st.ch = 'pc'; st.phase = 1;
+        say.textContent = `Olish. Protsessor buyruq hisoblagichidagi ${st.ir} adresni xotiraga yubordi va u yerdagi buyruqni oldi: «${p.t}». Buyruq endi buyruq registrida. Hisoblagich darhol ${st.pc} ga surildi: u doim keyingi buyruqni ko'rsatib turadi.`;
+      } else if (st.phase === 1) {
+        p = PROG[st.ir]; st.phase = 2;
+        var need = p.op === 'load' ? `bu yuklash amali, unga ${p.a}-adres va ${p.r} registri kerak` : p.op === 'add' ? `bu qo'shish amali, unga R1 va R2 registrlari hamda hisoblash bloki kerak` : p.op === 'store' ? `bu saqlash amali, unga ${p.r} registri va ${p.a}-adres kerak` : `bu to'xtash buyrug'i`;
+        say.textContent = `Tushunish. Boshqaruv bloki buyruq registridagi «${p.t}» ni o'qidi: ${need}. Hali hech narsa o'zgarmadi, faqat kerakli yo'llar ochildi.`;
+      } else {
+        p = PROG[st.ir]; st.phase = 0;
+        if (p.op === 'load') { st[p.r] = st.mem[p.a]; st.ch = p.r; st.bus = { a: p.a, l: 'son: ' + grp3(st.mem[p.a]) }; say.textContent = `Bajarish. Protsessor ${p.a}-adresni yubordi, xotira ${grp3(st.mem[p.a])} ni qaytardi, u ${p.r} registriga yozildi. Xotiradagi ${NAMES[p.a]} o'zgarmadi: registrda uning nusxasi turibdi.`; }
+        else if (p.op === 'add') { var a = st.R1, b = st.R2, s = (a + b) | 0; st.alu = grp3(a) + ' + ' + grp3(b); st.R1 = s; st.ch = 'R1'; say.textContent = `Bajarish. Hisoblash bloki R1 dagi ${grp3(a)} va R2 dagi ${grp3(b)} ni qo'shdi, natija ${grp3(s)} R1 ga yozildi.` + (s !== a + b ? ` Haqiqiy yig'indi ${grp3(a + b)} edi, lekin u 32 bitga sig'madi: bu 2-darsdagi toshish.` : '') + ` Bu qadamda xotiraga umuman murojaat bo'lmadi. Xotiradagi natija hali 0: yangi qiymat faqat registrda.`; }
+        else if (p.op === 'store') { st.mem[p.a] = st[p.r]; st.ch = 'm' + p.a; st.bus = { a: p.a, w: true, v: st[p.r] }; say.textContent = `Bajarish. Protsessor ${p.a}-adresni va R1 dagi ${grp3(st[p.r])} ni xotiraga yubordi, xotira uni yozib qo'ydi. Faqat shu paytda natija xotirada paydo bo'ldi.`; }
+        else { st.halted = true; say.textContent = `Bajarish. Protsessor to'xtadi. Jami ${st.steps} qadam: beshta buyruq, har biri uch bosqich. Java'dagi bitta qator shuncha ish. Haqiqiy protsessor to'xtamaydi: dastur tugagach, operatsion tizim unga boshqa dasturning buyruqlarini beradi.`; }
+      }
+      draw();
+    }
+    $('smStep').addEventListener('click', step);
+    $('smIns').addEventListener('click', function () { do { step(); } while (st.phase !== 0 && !st.halted); });
+    $('smReset').addEventListener('click', function () { reset(); draw(); say.textContent = `Boshlang'ich holat. Buyruq hisoblagichi 0 ni ko'rsatyapti, registrlar bo'sh. «Bir qadam» ni bosing.`; });
+    reset(); draw(); say.textContent = `Boshlang'ich holat. Buyruq hisoblagichi 0 ni ko'rsatyapti: birinchi buyruq 0-adresda. Registrlar bo'sh. «Bir qadam» ni bosing.`;
+  })();
+
+  // ---------- 3. ALU ----------
+  (function () {
+    var svg = $('alu'), say = $('alSay'), op = 0, OPS = ['Qo\'shish: A + B', 'Ayirish: A − B', 'Solishtirish: A va B', 'VA: bitma-bit'];
+    var setO = tabs('alOp', OPS, function (i) { op = i; draw(); });
+    function cl(id) { var v = parseInt($(id).value, 10); if (isNaN(v)) v = 0; return Math.max(0, Math.min(255, v)); }
+    function flag(x, y, name, on, sub) { box(svg, x, y, 150, 74, name, sub, on ? 'live' : ''); S(svg, 'text', { x: x + 124, y: y + 52, 'text-anchor': 'end', 'class': 'big' }, on ? '1' : '0'); }
+    function draw() {
+      var a = cl('alA'), b = cl('alB'), raw = op === 0 ? a + b : op === 3 ? (a & b) : a - b, res = raw & 255;
+      var z = res === 0, n = (res & 128) !== 0, c = op === 0 ? raw > 255 : op === 3 ? false : raw < 0;
+      setO(op); svg.textContent = ''; marker(svg, 'almk');
+      box(svg, 20, 30, 250, 100, 'A kirishi', 'Registrdan keladi'); S(svg, 'text', { x: 36, y: 112, 'class': 'val' }, a + '   ' + bin(a, 8));
+      box(svg, 20, 170, 250, 100, 'B kirishi', 'Registrdan keladi'); S(svg, 'text', { x: 36, y: 252, 'class': 'val' }, b + '   ' + bin(b, 8));
+      box(svg, 400, 90, 260, 120, 'Hisoblash bloki (ALU)', 'Boshqaruv bloki amalni tanlaydi', 'on'); S(svg, 'text', { x: 416, y: 186, 'class': 'val' }, ['A + B', 'A − B', 'A − B', 'A VA B'][op]);
+      arrow(svg, 'almk', 'M270 80H340V125H398', null); arrow(svg, 'almk', 'M270 220H340V175H398', null);
+      box(svg, 760, 30, 460, 100, op === 2 ? 'Natija: tashlab yuboriladi' : 'Natija: registrga yoziladi', '8 bit', op === 2 ? 'freed' : '');
+      S(svg, 'text', { x: 776, y: 112, 'class': 'val' }, res + '   ' + bin(res, 8));
+      arrow(svg, 'almk', 'M660 130H710V80H758', 'natija', 705, 70);
+      arrow(svg, 'almk', 'M660 170H710V207H758', 'bayroqlar', 705, 232);
+      flag(760, 170, 'Nol', z, 'natija 0 mi'); flag(915, 170, 'Manfiy', n, 'chap bit 1 mi'); flag(1070, 170, 'Ko\'chirish', c, 'sig\'madimi');
+      var t;
+      if (op === 0) t = `${a} + ${b} = ${raw}.` + (c ? ` Bu 8 bitga sig'maydi (eng kattasi 255), shuning uchun natijada ${res} qoldi va ko'chirish bayrog'i ko'tarildi. 1-darsdagi aylanib ketish shu.` : ` Natija 8 bitga sig'di.`);
+      else if (op === 1) t = `${a} − ${b} = ${raw}.` + (c ? ` Natija manfiy, 8 bitda u ${res} ko'rinishida yoziladi: bu 2-darsdagi qo'shimcha kod. Ko'chirish bayrog'i kichik sondan katta son ayirilganini bildiradi.` : z ? ` Natija nol, nol bayrog'i ko'tarildi.` : ``);
+      else if (op === 2) t = `Solishtirish bu ayirish: ${a} − ${b}. Natijaning o'zi kerak emas, faqat bayroqlar. ` + (z ? `Nol bayrog'i ko'tarildi, demak A va B teng. if (a == b) shu bayroqqa qaraydi.` : c ? `Ko'chirish bayrog'i ko'tarildi, demak A kichik. if (a < b) sharti bajariladi.` : `Nol ham, ko'chirish ham ko'tarilmadi, demak A katta.`);
+      else t = `Har bir bit alohida: ikkala sonda ham 1 turgan joyda 1, qolgan joyda 0. ${bin(a, 8)} VA ${bin(b, 8)} = ${bin(res, 8)}. Bu amal bitlarning bir qismini «ajratib olish» uchun ishlatiladi.`;
+      say.textContent = t;
+    }
+    $('alA').addEventListener('input', draw); $('alB').addEventListener('input', draw); draw();
+  })();
+
+  // ---------- 4. Takt ----------
+  (function () {
+    var svg = $('clk'), inp = $('ckF'), say = $('ckSay');
+    var NOTE = { 0: `1 gers: sekundiga bitta takt. Bunday tezlikda bizning to'rt buyruqli dasturimiz taxminan o'n besh soniya ishlardi.`, 59: `740 kilogers: 1971-yilgi Intel 4004, birinchi mikroprotsessor.`, 67: `5 megagers: 1978-yilgi Intel 8086. Bugungi shaxsiy kompyuterlar buyruqlar to'plamining ildizi shu protsessorda.`, 80: `100 megagers: 1990-yillar o'rtasidagi shaxsiy kompyuter.`, 95: `3 gigagers: bugungi odatiy protsessor. Bitta takt ichida yorug'lik atigi o'n santimetr yuradi.` };
+    function fz(f) { return f >= 1e9 ? r3(f / 1e9) + ' GHz' : f >= 1e6 ? r3(f / 1e6) + ' MHz' : f >= 1e3 ? r3(f / 1e3) + ' kHz' : r3(f) + ' Hz'; }
+    function ft(s) { return s < 1e-6 ? r3(s * 1e9) + ' ns' : s < 1e-3 ? r3(s * 1e6) + ' mks' : s < 1 ? r3(s * 1e3) + ' ms' : r3(s) + ' soniya'; }
+    function fd(m) { return m >= 1000 ? grp3(Math.round(m / 1000)) + ' km' : m >= 1 ? r3(m) + ' m' : m >= 0.01 ? r3(m * 100) + ' sm' : r3(m * 1000) + ' mm'; }
+    function draw() {
+      var k = parseInt(inp.value, 10), f = k === 59 ? 740e3 : k === 67 ? 5e6 : k === 95 ? 3e9 : Math.pow(10, k / 10), t = 1 / f;
+      svg.textContent = ''; marker(svg, 'ckmk');
+      box(svg, 20, 40, 320, 130, 'Chastota', 'Bir sekundda nechta takt', 'on'); S(svg, 'text', { x: 36, y: 140, 'class': 'big' }, fz(f));
+      box(svg, 460, 40, 320, 130, 'Bitta takt davomiyligi', '1 soniya bo\'lingan chastota'); S(svg, 'text', { x: 476, y: 140, 'class': 'big' }, ft(t));
+      box(svg, 900, 40, 320, 130, 'Yorug\'lik shu vaqtda', 'Sekundiga 300 000 km tezlikda', 'live'); S(svg, 'text', { x: 916, y: 140, 'class': 'big' }, fd(3e8 * t));
+      arrow(svg, 'ckmk', 'M340 105H458', null); arrow(svg, 'ckmk', 'M780 105H898', null);
+      say.textContent = NOTE[k] || `${fz(f)}: sekundiga ${grp3(Math.round(f))} ta takt, har biri ${ft(t)}.`;
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ck]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-ck'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 5. Kesh ----------
+  (function () {
+    var svg = $('cache'), say = $('chSay'), FAR = [5000, 9000, 3000, 7000, 12000, 6000], st;
+    function reset() { st = { lines: [], next: 1000, far: 0, n: 0, hits: 0, time: 0, last: null }; }
+    function read(addr) {
+      var base = addr - addr % 8, i = st.lines.indexOf(base), hit = i !== -1;
+      if (hit) st.lines.splice(i, 1); else if (st.lines.length === 2) st.lines.pop();
+      st.lines.unshift(base); st.n++; if (hit) st.hits++; st.time += hit ? 1 : 100; st.last = { addr: addr, base: base, hit: hit };
+    }
+    function draw() {
+      svg.textContent = ''; marker(svg, 'chmk');
+      var L = st.last;
+      box(svg, 20, 60, 220, 100, 'Protsessor', L ? 'So\'radi: adres ' + L.addr : 'Hali so\'ramadi', 'on');
+      group(svg, 340, 20, 400, 200, 'Kesh: 2 ta qator sig\'adi, 1 ns');
+      [0, 1].forEach(function (i) {
+        var b = st.lines[i], cur = L && b === L.base;
+        box(svg, 360, 60 + i * 76, 360, 64, b === undefined ? 'bo\'sh' : 'adreslar ' + b + ' dan ' + (b + 7) + ' gacha', b === undefined ? '' : (cur ? (L.hit ? 'shu yerdan topildi' : 'hozir xotiradan olib kelindi') : 'oldinroq olib kelingan'), cur ? (L.hit ? 'on' : 'live') : '');
+      });
+      group(svg, 860, 20, 360, 200, 'Xotira (RAM): 100 ns');
+      box(svg, 880, 60, 320, 140, L && !L.hit ? 'Butun qator o\'qildi' : 'Murojaat bo\'lmadi', L && !L.hit ? 'adreslar ' + L.base + ' dan ' + (L.base + 7) + ' gacha' : 'kesh o\'zi javob berdi', L && !L.hit ? 'live' : '');
+      if (L) {
+        arrow(svg, 'chmk', 'M240 110H338', 'adres ' + L.addr, 289, 100);
+        if (!L.hit) { arrow(svg, 'chmk', 'M740 100H858', 'keshda yo\'q', 799, 90); arrow(svg, 'chmk', 'M858 150H742', '8 bayt', 799, 140); }
+      }
+      box(svg, 20, 250, 380, 76, 'Murojaatlar soni', 'Protsessor necha marta so\'radi'); S(svg, 'text', { x: 384, y: 302, 'text-anchor': 'end', 'class': 'big' }, String(st.n));
+      box(svg, 430, 250, 380, 76, 'Keshdan topildi', 'Xotiraga bormasdan'); S(svg, 'text', { x: 794, y: 302, 'text-anchor': 'end', 'class': 'big' }, String(st.hits));
+      box(svg, 840, 250, 380, 76, 'Jami vaqt', 'Topilsa 1 ns, topilmasa 100 ns', 'on'); S(svg, 'text', { x: 1204, y: 302, 'text-anchor': 'end', 'class': 'big' }, grp3(st.time) + ' ns');
+    }
+    function tell() {
+      var L = st.last, avg = st.n ? r3(st.time / st.n) : '0';
+      say.textContent = (L.hit ? `${L.addr}-adres keshda bor edi: uni oldingi murojaat qo'shnisi bilan birga olib kelgan. 1 ns.` : `${L.addr}-adres keshda yo'q edi. Xotiradan butun qator olib kelindi: ${L.base} dan ${L.base + 7} gacha. 100 ns. Endi shu qatordagi qolgan adreslar tayyor turibdi.`) + ` Hozirgacha o'rtacha bitta murojaat ${avg} ns.`;
+      say.className = 'say';
+    }
+    $('chSeq').addEventListener('click', function () { read(st.next++); draw(); tell(); });
+    $('chSeq8').addEventListener('click', function () { for (var i = 0; i < 8; i++) read(st.next++); draw(); tell(); });
+    $('chJmp').addEventListener('click', function () { read(FAR[st.far++ % FAR.length] + st.far); draw(); tell(); });
+    $('chRst').addEventListener('click', function () { reset(); draw(); say.textContent = `Kesh bo'sh, hisob nolga qaytdi.`; });
+    reset(); draw(); say.textContent = `Kesh bo'sh. «Keyingi adresni o'qi» ni bir necha marta bosing va qaysi murojaat sekin, qaysi biri tez ekanini kuzating.`;
+  })();
+
+  // ---------- 6. Poyga ----------
+  (function () {
+    var svg = $('race'); marker(svg, 'rcmk');
+    function lane(y, name) {
+      S(svg, 'text', { x: 20, y: y + 36, 'class': 'ttl' }, name);
+      box(svg, 150, y, 230, 62, '1. O\'qidi', 'registrda 500');
+      box(svg, 470, y, 230, 62, '2. Qo\'shdi', '500 + 100 = 600');
+      box(svg, 790, y, 230, 62, '3. Yozdi', 'xotiraga 600', 'live');
+      arrow(svg, 'rcmk', 'M380 ' + (y + 31) + 'H468'); arrow(svg, 'rcmk', 'M700 ' + (y + 31) + 'H788');
+    }
+    lane(30, '1-yadro'); lane(238, '2-yadro');
+    S(svg, 'rect', { x: 150, y: 132, width: 870, height: 66, rx: 5, 'class': 'box on' });
+    S(svg, 'text', { x: 166, y: 160, 'class': 'ttl' }, 'Xotiradagi balans');
+    S(svg, 'text', { x: 166, y: 182, 'class': 'sub' }, 'Ikkalasi uchun umumiy');
+    S(svg, 'text', { x: 420, y: 174, 'class': 'val' }, '500');
+    S(svg, 'text', { x: 740, y: 174, 'class': 'val' }, '500');
+    S(svg, 'text', { x: 960, y: 174, 'class': 'val' }, '600');
+    arrow(svg, 'rcmk', 'M300 132V94'); arrow(svg, 'rcmk', 'M230 198V236');
+    arrow(svg, 'rcmk', 'M905 92V130'); arrow(svg, 'rcmk', 'M905 238V200');
+    box(svg, 1040, 132, 150, 66, 'Kutilgan: 700', 'Chiqqan: 600', 'bad');
+  })();
+
+  // ---------- Tarix ----------
+  window.evoStepper('evoCpu', [
+    {
+      name: `Lampali mashinalar`,
+      years: `1940-yillar`,
+      art: `<rect x="20" y="20" width="80" height="60" rx="4"/><circle cx="40" cy="42" r="7" class="lit"/><circle cx="60" cy="42" r="7"/><circle cx="80" cy="42" r="7" class="lit"/><path d="M30 64h60" class="acc"/><path d="M8 50h12M100 50h12"/>`,
+      how: `Kalit sifatida elektron lampa ishlatilgan: ichida havosi so'rib olingan shisha kolba. Hisoblash bloki va registrlar minglab shunday lampalardan yig'ilgan. Dastur mashinaning ichida emas edi: operatorlar kabellarni qayta ulab va tumblerlarni burab, hisoblash tartibini belgilashgan.`,
+      better: `Bungacha hisoblash mexanik va elektromexanik qurilmalarda bajarilgan, ular sekundiga bir nechta amal qilgan. Lampali mashina sekundiga minglab amal bajargan.`,
+      pain: `Lampalar tez-tez kuyadi, katta tok yeydi va qiziydi. Yangi masala uchun mashinani qayta ulashga kunlab vaqt ketadi.`,
+      ex: `ENIAC, AQSH, 1945-yil: 17 mingdan ortiq lampa, og'irligi 30 tonnaga yaqin, katta zalni egallagan. Sekundiga taxminan 5000 ta qo'shish.`
+    },
+    {
+      name: `Tranzistorli mashinalar`,
+      years: `1950-yillarning oxiri, 1960-yillar`,
+      art: `<path d="M60 20v22M40 78l14-24M80 78L66 54"/><circle cx="60" cy="50" r="12" class="acc"/><rect x="14" y="14" width="92" height="72" rx="4"/>`,
+      how: `Lampa o'rnini tranzistor egalladi: kremniy yoki germaniydan yasalgan kichik qattiq kalit. Protsessorning tuzilishi o'sha qoldi, lekin u endi alohida tranzistorlar lehimlangan platalardan yig'ilgan. Dastur bu paytga kelib xotirada saqlanadigan bo'lgan.`,
+      better: `Tranzistor lampadan o'nlab marta kichik, kam tok sarflaydi, deyarli kuymaydi. Mashinalar ishonchli bo'ldi va sekundiga yuz minglab amal bajara boshladi.`,
+      pain: `Har bir tranzistor alohida detal, ular qo'lda ulanadi. Protsessor hali ham bir nechta shkaf. Har bir mashinaning o'z buyruqlar to'plami bor: bir mashina uchun yozilgan dastur boshqasida ishlamaydi.`,
+      ex: `Tranzistor 1947-yilda Bell laboratoriyasida ixtiro qilingan. IBM 7090 (1959) to'liq tranzistorli mashina. 1964-yilda IBM System/360 oilasini chiqardi: kichigidan kattasigacha hamma modellari bir xil buyruqlar to'plamini tushunadi. «Arxitektura» so'zi kompyuterlarga nisbatan shu yerdan ishlatila boshlangan.`
+    },
+    {
+      name: `Mikroprotsessor`,
+      years: `1971-yildan`,
+      art: `<rect x="34" y="28" width="52" height="44" rx="3" class="acc"/><path d="M42 28V16M54 28V16M66 28V16M78 28V16M42 72v12M54 72v12M66 72v12M78 72v12M34 40H22M34 60H22M86 40h12M86 60h12"/>`,
+      how: `Butun protsessor, ya'ni registrlar, hisoblash bloki va boshqaruv bloki, bitta kremniy chipga joylandi. Tranzistorlar endi lehimlanmaydi, ular chip yuzasiga fotosurat usulida bosiladi.`,
+      better: `Protsessor shkafdan tirnoqdek detalga aylandi va narxi minglab baravar tushdi. Kompyuterni stolga qo'yish, keyinroq cho'ntakka solish mumkin bo'ldi.`,
+      pain: `Birinchi chiplar juda zaif: 4 yoki 8 bitli, xotiraga murojaati cheklangan. Ular katta mashinalar bilan raqobat qila olmaydi.`,
+      ex: `Intel 4004, 1971-yil: 2300 tranzistor, 4 bitli, 740 kilogers. Yapon kalkulyatori uchun buyurtma qilingan. Intel 8086 (1978): 29 ming tranzistor, 16 bitli. Bugungi Intel va AMD protsessorlarining buyruqlar to'plami, x86, shundan o'sib chiqqan.`
+    },
+    {
+      name: `Chastota poygasi`,
+      years: `1980-yillardan 2004-yilgacha`,
+      art: `<path d="M12 80h96M12 80V16"/><path d="M16 76c20-2 34-10 46-24s22-28 42-34" class="acc"/><circle cx="104" cy="18" r="5" class="lit"/>`,
+      how: `Tranzistorlar har ikki yilda kichrayib bordi. Kichik tranzistor tezroq ulanadi va kam tok sarflaydi, shuning uchun chastotani oshirish mumkin edi. Qo'shimcha tranzistorlar konveyer, kesh va shartni oldindan taxmin qilish kabi usullarga sarflandi.`,
+      better: `Chastota yigirma yilda ming baravar o'sdi: megagerslardan gigagerslargacha. Dasturchi hech narsa qilmasa ham, uning dasturi har yangi protsessorda tezroq ishlar edi.`,
+      pain: `Chastota oshgan sari chip ko'proq qiziydi. 2004-yilga kelib bir kvadrat santimetrdan chiqadigan issiqlik elektr plitasinikiga yaqinlashdi. Uni sovitib bo'lmaydi.`,
+      ex: `Intel Pentium 4 2004-yilda 3,8 gigagersga yetdi. Intel 4 gigagersli modelni e'lon qilib, keyin bekor qildi. Oradan yigirma yil o'tib ham odatiy chastota 3 dan 5 gigagersgacha.`
+    },
+    {
+      name: `Ko'p yadroli protsessorlar`,
+      years: `2005-yildan`,
+      art: `<rect x="14" y="14" width="92" height="72" rx="4"/><rect x="24" y="24" width="32" height="22" class="acc"/><rect x="64" y="24" width="32" height="22" class="acc"/><rect x="24" y="54" width="32" height="22" class="acc"/><rect x="64" y="54" width="32" height="22" class="lit"/>`,
+      how: `Chastotani oshirib bo'lmagach, ishlab chiqaruvchilar bitta chipga ikkita, keyin to'rtta, keyin o'nlab to'liq protsessor joylay boshladi. Har biri yadro deyiladi, o'z registrlari va buyruq hisoblagichi bor, xotira umumiy.`,
+      better: `Chip bir vaqtda bir nechta ishni haqiqatan parallel bajaradi. Server yuzlab so'rovga bir vaqtda javob beradi.`,
+      pain: `Bitta ketma-ket dastur bundan hech narsa yutmaydi: u bitta yadroda ishlaydi. Tezlik uchun dasturni oqimlarga bo'lish kerak, va shu bilan birga yangi turdagi xatolar keladi: ikki oqim bitta ma'lumotni bir vaqtda o'zgartirishi. Bu yuk dasturchiga o'tdi.`,
+      ex: `Shaxsiy kompyuterlar uchun birinchi ikki yadroli protsessorlar 2005-yilda chiqdi: AMD Athlon 64 X2 va Intel Pentium D. Herb Sutter o'sha yili «Tekin tushlik tugadi» nomli maqolasida dasturchilarni ogohlantirdi. Java'ning ko'p oqimlilik vositalari (java.util.concurrent, 2004) aynan shu davrda paydo bo'lgan.`
+    },
+    {
+      name: `Bugungi holat`,
+      years: `2020-yillar`,
+      art: `<rect x="14" y="14" width="92" height="72" rx="6"/><rect x="22" y="22" width="24" height="24" class="acc"/><rect x="50" y="22" width="24" height="24" class="acc"/><rect x="22" y="50" width="16" height="16"/><rect x="42" y="50" width="16" height="16"/><rect x="62" y="50" width="16" height="16"/><rect x="80" y="22" width="18" height="44" class="lit"/>`,
+      how: `Bitta chipda o'nlab milliard tranzistor. Yadrolar ikki xil bo'lishi mumkin: bir nechta kuchli va bir nechta tejamkor. Chipning o'ziga grafika, sun'iy intellekt hisoblari uchun maxsus bloklar ham joylanadi. x86 bilan yonma-yon ARM buyruqlar to'plami serverlarga ham kirib keldi.`,
+      better: `Bir xil ish uchun ancha kam tok. Telefon protsessori yigirma yil oldingi serverdan kuchli.`,
+      pain: `Dasturchi uchun rasm murakkablashdi: yadrolar teng emas, xotira tezligi protsessordan tobora ortda qolmoqda, shuning uchun kesh va ma'lumotning joylashuvi tezlikka chastotadan ko'proq ta'sir qiladi.`,
+      ex: `Apple M1 (2020): 16 milliard tranzistor, ARM buyruqlar to'plami. Bulut provayderlari o'z ARM server protsessorlarini taklif qiladi. Java dasturi uchun bu farq ko'rinmaydi: JVM kodni o'zi turgan protsessor buyruqlariga aylantirib beradi. Bu sohadagi yangiliklarni men 2026-yil o'rtasigacha bilaman.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
