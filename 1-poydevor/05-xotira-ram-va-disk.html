@@ -1,0 +1,728 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>5-dars. Xotira: RAM va disk</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>5-dars. Xotira: RAM va disk</h1>
+<p class="lead">Savol: milliardlab bayt qayerda turadi, ularning ichidan kerakligi qanday topiladi, va nega kompyuterda xotira ikki xil?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Xotira</strong> baytlar saqlanadigan joy. Kompyuterda u ikki xil qurilma ko'rinishida bor.</p>
+    <p><strong>RAM</strong> (operativ xotira) tez, lekin tok o'chsa ichidagi hamma narsa yo'qoladi. Ishlab turgan dastur va uning ma'lumotlari shu yerda turadi.</p>
+    <p><strong>Disk</strong> (HDD yoki SSD) minglab marta sekin, lekin tok o'chsa ham ma'lumotni saqlab qoladi. Fayllar va ma'lumotlar bazasi shu yerda turadi.</p>
+    <p>Ikkalasida ham baytlar raqamlangan. Baytning raqami <strong>adres</strong> deyiladi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Har bir o'zgaruvchi va obyektda.</strong> Java'dagi har bir <span class="num">int</span>, har bir obyekt RAM ning qaysidir adresida turadi.</li>
+      <li><strong>Har bir «saqlash» amalida.</strong> Bazaga yozish, faylga yozish, <span class="num">COMMIT</span>: bularning hammasi ma'lumotni RAM dan diskka o'tkazish.</li>
+      <li><strong>Tezlik haqidagi har bir qarorda.</strong> Kesh, indeks, so'rovlar soni: bularning hammasi «RAM tez, disk sekin» degan bitta faktdan kelib chiqadi.</li>
+      <li><strong>Xatolar aynan shu yerda chiqadi:</strong> <span class="num">OutOfMemoryError</span>, server qayta ishga tushgach yo'qolgan ma'lumot, bir so'rovi bir daqiqa ishlaydigan hisobot.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>adres nima va protsessor baytni qanday topadi;</li>
+      <li>RAM ichkarida qanday tuzilgan va nega u tok o'chganda unutadi;</li>
+      <li>HDD va SSD ichkarida qanday tuzilgan va nega ular sekin;</li>
+      <li>RAM va disk tezligi orasidagi farq necha baravar;</li>
+      <li>dastur ishga tushganda va ma'lumot saqlanganda baytlar qayerdan qayerga ko'chadi.</li>
+    </ul>
+    <p>Amaliy foydasi: sekin ishlayotgan kodni ko'rib, «bu yerda diskka necha marta murojaat bo'lyapti» deb so'rashni o'rganasiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada o'sha qavatlar. Oldingi to'rt dars bitta bayt ichida o'tdi. Bu darsda bir qavat yuqoriga chiqamiz: baytlar ko'p bo'lganda ular qanday tartibga solinadi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidagi bitta o'zgaruvchidan kalitgacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Kodingizdagi bitta o'zgaruvchi yuqoridan pastga qanday yo'l bosadi. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Adres: baytning raqami, va adres uzunligi xotira hajmini qanday cheklashi</li>
+      <li>Bir necha baytli qiymat xotirada qanday yotishi</li>
+      <li>RAM ichkaridan: kondensator, zaryadning oqib ketishi, yangilash</li>
+      <li>Disk ichkaridan: HDD va SSD</li>
+      <li>Tezliklar farqi va ketma-ket hamda tasodifiy o'qish</li>
+      <li>RAM va disk birga qanday ishlashi</li>
+      <li>O'lchov birliklari: KB, MB, GB</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Protsessor ichidagi kesh xotira: keyingi, 6-darsda</li>
+      <li>Virtual xotira va operatsion tizim xotirani dasturlarga qanday bo'lib berishi: Infratuzilma yo'nalishida</li>
+      <li>Stek va heap, obyektning xotiradagi tuzilishi, axlat yig'uvchi: Java yo'nalishida</li>
+      <li>Fayl tizimi va bazaning diskdagi tuzilishi: Ma'lumotlar bazasi yo'nalishida</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Baytlar ko'p, tez va ishonchli joy esa bitta emas</h3>
+<p>Bitta baytni saqlash uchun sakkizta kalit yetadi, buni 1-darsda ko'rdik. Lekin haqiqiy dastur bitta bayt bilan ishlamaydi. Telefoningizdagi bank ilovasi ishlab turganda yuzlab million baytni band qiladi, bankning bazasi esa trillionlab baytni. Shu yerda ikkita yangi savol paydo bo'ladi.</p>
+
+<p class="beat">Birinchi savol: milliardlab bayt ichidan keraklisini qanday topamiz?</p>
+<p>Javob juda sodda, va u butun dasturlashning asosida yotadi: baytlarni bir qatorga terib, har biriga tartib raqami beramiz. Birinchi bayt 0-raqamli, keyingisi 1-raqamli, va hokazo. Shu raqam <strong>adres</strong> deyiladi. Ko'chadagi uy raqamiga o'xshaydi: uyning ichida kim yashashi o'zgaradi, uyning raqami esa o'zgarmaydi.</p>
+<p>Protsessor xotira bilan faqat ikki xil ish qila oladi:</p>
+<ul>
+  <li><strong>o'qish:</strong> «falon adresdagi baytni ber»;</li>
+  <li><strong>yozish:</strong> «falon adresga mana shu baytni qo'y».</li>
+</ul>
+<p>Boshqa hech narsa yo'q. Xotira «o'zgaruvchi», «obyekt», «satr» degan tushunchalarni bilmaydi. U faqat adres va baytni biladi. Qolgan hamma narsa shu ikki amalning ustiga qurilgan.</p>
+<p>Pastdagi chizmada xotiraning 16 ta katagi ko'rsatilgan. Boshida unda 4-darsdagi «Salom» so'zi yotibdi: beshta harf, beshta bayt. Adres kiriting va o'qing, keyin biror qiymat yozib ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="addr" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Protsessor adres yuboradi, xotira o'sha adresdagi baytni qaytaradi"></svg>
+  </div>
+  <figcaption>Chapda protsessor, o'ngda xotiraning 16 ta katagi. Har bir katakda yuqoridan pastga: adres, baytning o'nlik qiymati, va uning sakkiz biti.</figcaption>
+  <div class="slider">
+    <label for="adA">Adres (1000 dan 1015 gacha):</label>
+    <input class="numin" id="adA" type="number" min="1000" max="1015" value="1000">
+    <label for="adV">Qiymat (0 dan 255 gacha):</label>
+    <input class="numin" id="adV" type="number" min="0" max="255" value="66">
+    <button type="button" id="adR">O'qi</button>
+    <button type="button" id="adW">Yoz</button>
+  </div>
+  <div class="slider">
+    <label for="adI">Butun son, <span class="num">int</span>:</label>
+    <input class="numin" id="adI" type="number" value="1000000" style="width:9rem">
+    <button type="button" id="adWI">int qilib yoz (4 bayt)</button>
+  </div>
+  <p class="say" id="adSay" aria-live="polite"></p>
+</figure>
+
+<p>Chizmada uch narsaga e'tibor bering.</p>
+<p><strong>Katak hech qachon bo'sh emas.</strong> Har bir katakda doim qandaydir sakkizta bit turadi. «Bo'sh xotira» degani aslida «ichidagi qiymat hozir hech kimga kerak emas» degani. Yozganingizda eski qiymat ustidan yoziladi va izsiz yo'qoladi.</p>
+<p><strong>Xotira baytning ma'nosini bilmaydi.</strong> 1000-adresdagi 83 soni «S» harfimi, 83 so'mmi yoki 83 yoshmi, xotira uchun farqi yo'q. Buni o'qigan dastur hal qiladi. Oldingi uch darsning xulosasi shu yerda ham ishlaydi.</p>
+<p><strong>Katta qiymat bir nechta qo'shni katakni egallaydi.</strong> Java'dagi <span class="num">int</span> to'rt bayt. «int qilib yoz» tugmasini bosing: son to'rtta ketma-ket adresga bo'linib yoziladi. Bunday qiymatning adresi deb uning birinchi baytining adresi aytiladi. Massiv ham shunday ishlaydi: <span class="num">int[] a</span> bu ketma-ket yotgan to'rt baytli bo'laklar, va <span class="num">a[3]</span> ni topish uchun protsessor shunchaki hisoblaydi: massiv boshining adresi qo'shuv 3 ko'paytiruv 4. Shuning uchun massivning istalgan elementiga murojaat bir xil tez: qidirish yo'q, bitta qo'shish va bitta ko'paytirish bor.</p>
+<p>Chizmada to'rt bayt qaysi tartibda yotganiga qarang: sonning eng kichik qismi eng kichik adresda. Bu tartib «kichik uchidan» deb ataladi va bugungi deyarli barcha protsessorlarda shunday. Bu haqda batafsil «Chuqurroq» bo'limida.</p>
+
+<p class="beat">Adres ham son, demak uning ham uzunligi bor</p>
+<p>Adres protsessor ichida bitlar bilan saqlanadi. 1-darsdan bilamiz: n ta bit bilan 2 ning n-darajasi xil qiymat yozish mumkin. Demak adres uzunligi kompyuter eng ko'pi bilan nechta baytga murojaat qila olishini belgilaydi. Adres 16 bit bo'lsa, 65 536 ta adres bor, va undan ortiq xotirani o'rnatib qo'ysangiz ham protsessor uni «ko'rmaydi»: unga raqam yetmaydi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="abits" style="width:1240px;height:210px" viewBox="0 0 1240 210" role="img" aria-label="Adres uzunligi bitlarda, undan chiqadigan adreslar soni va eng katta xotira hajmi"></svg>
+  </div>
+  <figcaption>Adres uzunligi, shu uzunlik bilan yozish mumkin bo'lgan adreslar soni, va shundan kelib chiqadigan eng katta xotira hajmi.</figcaption>
+  <div class="slider">
+    <label for="abN">Adres uzunligi, bit:</label>
+    <input id="abN" type="range" min="8" max="64" value="32">
+    <button type="button" data-ab="16">16</button>
+    <button type="button" data-ab="20">20</button>
+    <button type="button" data-ab="32">32</button>
+    <button type="button" data-ab="48">48</button>
+    <button type="button" data-ab="64">64</button>
+  </div>
+  <p class="say" id="abSay" aria-live="polite"></p>
+</figure>
+
+<p>«32 bitli» va «64 bitli» dastur degan iboralar aynan shu haqda. 32 bitli dastur 4 GB dan ortiq xotiradan foydalana olmaydi, kompyuterda 64 GB turgan bo'lsa ham. 2000-yillarning o'rtasida serverlar shu devorga urildi, va butun soha 64 bitli protsessorlarga o'tdi.</p>
+
+<p class="beat">Ikkinchi savol: nega bitta xotira yetmaydi?</p>
+<p>Xotiradan uch narsa talab qilinadi: tez bo'lsin, arzon bo'lsin, va tok o'chganda ma'lumotni yo'qotmasin. Shu kungacha bu uchalasini birga beradigan qurilma yo'q.</p>
+<ul>
+  <li>Protsessor sekundiga milliardlab amal bajaradi. U bilan teng yura oladigan xotira bor, lekin u faqat tok bor paytda ishlaydi va qimmat.</li>
+  <li>Tok o'chganda ham saqlaydigan xotira bor va u arzon, lekin u minglab marta sekin.</li>
+</ul>
+<p>Shuning uchun kompyuterda ikkalasi ham turadi va ular ishni bo'lib oladi. Tez xotira, ya'ni RAM, ishlab turgan dastur uchun. Sekin, lekin unutmaydigan xotira, ya'ni disk, uzoq saqlanadigan hamma narsa uchun. Dasturchining ko'p qarorlari aynan shu ikkisining chegarasida qabul qilinadi: nimani RAM da ushlab turish, nimani qachon diskka yozish.</p>
+
+<h3><span class="part">2. Ichkarida</span>RAM, disk va ularning birga ishlashi</h3>
+
+<p class="beat">RAM: har bir bit uchun bitta kondensator</p>
+<p>RAM so'zi inglizcha «Random Access Memory» dan, ma'nosi «istalgan joyiga murojaat qilinadigan xotira». Nomi tarixdan qolgan: undan oldingi xotiralarda (masalan, magnit lentada) kerakli joyga yetish uchun undan oldingi hamma narsani o'tkazib yuborish kerak edi. RAM da esa istalgan adresga murojaat bir xil vaqt oladi. 1000-adres ham, 1 000 000 000-adres ham bir xil tez.</p>
+<p>Bugungi RAM ning to'liq nomi DRAM, «dinamik RAM». Unda har bir bit ikki qismdan iborat katakda saqlanadi:</p>
+<ul>
+  <li><strong>kondensator:</strong> elektr zaryadini ushlab turadigan juda kichik idish. Zaryad bor bo'lsa bit 1, yo'q bo'lsa 0;</li>
+  <li><strong>tranzistor:</strong> 1-darsdagi o'sha kalit. U kondensatorga boradigan yo'lni ochadi yoki yopadi.</li>
+</ul>
+<p>Bitta bayt uchun sakkizta shunday katak kerak. 16 GB li xotira plankasida ularning soni 137 milliarddan ortiq.</p>
+<p>Muammo shundaki, kondensator teshik chelakka o'xshaydi: zaryad undan sekin-asta oqib ketadi. Bir necha o'n millisekunddan keyin 1 ni 0 dan ajratib bo'lmay qoladi. Shuning uchun xotira o'zini doim <strong>yangilab</strong> turadi: har bir katak o'qiladi va zaryadi to'ldirilib qayta yoziladi. Bu sekundiga o'n martadan ortiq, to'xtovsiz sodir bo'ladi. «Dinamik» so'zi aynan shuni bildiradi: ma'lumot tinch turmaydi, u doim qayta yozilib turadi.</p>
+<p>Pastdagi chizmada vaqtni suring. Avval yangilash yoqilgan holda, keyin o'chirilgan holda.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="dram" style="width:1240px;height:320px" viewBox="0 0 1240 320" role="img" aria-label="DRAM katagi: tranzistor va kondensator, zaryad vaqt o'tishi bilan kamayadi va yangilanadi"></svg>
+  </div>
+  <figcaption>Bitta bitni saqlaydigan katak. O'rtadagi idish kondensator, undagi to'ldirilgan qism zaryad. Punktir chiziq chegara: zaryad undan yuqori bo'lsa 1, past bo'lsa 0 deb o'qiladi. Egri chiziq sxematik, haqiqiy vaqtlar haroratga va chipga bog'liq.</figcaption>
+  <div class="slider">
+    <label for="drT">1 yozilganidan beri o'tgan vaqt, ms:</label>
+    <input id="drT" type="range" min="0" max="256" value="40">
+  </div>
+  <p class="pick-label">Yangilash</p>
+  <div class="evo-tabs" id="drR"></div>
+  <p class="say" id="drSay" aria-live="polite"></p>
+</figure>
+
+<p>Bundan ikkita muhim xulosa chiqadi.</p>
+<p><strong>RAM tok bilan yashaydi.</strong> Yangilash uchun tok kerak. Tok o'chsa, yangilash to'xtaydi, zaryadlar oqib ketadi, va bir zumda hamma bitlar ma'nosini yo'qotadi. Bunday xotira <strong>uchuvchan</strong> deyiladi. Bu nosozlik emas, bu shu qurilmaning tabiati.</p>
+<p><strong>RAM nega bunday tuzilgan?</strong> Chunki bitta bit uchun bitta tranzistor va bitta kondensator bu mumkin bo'lgan eng kichik katak. Katak qancha kichik bo'lsa, bitta chipga shuncha ko'p bit sig'adi va xotira shuncha arzon bo'ladi. Yangilash zarurati shu arzonlik uchun to'lanadigan narx.</p>
+
+<p class="beat">Disk: tok kerak bo'lmaydigan saqlash</p>
+<p>Disk bitni tok bilan ushlab turilmaydigan narsada saqlaydi. Bugun ikki xil disk ishlatiladi, va ular ichkarida butunlay boshqacha.</p>
+<p><strong>HDD (qattiq disk).</strong> Ichida minutiga minglab marta aylanadigan plastinkalar bor, yuzasi magnit qatlam bilan qoplangan. Bit plastinkaning juda kichik bo'lagining magnitlanish yo'nalishi sifatida saqlanadi: bir tomonga qaragan bo'lsa 1, boshqa tomonga qaragan bo'lsa 0. Magnitlanish tok talab qilmaydi, u yillab turadi. O'qish va yozishni plastinka ustida uchib yuradigan <strong>kallak</strong> bajaradi. Kerakli baytni o'qish uchun ikki mexanik harakat kerak: kallak kerakli yo'lakka suriladi, keyin plastinka aylanib, kerakli joy kallak ostiga kelishi kutiladi.</p>
+<p><strong>SSD.</strong> Ichida harakatlanadigan qism yo'q, faqat chiplar. Bit <strong>flesh xotira</strong> katagida saqlanadi: bu ham tranzistor, lekin uning ichida atrofi izolyatsiya bilan o'ralgan «qopqon» bor. Yozish paytida qopqonga elektronlar kuch bilan haydab kiritiladi, va ular u yerdan chiqib keta olmaydi, tok bo'lmasa ham. Qopqonda elektron bor yoki yo'qligi bitning qiymati. O'qish uchun hech narsa surilmaydi va aylanmaydi, shuning uchun SSD qattiq diskdan ancha tez.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="disks" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Qattiq disk va SSD ichki tuzilishi va bitta o'qish so'rovining bosqichlari"></svg>
+  </div>
+  <figcaption>Chapda qattiq disk, o'ngda SSD. Har birida bitta o'qish so'rovi qaysi bosqichlardan o'tishi va har bir bosqich taxminan qancha vaqt olishi ko'rsatilgan.</figcaption>
+</figure>
+
+<p>Chizmadagi raqamlarga qarang. Qattiq diskda bitta o'qishning deyarli butun vaqti mexanikaga ketadi: kallakni surish va plastinkaning aylanishini kutish. Minutiga 7200 marta aylanadigan diskda bitta to'liq aylanish 8,3 millisekund, o'rtacha yarim aylanish kutiladi. Bu vaqtni tezlashtirib bo'lmaydi: metall bo'lagi fizik jihatdan bundan tez harakatlana olmaydi.</p>
+<p>Flesh xotiraning ham o'z cheklovlari bor, va ularni bilish keyin kerak bo'ladi:</p>
+<ul>
+  <li><strong>Katak eskiradi.</strong> Har bir yozish izolyatsiyani biroz yemiradi. Bitta katakni cheklangan marta, odatda bir necha ming marta qayta yozish mumkin. Shuning uchun SSD ichidagi kontroller yozuvlarni butun disk bo'ylab bir tekis taqsimlaydi.</li>
+  <li><strong>Ustidan yozib bo'lmaydi.</strong> Katakka yangi qiymat yozishdan oldin uni o'chirish kerak, o'chirish esa faqat katta bo'laklar bilan bajariladi. Shuning uchun SSD o'zgargan ma'lumotni boshqa bo'sh joyga yozadi va eskisini «keraksiz» deb belgilab qo'yadi, keyin bo'sh vaqtida tozalaydi.</li>
+</ul>
+<p>Yana bir farq: disk bilan baytma-bayt ishlanmaydi. Diskdan eng kam o'qiladigan bo'lak <strong>blok</strong> deyiladi, odatda 4096 bayt. Bitta bayt kerak bo'lsa ham butun blok o'qiladi. Oracle ham o'z ma'lumotini bloklarga bo'lib saqlaydi, odatda 8192 baytdan.</p>
+
+<p class="beat">Tezliklar farqi: sonlarni his qilish</p>
+<p>«Disk RAM dan sekin» degan gapni hamma biladi. Lekin qancha sekin? Farq ikki yoki o'n baravar emas, minglab va yuz minglab baravar. Bunday sonlarni tasavvur qilish qiyin, shuning uchun ularni odam o'lchamiga keltiramiz: protsessor ichidagi eng tez xotiraga bitta murojaat bir soniya davom etadi deb olamiz, va qolganlarini shu nisbatda cho'zamiz.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="lat" style="width:1240px;height:440px" viewBox="0 0 1240 440" role="img" aria-label="Turli xotiralarga bitta murojaat qancha vaqt olishi, haqiqiy vaqtda va odam o'lchamida"></svg>
+  </div>
+  <figcaption>Har bir qatorda: qurilma, bitta murojaatning haqiqiy vaqti, va 1 nanosekund 1 soniya deb olingandagi vaqt. Chiziq uzunligi logarifmik: har bir bo'lim o'n baravar. Sonlar taxminiy, ular tartibni ko'rsatadi.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">Qatorni tanlang</p>
+  <div class="evo-tabs" id="latP"></div>
+  <p class="say" id="latSay" aria-live="polite"></p>
+</figure>
+
+<p>Vaqt birliklari: 1 soniya 1000 millisekund (ms), 1 millisekund 1000 mikrosekund (mks), 1 mikrosekund 1000 nanosekund (ns). Demak bir soniyada bir milliard nanosekund bor.</p>
+<p>Bu jadval backend dasturchining eng muhim jadvallaridan biri. Undan kelib chiqadigan asosiy fikr: RAM dagi ish bilan diskdagi yoki tarmoqdagi ish bir xil tarozida turmaydi. Kodingizdagi mingta qo'shish amali bitta disk murojaati oldida ko'rinmaydi. Sekin ishlayotgan dasturni tezlashtirishda birinchi savol «hisoblash qancha» emas, «diskka va tarmoqqa necha marta murojaat qilyapmiz».</p>
+
+<p class="beat">Ketma-ket va tasodifiy o'qish</p>
+<p>Yuqoridagi sonlar bitta alohida murojaat uchun edi. Lekin diskdan o'qishning ikki xil usuli bor, va ularning tezligi juda farq qiladi.</p>
+<ul>
+  <li><strong>Ketma-ket o'qish:</strong> bloklar diskda yonma-yon yotibdi, birin-ketin o'qiladi. Qattiq diskda kallak bir marta joyiga boradi, keyin plastinka aylanaveradi va ma'lumot uzluksiz oqib keladi.</li>
+  <li><strong>Tasodifiy o'qish:</strong> bloklar diskning turli joylarida. Qattiq diskda har bir blok uchun kallak qaytadan suriladi.</li>
+</ul>
+<p>Pastdagi hisoblagichda bloklar sonini tanlang. Har bir blok 8 kilobayt, Oracle'dagi kabi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="io" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Bir xil miqdordagi bloklarni ketma-ket va tasodifiy o'qish vaqti: qattiq disk, SSD va RAM"></svg>
+  </div>
+  <figcaption>Uchta qurilma, har birida ikki son: shuncha blokni ketma-ket o'qish va tasodifiy tartibda o'qish vaqti. Hisob taxminiy tezliklar asosida.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">Nechta blok o'qiladi</p>
+  <div class="evo-tabs" id="ioP"></div>
+  <p class="say" id="ioSay" aria-live="polite"></p>
+</figure>
+
+<p>Bu farq ma'lumotlar bazasining ko'p qarorlarini tushuntiradi. Indeks orqali qator topish tasodifiy o'qish, jadvalni boshidan oxirigacha o'qish ketma-ket o'qish. Shuning uchun baza ba'zan indeks bor bo'lsa ham jadvalni to'liq o'qishni tanlaydi: qatorlarning katta qismi kerak bo'lsa, bu tezroq chiqadi. Bu mavzu Ma'lumotlar bazasi yo'nalishida batafsil ochiladi, hozircha sababini bilish yetarli.</p>
+
+<p class="beat">RAM va disk birga: dastur qanday yashaydi</p>
+<p>Endi ikkalasini birlashtiramiz. Dastur diskda fayl sifatida yotadi. U ishga tushganda operatsion tizim fayldagi baytlarni RAM ga ko'chiradi, va protsessor faqat RAM dagi nusxa bilan ishlaydi. Protsessor diskdagi baytni to'g'ridan-to'g'ri o'qiy olmaydi va o'zgartira olmaydi: har qanday ma'lumot avval RAM ga keltiriladi, u yerda o'zgartiriladi, va saqlash kerak bo'lsa, diskka qaytarib yoziladi.</p>
+<p>Demak RAM da o'zgartirilgan, lekin hali diskka yozilmagan ma'lumot faqat tok bor paytda mavjud. Pastdagi chizmada buni sinab ko'ring: balansni o'zgartiring va saqlamasdan tokni o'chiring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="pwr" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="Protsessor, RAM va disk: dastur diskdan RAM ga yuklanadi, o'zgarish RAM da bo'ladi, saqlanganda diskka yoziladi"></svg>
+  </div>
+  <figcaption>Chapda protsessor, o'rtada RAM, o'ngda disk. RAM dagi sariq quti diskdagidan farq qiladigan, hali saqlanmagan qiymatni bildiradi.</figcaption>
+  <div class="slider">
+    <button type="button" id="pwAdd">Balansga 100 qo'sh</button>
+    <button type="button" id="pwSave">Diskka saqla</button>
+    <button type="button" id="pwOff">Tokni o'chir</button>
+    <button type="button" id="pwOn">Tokni yoq va dasturni ishga tushir</button>
+  </div>
+  <p class="say" id="pwSay" aria-live="polite"></p>
+</figure>
+
+<p>Shu oddiy chizmada butun bir sohaning asosiy muammosi yotibdi. Tez ishlash uchun ma'lumotni RAM da ushlab turish kerak. Yo'qotmaslik uchun uni diskka yozish kerak, bu esa sekin. Har bir yozuvdan keyin diskka yozsak, dastur sekin ishlaydi. Kamdan-kam yozsak, tok o'chganda oxirgi o'zgarishlar yo'qoladi. Ma'lumotlar bazalari aynan shu ziddiyatni hal qilish uchun yaratilgan, va Oracle'ning ichki tuzilishini o'rganganimizda uning deyarli har bir qismi shu savolga javob ekanini ko'rasiz.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Simob to'ldirilgan quvurdan flesh chipgacha</h3>
+<p>Xotira tarixi bitta savolning tarixi: bitni nimada saqlaymiz? Har bir bosqichda yangi fizik hodisa topilgan, va har biri oldingisining og'rig'ini yopgan.</p>
+<div class="bench" id="evoMem"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Xotira katagi</dt>
+  <dd>Bitta baytni saqlaydigan joy. Sakkizta bit, har biri o'z kalitida yoki kondensatorida.</dd>
+  <dt>Adres</dt>
+  <dd>Xotira katagining tartib raqami. Protsessor baytni faqat adresi orqali topadi. Java'dagi havola (reference) ichkarida shu adresga tayanadi.</dd>
+  <dt>RAM, operativ xotira</dt>
+  <dd>Random Access Memory. Ishlab turgan dasturlar va ularning ma'lumotlari turadigan tez xotira. Tok o'chsa, ichidagi yo'qoladi.</dd>
+  <dt>DRAM</dt>
+  <dd>Dinamik RAM. Bugungi operativ xotiraning turi: har bir bit bitta kondensator va bitta tranzistorda saqlanadi va doim yangilab turiladi.</dd>
+  <dt>Kondensator</dt>
+  <dd>Elektr zaryadini ushlab turadigan qism. DRAM da zaryad bor bo'lsa 1, yo'q bo'lsa 0.</dd>
+  <dt>Yangilash</dt>
+  <dd>DRAM kataklarini o'qib, zaryadini to'ldirib qayta yozish. Inglizcha «refresh». To'xtovsiz, sekundiga o'n martadan ortiq bajariladi.</dd>
+  <dt>Uchuvchan xotira</dt>
+  <dd>Tok o'chganda ma'lumotni yo'qotadigan xotira. Inglizcha «volatile». RAM shunday.</dd>
+  <dt>Doimiy xotira</dt>
+  <dd>Tok o'chganda ham ma'lumotni saqlaydigan xotira. Inglizcha «non-volatile» yoki «persistent». Disk shunday.</dd>
+  <dt>HDD, qattiq disk</dt>
+  <dd>Hard Disk Drive. Aylanadigan magnit plastinkalar va ular ustida suriladigan kallakdan iborat disk.</dd>
+  <dt>SSD</dt>
+  <dd>Solid State Drive, «qattiq jismli disk». Harakatlanadigan qismi yo'q, flesh xotira chiplaridan iborat disk.</dd>
+  <dt>Flesh xotira</dt>
+  <dd>Bitni izolyatsiya ichiga qamalgan elektronlar ko'rinishida saqlaydigan xotira. SSD, fleshka va telefon xotirasi shundan yasalgan.</dd>
+  <dt>Blok</dt>
+  <dd>Diskdan bir martada o'qiladigan yoki yoziladigan eng kichik bo'lak. Odatda 4096 bayt. Oracle'ning o'z bloki odatda 8192 bayt.</dd>
+  <dt>Kechikish</dt>
+  <dd>So'rov yuborilganidan javob kelguncha o'tgan vaqt. Inglizcha «latency».</dd>
+  <dt>Ketma-ket va tasodifiy murojaat</dt>
+  <dd>Ketma-ket: yonma-yon yotgan ma'lumotni birin-ketin o'qish. Tasodifiy: turli joylardagi ma'lumotni sakrab-sakrab o'qish. Inglizcha «sequential» va «random access».</dd>
+  <dt>Kilobayt, megabayt, gigabayt</dt>
+  <dd>Xotira hajmi birliklari. Xotira sohasida har biri oldingisidan 1024 baravar katta: 1 KB 1024 bayt, 1 MB 1024 KB, 1 GB 1024 MB. Disk ishlab chiqaruvchilar esa 1000 baravardan hisoblaydi, bu haqda pastda.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar va qoidalar</h3>
+
+<div class="rule">
+  <b>Qoida: «saqlandi» deganda qayerga saqlangani aniq bo'lsin</b>
+  <p>Dasturdagi o'zgaruvchiga yozilgan qiymat RAM da. Faylga yozilgan qiymat ham darhol diskka tushmaydi: operatsion tizim uni avval o'z RAM idagi buferda ushlab turadi va keyinroq diskka yozadi, chunki shunday tezroq. Shu oraliqda tok o'chsa, «yozildi» deb hisoblangan ma'lumot yo'qoladi.</p>
+  <p class="why">To'lov tizimida bu farq hal qiluvchi. Mijozga «to'lov qabul qilindi» deb javob berilgan bo'lsa, shu fakt o'sha paytda diskda bo'lishi shart. Oracle'da <span class="num">COMMIT</span> aynan shuni kafolatlaydi: u o'zgarish jurnali diskka yozilganidan keyingina qaytadi. Shuning uchun <span class="num">COMMIT</span> arzon amal emas, va minglab qatorni bittalab commit qilish ularni bir marta commit qilishdan ancha sekin.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: sikl ichida bazaga murojaat</b>
+  <p>Kod 1000 ta mijozning ro'yxatini oladi, keyin sikl ichida har bir mijoz uchun alohida so'rov bilan uning hisobini o'qiydi. Dasturchi kompyuterida, o'nta mijoz bilan, bu sezilmaydi. Ishda esa 1000 ta alohida so'rov ketadi: har biri tarmoq orqali boradi va bazada kamida bitta tasodifiy o'qishni keltirib chiqaradi.</p>
+  <p class="why">Tezliklar jadvalini eslang: bitta tarmoq so'rovi RAM dagi murojaatdan minglab marta qimmat. To'g'risi: kerakli ma'lumotni bitta so'rov bilan olish. Bu xato shu qadar keng tarqalganki, uning o'z nomi bor: «N+1 so'rov muammosi». Spring va JPA yo'nalishida unga batafsil qaytamiz.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: hammasini xotiraga yuklash</b>
+  <p>RAM cheklangan. Java dasturiga ishga tushishda ma'lum miqdor xotira ajratiladi, masalan <span class="num">-Xmx2g</span> ikki gigabayt degani. Kod jadvaldagi barcha qatorlarni yoki butun faylni bitta ro'yxatga o'qib olsa, ma'lumot oz bo'lgan paytda ishlaydi. Jadval o'sgach, bir kun <span class="num">OutOfMemoryError</span> chiqadi va dastur to'xtaydi.</p>
+  <p class="why">To'g'risi: katta ma'lumotni bo'laklab qayta ishlash. Faylni qatorma-qator o'qish, bazadan sahifalab olish. Savol har doim bir xil: «bu ma'lumot o'n baravar ko'paysa, xotiraga sig'adimi?»</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: RAM dagi kesh yo'qolishga tayyor bo'lsin</b>
+  <p>Tez-tez so'raladigan ma'lumotni RAM da ushlab turish, ya'ni kesh, eng kuchli tezlashtirish usullaridan biri: diskka yoki bazaga bormasdan javob beriladi. Lekin RAM uchuvchan. Server qayta ishga tushsa, kesh bo'shaydi.</p>
+  <p class="why">Shuning uchun keshda faqat boshqa joydan qayta tiklash mumkin bo'lgan narsa turishi kerak: asl nusxa bazada, keshda uning tez nusxasi. Yagona nusxasi faqat RAM da turgan muhim ma'lumot, masalan hali bazaga yozilmagan to'lovlar navbati, birinchi qayta ishga tushirishda yo'qoladi.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: gigabayt ikki xil</b>
+  <p>Xotira sohasida 1 GB bu 1024 × 1024 × 1024 bayt, ya'ni 1 073 741 824 bayt. Disk ishlab chiqaruvchilar esa 1 GB ni rosa 1 000 000 000 bayt deb hisoblaydi. Shuning uchun «500 GB» deb sotilgan disk kompyuterda taxminan 465 GB bo'lib ko'rinadi: baytlar soni o'sha, bo'luvchi boshqa.</p>
+  <p class="why">Chalkashlikni yo'qotish uchun 1024 ga asoslangan birliklarga alohida nom berilgan: KiB, MiB, GiB. Hujjatlarda ularni uchratasiz. Java'da <span class="num">-Xmx2g</span> 1024 ga asoslangan, bulut xizmatlarining narx jadvallarida esa ko'pincha 1000 ga asoslangan birlik turadi. Server uchun xotira yoki disk hisoblaganda qaysi biri nazarda tutilganini tekshiring.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: diskka yozganda ketma-ket yozishga intiling</b>
+  <p>Ketma-ket yozish tasodifiy yozishdan ancha tez, qattiq diskda yuzlab marta, SSD da ham sezilarli. Shuning uchun tez yozishi kerak bo'lgan tizimlar ma'lumotni faylning oxiriga qo'shib boradi va o'rtasini o'zgartirmaydi.</p>
+  <p class="why">Buni keyin ko'p joyda uchratasiz: bazaning o'zgarishlar jurnali, log fayllar, Kafka. Kafka'ning butun tezligi shu g'oyaga qurilgan: xabarlar faqat oxiriga qo'shiladi. Hozir sababini bilib oling, tuzilishini o'sha yo'nalishlarda ko'ramiz.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> <span class="num">long[] a</span> massivi 5000-adresdan boshlanadi. <span class="num">long</span> sakkiz bayt. <span class="num">a[6]</span> qaysi adresdan boshlanadi va qaysi adresda tugaydi?</li>
+  <li><strong>Adres chizmasida.</strong> 1000-adresga 66 yozing va «Salom» so'zi nimaga aylanganini ayting (4-darsdagi ASCII jadvalini eslang). Keyin 1004-adresga <span class="num">int</span> qilib 1 sonini yozing: to'rt baytdan qaysi birida 1 turibdi va nega?</li>
+  <li><strong>Adres uzunligi chizmasida.</strong> 4 GB dan ko'p xotira uchun kamida necha bit adres kerak? 1 TB uchun-chi?</li>
+  <li><strong>Hisoblagichda.</strong> 100 000 ta blokni qattiq diskdan tasodifiy o'qish qancha vaqt oladi? Xuddi shu ma'lumot ketma-ket yotgan bo'lsa-chi? Farq necha baravar?</li>
+  <li><strong>Kodda.</strong> Bajaring va natijani tushuntiring:
+    <pre class="code" style="margin-top:0.5rem">long mb = 1024 * 1024;
+Runtime rt = Runtime.getRuntime();
+System.out.println("Eng ko'p: " + rt.maxMemory() / mb + " MB");
+System.out.println("Band:     " + (rt.totalMemory() - rt.freeMemory()) / mb + " MB");
+
+int[] a = new int[50_000_000];          // necha megabayt?
+System.out.println("Band:     " + (rt.totalMemory() - rt.freeMemory()) / mb + " MB");</pre>
+    Massiv yaratilgandan keyin band xotira qanchaga oshdi? Bu sonni o'zingiz oldindan hisoblab, keyin solishtiring. Keyin massiv hajmini o'n baravar oshirib ko'ring.</li>
+  <li><strong>O'z ishingizda.</strong> O'zingiz yozgan yoki ko'rgan kodda sikl ichida bazaga murojaat qiladigan joyni toping. U yerda nechta so'rov ketadi? Uni bitta so'rovga aylantirish mumkinmi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni o'z so'zlaringiz bilan chatga yozing.</p>
+<ol class="check">
+  <li>Adres nima? Xotira «o'zgaruvchi» degan narsani biladimi?</li>
+  <li>32 bitli dastur nega 4 GB dan ortiq xotira ishlata olmaydi?</li>
+  <li>RAM tok o'chganda nega unutadi? «Yangilash» nima va u nega kerak?</li>
+  <li>Qattiq diskda bitta o'qishning vaqti asosan nimaga ketadi? SSD da nega bu vaqt yo'q?</li>
+  <li>Dastur balansni o'zgartirdi, lekin diskka yozmadi, va tok o'chdi. Nima bo'ladi va nega? <span class="num">COMMIT</span> bu yerda nimani kafolatlaydi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Bir necha baytli son qaysi tartibda yotadi?</summary>
+  <p>To'rt baytli sonni xotiraga ikki xil tartibda yozish mumkin. «Kichik uchidan» (little-endian): sonning eng kichik bayti eng kichik adresda. «Katta uchidan» (big-endian): eng katta bayti eng kichik adresda, ya'ni odam yozadigan tartibda. Intel va AMD protsessorlari, shuningdek amalda barcha ARM tizimlari kichik uchidan ishlaydi. Tarmoq protokollari esa katta uchidan: bu «tarmoq tartibi» deyiladi. Java ham fayl va tarmoqqa yozganda sukut bo'yicha katta uchidan yozadi (<span class="num">DataOutputStream</span>, <span class="num">ByteBuffer</span>). Bu farq ikki tizim ikkilik formatda ma'lumot almashganda muhim: tartib kelishilmagan bo'lsa, 1 soni 16 777 216 bo'lib o'qiladi. Atamalar Jonatan Sviftning «Gulliverning sayohatlari» kitobidan: u yerda ikki xalq tuxumni qaysi uchidan chaqish kerakligi ustida urushadi.</p>
+</details>
+<details>
+  <summary>SRAM nima va u DRAM dan nimasi bilan farq qiladi?</summary>
+  <p>Statik RAM bitni kondensatorda emas, bir-birini ushlab turadigan tranzistorlar halqasida saqlaydi, odatda bitta bit uchun oltita tranzistor. Uni yangilash shart emas va u DRAM dan tezroq, lekin katagi bir necha baravar katta, demak qimmat. Tok o'chsa u ham unutadi. Protsessor ichidagi kesh xotira SRAM dan yasaladi. Bu keyingi darsning mavzusi.</p>
+</details>
+<details>
+  <summary>Xotiradagi bit o'z-o'zidan o'zgarib qolishi mumkinmi?</summary>
+  <p>Ha. Kosmik nurlanish zarrasi kondensatordagi zaryadni o'zgartirib yuborishi mumkin, va bitta bit 0 dan 1 ga yoki aksincha aylanadi. Bitta kompyuterda bu kam uchraydi, minglab serverli tizimda esa muntazam hodisa. Shuning uchun serverlarda ECC xotira ishlatiladi: u har bir so'z bilan birga qo'shimcha tekshiruv bitlarini saqlaydi, bitta bitli xatoni o'zi tuzatadi va ikki bitli xatoni aniqlaydi. Yana bir hodisa: 2014-yilda tadqiqotchilar bitta qatorga juda tez-tez murojaat qilish qo'shni qatordagi kondensatorlarning zaryadini o'zgartirishini ko'rsatdi. Bu «Rowhammer» deb nomlandi va xavfsizlik zaifligi sifatida ishlatilishi mumkinligi isbotlandi.</p>
+</details>
+<details>
+  <summary>Ikkalasining afzalligini beradigan xotira bormi?</summary>
+  <p>Urinishlar bo'lgan. Intel 2017-yildan Optane nomi bilan tok o'chganda ham saqlaydigan va flesh xotiradan ancha tez ishlaydigan xotira sotdi, lekin 2022-yilda bu yo'nalishni yopishini e'lon qildi: narxi va bozori o'zini oqlamadi. Bugun amalda ikki qavat saqlanib qolmoqda: DRAM va flesh. Men bu sohadagi yangiliklarni 2026-yil o'rtasigacha bilaman, undan keyingi o'zgarishlarni tekshirish kerak.</p>
+</details>
+<details>
+  <summary>Bu darsdagi tezlik sonlari qayerdan?</summary>
+  <p>Ular taxminiy va tartibni ko'rsatadi, aniq o'lchov emas. Asos sifatida Google muhandisi Jeff Dean tarqatgan «Latency Numbers Every Programmer Should Know» ro'yxati olingan: operativ xotiraga murojaat taxminan 100 ns, diskda kallakni surish taxminan 10 ms, bitta datamarkaz ichida so'rov-javob taxminan 0,5 ms. SSD uchun sonlar qurilmaga qarab keng farq qiladi: o'nlab mikrosekunddan yuzlab mikrosekundgacha. Aniq qurilma uchun sonni har doim o'lchash kerak, taxmin qilish emas.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>DRAM katagining ixtirosi: Robert Dennard, AQSH patenti 3 387 286, 1968-yil. Xotira va disk qurilmalari haqida eng tushunarli kitob bobi: Bryant va O'Hallaron, «Computer Systems: A Programmer's Perspective», 6-bob. Operativ xotira haqida chuqur maqola: Ulrich Drepper, «What Every Programmer Should Know About Memory», 2007. Rowhammer: Kim va boshqalar, «Flipping Bits in Memory Without Accessing Them», 2014. Tezlik sonlari: Jeff Dean, «Latency Numbers Every Programmer Should Know».</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Xotira raqamlangan baytlar qatori, baytning raqami adres. Protsessor faqat «adresdan o'qi» va «adresga yoz» deya oladi. RAM tez, lekin tok bilan yashaydi: har bir bit oqib ketadigan zaryad. Disk unutmaydi, lekin minglab marta sekin. Dastur RAM da ishlaydi, saqlash kerak bo'lgan narsa diskka yoziladi, va shu ikkisining orasidagi har bir o'tish qimmat.</p>
+  <p><strong>Ochiq qolgan savol.</strong> Jadvalda RAM dan ham yuz baravar tez ikki qator bor edi: registr va kesh. Ular protsessorning ichida. Protsessor o'zi nima, u xotiradan olgan baytlar bilan nima qiladi?</p>
+  <p><strong>Keyingi dars.</strong> Protsessor: registr, buyruq hisoblagichi, ish sikli.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="04-matn-va-kodirovka.html">Oldingi: 4. Matn va kodirovka</a><span class="dim">Keyingi: 6. Protsessor (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'long balans = 3_000_000_000L;', link: 'ishga tushganda JVM bajaradi' },
+    { title: 'JVM', sub: 'O\'zgaruvchi uchun joy ajratadi', ex: 'long turi: 64 bit kerak', link: 'joyni xotiradan oladi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: '64 bit = yonma-yon 8 ta bayt', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [2], 'Xotira: raqamlangan baytlar qatori');
+</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function bin(n, w) { var s = n.toString(2); while (s.length < w) s = '0' + s; return s; }
+  function grp3(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function fmtT(s) {
+    function r(x) { return x >= 100 ? String(Math.round(x)) : x >= 10 ? String(Math.round(x * 10) / 10).replace('.', ',') : String(Math.round(x * 100) / 100).replace('.', ','); }
+    if (s < 1e-6) return r(s * 1e9) + ' ns';
+    if (s < 1e-3) return r(s * 1e6) + ' mks';
+    if (s < 1) return r(s * 1e3) + ' ms';
+    if (s < 60) return r(s) + ' soniya';
+    if (s < 3600) return r(s / 60) + ' daqiqa';
+    if (s < 86400) return r(s / 3600) + ' soat';
+    return r(s / 86400) + ' kun';
+  }
+
+  // ---------- 1. Adres ----------
+  (function () {
+    var svg = $('addr'), BASE = 1000, mem = [83, 97, 108, 111, 109, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0];
+    var st = { op: 'none', a: 0, n: 1 }, say = $('adSay');
+    function clampA() { var a = parseInt($('adA').value, 10); if (isNaN(a)) a = BASE; a = Math.max(BASE, Math.min(BASE + 15, a)); return a - BASE; }
+    function draw() {
+      svg.textContent = ''; marker(svg, 'admk');
+      box(svg, 20, 110, 230, 120, 'Protsessor', 'Adres aytadi, bayt oladi', 'on');
+      group(svg, 400, 20, 820, 300, 'Xotira (RAM): 16 ta katak');
+      mem.forEach(function (v, i) {
+        var x = 420 + (i % 8) * 99, y = i < 8 ? 62 : 190, hit = st.op !== 'none' && i >= st.a && i < st.a + st.n;
+        S(svg, 'rect', { x: x, y: y, width: 89, height: 108, rx: 5, 'class': 'box' + (hit ? (st.op === 'read' ? ' on' : ' live') : '') });
+        S(svg, 'text', { x: x + 44, y: y + 22, 'text-anchor': 'middle', 'class': 'sub' }, 'adres ' + (BASE + i));
+        S(svg, 'text', { x: x + 44, y: y + 60, 'text-anchor': 'middle', 'class': 'big' }, String(v));
+        S(svg, 'text', { x: x + 44, y: y + 92, 'text-anchor': 'middle', 'class': 'mono' }, bin(v, 8));
+      });
+      if (st.op === 'read') {
+        arrow(svg, 'admk', 'M250 145H398', 'adres: ' + (BASE + st.a), 324, 135);
+        arrow(svg, 'admk', 'M398 200H252', 'bayt: ' + mem[st.a], 324, 190);
+      } else if (st.op === 'write') {
+        arrow(svg, 'admk', 'M250 145H398', 'adres: ' + (BASE + st.a), 324, 135);
+        arrow(svg, 'admk', 'M250 200H398', st.n === 1 ? 'yoz: ' + mem[st.a] : 'yoz: 4 bayt', 324, 190);
+      } else {
+        S(svg, 'text', { x: 324, y: 176, 'text-anchor': 'middle', 'class': 'lbl' }, 'kutmoqda');
+      }
+    }
+    $('adR').addEventListener('click', function () {
+      var a = clampA(), v = mem[a]; st = { op: 'read', a: a, n: 1 }; draw();
+      say.textContent = `Protsessor ${BASE + a}-adresni yubordi, xotira shu katakdagi baytni qaytardi: ${v}, bitlarda ${bin(v, 8)}.` + (v >= 32 && v < 127 ? ` Harf sifatida o'qilsa, bu «${String.fromCharCode(v)}». Son sifatida o'qilsa, ${v}. Xotira qaysi biri ekanini bilmaydi.` : ` O'qish katakdagi qiymatni o'zgartirmaydi.`);
+    });
+    $('adW').addEventListener('click', function () {
+      var a = clampA(), v = parseInt($('adV').value, 10); if (isNaN(v)) v = 0; v = Math.max(0, Math.min(255, v));
+      var old = mem[a]; mem[a] = v; st = { op: 'write', a: a, n: 1 }; draw();
+      say.textContent = `${BASE + a}-adresga ${v} yozildi. Oldingi qiymat ${old} edi, u izsiz yo'qoldi: xotirada «orqaga qaytarish» yo'q.` + (a < 5 ? ` Bu katak «Salom» so'zining bir harfi edi, endi so'z «${String.fromCharCode.apply(null, mem.slice(0, 5).map(function (x) { return x >= 32 && x < 127 ? x : 63; }))}» bo'lib o'qiladi.` : '');
+    });
+    $('adWI').addEventListener('click', function () {
+      var a = Math.min(clampA(), 12), v = parseInt($('adI').value, 10); if (isNaN(v)) v = 0; v = v | 0;
+      var u = v >>> 0, b = [u & 255, (u >>> 8) & 255, (u >>> 16) & 255, (u >>> 24) & 255];
+      b.forEach(function (x, k) { mem[a + k] = x; }); st = { op: 'write', a: a, n: 4 }; draw();
+      say.textContent = `${grp3(v)} soni int sifatida 32 bit, ya'ni 4 bayt. U ${BASE + a} dan ${BASE + a + 3} gacha bo'lgan to'rtta katakka yozildi: ${b.join(', ')}. Eng kichik bayt eng kichik adresda. Tekshiruv: ${b[0]} + ${b[1]} × 256 + ${b[2]} × 65 536 + ${b[3]} × 16 777 216 = ${grp3(u)}` + (v < 0 ? ` (bu ishorasiz o'qilgani; ishorali o'qilsa ${grp3(v)}, 2-darsdagi kabi).` : '.') + ` Bu sonning adresi deb ${BASE + a} aytiladi.`;
+    });
+    draw();
+    say.textContent = `Xotirada 1000 dan 1004 gacha «Salom» so'zining baytlari yotibdi: 83, 97, 108, 111, 109. Qolgan kataklarda nol. Adres tanlab «O'qi» ni bosing.`;
+  })();
+
+  // ---------- 2. Adres uzunligi ----------
+  (function () {
+    var svg = $('abits'), inp = $('abN'), say = $('abSay');
+    var U = ['bayt', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB'];
+    function human(n) { var big = BigInt(2) ** BigInt(n), k = 0; while (big >= BigInt(1024) && k < U.length - 1) { big = big / BigInt(1024); k++; } return grp3(big.toString()) + ' ' + U[k]; }
+    var NOTE = {
+      16: `16 bitli adres: 65 536 bayt, ya'ni 64 KB. 1970–80-yillardagi uy kompyuterlari shunday edi. Butun dastur va uning ma'lumoti shu hajmga sig'ishi kerak edi.`,
+      20: `20 bitli adres: 1 MB. 1978-yilgi Intel 8086 protsessori va birinchi IBM PC shunday edi.`,
+      32: `32 bitli adres: 4 GB. 1985-yildan 2000-yillarning o'rtasigacha shaxsiy kompyuter va serverlar shu chegarada edi. 32 bitli dastur bundan ortiq xotirani ko'ra olmaydi.`,
+      48: `48 bitli adres: 256 TB. Bugungi 64 bitli protsessorlarning ko'pchiligi amalda 64 bitning hammasini emas, 48 bitini ishlatadi: hozircha shu ham yetadi, qurilma esa soddaroq.`,
+      64: `64 bitli adres: 16 EB (eksabayt), ya'ni 16 milliard gigabayt. Bu chegara amalda yetib bo'lmaydigan darajada katta, shuning uchun 64 bitga o'tilgach, adres yetishmasligi muammosi yopildi.`
+    };
+    function draw() {
+      var n = parseInt(inp.value, 10), cnt = BigInt(2) ** BigInt(n);
+      svg.textContent = ''; marker(svg, 'abmk');
+      box(svg, 20, 40, 300, 130, 'Adres uzunligi', 'Protsessor adresni shuncha bitda saqlaydi', 'on');
+      S(svg, 'text', { x: 36, y: 140, 'class': 'big' }, n + ' bit');
+      box(svg, 440, 40, 380, 130, 'Nechta har xil adres', '2 ning ' + n + '-darajasi');
+      S(svg, 'text', { x: 456, y: 136, 'class': 'val' }, grp3(cnt.toString()));
+      box(svg, 940, 40, 280, 130, 'Eng katta xotira', 'Har bir adresda bitta bayt', 'live');
+      S(svg, 'text', { x: 956, y: 140, 'class': 'big' }, human(n));
+      arrow(svg, 'abmk', 'M320 105H438', 'n bit', 379, 95);
+      arrow(svg, 'abmk', 'M820 105H938', 'baytlarda', 879, 95);
+      say.textContent = NOTE[n] || `${n} bitli adres bilan ${human(n)} xotiraga murojaat qilish mumkin. Har bir qo'shilgan bit bu chegarani ikki baravar oshiradi.`;
+    }
+    inp.addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ab]'), function (b) { b.addEventListener('click', function () { inp.value = b.getAttribute('data-ab'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- 3. DRAM ----------
+  (function () {
+    var svg = $('dram'), inp = $('drT'), say = $('drSay'), refresh = 0, TAU = 222, PER = 64;
+    var setR = tabs('drR', ['Yoqilgan: har 64 ms da', 'O\'chirilgan'], function (i) { refresh = i; draw(); });
+    function draw() {
+      var t = parseInt(inp.value, 10), since = refresh === 0 ? t % PER : t, q = Math.exp(-since / TAU), pct = Math.round(q * 100), ok = q >= 0.5;
+      setR(refresh); svg.textContent = ''; marker(svg, 'drmk');
+      group(svg, 20, 20, 800, 280, 'Bitta DRAM katagi: bitta bit');
+      box(svg, 50, 110, 290, 100, 'Tranzistor (kalit)', 'Ochilsa, kondensatorga yo\'l ochiladi');
+      S(svg, 'text', { x: 66, y: 190, 'class': 'sub' }, 'O\'qish va yozish paytida ochiladi');
+      arrow(svg, 'drmk', 'M340 160H478', 'zaryad yo\'li', 409, 150);
+      var X = 480, Y = 60, W = 150, H = 200, fh = Math.round(H * q);
+      S(svg, 'rect', { x: X, y: Y, width: W, height: H, rx: 5, 'class': 'box' });
+      S(svg, 'rect', { x: X + 3, y: Y + H - fh, width: W - 6, height: Math.max(fh - 3, 0), rx: 3, 'class': 'box ' + (ok ? 'live' : 'bad') });
+      S(svg, 'line', { x1: X - 14, y1: Y + H / 2, x2: X + W + 14, y2: Y + H / 2, 'class': 'arr', 'stroke-dasharray': '6 5' });
+      S(svg, 'text', { x: X + W + 22, y: Y + H / 2 + 5, 'class': 'lbl' }, 'chegara');
+      S(svg, 'text', { x: X + W / 2, y: Y - 12, 'text-anchor': 'middle', 'class': 'ttl' }, 'Kondensator');
+      S(svg, 'text', { x: X + W + 22, y: Y + 28, 'class': 'sub' }, 'Zaryad:');
+      S(svg, 'text', { x: X + W + 22, y: Y + 62, 'class': 'big' }, pct + '%');
+      S(svg, 'text', { x: X + W + 22, y: Y + H - 24, 'class': 'sub' }, 'Oxirgi to\'ldirilganidan');
+      S(svg, 'text', { x: X + W + 22, y: Y + H - 4, 'class': 'sub' }, 'beri: ' + since + ' ms');
+      box(svg, 920, 90, 300, 140, 'O\'qilgan qiymat', 'Yozilgan qiymat: 1', ok ? 'on' : 'bad');
+      S(svg, 'text', { x: 936, y: 200, 'class': 'big' }, ok ? '1' : '0');
+      S(svg, 'text', { x: 990, y: 198, 'class': 'sub' }, ok ? 'to\'g\'ri' : 'xato: bit yo\'qoldi');
+      arrow(svg, 'drmk', 'M820 160H918', 'o\'qish', 869, 150);
+      if (refresh === 0) say.textContent = `${t} ms o'tdi, shu vaqt ichida katak ${Math.floor(t / PER)} marta yangilandi. Oxirgi yangilashdan beri ${since} ms, zaryad ${pct}%. U chegaradan pastga tushishga ulgurmaydi, chunki har 64 ms da qayta to'ldiriladi. Tok bor ekan, bit yashaydi.`;
+      else if (ok) say.textContent = `Yangilash o'chirilgan. ${t} ms da zaryad ${pct}% ga tushdi. Hozircha chegaradan yuqori, bit hali 1 deb o'qiladi, lekin u oqishda davom etyapti. Vaqtni yana suring.`;
+      else say.textContent = `Yangilash o'chirilgan. ${t} ms da zaryad ${pct}% ga tushdi, bu chegaradan past. Katak endi 0 deb o'qiladi, holbuki unga 1 yozilgan edi. Tok o'chganda butun xotirada aynan shu sodir bo'ladi.`;
+      say.className = 'say' + (ok ? '' : ' bad');
+    }
+    inp.addEventListener('input', draw); draw();
+  })();
+
+  // ---------- 4. HDD va SSD ----------
+  (function () {
+    var svg = $('disks'); marker(svg, 'dkmk');
+    group(svg, 20, 20, 590, 360, 'HDD: qattiq disk');
+    box(svg, 40, 60, 260, 72, '1. Kallak suriladi', 'Kerakli yo\'lak ustiga boradi');
+    box(svg, 40, 172, 260, 72, '2. Aylanish kutiladi', 'Kerakli joy kallak ostiga keladi');
+    box(svg, 40, 284, 260, 72, '3. Blok o\'qiladi', 'Magnit yo\'nalishi bitga aylanadi', 'on');
+    arrow(svg, 'dkmk', 'M170 132V170'); arrow(svg, 'dkmk', 'M170 244V282');
+    S(svg, 'text', { x: 320, y: 90, 'class': 'val' }, '4–9 ms'); S(svg, 'text', { x: 320, y: 112, 'class': 'sub' }, 'mexanik harakat');
+    S(svg, 'text', { x: 320, y: 202, 'class': 'val' }, '≈ 4 ms'); S(svg, 'text', { x: 320, y: 224, 'class': 'sub' }, '7200 ayl/daq, yarim aylanish');
+    S(svg, 'text', { x: 320, y: 314, 'class': 'val' }, '< 0,1 ms'); S(svg, 'text', { x: 320, y: 336, 'class': 'sub' }, 'o\'qishning o\'zi tez');
+    // plastinka rasmi
+    S(svg, 'circle', { cx: 525, cy: 150, r: 62, 'class': 'box' });
+    S(svg, 'circle', { cx: 525, cy: 150, r: 40, 'class': 'box live' });
+    S(svg, 'circle', { cx: 525, cy: 150, r: 38, 'class': 'box' });
+    S(svg, 'circle', { cx: 525, cy: 150, r: 8, 'class': 'box on' });
+    S(svg, 'path', { d: 'M590 236L548 170', 'class': 'arr', 'stroke-width': 4 });
+    S(svg, 'circle', { cx: 590, cy: 236, r: 6, 'class': 'box on' });
+    S(svg, 'text', { x: 525, y: 76, 'text-anchor': 'middle', 'class': 'lbl' }, 'plastinka');
+    S(svg, 'text', { x: 520, y: 262, 'text-anchor': 'middle', 'class': 'lbl' }, 'kallak va richag');
+    S(svg, 'text', { x: 525, y: 284, 'text-anchor': 'middle', 'class': 'lbl' }, 'sariq halqa: yo\'lak');
+
+    group(svg, 630, 20, 590, 360, 'SSD: flesh xotira');
+    box(svg, 650, 60, 260, 72, '1. Kontroller', 'Blok qaysi chipda ekanini topadi');
+    box(svg, 650, 172, 260, 72, '2. Flesh katak', 'Qopqonda elektron bormi, tekshiriladi');
+    box(svg, 650, 284, 260, 72, '3. Blok qaytariladi', 'Hech narsa surilmadi, aylanmadi', 'on');
+    arrow(svg, 'dkmk', 'M780 132V170'); arrow(svg, 'dkmk', 'M780 244V282');
+    S(svg, 'text', { x: 930, y: 90, 'class': 'val' }, 'mikrosekundlar'); S(svg, 'text', { x: 930, y: 112, 'class': 'sub' }, 'jadvaldan qidirish');
+    S(svg, 'text', { x: 930, y: 202, 'class': 'val' }, '≈ 0,05–0,1 ms'); S(svg, 'text', { x: 930, y: 224, 'class': 'sub' }, 'faqat elektr signali');
+    S(svg, 'text', { x: 930, y: 314, 'class': 'val' }, 'jami ≈ 0,1 ms'); S(svg, 'text', { x: 930, y: 336, 'class': 'sub' }, 'HDD dan taxminan 100 baravar tez');
+  })();
+
+  // ---------- 5. Tezliklar ----------
+  (function () {
+    var svg = $('lat'), say = $('latSay'), cur = 2;
+    var ROWS = [
+      { n: 'Registr', s: 'Protsessorning ichida', ns: 0.3, h: '0,3 soniya', t: `Registr protsessorning o'z ichidagi bir nechta katak. Unga murojaat protsessorning bitta qadami, taxminan 0,3 ns. Odam o'lchamida: ko'z ochib yumguncha. Registrlar juda kam, o'nlab dona. Ular keyingi darsning mavzusi.` },
+      { n: 'Kesh xotira', s: 'Protsessorning ichida', ns: 1, h: '1 soniya', t: `Kesh protsessor ichidagi kichik va juda tez xotira: RAM dagi ma'lumotning tez-tez kerak bo'ladigan qismining nusxasi shu yerda turadi. Murojaat taxminan 1 ns. Odam o'lchamida: stol ustidagi qog'ozga qarash. Bu ham keyingi darsda.` },
+      { n: 'RAM', s: 'Operativ xotira', ns: 100, h: '1 daqiqa 40 soniya', t: `RAM ga bitta murojaat taxminan 100 ns. Odam o'lchamida: o'rningizdan turib, xonadagi javondan kitob olib kelish. Keshdan yuz baravar sekin, lekin hali ham «tez» hisoblanadi.` },
+      { n: 'SSD', s: 'Flesh disk, bitta blok', ns: 100000, h: '1 kun 4 soat', t: `SSD dan bitta blok o'qish taxminan 100 mikrosekund, ya'ni 100 000 ns. Odam o'lchamida: kitobni boshqa shahardan buyurtma qilib, ertasiga olish. RAM dan ming baravar sekin.` },
+      { n: 'Tarmoq', s: 'Bitta datamarkaz ichida', ns: 500000, h: 'qariyb 6 kun', t: `Yonidagi serverga so'rov yuborib, javob olish taxminan 0,5 ms. Odam o'lchamida: bir hafta kutish. Dasturingiz bazaga yuborgan har bir so'rov kamida shuncha turadi, bazaning o'z ishini hisobga olmaganda. Boshqa shahardagi serverga so'rov bundan yana yuz baravar uzoq.` },
+      { n: 'HDD', s: 'Qattiq disk, bitta blok', ns: 10000000, h: 'qariyb 4 oy', t: `Qattiq diskdan tasodifiy joydagi bitta blokni o'qish taxminan 10 ms, ya'ni 10 000 000 ns. Odam o'lchamida: kitobni kemada boshqa qit'adan to'rt oy kutish. RAM dan yuz ming baravar sekin. Bu vaqtning deyarli hammasi kallakni surish va plastinkaning aylanishiga ketadi.` }
+    ];
+    var setP = tabs('latP', ROWS.map(function (r) { return r.n; }), function (i) { cur = i; draw(); });
+    function draw() {
+      setP(cur); svg.textContent = '';
+      S(svg, 'text', { x: 36, y: 34, 'class': 'sub' }, 'Qurilma'); S(svg, 'text', { x: 330, y: 34, 'class': 'sub' }, 'Haqiqiy vaqt'); S(svg, 'text', { x: 500, y: 34, 'class': 'sub' }, '1 ns = 1 soniya bo\'lsa'); S(svg, 'text', { x: 760, y: 34, 'class': 'sub' }, 'Nisbat (har bir bo\'lim 10 baravar)');
+      ROWS.forEach(function (r, i) {
+        var y = 48 + i * 64, on = i === cur, slow = i >= 3;
+        box(svg, 20, y, 280, 54, r.n, r.s, on ? 'on' : '');
+        S(svg, 'text', { x: 330, y: y + 34, 'class': 'val' }, fmtT(r.ns * 1e-9));
+        S(svg, 'text', { x: 500, y: y + 34, 'class': 'val' }, r.h);
+        var w = Math.round((Math.log(r.ns) / Math.LN10 + 1) * 54);
+        S(svg, 'rect', { x: 760, y: y + 14, width: w, height: 26, rx: 3, 'class': 'box ' + (on ? 'on' : slow ? 'live' : '') });
+      });
+      for (var k = 0; k <= 8; k++) S(svg, 'line', { x1: 760 + k * 54, y1: 44, x2: 760 + k * 54, y2: 428, 'class': 'arr', 'stroke-dasharray': '2 6', 'stroke-width': 1 });
+      say.textContent = ROWS[cur].t;
+    }
+    draw();
+  })();
+
+  // ---------- 6. Ketma-ket va tasodifiy ----------
+  (function () {
+    var svg = $('io'), say = $('ioSay'), NS = [1000, 100000, 1000000], cur = 1, BLK = 8192;
+    var DEV = [
+      { n: 'HDD: qattiq disk', s: 'Tasodifiy: 10 ms / blok. Ketma-ket: 150 MB/s', rnd: 0.01, seq: 150e6 },
+      { n: 'SSD', s: 'Tasodifiy: 0,1 ms / blok. Ketma-ket: 2000 MB/s', rnd: 0.0001, seq: 2000e6 },
+      { n: 'RAM', s: 'Tasodifiy: 100 ns / blok. Ketma-ket: 10 GB/s', rnd: 1e-7, seq: 10e9 }
+    ];
+    var setP = tabs('ioP', ['1 000 ta (8 MB)', '100 000 ta (800 MB)', '1 000 000 ta (8 GB)'], function (i) { cur = i; draw(); });
+    function draw() {
+      var n = NS[cur], bytes = n * BLK; setP(cur); svg.textContent = '';
+      var res = DEV.map(function (d, i) {
+        var x = 20 + i * 410, seq = bytes / d.seq, rnd = n * d.rnd;
+        group(svg, x, 20, 380, 260, d.n);
+        S(svg, 'text', { x: x + 16, y: 66, 'class': 'sub' }, d.s);
+        box(svg, x + 16, 84, 348, 78, 'Ketma-ket o\'qish', 'Bloklar yonma-yon', 'on');
+        S(svg, 'text', { x: x + 348, y: 138, 'text-anchor': 'end', 'class': 'val' }, fmtT(seq));
+        box(svg, x + 16, 180, 348, 78, 'Tasodifiy o\'qish', 'Har bir blok boshqa joyda', rnd / seq > 20 ? 'bad' : 'live');
+        S(svg, 'text', { x: x + 348, y: 234, 'text-anchor': 'end', 'class': 'val' }, fmtT(rnd));
+        return { seq: seq, rnd: rnd };
+      });
+      say.textContent = `${grp3(n)} ta blok. Qattiq diskda ketma-ket ${fmtT(res[0].seq)}, tasodifiy ${fmtT(res[0].rnd)}: farq ${grp3(Math.round(res[0].rnd / res[0].seq))} baravar. SSD da ketma-ket ${fmtT(res[1].seq)}, tasodifiy ${fmtT(res[1].rnd)}: farq ${grp3(Math.round(res[1].rnd / res[1].seq))} baravar. Bir xil ma'lumot, bir xil qurilma, faqat o'qish tartibi boshqa.`;
+    }
+    draw();
+  })();
+
+  // ---------- 7. RAM va disk birga ----------
+  (function () {
+    var svg = $('pwr'), say = $('pwSay'), st = { on: true, ram: 500, disk: 500 }, last = 'none';
+    function draw() {
+      svg.textContent = ''; marker(svg, 'pwmk');
+      var dirty = st.on && st.ram !== st.disk;
+      box(svg, 20, 130, 210, 100, 'Protsessor', st.on ? 'Faqat RAM bilan ishlaydi' : 'Tok yo\'q', st.on ? 'on' : 'dead');
+      group(svg, 330, 30, 400, 300, st.on ? 'RAM: tok bor, baytlar tirik' : 'RAM: tok yo\'q, baytlar yo\'qoldi');
+      box(svg, 350, 76, 360, 96, 'Dasturning nusxasi', st.on ? 'Diskdagi fayldan ko\'chirilgan' : 'Yo\'q', st.on ? '' : 'dead');
+      box(svg, 350, 196, 360, 110, 'balans o\'zgaruvchisi', st.on ? (dirty ? 'Diskdagidan farq qiladi: saqlanmagan' : 'Diskdagi bilan bir xil') : 'Yo\'q', st.on ? (dirty ? 'live' : 'on') : 'dead');
+      S(svg, 'text', { x: 366, y: 290, 'class': 'big' }, st.on ? String(st.ram) : '?');
+      group(svg, 830, 30, 390, 300, 'Disk: tok bo\'lmasa ham saqlaydi');
+      box(svg, 850, 76, 350, 96, 'Dastur fayli', 'app.jar');
+      box(svg, 850, 196, 350, 110, 'Saqlangan balans', 'Fayl yoki bazadagi qator', 'on');
+      S(svg, 'text', { x: 866, y: 290, 'class': 'big' }, String(st.disk));
+      if (st.on) {
+        arrow(svg, 'pwmk', 'M230 180H328', 'o\'qi / yoz', 279, 170);
+        if (last === 'boot') { arrow(svg, 'pwmk', 'M850 124H712', 'yuklash', 781, 114); arrow(svg, 'pwmk', 'M850 236H712', 'o\'qish', 781, 226); }
+        if (last === 'save') arrow(svg, 'pwmk', 'M710 266H848', 'yozish: sekin', 779, 256);
+      }
+    }
+    $('pwAdd').addEventListener('click', function () {
+      if (!st.on) { say.textContent = `Tok yo'q. Protsessor ishlamayapti, RAM bo'sh. Avval tokni yoqing.`; say.className = 'say bad'; return; }
+      st.ram += 100; last = 'add'; draw(); say.className = 'say';
+      say.textContent = `Protsessor RAM dagi balansni ${st.ram} ga o'zgartirdi. Bu nanosekundlarda bajarildi. Diskda esa hali ${st.disk} turibdi: disk bu o'zgarishdan bexabar.`;
+    });
+    $('pwSave').addEventListener('click', function () {
+      if (!st.on) { say.textContent = `Tok yo'q, saqlaydigan narsa ham, saqlaydigan dastur ham yo'q.`; say.className = 'say bad'; return; }
+      var was = st.disk; st.disk = st.ram; last = 'save'; draw(); say.className = 'say';
+      say.textContent = was === st.disk ? `RAM va diskdagi qiymat bir xil edi, o'zgarish yo'q.` : `Balans diskka yozildi: ${was} o'rniga ${st.disk}. Bu amal RAM dagi o'zgartirishdan minglab marta uzoq davom etdi, lekin endi tok o'chsa ham qiymat saqlanib qoladi.`;
+    });
+    $('pwOff').addEventListener('click', function () {
+      if (!st.on) return;
+      var lost = st.ram !== st.disk, r = st.ram; st.on = false; last = 'off'; draw();
+      say.textContent = lost ? `Tok o'chdi. RAM dagi ${r} yo'qoldi, chunki u diskka yozilmagan edi. Diskda eski qiymat qoldi: ${st.disk}. Foydalanuvchi ko'rgan ${r} endi hech qayerda yo'q.` : `Tok o'chdi. RAM bo'shadi, lekin hech narsa yo'qolmadi: balans diskka saqlangan edi.`;
+      say.className = 'say' + (lost ? ' bad' : '');
+    });
+    $('pwOn').addEventListener('click', function () {
+      if (st.on) { say.textContent = `Tok allaqachon bor, dastur ishlab turibdi.`; say.className = 'say'; return; }
+      st.on = true; st.ram = st.disk; last = 'boot'; draw(); say.className = 'say';
+      say.textContent = `Tok yoqildi. Operatsion tizim dastur faylini diskdan RAM ga ko'chirdi, dastur ishga tushdi va balansni diskdan o'qidi: ${st.disk}. RAM da faqat diskda bor narsa paydo bo'ldi.`;
+    });
+    draw();
+    say.textContent = `Dastur ishlab turibdi. Balans RAM da ham, diskda ham 500. «Balansga 100 qo'sh» ni bosing, keyin saqlamasdan tokni o'chirib ko'ring.`;
+  })();
+
+  // ---------- Tarix ----------
+  window.evoStepper('evoMem', [
+    {
+      name: `Kechikish liniyasi va elektron trubka`,
+      years: `1940-yillarning oxiri`,
+      art: `<rect x="10" y="38" width="100" height="24" rx="12"/><path d="M22 50h8M38 50h8M54 50h8M70 50h8M86 50h8" class="acc"/><path d="M110 50c12 0 12 30 0 30H10c-12 0-12-30 0-30"/>`,
+      how: `Ikki usul yonma-yon ishlatilgan. Birinchisida bitlar simob to'ldirilgan quvur ichida tovush to'lqini bo'lib yugurgan: quvur oxirida ular ushlab olinib, boshiga qayta yuborilgan. Ikkinchisida, Uilyams trubkasida, bitlar televizor ekraniga o'xshash trubka yuzasidagi zaryadlangan nuqtalar ko'rinishida saqlangan.`,
+      better: `Bungacha xotira deyarli yo'q edi: dastur simlarni qayta ulash bilan kiritilgan. Endi dastur va ma'lumotni xotiraga yozib, o'zgartirish mumkin bo'ldi.`,
+      pain: `Kechikish liniyasida kerakli bit quvurdan chiqishini kutish kerak, ya'ni murojaat ketma-ket. Trubka har bir necha soatda sozlashni talab qilgan. Hajmi atigi bir necha ming bit, tok o'chsa hammasi yo'qoladi.`,
+      ex: `Uilyams trubkasi: Manchester universiteti, 1947-yil. 1948-yilda shu xotira bilan ishlagan «Manchester Baby» mashinasi xotirada saqlangan dasturni bajargan birinchi kompyuter bo'ldi. Simob liniyalari: EDSAC (1949) va UNIVAC I.`
+    },
+    {
+      name: `Magnit o'zakli xotira`,
+      years: `1950–1970-yillar`,
+      art: `<path d="M20 20v60M50 20v60M80 20v60M110 20v60M10 30h110M10 50h110M10 70h110"/><circle cx="50" cy="50" r="7" class="lit"/><circle cx="80" cy="30" r="7"/><circle cx="20" cy="70" r="7"/>`,
+      how: `Simlar to'rining har bir kesishgan joyiga kichkina magnit halqa kiydirilgan. Halqa bir yo'nalishda magnitlangan bo'lsa 1, teskari yo'nalishda bo'lsa 0. Ikkita simdan bir vaqtda tok o'tkazib, aynan bitta halqani tanlash mumkin: mana shu adres bo'yicha murojaat.`,
+      better: `Istalgan bitga bir xil tezlikda murojaat: chinakam «random access». Ishonchli, sozlash talab qilmaydi. Tok o'chsa ham ma'lumot saqlanadi, chunki magnitlanish tok talab qilmaydi.`,
+      pain: `Har bir halqa qo'lda, mikroskop ostida simga terilgan. Shuning uchun xotira juda qimmat edi, bitta bit uchun dastlab bir dollar atrofida. Halqani cheksiz kichraytirib bo'lmaydi.`,
+      ex: `Jey Forrester, Massachusets texnologiya instituti, Whirlwind kompyuteri, 1953-yil. Oyga uchgan Apollo kemasining bort kompyuteri ham shunday xotirada ishlagan. Dastur qulaganda xotira nusxasini bildiradigan «core dump» iborasi shu davrdan qolgan: «core» bu o'zak.`
+    },
+    {
+      name: `Qattiq disk`,
+      years: `1956-yildan`,
+      art: `<circle cx="55" cy="50" r="38"/><circle cx="55" cy="50" r="24" class="acc"/><circle cx="55" cy="50" r="5" class="lit"/><path d="M112 86L72 58"/>`,
+      how: `Magnit qatlam bilan qoplangan, aylanib turadigan plastinkalar va ular ustida suriladigan kallak. Bit plastinka yuzasidagi kichik bo'lakning magnitlanish yo'nalishi.`,
+      better: `Magnit lentadan farqli o'laroq, kerakli joyga butun lentani o'tkazmasdan borish mumkin. Bir bit narxi o'zakli xotiradan minglab marta arzon. Katta hajmdagi ma'lumotni saqlash va undan kerakli yozuvni tez topish birinchi marta mumkin bo'ldi: ma'lumotlar bazalari shundan keyin paydo bo'ldi.`,
+      pain: `Mexanika. Har bir murojaat millisekundlar oladi va buni tezlashtirib bo'lmaydi. Harakatlanuvchi qismlar eskiradi, zarbadan buziladi.`,
+      ex: `Birinchisi IBM 350, RAMAC tizimining qismi, 1956-yil: diametri 61 sm bo'lgan 50 ta plastinka, og'irligi bir tonnaga yaqin, sig'imi taxminan 5 megabayt. Bugungi qattiq disklar o'nlab terabayt saqlaydi, lekin tuzilishi o'sha: plastinka va kallak.`
+    },
+    {
+      name: `DRAM chipi`,
+      years: `1970-yildan`,
+      art: `<rect x="30" y="24" width="60" height="52" rx="4"/><path d="M40 24v-10M54 24v-10M68 24v-10M82 24v-10M40 76v10M54 76v10M68 76v10M82 76v10"/><path d="M48 44h24M48 56h24" class="acc"/>`,
+      how: `Har bir bit kremniy chip ichidagi bitta tranzistor va bitta kondensatorda. Bu g'oyani 1966-yilda IBM muhandisi Robert Dennard o'ylab topgan. Zaryad oqib ketgani uchun xotira doim yangilab turiladi.`,
+      better: `Xotira qo'lda terilmaydi, u chip sifatida bosib chiqariladi. Katak juda kichik, shuning uchun har bir necha yilda bitta chipga sig'adigan bitlar soni ikki baravar oshib bordi va narx tushib bordi.`,
+      pain: `Tok o'chsa, hammasi yo'qoladi: o'zakli xotiraning bu afzalligi qurbon qilindi. Shuning uchun kompyuterga endi albatta ikkinchi, doimiy xotira kerak.`,
+      ex: `Intel 1103, 1970-yil: 1024 bit sig'imli birinchi ommaviy DRAM chipi. Bir necha yil ichida u o'zakli xotirani siqib chiqardi. Bugungi DDR5 xotira plankalari (2020-yildan) o'sha g'oyaning davomi: bitta kondensator, bitta tranzistor.`
+    },
+    {
+      name: `Flesh xotira va SSD`,
+      years: `1980-yillardan, ommaviy 2010-yillardan`,
+      art: `<rect x="14" y="30" width="92" height="40" rx="4"/><rect x="24" y="40" width="16" height="20" class="acc"/><rect x="46" y="40" width="16" height="20" class="acc"/><rect x="68" y="40" width="16" height="20" class="lit"/><path d="M92 44v12"/>`,
+      how: `Tranzistor ichida izolyatsiya bilan o'ralgan qatlam bor. Yozishda unga elektronlar yuqori kuchlanish bilan haydab kiritiladi va ular u yerda tok bo'lmasa ham yillab qoladi. SSD bu shunday chiplar va ularni boshqaradigan kontroller.`,
+      better: `Harakatlanadigan qism yo'q. Tasodifiy o'qish qattiq diskdan taxminan yuz baravar tez, zarbadan qo'rqmaydi, kam tok sarflaydi. Telefon va noutbuklarni aynan shu mumkin qildi.`,
+      pain: `Katak cheklangan marta qayta yoziladi. Ustidan yozib bo'lmaydi: avval katta bo'lak o'chiriladi. Bir gigabayt narxi qattiq diskdan qimmat, shuning uchun juda katta arxivlar hali ham qattiq diskda turadi.`,
+      ex: `Flesh xotirani Toshiba muhandisi Fudzio Masuoka ixtiro qilgan va 1984-yilda taqdim etgan. Nomi kataklarning butun bo'lagi bir zumda, fotoapparat chaqnashi kabi o'chirilishidan. Serverlarda SSD 2010-yillarda odatiy holga aylandi.`
+    },
+    {
+      name: `NVMe va bugungi holat`,
+      years: `2011-yildan`,
+      art: `<rect x="10" y="38" width="100" height="24" rx="3"/><rect x="20" y="44" width="22" height="12" class="acc"/><rect x="48" y="44" width="22" height="12" class="acc"/><rect x="76" y="44" width="14" height="12" class="lit"/><path d="M110 44v12"/>`,
+      how: `SSD dastlab qattiq disk uchun yaratilgan ulanish orqali ishlagan. U bir vaqtda bitta navbat bilan ishlashga mo'ljallangan edi, chunki qattiq diskda bitta kallak bor. NVMe flesh xotira uchun noldan yozilgan ulanish qoidasi: minglab parallel navbat, protsessorga to'g'ridan-to'g'ri yo'l.`,
+      better: `Disk endi ulanish tufayli emas, faqat o'zining fizikasi tufayli sekin. Ketma-ket o'qish sekundiga bir necha gigabaytga yetdi.`,
+      pain: `RAM va disk orasidagi jarlik toraydi, lekin yopilmadi: flesh xotira hali ham RAM dan yuzlab marta sekin. Ikkalasining afzalligini birlashtirishga urinishlar (masalan, Intel Optane) bozorda o'rnashmadi. Ikki qavatli tuzilma saqlanib qolmoqda.`,
+      ex: `NVMe ning birinchi tavsifi 2011-yilda chiqqan. Bugungi serverda odatda o'nlab yoki yuzlab gigabayt DRAM va NVMe SSD turadi. Bulutda esa disk ko'pincha tarmoq orqali ulanadi, va uning kechikishiga tarmoq kechikishi ham qo'shiladi.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
