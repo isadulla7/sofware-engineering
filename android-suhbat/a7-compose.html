@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A7. Jetpack Compose</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A7. Jetpack Compose: holat, rekompozitsiya, yon ta'sirlar</h1>
+<p class="lead">Savol: Compose ekranni qanday chizadi va yangilaydi, holat qayerda yashaydi, qaysi funksiyalar qachon qayta chaqiriladi, va coroutine yoki tinglovchini ekran ichida qanday xavfsiz ishga tushirish kerak?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Jetpack Compose</strong> Android'ning deklarativ UI kutubxonasi. Ekran XML va <span class="num">findViewById</span> bilan emas, <span class="num">@Composable</span> Kotlin funksiyalari bilan yoziladi: funksiya holatni oladi va UI ni tasvirlaydi.</p>
+    <p>Holat o'zgarsa, Compose shu holatni o'qigan funksiyalarni qaytadan chaqiradi: bu <strong>rekompozitsiya</strong>. Funksiyadan tashqariga ta'sir qiladigan ishlar (so'rov, tinglovchi) <strong>yon ta'sir</strong> API lari orqali.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «interfeyslarni to'liq Jetpack Compose da ishlab chiqish».</li>
+      <li><strong>Har bir ekranda:</strong> <span class="num">collectAsStateWithLifecycle</span> bilan ViewModel holatini olish va chizish (A4, A5).</li>
+      <li><strong>Unumdorlik:</strong> keraksiz rekompozitsiyalar uzun ro'yxatlarda qotishga olib keladi.</li>
+      <li><strong>Suhbatda:</strong> «rekompozitsiya nima», «remember va rememberSaveable», «LaunchedEffect qachon qayta ishga tushadi», «barqarorlik».</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>deklarativ UI va «UI = f(holat)»;</li>
+      <li>uch faza: kompozitsiya, joylashtirish, chizish;</li>
+      <li>rekompozitsiya, o'tkazib yuborish, barqarorlik va kuchli o'tkazib yuborish rejimi;</li>
+      <li><span class="num">remember</span>, <span class="num">rememberSaveable</span>, holatni yuqoriga ko'tarish, <span class="num">derivedStateOf</span>;</li>
+      <li>yon ta'sirlar: <span class="num">LaunchedEffect</span>, <span class="num">DisposableEffect</span>, <span class="num">rememberCoroutineScope</span> va boshqalar;</li>
+      <li><span class="num">LazyColumn</span> va kalitlar.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: Compose ekran qavati"></svg></div>
+  <figcaption>Bu dars eng yuqori qavat haqida: ViewModel bergan holatni chizish.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>View tizimining og'rig'i va deklarativ yondashuv</li>
+    <li>Kompozitsiya, rekompozitsiya, o'tkazib yuborish</li>
+    <li>Holat: mutableStateOf, remember, rememberSaveable, yuqoriga ko'tarish, derivedStateOf</li>
+    <li>Barqarorlik va kuchli o'tkazib yuborish rejimi</li>
+    <li>Yon ta'sir API lari</li>
+    <li>Ro'yxatlar va unumdorlik bo'yicha amaliy qoidalar</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Navigatsiya: A8-darsda</li>
+    <li>Animatsiyalar, Material 3 komponentlari batafsil</li>
+    <li>Maxsus Layout va Canvas</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Ekranni qo'lda yangilash</h3>
+<p>View tizimida ekran XML faylda e'lon qilinadi, kodda esa har bir elementni topib, uni qo'lda o'zgartirish kerak: <span class="num">balansText.text = ...</span>, <span class="num">progress.visibility = GONE</span>, <span class="num">xatoView.visibility = VISIBLE</span>, adapterga <span class="num">notifyItemInserted</span>. Bu <strong>imperativ</strong> usul: «qanday o'zgartirish kerak» deb buyruqlar beriladi.</p>
+<p>Ekranda holatlar soni oshgani sari xatolar ko'payadi: bitta tarmoqda progress yashirilmay qoladi, boshqasida xato xabari eski ma'lumot ustida qoladi. Har bir View o'z holatini saqlaydi (matn, ko'rinish, belgilangan), ViewModel ham o'zinikini, va ular orasida mos kelmaslik paydo bo'ladi. RecyclerView uchun adapter, ViewHolder, DiffUtil yozish kerak. Har bir View og'ir obyekt va chuqur ierarxiya joylashtirishni sekinlashtiradi.</p>
+<p>Kerak bo'lgan narsa: ekranni holatdan to'liq hisoblanadigan narsa sifatida yozish. Holat o'zgarsa, ekran «o'zi» yangilansin, va faqat o'zgargan qismi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Compose qanday ishlaydi</h3>
+
+<p class="beat">UI = f(holat)</p>
+<p>Compose'da <span class="num">@Composable fun KartalarEkran(state: KartalarState)</span> UI ni qaytarmaydi, uni tasvirlaydi: «holat shunday bo'lsa, ekranda shular bo'lsin». Holat o'zgarganda funksiya yangi holat bilan qayta chaqiriladi va Compose oldingi tasvir bilan farqni o'zi aniqlab, faqat kerakli joyni yangilaydi. Dasturchi «qanday o'zgartirish» ni emas, «nima bo'lishi kerak» ni yozadi. MVI bilan mos kelishi shundan (A5): bitta holat kiradi, ekran chiqadi.</p>
+<p>Bir ekran ko'rsatilishi uchun uch faza o'tadi:</p>
+<ol>
+  <li><strong>Kompozitsiya</strong>: composable funksiyalar bajariladi va UI daraxti yaratiladi yoki yangilanadi.</li>
+  <li><strong>Joylashtirish</strong> (layout): har bir element o'lchanadi va joyiga qo'yiladi.</li>
+  <li><strong>Chizish</strong> (drawing): piksellar chiziladi.</li>
+</ol>
+<p>Holat qaysi fazada o'qilsa, o'zgarganda shu fazadan boshlab qaytariladi. Masalan, aylantirish offseti faqat <span class="num">Modifier.offset { }</span> lambdasi ichida o'qilsa, kompozitsiya qayta bajarilmaydi, faqat joylashtirish. Bu unumdorlik usullaridan biri.</p>
+
+<p class="beat">Rekompozitsiya va o'tkazib yuborish</p>
+<p>Compose holatni <span class="num">State</span> obyektlarida saqlaydi (<span class="num">mutableStateOf</span>, StateFlow dan <span class="num">collectAsState</span>). Composable funksiya bajarilayotganda u qaysi holatlarni o'qiganini Compose yozib oladi (snapshot tizimi). Holat o'zgarganda faqat uni o'qigan funksiyalar qaytadan chaqiriladi.</p>
+<p>Ota funksiya qayta chaqirilganda u bolalarini ham chaqiradi. Lekin bolaning parametrlari oldingi chaqiruvdagi bilan bir xil bo'lsa, Compose uni <strong>o'tkazib yuboradi</strong> (skip). «Bir xil» ni aniqlash uchun parametr turi <strong>barqaror</strong> (stable) bo'lishi kerak: Compose uning o'zgarganini <span class="num">equals</span> bilan ishonchli bila olishi. <span class="num">String</span>, <span class="num">Int</span>, <span class="num">val</span> maydonli data class barqaror. <span class="num">List</span> interfeysi beqaror, chunki ichida <span class="num">MutableList</span> bo'lishi mumkin.</p>
+<p>Kotlin 2.0.20 dan boshlab <strong>kuchli o'tkazib yuborish rejimi</strong> sukut bo'yicha yoqilgan: beqaror parametrli funksiyalar ham o'tkazib yuboriladi, faqat ular <span class="num">===</span> bilan (bitta obyektmi) solishtiriladi, barqarorlari esa <span class="num">equals</span> bilan. Composable ichidagi lambdalar ham avtomatik <span class="num">remember</span> qilinadi. Pastdagi chizmada ekran daraxti: hodisani tanlang va qaysi funksiyalar qayta chaqirilishini ko'ring.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="rec" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Compose ekran daraxti: hodisa bo'yicha qaysi composable qayta chaqiriladi va qaysi biri o'tkazib yuboriladi"></svg></div>
+  <figcaption>Yuqorida ekran, pastda uning bolalari. Ko'k: o'tkazib yuborildi. Sariq: qayta chaqirildi. Qizil: keraksiz qayta chaqirildi.</figcaption>
+  <div class="evo-tabs" id="rcT" style="margin-top:0.9rem"></div>
+  <p class="say" id="rcSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Holat: remember, rememberSaveable, yuqoriga ko'tarish</p>
+<ul>
+  <li><span class="num">var matn by mutableStateOf("")</span>: kuzatiladigan holat. Lekin composable ichida yozilsa, har rekompozitsiyada qaytadan yaratiladi.</li>
+  <li><span class="num">remember { mutableStateOf("") }</span>: qiymatni kompozitsiyada saqlaydi, rekompozitsiyalar orasida yo'qolmaydi. Lekin ekran aylantirilsa yoki composable ekrandan chiqsa, yo'qoladi.</li>
+  <li><span class="num">rememberSaveable { }</span>: Bundle ga saqlanadi, aylantirish va jarayon o'limidan omon qoladi. Faqat Bundle ga sig'adigan kichik qiymatlar (yoki <span class="num">Saver</span>).</li>
+  <li><strong>Holatni yuqoriga ko'tarish</strong> (state hoisting): composable holatni o'zi saqlamaydi, uni parametr qilib oladi va o'zgarish so'rovini lambda bilan yuqoriga beradi: <span class="num">SummaMaydon(qiymat: String, onChange: (String) -&gt; Unit)</span>. Natijada u holatsiz, qayta ishlatiladi va testlanadi, holat esa bitta joyda (odatda ViewModel'da).</li>
+  <li><span class="num">derivedStateOf</span>: boshqa holatdan hisoblanadigan, lekin kamroq o'zgaradigan qiymat uchun. Masalan, ro'yxat aylantirilganda har pikselda emas, faqat «tepaga qaytish tugmasini ko'rsatish kerakmi» o'zgarganda.</li>
+</ul>
+
+<p class="beat">Yon ta'sirlar</p>
+<p>Composable funksiya istalgan vaqtda, istalgan tartibda va istalgancha marta chaqirilishi mumkin, hatto bekor qilinishi ham. Shuning uchun uning tanasida to'g'ridan-to'g'ri tarmoq so'rovi, log yozish yoki tinglovchi qo'shish xato: ular har rekompozitsiyada takrorlanadi. Buning uchun maxsus API lar bor, va ularning hammasi composable'ning kompozitsiyadagi hayot sikliga bog'langan:</p>
+<div class="scroll"><table>
+<thead><tr><th>API</th><th>Nima uchun</th><th>Qachon ishga tushadi va to'xtaydi</th></tr></thead>
+<tbody>
+<tr><td class="num">LaunchedEffect(kalit)</td><td>coroutine: bir martalik so'rov, effektlarni kuzatish, animatsiya</td><td>kompozitsiyaga kirganda boshlanadi; kalit o'zgarsa bekor qilinib qayta boshlanadi; chiqqanda bekor qilinadi</td></tr>
+<tr><td class="num">DisposableEffect(kalit)</td><td>tinglovchi qo'shish va olib tashlash</td><td>kirganda blok, chiqqanda yoki kalit o'zgarganda <span class="num">onDispose</span></td></tr>
+<tr><td class="num">rememberCoroutineScope()</td><td>bosish kabi hodisada coroutine boshlash</td><td>scope kompozitsiyadan chiqqanda bekor qilinadi</td></tr>
+<tr><td class="num">SideEffect</td><td>har muvaffaqiyatli rekompozitsiyadan keyin tashqi obyektga holatni berish</td><td>har rekompozitsiyadan keyin</td></tr>
+<tr><td class="num">rememberUpdatedState</td><td>uzoq yashaydigan effekt ichida eng so'nggi qiymatni ishlatish, effektni qayta boshlamasdan</td><td>—</td></tr>
+<tr><td class="num">produceState</td><td>suspend manbadan State yasash</td><td>LaunchedEffect kabi</td></tr>
+</tbody></table></div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="eff" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="LaunchedEffect hayot sikli: kirish, kalit o'zgarishi, chiqish"></svg></div>
+  <figcaption>Karta tafsilotlari ekrani: <span class="num">LaunchedEffect(kartaId) { tarixniYukla(kartaId) }</span>. Hodisalarni ketma-ket bosing.</figcaption>
+  <div class="slider"><button type="button" data-ef="0">Ekran ochildi (id=1)</button><button type="button" data-ef="1">Rekompozitsiya (id o'zgarmadi)</button><button type="button" data-ef="2">Boshqa karta tanlandi (id=2)</button><button type="button" data-ef="3">Ekrandan chiqildi</button></div>
+  <p class="say" id="efSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Ro'yxatlar</p>
+<p><span class="num">LazyColumn</span> faqat ekranda ko'rinadigan elementlarni yaratadi (RecyclerView o'rnini bosadi). Ikki narsa muhim:</p>
+<ul>
+  <li><strong><span class="num">key</span></strong>: <span class="num">items(kartalar, key = { it.id }) { ... }</span>. Kalitsiz Compose elementni ro'yxatdagi o'rni bo'yicha taniydi: tepaga yangi karta qo'shilsa, hammasi «o'zgargan» bo'ladi va qayta chiziladi, element ichidagi <span class="num">remember</span> holati boshqa kartaga o'tib ketadi. Kalit bilan element o'z identifikatori bo'yicha taniladi.</li>
+  <li><strong><span class="num">contentType</span></strong>: har xil turdagi elementlar (sarlavha, karta, reklama) bo'lsa, Compose bir turdagi kompozitsiyalarni qayta ishlata oladi.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android UI tarixi</h3>
+<div class="bench" id="evoCm"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Deklarativ UI</dt><dd>UI holatdan hisoblanadigan tasvir sifatida yoziladi; kutubxona uni yangilashni o'zi hal qiladi.</dd>
+  <dt>@Composable</dt><dd>UI ni tasvirlaydigan funksiya. Faqat boshqa composable ichidan chaqiriladi; kompilyator plagini unga qo'shimcha parametrlar qo'shadi.</dd>
+  <dt>Kompozitsiya</dt><dd>Composable funksiyalar bajarilib, UI daraxti hosil bo'lishi.</dd>
+  <dt>Rekompozitsiya</dt><dd>O'qilgan holat o'zgarganda tegishli composable'larni qayta chaqirish.</dd>
+  <dt>O'tkazib yuborish (skipping)</dt><dd>Parametrlari o'zgarmagan composable'ni qayta chaqirmaslik.</dd>
+  <dt>Barqaror tur</dt><dd>O'zgarishi Compose'ga ishonchli ma'lum bo'ladigan tur: o'zgarmas yoki kuzatiladigan. <span class="num">@Stable</span>, <span class="num">@Immutable</span>.</dd>
+  <dt>Kuchli o'tkazib yuborish</dt><dd>Kotlin 2.0.20 dan sukut bo'yicha: beqaror parametrlilar ham <span class="num">===</span> bo'yicha o'tkazib yuboriladi, lambdalar avtomatik eslab qolinadi.</dd>
+  <dt>remember, rememberSaveable</dt><dd>Qiymatni rekompozitsiyalar orasida saqlash; shuningdek aylantirish va jarayon o'limidan keyin ham.</dd>
+  <dt>Holatni yuqoriga ko'tarish</dt><dd>Holatni composable'dan chaqiruvchiga chiqarish: qiymat pastga, hodisa yuqoriga.</dd>
+  <dt>derivedStateOf</dt><dd>Boshqa holatdan hisoblanadigan va faqat natijasi o'zgarganda rekompozitsiya qiladigan holat.</dd>
+  <dt>Yon ta'sir</dt><dd>Composable doirasidan tashqariga ta'sir qiladigan ish: so'rov, tinglovchi, navigatsiya.</dd>
+  <dt>LaunchedEffect, DisposableEffect</dt><dd>Kompozitsiya hayot sikliga bog'langan coroutine; va tozalash bilan bog'langan resurs.</dd>
+  <dt>CompositionLocal</dt><dd>Daraxt bo'ylab parametr sifatida uzatmasdan beriladigan qiymat: tema, Context.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: composable tanasida so'rov yoki og'ir hisob</b>
+  <p><span class="num">@Composable fun Ekran() { val k = repo.kartalar() ... }</span> yoki tanada ro'yxatni saralash: har rekompozitsiyada, ya'ni sekundiga o'nlab marta takrorlanadi.</p>
+  <p class="why">So'rovlar ViewModel'da. Bir martalik ish <span class="num">LaunchedEffect</span> da. Hisob kerak bo'lsa <span class="num">remember(kalit) { hisob }</span> yoki yaxshisi ViewModel'da tayyor holat sifatida.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: LaunchedEffect(Unit) va o'zgaradigan parametr</b>
+  <p><span class="num">LaunchedEffect(Unit) { yukla(kartaId) }</span>: effekt bir marta boshlanadi va <span class="num">kartaId</span> o'zgarganda qayta ishga tushmaydi, eski karta tarixi ko'rinib qoladi.</p>
+  <p class="why">Effekt ichida ishlatiladigan va o'zgarganda effekt qayta boshlanishi kerak bo'lgan qiymat kalit bo'ladi: <span class="num">LaunchedEffect(kartaId)</span>. Qayta boshlanmasligi, lekin eng yangisi ishlatilishi kerak bo'lsa: <span class="num">rememberUpdatedState</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: kalitsiz ro'yxat</b>
+  <p>Kartalar ro'yxatiga tepadan yangi karta qo'shildi: kalit yo'q bo'lgani uchun Compose hamma elementni o'zgargan deb hisoblaydi, animatsiyalar noto'g'ri, element ichidagi «yashirish/ko'rsatish» holati boshqa kartaga o'tadi.</p>
+  <p class="why">Har doim <span class="num">key = { it.id }</span>. Kalit barqaror va noyob bo'lishi kerak, indeks emas.</p>
+</div>
+<div class="rule">
+  <b>Qoida: holat o'qilishini kechiktirish</b>
+  <p>Tez o'zgaradigan qiymatni (aylantirish holati, animatsiya) iloji boricha kech fazada o'qing: <span class="num">Modifier.offset { IntOffset(0, scroll.value) }</span> lambdali versiyasi faqat joylashtirishni qaytaradi, <span class="num">Modifier.offset(y = scroll.value.dp)</span> esa butun kompozitsiyani.</p>
+  <p class="why">Rekompozitsiyalar sonini Android Studio'dagi Layout Inspector ko'rsatadi: unumdorlik muammosini taxmin bilan emas, o'lchab topish kerak.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Rekompozitsiya nima va Compose nimani qayta chizishni qanday biladi?</summary>
+<p>Rekompozitsiya: o'qilgan holat o'zgarganda tegishli composable funksiyalarni yangi qiymatlar bilan qayta chaqirish. Compose kompozitsiya paytida har bir funksiya qaysi State obyektlarini o'qiganini snapshot tizimi orqali yozib oladi. State o'zgarganda faqat uni o'qigan scope'lar yaroqsiz deb belgilanadi va keyingi kadrda qayta bajariladi. Bolalar parametrlari o'zgarmagan bo'lsa o'tkazib yuboriladi.</p></details>
+<details><summary>Barqarorlik nima? Kuchli o'tkazib yuborish rejimi nimani o'zgartirdi?</summary>
+<p>Barqaror tur: Compose uning o'zgarganini ishonchli biladi (o'zgarmas, yoki o'zgarishi kuzatiladigan). Eski rejimda beqaror parametrli (masalan <span class="num">List</span>) composable hech qachon o'tkazib yuborilmasdi. Kotlin 2.0.20 dan sukut bo'yicha yoqilgan kuchli o'tkazib yuborish rejimida hamma qayta ishga tushadigan composable o'tkazib yuboriladigan: beqaror parametrlar <span class="num">===</span>, barqarorlar <span class="num">equals</span> bilan solishtiriladi, composable ichidagi lambdalar avtomatik <span class="num">remember</span> qilinadi. Shuning uchun holatni o'zgarmas tutish (yangi ro'yxat, <span class="num">copy</span>) yana ham muhim.</p></details>
+<details><summary>remember va rememberSaveable farqi?</summary>
+<p><span class="num">remember</span> qiymatni rekompozitsiyalar orasida saqlaydi, lekin konfiguratsiya o'zgarishi va jarayon o'limida yo'qoladi. <span class="num">rememberSaveable</span> Bundle orqali saqlaydi va ulardan omon qoladi; faqat Bundle'ga sig'adigan turlar yoki Saver bilan. Asosiy ekran holati baribir ViewModel'da (SavedStateHandle bilan); <span class="num">rememberSaveable</span> UI elementining kichik holati uchun: matn maydoni, ochiq-yopiq bo'lim.</p></details>
+<details><summary>State hoisting nima va nega kerak?</summary>
+<p>Holatni composable ichida saqlamasdan, uni parametr qilib olish va o'zgarishni lambda bilan yuqoriga berish. Natijada composable holatsiz: qayta ishlatiladi, preview va testda oson, va holat bitta manbada (single source of truth). Qiymat pastga, hodisa yuqoriga: bu UDF ning ekran ichidagi ko'rinishi.</p></details>
+<details><summary>Qanday yon ta'sir API larini bilasiz? LaunchedEffect qachon qayta ishga tushadi?</summary>
+<p>LaunchedEffect (coroutine, kirishda boshlanadi, kalit o'zgarsa qayta, chiqishda bekor), DisposableEffect (tinglovchi, onDispose bilan tozalash), rememberCoroutineScope (hodisadan coroutine boshlash), SideEffect (har rekompozitsiyadan keyin), rememberUpdatedState (effektni qayta boshlamasdan oxirgi qiymat), produceState, derivedStateOf, snapshotFlow (State ni Flow ga). LaunchedEffect faqat kalitlaridan biri o'zgarganda qayta ishga tushadi.</p></details>
+<details><summary>LazyColumn da key nima uchun?</summary>
+<p>Elementni ro'yxatdagi o'rni bo'yicha emas, identifikatori bo'yicha tanish uchun. Kalit bo'lsa, element qo'shilganda yoki o'chirilganda qolganlari qayta chizilmaydi, element ichidagi remember holati o'z elementida qoladi va animatsiyalar to'g'ri ishlaydi.</p></details>
+<details><summary>Compose ekranini qanday tezlashtirasiz?</summary>
+<p>O'lchashdan boshlash (Layout Inspector'dagi rekompozitsiya hisoblagichlari, Macrobenchmark, release yig'masida tekshirish). Keyin: o'zgarmas holat va barqaror turlar, ro'yxatlarda key va contentType, og'ir hisobni composition'dan chiqarish (ViewModel yoki remember), tez o'zgaradigan holatni lambda modifierlarda o'qish, derivedStateOf. Baseline Profiles ishga tushish va birinchi chizishni tezlashtiradi.</p></details>
+<details><summary>Compose va View tizimini birga ishlatish mumkinmi?</summary>
+<p>Ha: View ichida <span class="num">ComposeView</span>, Compose ichida <span class="num">AndroidView</span> (masalan xarita yoki eski maxsus komponent). Katta loyihalar ekranma-ekran ko'chiriladi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>Balans o'zgardi. Ekrandagi qaysi composable'lar qayta chaqiriladi va qaysilari o'tkazib yuboriladi? Nega?</li>
+  <li>Summa kiritish maydoni holatini qayerda saqlaysiz: <span class="num">remember</span>, <span class="num">rememberSaveable</span> yoki ViewModel? Javobni asoslang.</li>
+  <li>Ekran ochilganda bir marta analitika hodisasini yuborish kerak. Qaysi API va qaysi kalit bilan?</li>
+  <li>Ro'yxatdagi kartaning «balansni yashirish» belgisi yangi karta qo'shilgach boshqa kartaga o'tib qoldi. Sababi?</li>
+  <li>DigitalBank View tizimida yozilganmi? Compose'ga o'tkazishni qanday rejalashtirgan bo'lardingiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Compose kompilyator plagini nima qiladi?</summary>
+<p>Har bir composable funksiyaga yashirin <span class="num">Composer</span> va o'zgarishlar bitmaskasi parametrlarini qo'shadi, funksiya tanasini «guruhlar» bilan o'raydi va o'tkazib yuborish tekshiruvini yozadi. Kotlin 2.0 dan boshlab kompilyator plagini Kotlin repozitoriysiga ko'chdi va Kotlin versiyasi bilan birga chiqadi: <span class="num">org.jetbrains.kotlin.plugin.compose</span> Gradle plagini.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Android: «Thinking in Compose», «State and Jetpack Compose», «Lifecycle of composables», «Side-effects in Compose», «Stability in Compose», «Strong skipping mode» (developer.android.com/develop/ui/compose). Leland Richardson, «Under the hood of Jetpack Compose», 2020.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Compose'da UI holatdan hisoblanadi. Holat o'zgarsa, uni o'qigan composable'lar qayta chaqiriladi, parametrlari o'zgarmaganlar o'tkazib yuboriladi; holatni o'zgarmas tutish buning kaliti. Holat yuqoriga ko'tariladi, ekran holati ViewModel'da. Yon ta'sirlar faqat effekt API lari orqali, kalitlari to'g'ri tanlangan holda. Ro'yxatda doim key.</p>
+  <p><strong>Keyingi dars.</strong> A8. Navigatsiya: Navigation Compose va yangi Navigation 3.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a6-di.html">Oldingi: A6. DI</a><a href="a8-navigatsiya.html">Keyingi: A8. Navigatsiya</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0], 'Compose: ekran qavati');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Rekompozitsiya daraxti ----------
+  (function () {
+    var svg = $('rec'), say = $('rcSay'), cur = 0;
+    // holatlar: s = skip (on), r = recompose (live), x = keraksiz (bad)
+    var C = [
+      { t: 'Balans o\'zgardi', st: { scr: 'r', hdr: 's', bal: 'r', lst: 's', i1: 's', i2: 's', i3: 's' }, s: `KartalarEkran holatni o'qiydi, shuning uchun u qayta chaqirildi. U bolalarini chaqiradi: Sarlavha(ism) va KartalarRoyxati(kartalar) ning parametrlari o'zgarmagan, ular o'tkazib yuborildi. Faqat BalansKarta(balans) yangi qiymat bilan qayta chaqirildi.` },
+      { t: 'Ro\'yxatga karta qo\'shildi (key bilan)', st: { scr: 'r', hdr: 's', bal: 's', lst: 'r', i1: 's', i2: 's', i3: 'r' }, s: `Yangi ro'yxat obyekti keldi, KartalarRoyxati qayta chaqirildi. LazyColumn elementlari key = id bilan: eski ikki karta o'zini tanidi va o'tkazib yuborildi, faqat yangisi yaratildi.` },
+      { t: 'Kalitsiz, tepaga qo\'shildi', st: { scr: 'r', hdr: 's', bal: 's', lst: 'r', i1: 'x', i2: 'x', i3: 'r' }, s: `Kalit yo'q: Compose elementlarni o'rni bo'yicha taniydi. Yangi karta tepaga qo'shilgani uchun 1-o'rinda endi boshqa karta, 2-o'rinda boshqa: hammasi o'zgargan deb qayta chiziladi, va element ichidagi remember holati boshqa kartaga o'tib ketadi.` },
+      { t: 'Ro\'yxat o\'zgartirib qayta berildi', st: { scr: 's', hdr: 's', bal: 's', lst: 's', i1: 's', i2: 's', i3: 's' }, s: `ViewModel'da mutableList.add(karta) qilinib, xuddi o'sha holat obyekti qayta berildi. StateFlow equals bo'yicha o'zgarish ko'rmadi (A4), Compose ham bir xil obyektni === bilan o'tkazib yubordi: yangi karta ekranga chiqmaydi. Yechim: copy(kartalar = kartalar + karta).` },
+      { t: 'Eski rejim: List beqaror', st: { scr: 'r', hdr: 's', bal: 'r', lst: 'x', i1: 's', i2: 's', i3: 's' }, s: `Kotlin 2.0.20 dan oldingi kompilyatorda kuchli o'tkazib yuborish yo'q edi: List<Karta> beqaror bo'lgani uchun KartalarRoyxati balans o'zgarganda ham qayta chaqirilardi. Eski loyihalarda @Immutable holat klasslari yoki kotlinx.collections.immutable shuning uchun ishlatilgan.` }
+    ];
+    var setT = tabs('rcT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    var N = { scr: [420, 20, 'KartalarEkran(state)', 'holatni o\'qiydi'], hdr: [20, 150, 'Sarlavha(ism)', ''], bal: [420, 150, 'BalansKarta(balans)', ''], lst: [820, 150, 'KartalarRoyxati(kartalar)', 'LazyColumn'], i1: [680, 290, 'KartaQator', '8600..1234'], i2: [870, 290, 'KartaQator', '9860..5678'], i3: [1060, 290, 'KartaQator', 'yangi'] };
+    function cls(v) { return v === 's' ? 'on' : v === 'r' ? 'live' : 'bad'; }
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'rcmk');
+      Object.keys(N).forEach(function (k) { var n = N[k], w = k.charAt(0) === 'i' ? 170 : 380; box(svg, n[0], n[1], w, 80, n[2], n[3] + (n[3] ? ': ' : '') + (c.st[k] === 's' ? 'o\'tkazildi' : c.st[k] === 'r' ? 'qayta chaqirildi' : 'keraksiz'), cls(c.st[k])); });
+      arrow(svg, 'rcmk', 'M610 100V125H210V148'); arrow(svg, 'rcmk', 'M610 100V148'); arrow(svg, 'rcmk', 'M610 100V125H1010V148');
+      arrow(svg, 'rcmk', 'M1010 230V260H765V288'); arrow(svg, 'rcmk', 'M1010 230V260H955V288'); arrow(svg, 'rcmk', 'M1010 230V260H1145V288');
+      var n = 0; Object.keys(c.st).forEach(function (k) { if (c.st[k] !== 's') n++; });
+      S(svg, 'text', { x: 20, y: 320, 'class': 'ttl' }, 'Qayta chaqirilgan: ' + n + ' / 7');
+      say.textContent = c.s; say.className = 'say' + (cur >= 2 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- LaunchedEffect ----------
+  (function () {
+    var svg = $('eff'), say = $('efSay'), log = [], state = { inC: false, id: null, run: 0 };
+    var A = [
+      function () { if (state.inC) return `Ekran allaqachon ochiq.`; state = { inC: true, id: 1, run: state.run + 1 }; log.push(['Kirdi', 'coroutine #' + state.run + ' boshlandi: tarix(1)', 'live']); return `Composable kompozitsiyaga kirdi: LaunchedEffect o'z coroutine'ini boshladi va 1-karta tarixini yuklayapti.`; },
+      function () { if (!state.inC) return `Ekran yopiq.`; log.push(['Rekompozitsiya', 'kalit o\'zgarmadi: effekt davom etadi', 'on']); return `Balans o'zgardi va ekran qayta chaqirildi, lekin kartaId o'sha: LaunchedEffect qayta boshlanmaydi, coroutine ishlashda davom etadi. Agar so'rov composable tanasida bo'lganida, har rekompozitsiyada yangi so'rov ketardi.`; },
+      function () { if (!state.inC) return `Ekran yopiq.`; var old = state.run; state.id = 2; state.run++; log.push(['Kalit: 1 → 2', 'coroutine #' + old + ' bekor, #' + state.run + ' boshlandi: tarix(2)', 'live']); return `Kalit o'zgardi: eski coroutine bekor qilindi (1-karta so'rovi to'xtadi, natijasi ekranga yozilmaydi) va yangisi 2-karta uchun boshlandi.`; },
+      function () { if (!state.inC) return `Ekran allaqachon yopiq.`; state.inC = false; log.push(['Chiqdi', 'coroutine #' + state.run + ' bekor qilindi', 'bad']); return `Composable kompozitsiyadan chiqdi: LaunchedEffect coroutine'i avtomatik bekor qilindi. Tarmoq so'rovi to'xtadi, xotira oqmaydi.`; }
+    ];
+    function draw() {
+      svg.textContent = ''; marker(svg, 'efmk');
+      box(svg, 20, 30, 300, 110, 'Composable', state.inC ? 'kompozitsiyada, kartaId = ' + state.id : 'kompozitsiyada emas', state.inC ? 'on' : 'freed');
+      box(svg, 20, 170, 300, 110, 'LaunchedEffect(kartaId)', state.inC ? 'coroutine #' + state.run + ' faol' : 'faol coroutine yo\'q', state.inC ? 'live' : 'freed');
+      arrow(svg, 'efmk', 'M170 140V168');
+      log.slice(-4).forEach(function (l, i) { box(svg, 380 + i * 215, 100, 200, 120, l[0], '', l[2]); code(svg, 396, 0, []); wrap(l[1], 24).forEach(function (w, j) { S(svg, 'text', { x: 396 + i * 215, y: 160 + j * 20, 'class': 'sub' }, w); }); if (i) arrow(svg, 'efmk', 'M' + (365 + i * 215) + ' 160H' + (378 + i * 215)); });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ef]'), function (b) { b.addEventListener('click', function () { var m = A[+b.getAttribute('data-ef')](); draw(); say.textContent = m; }); });
+    draw(); say.textContent = `Ekran hali ochilmagan. Tugmalarni tartib bilan bosing.`;
+  })();
+
+  window.evoStepper('evoCm', [
+    { name: `View va XML`, years: `2008-yildan`, art: `<rect x="20" y="20" width="80" height="60" rx="4"/><path d="M30 34h40M30 48h60M30 62h30" class="acc"/>`, how: `Ekran XML faylda, kodda findViewById va setText. Ro'yxatlar uchun ListView, keyin RecyclerView (2014).`, better: `Vizual muharrir, keng tarqalgan bilim.`, pain: `Imperativ yangilash, holatlar ziddiyati, adapter qolip kodi, og'ir View obyektlari.`, ex: `ViewBinding (2019) findViewById ni yo'qotdi, lekin yondashuv o'zgarmadi.` },
+    { name: `Deklarativ to'lqin`, years: `2013–2019`, art: `<path d="M20 70L50 30l30 40 20-25" class="acc"/>`, how: `Veb'da React (2013), mobil'da React Native (2015), Flutter (2017), SwiftUI (2019): UI holatdan hisoblanadi.`, better: `UI holatga doim mos, kam kod.`, pain: `Android bu poygada kech qolgan edi.`, ex: `Compose g'oyalari React va Flutter tajribasidan olingan.` },
+    { name: `Jetpack Compose`, years: `2019 e'lon, 2021-yil iyul 1.0`, art: `<rect x="24" y="24" width="72" height="52" rx="8" class="acc"/><circle cx="60" cy="50" r="10" class="lit"/>`, how: `Kotlin kompilyator plagini va runtime: composable funksiyalar, snapshot holat, Lazy ro'yxatlar, Material.`, better: `Bitta tilda UI va mantiq, preview, animatsiyalar oson.`, pain: `Dastlab unumdorlik va barqarorlik qoidalari nozik edi; ko'p kutubxonalar faqat View uchun edi.`, ex: `Google Compose'ni yangi Android UI uchun tavsiya etiladigan usul deb e'lon qilgan.` },
+    { name: `Kuchli o'tkazib yuborish va bugun`, years: `2024-yildan`, art: `<path d="M20 60h80" class="acc"/><path d="M30 40l20 20-20 20M70 40l20 20-20 20"/>`, how: `Kompilyator plagini Kotlin repozitoriysiga ko'chdi (Kotlin 2.0), kuchli o'tkazib yuborish rejimi Kotlin 2.0.20 dan sukut bo'yicha.`, better: `Barqarorlik bilan kurash kamaydi, lambdalar avtomatik eslab qolinadi.`, pain: `Holatni o'zgarmas tutish majburiy: === solishtiruv.`, ex: `Compose Multiplatform JetBrains tomonidan iOS va desktop uchun. Joriy versiyalarni developer.android.com/jetpack/androidx/releases/compose dan tekshiring.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
