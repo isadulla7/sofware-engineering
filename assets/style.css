@@ -463,3 +463,7 @@ main { padding-left: 2rem; padding-right: 2rem; }
 .quiz-link { margin: 0 0 0.8rem; font-size: 0.9375rem; }
 .quiz-next { font: inherit; font-weight: 600; background: var(--accent); color: var(--panel); border: 1px solid var(--accent); border-radius: 6px; padding: 0.55rem 1.1rem; cursor: pointer; }
 .quiz-best { font-size: 0.9375rem; color: var(--muted); margin: 0.9rem 0 0; }
+
+/* Guruhlangan savollar */
+details.grp > summary { font-weight: 600; }
+.grp-in { padding: 0.2rem 0 0.6rem 1rem; border-left: 2px solid var(--line); margin: 0.4rem 0 0.8rem; }
