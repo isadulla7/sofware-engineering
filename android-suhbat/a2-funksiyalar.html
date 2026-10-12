@@ -69,6 +69,14 @@
 
 <p class="beat">Lambda bu obyekt</p>
 <p>Kotlin'da funksiya ham tur: <span class="num">(Karta) -&gt; Boolean</span> «karta olib, mantiqiy qiymat qaytaradigan funksiya». Baytkodda bu <span class="num">Function1&lt;Karta, Boolean&gt;</span> interfeysi, uning bitta <span class="num">invoke</span> metodi bor. Lambda yozilgan joyda kompilyator shu interfeysni amalga oshiradigan obyektni yaratadi. Agar lambda tashqi o'zgaruvchidan foydalansa (uni <strong>ushlasa</strong>), o'sha o'zgaruvchi obyektning maydoniga ko'chiriladi, va har bir chaqiruvda yangi obyekt yaratiladi. Hech narsa ushlamaydigan lambda esa bitta umumiy nusxa bo'lib qoladi.</p>
+<p><strong>Tasavvur qilish uchun.</strong> Oshpazga «qovurib ber» degan <em>harakatni</em> qo'lga tutqazib bo'lmaydi. Unga <em>kartochka</em> berasiz: kartochkada nima qilish yozilgan, oshpaz kerak paytda uni o'qib bajaradi. JVM ham xuddi shunday: u funksiyalarga faqat narsalarni, ya'ni obyektlarni bera oladi. Shuning uchun «kartani tekshir» degan amalni <span class="num">filter</span> ga berish uchun kompilyator uni kartochkaga, ya'ni obyektga aylantiradi. Kartochkada bitta «bajar» tugmasi bor: bu <span class="num">invoke</span>. Pastdagi chizmani qadamma-qadam bosing: chapda siz yozgan kod, o'rtada kompilyator undan yasagan klass, o'ngda dastur ishlaganda xotirada paydo bo'ladigan obyektlar.</p>
+
+<figure class="fig">
+  <div class="evo-tabs" id="tvT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="tsv" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Lambda qanday qilib obyektga aylanishi: siz yozgan kod, kompilyator yasagan klass va xotiradagi obyektlar, qadamma-qadam"></svg></div>
+  <p class="say" id="tvSay" aria-live="polite"></p>
+</figure>
+
 <p>Pastdagi chizmada bitta chaqiruv ikki usulda: <span class="num">filter</span> oddiy funksiya bo'lsa va <span class="num">inline</span> bo'lsa.</p>
 
 <figure class="fig">
@@ -212,6 +220,68 @@
   }
   function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
   function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+
+  // ---------- Tasavvur: lambda kartochka ----------
+  (function () {
+    var svg = $('tsv'), say = $('tvSay'), cur = 0;
+    var ST = [
+      { t: '1. Muammo',
+        a: ['kartalar.filter { it.balans > 0 }'],
+        b: ['?'], bn: 'filter ga «karta musbatmi?» degan', bn2: 'amalni qanday berish mumkin?',
+        c: [], cn: 'hali hech narsa yo\'q',
+        s: `filter ga ro'yxat beriladi, bu tushunarli: ro'yxat bu narsa. Lekin unga yana «har bir kartani shunday tekshir» degan amal ham kerak. Amalni qo'lga tutqazib bo'lmaydi, xuddi oshpazga «qovurish»ni tutqazib bo'lmagani kabi. JVM funksiyalarga faqat obyektlarni bera oladi. Demak amalni obyektga aylantirish kerak: kartochkaga yozib berish.` },
+      { t: '2. Kartochka shakli',
+        a: ['val shart: (Karta) -> Boolean =', '    { it.balans > 0 }'],
+        b: ['interface Function1<P, R> {', '    fun invoke(p: P): R', '}'],
+        c: [], cn: 'hali obyekt yo\'q, faqat shakl',
+        s: `(Karta) -> Boolean bu kartochkaning shakli: «unga karta berasan, u ha yoki yo'q qaytaradi». Baytkodda bu shakl Function1 degan interfeys. Unda bitta metod bor: invoke, ya'ni «bajar» tugmasi. Parametri 2 ta bo'lsa Function2, 3 ta bo'lsa Function3 va hokazo.` },
+      { t: '3. Kompilyator klass yasaydi',
+        a: ['kartalar.filter { it.balans > 0 }'],
+        b: ['class Shart : Function1<Karta, Boolean> {', '  override fun invoke(k: Karta) =', '      k.balans > 0', '}', '', 'filter(kartalar, Shart())'],
+        c: [['Shart obyekti', 'kartochka: «balans > 0 bo\'lsa ha»']],
+        s: `Siz qavslar ichiga yozgan kod ({ it.balans > 0 }) kompilyator yasagan klassning invoke metodiga tana bo'ldi. Lambda yozilgan joyda shu klassning obyekti yaratiladi va filter ga beriladi. «Lambda bu obyekt» degani aynan shu. Haqiqiy klass nomi Shart emas, kompilyator o'zi nom beradi (masalan MainKt$musbatlar$1), lekin mohiyat shu.` },
+      { t: '4. filter uni qanday ishlatadi',
+        a: ['kartalar.filter { it.balans > 0 }'],
+        b: ['fun filter(list, shart) {', '  for (k in list)', '    if (shart.invoke(k))', '      natija.add(k)', '}'],
+        c: [['Shart obyekti', 'invoke 3 marta bosildi'], ['karta 1: balans 500', 'invoke → true, olinadi'], ['karta 2: balans 0', 'invoke → false, tashlanadi'], ['karta 3: balans 1200', 'invoke → true, olinadi']],
+        s: `filter kartochkada nima yozilganini bilmaydi va bilishi shart emas. U ro'yxatni aylanadi va har bir karta uchun kartochkaning «bajar» tugmasini bosadi: shart.invoke(karta). true qaytsa kartani oladi. Shuning uchun bitta filter istalgan shart bilan ishlaydi: kartochka boshqa, filter o'sha.` },
+      { t: '5. Hech narsa ushlamasa',
+        a: ['fun musbatlar() =', '  kartalar.filter { it.balans > 0 }', '', 'musbatlar()   // 1-chaqiruv', 'musbatlar()   // 2-chaqiruv', 'musbatlar()   // 3-chaqiruv'],
+        b: ['class Shart : Function1<Karta, Boolean> {', '  override fun invoke(k: Karta) =', '      k.balans > 0', '', '  static val INSTANCE = Shart()', '}'],
+        c: [['Shart #1 (INSTANCE)', 'yagona nusxa, 3 chaqiruv ham shuni oladi']],
+        s: `Bu lambda tashqaridan hech narsa olmaydi: unda faqat «balans > 0» bor, 0 esa doimiy son. Demak kartochkadagi yozuv hech qachon o'zgarmaydi. Kompilyator bitta kartochka bosib qo'yadi (INSTANCE) va musbatlar() necha marta chaqirilsa ham o'shani beradi. Yangi obyekt yaratilmaydi.` },
+      { t: '6. Tashqi o\'zgaruvchini ushlasa',
+        a: ['fun boylar(min: Long) =', '  kartalar.filter { it.balans > min }', '', 'boylar(1000)', 'boylar(5000)', 'boylar(9000)'],
+        b: ['class Shart(val min: Long)', '      : Function1<Karta, Boolean> {', '  override fun invoke(k: Karta) =', '      k.balans > min', '}', 'filter(kartalar, Shart(min))'],
+        c: [['Shart #1', 'maydon: min = 1000'], ['Shart #2', 'maydon: min = 5000'], ['Shart #3', 'maydon: min = 9000']],
+        s: `Endi lambda ichida min bor. min lambdaning o'ziniki emas, u tashqaridagi boylar() funksiyasining parametri: lambda uni «ushladi». Kartochka keyinroq, filter ichida o'qiladi, o'shanda min ning qiymatini bilish kerak. Shuning uchun min kartochkaga yozib qo'yiladi: klassda min degan maydon paydo bo'ladi. Har chaqiruvda min boshqa bo'lishi mumkin, demak har safar yangi kartochka: 3 chaqiruv, 3 obyekt. Bu «ushlasa, har chaqiruvda yangi obyekt» degani.` },
+      { t: '7. inline: kartochka yo\'q',
+        a: ['fun boylar(min: Long) =', '  kartalar.filter { it.balans > min }', '', '// filter inline funksiya'],
+        b: ['val natija = ArrayList<Karta>()', 'for (k in kartalar)', '  if (k.balans > min)', '    natija.add(k)', 'return natija'],
+        c: [], cn: 'obyekt yaratilmadi',
+        s: `Haqiqiy standart filter inline. Bunda kompilyator kartochka yasamaydi: filter ning siklini ham, lambdangiz tanasini ham to'g'ridan-to'g'ri chaqirilgan joyga yozib qo'yadi. Oshpazga kartochka berish o'rniga, ishni o'zingiz shu yerda qilganingiz kabi. Obyekt yo'q, invoke yo'q, min oddiy lokal o'zgaruvchi. Bu haqda keyingi chizmada batafsil.` }
+    ];
+    var setT = tabs('tvT', ST.map(function (s) { return s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var s = ST[cur]; setT(cur); svg.textContent = ''; marker(svg, 'tvmk');
+      group(svg, 20, 20, 380, 390, '1. Siz yozasiz');
+      group(svg, 430, 20, 400, 390, cur === 3 ? '2. filter ichida (kutubxona kodi)' : cur === 1 ? '2. Baytkoddagi shakl' : '2. Kompilyator yasaydi');
+      group(svg, 860, 20, 360, 390, '3. Ishlaganda xotirada');
+      code(svg, 36, 80, s.a);
+      if (s.bn) { S(svg, 'text', { x: 630, y: 190, 'text-anchor': 'middle', 'class': 'ttl', style: 'font-size:40px' }, '?'); S(svg, 'text', { x: 630, y: 240, 'text-anchor': 'middle', 'class': 'sub' }, s.bn); S(svg, 'text', { x: 630, y: 262, 'text-anchor': 'middle', 'class': 'sub' }, s.bn2); }
+      else code(svg, 446, 80, s.b);
+      if (!s.c.length) S(svg, 'text', { x: 1040, y: 220, 'text-anchor': 'middle', 'class': 'sub' }, s.cn);
+      s.c.forEach(function (o, i) {
+        var y = 60 + i * 84, card = cur === 3 && i > 0;
+        box(svg, card ? 920 : 880, y, card ? 280 : 320, 62, o[0], o[1], card ? (o[1].indexOf('true') >= 0 ? 'on' : '') : 'live');
+        if (card) arrow(svg, 'tvmk', 'M900 122V' + (y + 31) + 'H918');
+      });
+      arrow(svg, 'tvmk', 'M400 215H428');
+      arrow(svg, 'tvmk', 'M830 215H858');
+      say.textContent = s.s;
+    }
+    draw();
+  })();
 
   // ---------- Lambda va inline ----------
   (function () {
