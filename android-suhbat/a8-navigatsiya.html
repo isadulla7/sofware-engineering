@@ -1,0 +1,301 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A8. Navigatsiya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A8. Navigatsiya: Navigation Compose va Navigation 3</h1>
+<p class="lead">Savol: ekranlar orasida qanday o'tiladi, orqaga qaytish tarixi qayerda saqlanadi, argumentlar qanday beriladi, va Navigation 3 nimani o'zgartirdi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Navigatsiya</strong>: ekranlar orasida o'tish va <strong>orqaga qaytish steki</strong> (back stack), ya'ni ochilgan ekranlar ro'yxati. Orqaga tugmasi stekning oxirgi elementini olib tashlaydi.</p>
+    <p><strong>Navigation Compose</strong> (Navigation 2): stekni <span class="num">NavController</span> ichkarida boshqaradi. <strong>Navigation 3</strong> (2025-yil noyabrda barqaror 1.0): stek sizning oddiy ro'yxatingiz, <span class="num">NavDisplay</span> esa uni kuzatib, ekranni ko'rsatadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «zamonaviy navigatsiya yondashuvlarini bilish (Navigation3 / Compose Navigation)».</li>
+      <li><strong>Bank ilovasida:</strong> kirish va PIN oqimi, asosiy ekranlar, o'tkazma bosqichlari, push xabardan to'g'ridan-to'g'ri ekran ochish.</li>
+      <li><strong>Suhbatda:</strong> «argumentlarni qanday berasiz», «login'dan keyin orqaga qaytmaslik», «Navigation 3 nima uchun».</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>orqaga qaytish steki va asosiy amallar: o'tish, qaytish, <span class="num">popUpTo</span>, <span class="num">launchSingleTop</span>;</li>
+      <li>Navigation Compose: tur xavfsiz marshrutlar, argumentlar, ichki graflar, chuqur havolalar;</li>
+      <li>Navigation 3: <span class="num">NavKey</span>, <span class="num">rememberNavBackStack</span>, <span class="num">NavDisplay</span>, <span class="num">entryProvider</span>, dekoratorlar, sahnalar;</li>
+      <li>ViewModel ekran yozuviga qanday bog'lanadi;</li>
+      <li>bank ilovasiga xos oqimlar.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: navigatsiya ekran qavatida"></svg></div>
+  <figcaption>Navigatsiya ekran qavatida yashaydi, lekin ViewModel'larning yashash muddatini ham belgilaydi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Activity va Fragment davridagi og'riq</li>
+    <li>Orqaga qaytish steki</li>
+    <li>Navigation Compose 2.8+ tur xavfsiz marshrutlar bilan</li>
+    <li>Navigation 3: tuzilishi, dekoratorlar, sahnalar</li>
+    <li>Argumentlar, natija qaytarish, ViewModel'ni ekranga bog'lash</li>
+    <li>Kirish oqimi va chuqur havolalar</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Fragment'lar va XML navigatsiya grafi batafsil</li>
+    <li>O'tish animatsiyalari</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Ekranlar orasidagi yo'l</h3>
+<p>Android'ning dastlabki yillarida har bir ekran alohida <span class="num">Activity</span> edi. O'tish <span class="num">Intent</span> bilan, argumentlar <span class="num">putExtra</span> bilan kalit-qiymat ko'rinishida, turlar tekshirilmasdan. Stekni tizim boshqarardi, uni o'zgartirish uchun <span class="num">FLAG_ACTIVITY_CLEAR_TOP</span> kabi bayroqlar kombinatsiyasi kerak edi, va ularning xatti-harakati ko'pincha kutilmagan bo'lardi.</p>
+<p>Keyin Fragment'lar keldi: bitta Activity ichida ko'p ekran. Lekin <span class="num">FragmentManager</span> tranzaksiyalari, o'z stek mantiqi va murakkab hayot sikli eng ko'p xato chiqaradigan joylardan biriga aylandi. 2018-yildagi Navigation Component XML graf va Safe Args bilan buni tartibga soldi, Compose bilan esa <span class="num">NavHost</span> paydo bo'ldi.</p>
+<p>Compose navigatsiyasining birinchi versiyasida marshrutlar satr edi: <span class="num">"detail/{id}"</span>, argumentlar qo'lda o'qilardi, xato faqat ish paytida chiqardi. Va asosiy cheklov qoldi: stek <span class="num">NavController</span> ichida yashirin. Compose'da hamma narsa holat, faqat navigatsiya steki boshqa qoidalarga bo'ysunadigan qora quti edi. Planshet va bukiladigan telefonlarda ikki ekranni yonma-yon ko'rsatish (ro'yxat va tafsilot) uni qiyinlashtirardi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Stek va uni kim boshqaradi</h3>
+
+<p class="beat">Orqaga qaytish steki</p>
+<p>Navigatsiyaning asosi bitta tushuncha: ochilgan ekranlar ro'yxati. Yangi ekranga o'tish ro'yxat oxiriga qo'shadi, orqaga qaytish oxirgisini olib tashlaydi, ko'rinadigan ekran doim oxirgisi. Qolgan hamma narsa shu ro'yxat ustidagi amallar. Pastda bank ilovasidagi odatiy oqimni bajaring.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="stk" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="Orqaga qaytish steki: amallar ro'yxatni qanday o'zgartiradi"></svg></div>
+  <figcaption>Chapda amal, o'rtada stek (pastdan yuqoriga), o'ngda ekranda ko'rinadigan ekran va shu amal Navigation 2 va Navigation 3 da qanday yoziladi.</figcaption>
+  <div class="slider">
+    <button type="button" data-st="0">Kirish muvaffaqiyatli</button>
+    <button type="button" data-st="1">Kartani ochish</button>
+    <button type="button" data-st="2">O'tkazma</button>
+    <button type="button" data-st="3">O'tkazma bajarildi</button>
+    <button type="button" data-st="4">Orqaga</button>
+    <button type="button" data-st="5">Push: o'tkazma tafsiloti</button>
+    <button type="button" data-st="6">Boshidan</button>
+  </div>
+  <p class="say" id="stSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Navigation Compose: tur xavfsiz marshrutlar</p>
+<p>Navigation 2.8 (2024) dan boshlab marshrutlar satr emas, <span class="num">@Serializable</span> Kotlin turlari:</p>
+<pre class="code">@Serializable object Kartalar
+@Serializable data class KartaDetail(val id: String)
+
+NavHost(navController, startDestination = Kartalar) {
+    composable&lt;Kartalar&gt; { KartalarEkran(onOpen = { id -&gt; navController.navigate(KartaDetail(id)) }) }
+    composable&lt;KartaDetail&gt; { KartaDetailEkran() }
+}
+// ViewModel ichida argumentni olish:
+class KartaDetailViewModel(handle: SavedStateHandle, ...) : ViewModel() {
+    private val id = handle.toRoute&lt;KartaDetail&gt;().id
+}</pre>
+<ul>
+  <li><strong><span class="num">NavController</span></strong> stekni saqlaydi va boshqaradi: <span class="num">navigate</span>, <span class="num">popBackStack</span>, <span class="num">navigateUp</span>.</li>
+  <li><strong>Stekning har bir yozuvi</strong> (<span class="num">NavBackStackEntry</span>) o'z hayot sikliga, <span class="num">ViewModelStore</span> ga va <span class="num">SavedStateHandle</span> ga ega. Shuning uchun ekranning ViewModel'i u stekda turgan ekan yashaydi va olib tashlanganda tozalanadi. Argumentlar <span class="num">SavedStateHandle</span> ga avtomatik yoziladi.</li>
+  <li><strong>Ichki graflar</strong>: <span class="num">navigation&lt;OtkazmaGraf&gt;(startDestination = Summa) { ... }</span>. Bir nechta bosqichli oqim (summa, tasdiqlash, natija) bitta guruh; graf darajasidagi umumiy ViewModel bilan bosqichlar ma'lumot bo'lishadi.</li>
+  <li><strong>Natija qaytarish</strong>: oldingi yozuvning <span class="num">savedStateHandle</span> ga qiymat yozish (<span class="num">previousBackStackEntry?.savedStateHandle?.set(...)</span>).</li>
+  <li><strong>Chuqur havolalar</strong>: <span class="num">deepLinks = listOf(navDeepLink&lt;OtkazmaDetail&gt;(basePath = "bank://transfer"))</span>.</li>
+</ul>
+
+<p class="beat">Navigation 3: stek sizniki</p>
+<p>Navigation 3 boshqa g'oyadan boshlanadi: stek oddiy Compose holati, va siz uni o'zingiz o'zgartirasiz. Kutubxona faqat shu ro'yxatni kuzatib, oxirgi elementni (yoki sahnaga qarab bir nechtasini) ko'rsatadi.</p>
+<pre class="code">@Serializable data object Kartalar : NavKey
+@Serializable data class KartaDetail(val id: String) : NavKey
+
+@Composable
+fun BankNav() {
+    val backStack = rememberNavBackStack(Kartalar)       // konfiguratsiya va jarayon o'limidan omon qoladi
+    NavDisplay(
+        backStack = backStack,
+        onBack = { backStack.removeLastOrNull() },
+        entryDecorators = listOf(
+            rememberSaveableStateHolderNavEntryDecorator(),
+            rememberViewModelStoreNavEntryDecorator()     // har bir yozuvga o'z ViewModelStore
+        ),
+        entryProvider = entryProvider {
+            entry&lt;Kartalar&gt; { KartalarEkran(onOpen = { backStack.add(KartaDetail(it)) }) }
+            entry&lt;KartaDetail&gt; { key -&gt; KartaDetailEkran(key.id) }
+        }
+    )
+}</pre>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="own" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Navigation 2 da stek NavController ichida, Navigation 3 da stek ilovaning oddiy holati"></svg></div>
+  <figcaption>Yuqorida Navigation 2: stek NavController ichida, siz unga buyruq berasiz. Pastda Navigation 3: stek sizning ro'yxatingiz, NavDisplay uni kuzatadi.</figcaption>
+</figure>
+<ul>
+  <li><strong><span class="num">NavKey</span></strong>: ekran kaliti. <span class="num">@Serializable</span> bo'lsa, <span class="num">rememberNavBackStack</span> stekni saqlab qo'yadi: aylantirish va jarayon o'limidan omon qoladi.</li>
+  <li><strong><span class="num">entryProvider</span></strong>: kalitni ekranga aylantiradigan funksiya. Argumentlar kalitning maydonlari: tur xavfsiz, hech qanday satr tahlili yo'q.</li>
+  <li><strong>Dekoratorlar</strong>: har bir yozuvga qo'shimcha imkoniyat qo'shadi. <span class="num">rememberSaveableStateHolderNavEntryDecorator()</span> ekranning <span class="num">rememberSaveable</span> holatini saqlaydi, <span class="num">rememberViewModelStoreNavEntryDecorator()</span> (<span class="num">lifecycle-viewmodel-navigation3</span> artefaktidan) har bir yozuvga o'z ViewModelStore beradi: ViewModel kalit stekka qo'shilganda yaratiladi va olib tashlanganda tozalanadi. Bu dekorator <span class="num">LocalViewModelStoreOwner</span> ni beradi, shuning uchun yozuv ichidagi <span class="num">viewModel()</span> (va xuddi shu mexanizmga tayanadigan Koin'ning <span class="num">koinViewModel()</span>) shu yozuvga bog'lanadi.</li>
+  <li><strong>Sahnalar</strong> (Scenes): bir vaqtda bir nechta yozuvni ko'rsatish strategiyasi. Masalan, keng ekranda stekning oxirgi ikki yozuvi (ro'yxat va tafsilot) yonma-yon. Navigation 2 da buni qilish qiyin edi, chunki u faqat bitta joriy ekranni bilardi.</li>
+  <li><strong>Natija qaytarish va bir nechta stek</strong> (pastki panelning har bir yorlig'i uchun alohida tarix) oddiy Kotlin kodi bilan yoziladi: masalan, har bir yorliq uchun alohida ro'yxat.</li>
+</ul>
+<p>Navigation 2 eskirmagan va ko'p loyihalarda ishlaydi. Navigation 3 yangi loyihalar va moslashuvchan (planshet, bukiladigan) ekranlar uchun. Suhbatda ikkalasini bilish va farqini aytish kerak.</p>
+
+<p class="beat">Bank ilovasiga xos oqimlar</p>
+<ul>
+  <li><strong>Kirish oqimi</strong>: PIN yoki biometriya muvaffaqiyatli bo'lgach, kirish ekranlari stekdan butunlay olib tashlanadi, aks holda «orqaga» foydalanuvchini PIN ekraniga qaytaradi. Navigation 2: <span class="num">navigate(Asosiy) { popUpTo(Kirish) { inclusive = true } }</span>. Navigation 3: <span class="num">backStack.clear(); backStack.add(Asosiy)</span>.</li>
+  <li><strong>Sessiya tugashi</strong>: token muddati o'tganda (A9) istalgan ekrandan kirishga qaytish va stekni tozalash.</li>
+  <li><strong>Push xabardan ochish</strong>: «Kartangizga pul tushdi» bosilganda tafsilot ekrani ochilishi kerak, lekin avval foydalanuvchi PIN kiritgan bo'lishi shart va orqaga bosilganda asosiy ekranga qaytishi kerak. Ya'ni stek qo'lda yig'iladi: Asosiy, keyin Tafsilot.</li>
+  <li><strong>O'tkazma bosqichlari</strong>: muvaffaqiyatli o'tkazmadan keyin «orqaga» tasdiqlash ekraniga qaytarmasligi kerak, aks holda foydalanuvchi to'lovni takrorlab yuborishi mumkin.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android navigatsiyasi tarixi</h3>
+<div class="bench" id="evoNv"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Orqaga qaytish steki</dt><dd>Ochilgan ekranlar ro'yxati; ko'rinadigani oxirgisi, orqaga tugmasi oxirgisini olib tashlaydi.</dd>
+  <dt>Marshrut (route), kalit (key)</dt><dd>Ekranni va uning argumentlarini ifodalaydigan obyekt. Navigation 2.8+ va Navigation 3 da <span class="num">@Serializable</span> Kotlin turi.</dd>
+  <dt>NavController, NavHost</dt><dd>Navigation 2: stekni ichkarida boshqaradigan obyekt va grafni ko'rsatadigan composable.</dd>
+  <dt>NavBackStackEntry</dt><dd>Navigation 2 stekining yozuvi: argumentlar, hayot sikli, ViewModelStore, SavedStateHandle.</dd>
+  <dt>popUpTo, inclusive, launchSingleTop</dt><dd>O'tishda stekni ma'lum ekrangacha tozalash; shu ekranni ham olib tashlash; bir xil ekranni ustma-ust qo'ymaslik.</dd>
+  <dt>Ichki graf</dt><dd>Bir nechta ekrandan iborat guruh (o'tkazma oqimi), o'z boshlang'ich ekrani va umumiy ViewModel bilan.</dd>
+  <dt>Chuqur havola (deep link)</dt><dd>Tashqaridan (push, havola) ma'lum ekranni ochish manzili.</dd>
+  <dt>NavKey, NavBackStack, rememberNavBackStack</dt><dd>Navigation 3: ekran kaliti, kalitlar ro'yxati va uni saqlanadigan qilib yaratish.</dd>
+  <dt>NavDisplay, entryProvider, NavEntry</dt><dd>Navigation 3: stekni kuzatib ko'rsatadigan composable, kalitni ekranga aylantiruvchi, va bitta yozuv.</dd>
+  <dt>NavEntryDecorator</dt><dd>Yozuvga holat saqlash yoki ViewModelStore kabi imkoniyat qo'shadigan qatlam.</dd>
+  <dt>Sahna (Scene)</dt><dd>Navigation 3 da bir vaqtda bir nechta yozuvni qanday joylashtirishni belgilaydigan strategiya.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: katta obyektni argument qilib berish</b>
+  <p><span class="num">navigate(KartaDetail(karta))</span> ga butun <span class="num">Karta</span> obyekti, ro'yxati va rasmlari bilan. Argumentlar saqlanadigan holatga (Bundle) yoziladi, uning hajmi cheklangan: katta bo'lsa <span class="num">TransactionTooLargeException</span>, va ma'lumot eskirib qoladi.</p>
+  <p class="why">Faqat identifikator beriladi, tafsilot ekranining ViewModel'i ma'lumotni repozitoriydan (keshdan) o'zi oladi. Bu ekranni chuqur havoladan ochishni ham osonlashtiradi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ViewModel ichida NavController</b>
+  <p>ViewModel'ga <span class="num">NavController</span> berish: u ekrandan uzoq yashaydi, ekran o'zgarganda eski kontrollerni ushlab qoladi, va ViewModel'ni testlash qiyinlashadi.</p>
+  <p class="why">ViewModel navigatsiya niyatini effekt sifatida yuboradi (A4, A5), ekran yoki navigatsiya qatlami uni bajaradi. Navigation 3 da stek holat bo'lgani uchun uni alohida «navigator» klassida saqlab, DI orqali berish ham mumkin.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ikki marta bosish</b>
+  <p>Foydalanuvchi tugmani tez ikki marta bosdi: stekka bir xil ekran ikki marta qo'shildi, orqaga bosganda yana o'sha ekran chiqadi.</p>
+  <p class="why">Navigation 2 da <span class="num">launchSingleTop = true</span>; Navigation 3 da oxirgi element bir xil bo'lsa qo'shmaslik. Tugmani ish tugaguncha o'chirib qo'yish ham yordam beradi.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Compose'da navigatsiya qanday tashkil qilinadi?</summary>
+<p>Navigation Compose: <span class="num">NavHost</span> va <span class="num">NavController</span>, 2.8 dan tur xavfsiz <span class="num">@Serializable</span> marshrutlar, <span class="num">composable&lt;T&gt;</span>, argumentlar <span class="num">toRoute</span> va <span class="num">SavedStateHandle</span> orqali, ichki graflar, chuqur havolalar. Yangi yondashuv Navigation 3: stek ilovaning o'z holati (<span class="num">rememberNavBackStack</span>), <span class="num">NavDisplay</span> uni kuzatadi, <span class="num">entryProvider</span> kalitni ekranga aylantiradi.</p></details>
+<details><summary>Navigation 3 nima uchun yaratilgan? Navigation 2 dan farqi?</summary>
+<p>Navigation 2 da stek <span class="num">NavController</span> ichida yashirin, Compose holatiga mos emas edi; argumentlar uchun satr marshrutlar; moslashuvchan (ro'yxat va tafsilot yonma-yon) layoutlar qiyin. Navigation 3 da stek oddiy kuzatiladigan ro'yxat, uni o'zingiz o'zgartirasiz; kalitlar tur xavfsiz obyektlar; dekoratorlar bilan holat va ViewModel saqlanadi; sahnalar bilan bir vaqtda bir nechta ekran. Kutubxona kichik, almashtiriladigan qismlardan iborat. 1.0 barqaror versiyasi 2025-yil noyabrda chiqdi.</p></details>
+<details><summary>Ekranga argument qanday beriladi? ViewModel uni qanday oladi?</summary>
+<p>Navigation 2: marshrut klassining maydoni, ViewModel'da <span class="num">savedStateHandle.toRoute&lt;KartaDetail&gt;()</span>. Navigation 3: kalitning maydoni, <span class="num">entry&lt;KartaDetail&gt; { key -&gt; }</span> ichida olinadi va ViewModel'ga parametr qilib beriladi (DI'da parametr sifatida: Koin'da <span class="num">parametersOf(key.id)</span>). Faqat identifikator, katta obyekt emas.</p></details>
+<details><summary>Kirishdan keyin «orqaga» PIN ekraniga qaytarmasligi uchun nima qilasiz?</summary>
+<p>Navigation 2: <span class="num">navigate(Asosiy) { popUpTo(KirishGraf) { inclusive = true } }</span>. Navigation 3: stekni tozalab, faqat asosiy ekranni qo'shish. Sessiya tugaganda ham shunday: stek tozalanib, kirish ekrani qo'yiladi.</p></details>
+<details><summary>ViewModel qaysi ekranga bog'lanadi va qachon tozalanadi?</summary>
+<p>Navigation 2: har bir <span class="num">NavBackStackEntry</span> ViewModelStoreOwner; ekran stekda ekan ViewModel yashaydi, olib tashlanganda tozalanadi. Graf darajasida umumiy ViewModel uchun graf yozuvi owner sifatida beriladi. Navigation 3: <span class="num">rememberViewModelStoreNavEntryDecorator</span> har bir yozuvga ViewModelStore beradi, kalit stekdan olib tashlanganda u tozalanadi.</p></details>
+<details><summary>Bir martalik navigatsiya hodisasini ViewModel'dan qanday yuborasiz?</summary>
+<p>ViewModel <span class="num">Channel</span> orqali effekt yuboradi (yoki holatda belgi va «bajarildi» niyati), ekran uni <span class="num">LaunchedEffect</span> ichida kuzatib, navigatsiyani bajaradi. ViewModel NavController'ni bilmaydi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>O'tkazma: summa, tasdiqlash, natija. Natija ekranidan «orqaga» qayerga olib borishi kerak va buni qanday ta'minlaysiz?</li>
+  <li>Push xabardan tranzaksiya tafsilotini ochish: foydalanuvchi hali PIN kiritmagan. Stek qanday ko'rinishda bo'lishi kerak?</li>
+  <li>Navigation 3 da ViewModel ekranga qanday bog'lanadi?</li>
+  <li>Nega argument sifatida faqat ID beriladi?</li>
+  <li>DigitalBank'da navigatsiya qanday qilingan edi (Activity'lar, Fragment'lar, Navigation Component)?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Pastki panel va bir nechta stek</summary>
+<p>Pastki panelning har bir yorlig'i (Asosiy, Kartalar, To'lovlar) o'z tarixini saqlashi kerak: yorliqni almashtirib qaytganda o'sha joyda bo'lish. Navigation 2 da <span class="num">saveState</span>/<span class="num">restoreState</span> bayroqlari bilan; Navigation 3 da har bir yorliq uchun alohida ro'yxat va joriy yorliq holati.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Android: «Jetpack Navigation 3 is stable» (2025-yil noyabr), «Navigation 3» va «Save and manage navigation state» qo'llanmalari, «Type safety in Kotlin DSL and Navigation Compose» (developer.android.com/guide/navigation). Navigation 3 tafsilotlari tez o'zgaradi: kodni yozishdan oldin joriy hujjatni tekshiring.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Navigatsiya bu stek ustidagi amallar. Navigation 2 da stek NavController ichida, marshrutlar 2.8 dan tur xavfsiz. Navigation 3 da stek sizning holatingiz, NavDisplay uni ko'rsatadi, dekoratorlar holat va ViewModel'ni yozuvga bog'laydi, sahnalar bir nechta ekranni yonma-yon qo'yadi. Argument faqat ID, ViewModel NavController'ni bilmaydi.</p>
+  <p><strong>Keyingi dars.</strong> A9. Tarmoq: Retrofit va Ktor, JSON, xatolar va tokenlar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a7-compose.html">Oldingi: A7. Compose</a><a href="a9-tarmoq.html">Keyingi: A9. Tarmoq</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0, 1], 'Navigatsiya: ekran va ViewModel');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Stek ----------
+  (function () {
+    var svg = $('stk'), say = $('stSay'), st = ['Kirish', 'PIN'], last = null;
+    var A = [
+      { n: 'Kirish muvaffaqiyatli', f: function () { st = ['Asosiy']; }, v2: 'navigate(Asosiy) { popUpTo(Kirish) { inclusive = true } }', v3: 'backStack.clear(); backStack.add(Asosiy)', s: `Kirish va PIN ekranlari stekdan butunlay olib tashlandi, faqat Asosiy qoldi. Endi «orqaga» ilovadan chiqaradi, PIN ekraniga qaytarmaydi.` },
+      { n: 'Kartani ochish', f: function () { if (st[st.length - 1] !== 'KartaDetail(1234)') st.push('KartaDetail(1234)'); }, v2: 'navigate(KartaDetail("1234")) { launchSingleTop = true }', v3: 'backStack.add(KartaDetail("1234"))', s: `Tafsilot ekrani stek oxiriga qo'shildi va ko'rinadigan ekran bo'ldi. Argument: faqat ID. Tez ikki marta bosilsa ham, ikkinchi nusxa qo'shilmaydi.` },
+      { n: 'O\'tkazma', f: function () { st.push('Summa'); st.push('Tasdiqlash'); }, v2: 'navigate(Summa) ... navigate(Tasdiqlash)', v3: 'backStack.add(Summa) ... backStack.add(Tasdiqlash)', s: `O'tkazma oqimining ikki bosqichi qo'shildi. Ular bitta ichki grafda bo'lsa, bosqichlar umumiy ViewModel'ni bo'lishadi.` },
+      { n: 'O\'tkazma bajarildi', f: function () { while (st.length && ['Summa', 'Tasdiqlash'].indexOf(st[st.length - 1]) >= 0) st.pop(); st.push('Natija'); }, v2: 'navigate(Natija) { popUpTo(Summa) { inclusive = true } }', v3: 'backStack.removeAll { it is OtkazmaQadami }; backStack.add(Natija)', s: `Summa va Tasdiqlash olib tashlandi, Natija qo'shildi. Natija ekranidan «orqaga» karta tafsilotiga qaytaradi, tasdiqlash ekraniga emas: to'lovni tasodifan qayta yuborish imkoni yo'q.` },
+      { n: 'Orqaga', f: function () { if (st.length > 1) st.pop(); }, v2: 'navController.popBackStack()', v3: 'backStack.removeLastOrNull()', s: `Oxirgi ekran olib tashlandi, undan oldingisi ko'rinadi. Olib tashlangan ekranning ViewModel'i tozalandi (onCleared).` },
+      { n: 'Push: o\'tkazma tafsiloti', f: function () { st = ['Kirish', 'PIN']; last = 'push'; }, v2: 'deep link: bank://transfer/77 → avval PIN', v3: 'backStack = [Kirish, PIN]; kirgandan keyin [Asosiy, OtkazmaDetail(77)]', s: `Ilova push xabardan ochildi. Foydalanuvchi hali tasdiqlanmagan: avval PIN. Muvaffaqiyatli kirgandan keyin stek qo'lda yig'iladi: Asosiy, OtkazmaDetail(77). Shunda «orqaga» asosiy ekranga olib boradi, ilovadan chiqarib yubormaydi.` },
+      { n: 'Boshidan', f: function () { st = ['Kirish', 'PIN']; }, v2: '—', v3: '—', s: `Ilova ochildi: Kirish va PIN ekranlari.` }
+    ];
+    function draw(a) {
+      svg.textContent = ''; marker(svg, 'skmk');
+      box(svg, 20, 30, 300, 100, 'Amal', a ? a.n : 'ilova ochildi', 'live');
+      group(svg, 380, 20, 360, 320, 'Stek (pastda birinchisi)');
+      st.forEach(function (s, i) { var top = i === st.length - 1; box(svg, 400, 280 - i * 58, 320, 48, s + (top ? '  ← ko\'rinadi' : ''), '', top ? 'on' : ''); });
+      box(svg, 800, 30, 420, 130, 'Navigation 2', '', ''); code(svg, 816, 110, wrap(a ? a.v2 : '—', 44));
+      box(svg, 800, 190, 420, 140, 'Navigation 3', '', 'on'); code(svg, 816, 270, wrap(a ? a.v3 : '—', 44));
+      arrow(svg, 'skmk', 'M320 80H378');
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-st]'), function (b) {
+      b.addEventListener('click', function () {
+        var a = A[+b.getAttribute('data-st')];
+        if (a.n === 'Kirish muvaffaqiyatli' && last === 'push') { st = ['Asosiy', 'OtkazmaDetail(77)']; last = null; draw({ n: 'Kirish (push\'dan keyin)', v2: 'navigate(Asosiy) {popUpTo...}; navigate(OtkazmaDetail(77))', v3: 'backStack.clear(); addAll(listOf(Asosiy, OtkazmaDetail(77)))' }); say.textContent = `Kirish muvaffaqiyatli, va ilova push'dan ochilgani uchun stek qo'lda yig'ildi: Asosiy, keyin push ko'rsatgan tafsilot.`; return; }
+        a.f(); if (a.n !== 'Push: o\'tkazma tafsiloti') last = last === 'push' ? 'push' : null; draw(a); say.textContent = a.s;
+      });
+    });
+    draw(null); say.textContent = `Ilova ochildi: stekda Kirish va PIN. Tugmalarni bosing.`;
+  })();
+
+  // ---------- Kim egasi ----------
+  (function () {
+    var svg = $('own'); marker(svg, 'owmk');
+    group(svg, 20, 20, 1200, 120, 'Navigation 2 (Navigation Compose)');
+    box(svg, 40, 55, 260, 70, 'Ekran kodi', 'navigate(KartaDetail(id))', 'on');
+    box(svg, 400, 55, 360, 70, 'NavController', 'stek ichkarida, yashirin', 'bad');
+    box(svg, 860, 55, 340, 70, 'NavHost', 'joriy yozuvni ko\'rsatadi');
+    arrow(svg, 'owmk', 'M300 90H398', 'buyruq', 349, 80); arrow(svg, 'owmk', 'M760 90H858');
+    group(svg, 20, 160, 1200, 120, 'Navigation 3');
+    box(svg, 40, 195, 260, 70, 'Ekran kodi', 'backStack.add(KartaDetail(id))', 'on');
+    box(svg, 400, 195, 360, 70, 'backStack: NavBackStack', 'sizning kuzatiladigan ro\'yxatingiz', 'live');
+    box(svg, 860, 195, 340, 70, 'NavDisplay', 'ro\'yxatni kuzatadi, sahna bo\'yicha ko\'rsatadi');
+    arrow(svg, 'owmk', 'M300 230H398', 'o\'zgartiradi', 349, 220); arrow(svg, 'owmk', 'M760 230H858', 'kuzatadi', 809, 220);
+  })();
+
+  window.evoStepper('evoNv', [
+    { name: `Activity va Intent`, years: `2008-yildan`, art: `<rect x="14" y="30" width="36" height="40" rx="3"/><path d="M50 50h20" class="acc"/><rect x="70" y="30" width="36" height="40" rx="3"/>`, how: `Har ekran Activity, o'tish startActivity(Intent), argumentlar extras.`, better: `Tizim stekni o'zi boshqaradi.`, pain: `Turlar tekshirilmaydi, stekni boshqarish bayroqlar bilan, ekranlar orasida ma'lumot bo'lishish qiyin.`, ex: `FLAG_ACTIVITY_CLEAR_TASK | FLAG_ACTIVITY_NEW_TASK kabi kombinatsiyalar.` },
+    { name: `Fragment'lar`, years: `2011-yildan`, art: `<rect x="20" y="20" width="80" height="60" rx="4"/><rect x="28" y="28" width="30" height="44" rx="2" class="acc"/><rect x="62" y="28" width="30" height="44" rx="2"/>`, how: `Bitta Activity ichida bir nechta ekran, FragmentManager tranzaksiyalari va o'z steki.`, better: `Planshetda ikki panel, Activity'dan yengil.`, pain: `Murakkab hayot sikli, «IllegalStateException: Can not perform this action after onSaveInstanceState».`, ex: `Android 3.0 bilan planshetlar uchun keldi.` },
+    { name: `Navigation Component`, years: `2018`, art: `<circle cx="30" cy="50" r="10"/><circle cx="90" cy="30" r="10"/><circle cx="90" cy="70" r="10"/><path d="M40 50l40-18M40 50l40 18" class="acc"/>`, how: `XML navigatsiya grafi, Safe Args bilan tur xavfsiz argumentlar, NavController.`, better: `Bitta Activity va graf vizual muharrirda.`, pain: `Fragment'larga bog'liq, XML.`, ex: `Jetpack'ning bir qismi.` },
+    { name: `Navigation Compose`, years: `2021, tur xavfsizligi 2024`, art: `<rect x="24" y="24" width="72" height="52" rx="8"/><path d="M40 50h40" class="acc"/>`, how: `NavHost va composable() bilan Kotlin DSL. 2.8 dan @Serializable marshrutlar.`, better: `XML yo'q, Compose bilan bitta tilda.`, pain: `Stek NavController ichida yashirin; moslashuvchan layoutlar qiyin.`, ex: `Hozir ham keng ishlatiladi.` },
+    { name: `Navigation 3`, years: `2025-yil, 1.0 barqaror noyabrda`, art: `<path d="M20 70h80" /><rect x="20" y="30" width="20" height="40" class="acc"/><rect x="45" y="40" width="20" height="30" class="acc"/><rect x="70" y="50" width="20" height="20" class="lit"/>`, how: `Stek ilovaning holati, NavDisplay, entryProvider, dekoratorlar, sahnalar.`, better: `To'liq nazorat, Compose tamoyillariga mos, adaptiv layoutlar.`, pain: `Yangi: jamoalar uchun o'rganish va ko'chish.`, ex: `«Jetpack Navigation 3 is stable», Android Developers Blog, 2025-yil 19-noyabr.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
