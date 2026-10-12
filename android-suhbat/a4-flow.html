@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A4. Flow</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A4. Flow: StateFlow va SharedFlow</h1>
+<p class="lead">Savol: bitta javob emas, vaqt davomida keladigan qiymatlar oqimi bilan qanday ishlanadi, «sovuq» va «issiq» oqim nima, va ekran holati va bir martalik hodisalar qayerda saqlanadi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Flow</strong> vaqt davomida bir nechta qiymat chiqaradigan asinxron oqim. <span class="num">suspend</span> funksiya bitta natija beradi, Flow esa nolta, bitta yoki cheksiz ko'p.</p>
+    <p><strong>StateFlow</strong> doim joriy qiymatga ega «issiq» oqim: ekran holati uchun. <strong>SharedFlow</strong> qiymatlarni bir nechta kuzatuvchiga tarqatadigan issiq oqim: hodisalar uchun.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>ViewModel'da:</strong> <span class="num">StateFlow&lt;UiState&gt;</span> ekran holati, MVI ning yuragi (A5).</li>
+      <li><strong>Room va DataStore:</strong> jadval yoki sozlama o'zgarsa, yangi qiymat chiqaradigan <span class="num">Flow</span> qaytaradi.</li>
+      <li><strong>Qidiruv, filtrlar:</strong> <span class="num">debounce</span>, <span class="num">flatMapLatest</span>, <span class="num">combine</span>.</li>
+      <li><strong>Compose'da:</strong> <span class="num">collectAsStateWithLifecycle()</span>.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>sovuq va issiq oqim farqi;</li>
+      <li>asosiy operatorlar va qidiruv misolida ularning birgalikdagi ishi;</li>
+      <li>StateFlow, SharedFlow va Channel: qaysi biri qachon;</li>
+      <li><span class="num">stateIn</span>, <span class="num">WhileSubscribed(5000)</span>;</li>
+      <li>hayot siklini hisobga olib xavfsiz kuzatish.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari; Flow data qavatidan ekrangacha"></svg></div>
+  <figcaption>Flow data qavatida (Room, DataStore) boshlanadi, ViewModel'da StateFlow ga aylanadi va ekranda kuzatiladi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Sovuq Flow: quruvchi, terminal operatorlar</li>
+    <li>Oraliq operatorlar: map, filter, debounce, distinctUntilChanged, flatMapLatest, combine, catch, flowOn</li>
+    <li>Issiq oqimlar: StateFlow, SharedFlow, Channel</li>
+    <li>stateIn, shareIn, WhileSubscribed</li>
+    <li>repeatOnLifecycle, collectAsStateWithLifecycle</li>
+    <li>Bir martalik hodisalar muammosi</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>MVI arxitekturasining o'zi: A5-darsda</li>
+    <li>Compose'da holat va rekompozitsiya: A7-darsda</li>
+    <li>Paging 3 kutubxonasi</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Bitta javob yetmaydi</h3>
+<p><span class="num">suspend fun kartalar(): List&lt;Karta&gt;</span> bir marta javob beradi. Lekin ekranlarning ko'pi o'zgaruvchan ma'lumotni ko'rsatadi: kartalar ro'yxati bazada yangilanadi, balans o'zgaradi, foydalanuvchi qidiruv maydoniga harf terayotganda har harfda natija yangilanishi kerak. Har o'zgarishda «qaytadan so'ra» deyish noqulay va xatoga moyil.</p>
+<p>Android'ning 2017-yildagi javobi <strong>LiveData</strong> edi: kuzatiladigan qiymat, hayot siklini biladi, ekran faol bo'lmaganda yangilamaydi. Lekin u faqat Android uchun (domain qavatida ishlatib bo'lmaydi), faqat asosiy oqimda qiymat beradi va operatorlari juda kam. RxJava hamma narsani qila olardi, lekin murakkab edi va coroutines bilan ikki xil dunyo bo'lib qolardi. Kerak bo'lgan narsa: coroutines ustiga qurilgan, platformadan mustaqil, operatorlarga boy, lekin oddiy oqim.</p>
+
+<h3><span class="part">2. Ichkarida</span>Flow qanday ishlaydi</h3>
+
+<p class="beat">Sovuq oqim: har bir kuzatuvchiga alohida ishga tushadi</p>
+<p><span class="num">flow { emit(1); emit(2) }</span> yozilganda hech narsa bajarilmaydi. Blok faqat kimdir <span class="num">collect</span> chaqirganda ishga tushadi, va har bir <span class="num">collect</span> uchun qaytadan, boshidan. Bu <strong>sovuq</strong> oqim: retsept, taomning o'zi emas. <span class="num">collect</span> esa <strong>terminal operator</strong>: u <span class="num">suspend</span> funksiya va oqim tugaguncha (yoki bekor qilinguncha) qaytmaydi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="cold" style="width:1240px;height:280px" viewBox="0 0 1240 280" role="img" aria-label="Sovuq flow: har bir kuzatuvchi uchun blok qaytadan bajariladi"></svg></div>
+  <figcaption>Chapda flow bloki: unda tarmoq so'rovi. O'ngda kuzatuvchilar. Kuzatuvchi qo'shing va blok necha marta bajarilganini ko'ring.</figcaption>
+  <div class="slider"><button type="button" id="cdAdd">Yangi kuzatuvchi qo'shish</button><button type="button" id="cdShare">Oqimni issiq qilish (shareIn)</button><button type="button" id="cdReset">Boshidan</button></div>
+  <p class="say" id="cdSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Operatorlar: oqimni o'zgartirish</p>
+<p><strong>Oraliq operatorlar</strong> oqimni olib, yangi oqim qaytaradi va o'zlari hech narsa bajarmaydi. Eng ko'p ishlatiladiganlari:</p>
+<ul>
+  <li><span class="num">map</span>, <span class="num">filter</span>, <span class="num">onEach</span>: har bir qiymatni o'zgartirish, saralash, yon ish.</li>
+  <li><span class="num">distinctUntilChanged</span>: ketma-ket bir xil qiymatni o'tkazib yuborish.</li>
+  <li><span class="num">debounce(ms)</span>: qiymatlar to'xtab qolgandan keyin ma'lum vaqt o'tgach, faqat oxirgisini chiqarish.</li>
+  <li><span class="num">flatMapLatest</span>: har bir qiymat uchun yangi oqim (masalan, so'rov) boshlash va yangi qiymat kelsa, eskisini bekor qilish.</li>
+  <li><span class="num">combine</span>: bir nechta oqimning oxirgi qiymatlarini birlashtirish (masalan, kartalar va tanlangan filtr).</li>
+  <li><span class="num">catch</span>: yuqoridagi (oldingi) operatorlardagi xatoni ushlash. Pastdagi kollektordagi xatoni ushlamaydi.</li>
+  <li><span class="num">flowOn(dispatcher)</span>: undan yuqoridagi qismning dispetcherini o'zgartiradi. Kollektor o'z kontekstida qoladi.</li>
+</ul>
+<p>Pastdagi chizmada qidiruv maydoni. Foydalanuvchi «uzcard» ni terdi, bir harfni o'chirib qayta yozdi. Operatorlarni yoqib-o'chirib, serverga nechta so'rov ketishini ko'ring.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="ops" style="width:1240px;height:380px" viewBox="0 0 1240 380" role="img" aria-label="Qidiruv maydoni: harflar oqimi debounce, distinctUntilChanged va flatMapLatest orqali so'rovlarga aylanadi"></svg></div>
+  <figcaption>Yuqorida vaqt chizig'ida terilgan matn (har bir nuqta bitta harf). Pastda har bir operatordan keyin qolgan qiymatlar va serverga ketgan so'rovlar.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">Operatorlar</p>
+  <div class="evo-tabs" id="opT"></div>
+  <p class="say" id="opSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Issiq oqimlar: StateFlow, SharedFlow, Channel</p>
+<p><strong>Issiq</strong> oqim kuzatuvchilardan mustaqil yashaydi: qiymatlar unga kuzatuvchi bor-yo'qligidan qat'i nazar yuboriladi, va barcha kuzatuvchilar bir xil qiymatlarni oladi. Uchta asosiy turi bor va ular uchta savolga turlicha javob beradi.</p>
+<div class="scroll"><table>
+<thead><tr><th></th><th>StateFlow</th><th>SharedFlow</th><th>Channel</th></tr></thead>
+<tbody>
+<tr><td>Boshlang'ich qiymat</td><td>shart</td><td>yo'q</td><td>yo'q</td></tr>
+<tr><td>Yangi kuzatuvchi nima oladi</td><td>joriy qiymatni darhol</td><td><span class="num">replay</span> ta oxirgi qiymat (sukut bo'yicha 0)</td><td>navbatda kutayotgan qiymatlar</td></tr>
+<tr><td>Bir xil qiymat qayta yuborilsa</td><td>o'tkazib yuboriladi (<span class="num">equals</span>)</td><td>yuboriladi</td><td>yuboriladi</td></tr>
+<tr><td>Bir nechta kuzatuvchi</td><td>hammasi oladi</td><td>hammasi oladi</td><td>har bir qiymat faqat bittasiga</td></tr>
+<tr><td>Kuzatuvchi yo'q paytda yuborilgan qiymat</td><td>joriy qiymat bo'lib qoladi</td><td>replay bo'lmasa yo'qoladi</td><td>bufer to'lguncha saqlanadi</td></tr>
+<tr><td>Nima uchun</td><td>ekran holati</td><td>bir nechta tinglovchili hodisalar</td><td>bitta qabul qiluvchili hodisa, ishlar navbati</td></tr>
+</tbody></table></div>
+<p>StateFlow ning ikki xususiyati muhim. Birinchisi: u <strong>qo'shib yuboradi</strong> (conflated): kuzatuvchi sekin bo'lsa, oraliq qiymatlar tashlab yuboriladi va u faqat oxirgisini oladi. Holat uchun bu to'g'ri, hodisalar uchun xavfli. Ikkinchisi: <span class="num">equals</span> bo'yicha teng qiymatni qayta yubormaydi, shuning uchun holat <span class="num">data class</span> bo'lishi va <span class="num">copy()</span> bilan yangilanishi kerak. Ro'yxatni o'zgartirib, xuddi o'sha obyektni qayta qo'ysangiz, ekran yangilanmaydi.</p>
+<p>Pastdagi chizmada bir xil vaziyat uch xil oqim bilan: ViewModel «To'lov muvaffaqiyatli» hodisasini yubordi, lekin aynan o'sha paytda ekran aylantirilyapti va kuzatuvchi yo'q.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="hot" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Ekran aylantirilganda StateFlow, SharedFlow va Channel nima qiladi"></svg></div>
+  <figcaption>Vaqt chapdan o'ngga: eski ekran kuzatib turibdi, keyin aylantirish (kuzatuvchi yo'q), shu payt hodisa yuboriladi, keyin yangi ekran kuzatishni boshlaydi.</figcaption>
+  <div class="evo-tabs" id="htT" style="margin-top:0.9rem"></div>
+  <p class="say" id="htSay" aria-live="polite"></p>
+</figure>
+<p><strong>Bir martalik hodisalar</strong> (xabar ko'rsatish, boshqa ekranga o'tish) Android'da uzoq bahsli mavzu. Uch yo'l bor: <span class="num">Channel</span> va <span class="num">receiveAsFlow()</span> (hodisa bufer bilan saqlanadi va bitta kuzatuvchiga bir marta yetadi); <span class="num">SharedFlow</span> (oddiy, lekin kuzatuvchi yo'q paytda yo'qoladi); va Google'ning rasmiy tavsiyasi: hodisani <strong>holatning bir qismi</strong> qilish (<span class="num">state.xabar = "To'lov bajarildi"</span>), ekran uni ko'rsatgach ViewModel'ga «ko'rsatildi» deb bildiradi va ViewModel uni holatdan o'chiradi. Suhbatda uchalasini va ularning savdosini aytib bera olish kuchli javob.</p>
+
+<p class="beat">Sovuqni issiqqa: stateIn va WhileSubscribed</p>
+<p>Room'dan kelgan sovuq Flow ni ViewModel'da StateFlow ga aylantirish uchun <span class="num">stateIn</span>: <span class="num">repo.kartalar().map { KartalarState(it) }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), KartalarState())</span>. Uchinchi parametr boshlang'ich qiymat. Ikkinchisi oqim qachon ishlashini belgilaydi:</p>
+<ul>
+  <li><span class="num">Eagerly</span>: darhol boshlanadi va scope tugaguncha ishlaydi.</li>
+  <li><span class="num">Lazily</span>: birinchi kuzatuvchida boshlanadi va scope tugaguncha ishlaydi.</li>
+  <li><span class="num">WhileSubscribed(5000)</span>: kuzatuvchi bor ekan ishlaydi; oxirgi kuzatuvchi ketgach 5 sekund kutib to'xtaydi. Nega 5 sekund: ekran aylantirilganda kuzatuvchi bir lahzaga yo'qoladi va qaytadi, shu vaqtda oqimni qayta boshlamaslik uchun. Ilova fonga o'tsa esa 5 sekunddan keyin baza va tarmoq kuzatuvi to'xtaydi, batareya tejaladi.</li>
+</ul>
+
+<p class="beat">Hayot siklini hisobga olib kuzatish</p>
+<p>Ilova fonda turganda ekranni yangilash ma'nosiz va xavfli. <span class="num">lifecycleScope.launch { flow.collect { } }</span> ekran fonda bo'lsa ham kuzatishni davom ettiradi. To'g'ri usullar:</p>
+<ul>
+  <li>View tizimida: <span class="num">lifecycleScope.launch { repeatOnLifecycle(Lifecycle.State.STARTED) { flow.collect { } } }</span>. Ekran ko'rinmay qolganda kuzatish bekor qilinadi, ko'ringanda qaytadan boshlanadi.</li>
+  <li>Compose'da: <span class="num">val state by viewModel.state.collectAsStateWithLifecycle()</span>. Ichkarida xuddi shunday ishlaydi.</li>
+</ul>
+<p>Eski <span class="num">launchWhenStarted</span> coroutine'ni bekor qilmasdan to'xtatib turardi: yuqoridagi oqim ishlashda davom etardi. U eskirgan deb belgilangan.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Kuzatiladigan ma'lumot tarixi</h3>
+<div class="bench" id="evoFl"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Flow</dt><dd>Vaqt davomida bir nechta qiymat chiqaradigan asinxron oqim, coroutines ustiga qurilgan.</dd>
+  <dt>Sovuq oqim</dt><dd>Faqat kuzatilganda va har bir kuzatuvchi uchun alohida ishga tushadigan oqim. <span class="num">flow { }</span>.</dd>
+  <dt>Issiq oqim</dt><dd>Kuzatuvchilardan mustaqil yashaydigan, qiymatlarni hammaga tarqatadigan oqim. StateFlow, SharedFlow.</dd>
+  <dt>Terminal operator</dt><dd>Oqimni ishga tushiradigan suspend funksiya: <span class="num">collect</span>, <span class="num">first</span>, <span class="num">toList</span>.</dd>
+  <dt>Oraliq operator</dt><dd>Oqimdan yangi oqim yasaydigan, o'zi hech narsa bajarmaydigan funksiya: <span class="num">map</span>, <span class="num">filter</span>, <span class="num">debounce</span>.</dd>
+  <dt>StateFlow</dt><dd>Doim joriy qiymatga ega, teng qiymatni qayta yubormaydigan, sekin kuzatuvchiga faqat oxirgisini beradigan issiq oqim.</dd>
+  <dt>SharedFlow</dt><dd>Sozlanadigan replay va buferli, boshlang'ich qiymatsiz issiq oqim.</dd>
+  <dt>Channel</dt><dd>Coroutine'lar orasidagi navbat: har bir qiymat bitta qabul qiluvchiga bir marta yetadi.</dd>
+  <dt>Replay</dt><dd>Yangi kuzatuvchiga qayta yuboriladigan oxirgi qiymatlar soni.</dd>
+  <dt>Conflation</dt><dd>Sekin kuzatuvchi uchun oraliq qiymatlarni tashlab, faqat oxirgisini qoldirish.</dd>
+  <dt>stateIn, shareIn</dt><dd>Sovuq oqimni scope ichida issiq StateFlow yoki SharedFlow ga aylantirish.</dd>
+  <dt>WhileSubscribed</dt><dd>Kuzatuvchi bor ekan ishlash, oxirgisi ketgach belgilangan vaqtdan keyin to'xtash strategiyasi.</dd>
+  <dt>repeatOnLifecycle, collectAsStateWithLifecycle</dt><dd>Ekran ma'lum holatda (STARTED) ekan kuzatish, chiqqanda bekor qilish.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: sovuq oqimni ikki joyda kuzatish</b>
+  <p>ViewModel'da <span class="num">val kartalar = flow { emit(api.kartalar()) }</span> va ekranda uni ikki joyda kuzatish: ikki marta tarmoq so'rovi. Har bir yangi <span class="num">collect</span> bloki boshidan ishga tushiradi.</p>
+  <p class="why">ViewModel tashqariga doim issiq oqim beradi: <span class="num">stateIn</span> yoki <span class="num">MutableStateFlow</span>. Ekran faqat kuzatadi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ichidagi ro'yxatni o'zgartirib, StateFlow ga qayta qo'yish</b>
+  <p><span class="num">val l = state.value.kartalar as MutableList; l.add(k); _state.value = state.value</span>: StateFlow eski va yangi qiymatni <span class="num">equals</span> bilan solishtiradi, ular bir xil obyekt, va hech kim yangilanmaydi. Ekran eskicha qoladi.</p>
+  <p class="why">Holat o'zgarmas: <span class="num">_state.update { it.copy(kartalar = it.kartalar + k) }</span>. <span class="num">update</span> bir nechta oqimdan bir vaqtda yangilashda ham xavfsiz (atom amali).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: catch kollektordagi xatoni ushlamaydi</b>
+  <p><span class="num">flow.catch { }.collect { ekran(it) }</span>: <span class="num">ekran(it)</span> ichidagi xato <span class="num">catch</span> ga yetib bormaydi, chunki <span class="num">catch</span> faqat o'zidan yuqoridagi qismni ko'radi («xatolar shaffofligi» qoidasi).</p>
+  <p class="why">Ishlov berishni <span class="num">onEach</span> ga ko'chirib, <span class="num">catch</span> ni undan keyin qo'yish va <span class="num">launchIn(scope)</span> yoki bo'sh <span class="num">collect()</span> bilan ishga tushirish.</p>
+</div>
+<div class="rule">
+  <b>Qoida: MutableStateFlow tashqariga chiqmasin</b>
+  <p>ViewModel ichida <span class="num">private val _state = MutableStateFlow(...)</span>, tashqariga <span class="num">val state: StateFlow&lt;...&gt; = _state.asStateFlow()</span>. Aks holda ekran holatni o'zi o'zgartira oladi va bir tomonlama ma'lumot oqimi buziladi.</p>
+  <p class="why">Bu MVI ning asosiy qoidasi: holatni faqat ViewModel o'zgartiradi, ekran faqat niyat yuboradi. A5-darsda.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Flow nima va suspend funksiyadan nimasi bilan farq qiladi?</summary>
+<p>Suspend funksiya bitta qiymat qaytaradi, Flow vaqt davomida ko'p qiymat chiqaradi. Flow sovuq: <span class="num">collect</span> chaqirilgunga qadar hech narsa bajarilmaydi va har bir kollektor uchun qaytadan ishga tushadi. Coroutines ustiga qurilgan, shuning uchun bekor qilish va dispetcherlar xuddi coroutine'lardagidek ishlaydi.</p></details>
+<details><summary>Sovuq va issiq oqim farqi?</summary>
+<p>Sovuq oqim har bir kuzatuvchi uchun alohida ishga tushadi va kuzatuvchi bo'lmasa ishlamaydi (<span class="num">flow { }</span>). Issiq oqim kuzatuvchilardan mustaqil yashaydi va qiymatlarni hammaga tarqatadi (StateFlow, SharedFlow). Sovuqni issiqqa <span class="num">stateIn</span>/<span class="num">shareIn</span> aylantiradi.</p></details>
+<details><summary>StateFlow va SharedFlow farqi? LiveData'dan farqi?</summary>
+<p>StateFlow: boshlang'ich qiymat shart, doim joriy qiymat bor, yangi kuzatuvchi uni darhol oladi, teng qiymatni qayta yubormaydi, sekin kuzatuvchiga oxirgisini beradi. SharedFlow: boshlang'ich qiymat yo'q, replay va bufer sozlanadi, teng qiymatlar ham yuboriladi: hodisalar uchun. LiveData'dan farqi: platformadan mustaqil (domain qavatida ham ishlaydi), operatorlarga boy, istalgan dispetcherda; lekin hayot siklini o'zi bilmaydi, shuning uchun <span class="num">repeatOnLifecycle</span> yoki <span class="num">collectAsStateWithLifecycle</span> bilan kuzatiladi.</p></details>
+<details><summary>Bir martalik hodisalarni (navigatsiya, Snackbar) qanday yuborasiz?</summary>
+<p>Uchta yondashuv: Channel va <span class="num">receiveAsFlow</span> (har bir hodisa bir marta, bitta kuzatuvchiga, bufer tufayli aylantirishda yo'qolmaydi); SharedFlow (replay 0 bo'lsa kuzatuvchi yo'q paytda yo'qoladi); hodisani holatning bir qismi qilish va ekran uni iste'mol qilgach ViewModel'ga xabar berish (Google tavsiyasi, eng ishonchli). Men odatda ... (o'zingiz tanlagan va DigitalBank'da ishlatganingizni ayting, savdosini tushuntiring).</p></details>
+<details><summary>stateIn dagi WhileSubscribed(5000) nimani bildiradi?</summary>
+<p>Yuqoridagi sovuq oqim faqat kuzatuvchi bor paytda ishlaydi; oxirgi kuzatuvchi ketgach 5 sekund kutib, keyin to'xtaydi. 5 sekund ekran aylantirilganda oqimni qayta boshlamaslik uchun yetarli, ilova fonga o'tganda esa resurslarni bo'shatadi. Holat esa saqlanib qoladi va qaytganda kuzatuvchi oxirgi qiymatni darhol oladi.</p></details>
+<details><summary>flatMapLatest, flatMapConcat va flatMapMerge farqi?</summary>
+<p>Uchalasi ham har bir qiymat uchun yangi oqim ochadi. <span class="num">flatMapLatest</span>: yangi qiymat kelsa eski ichki oqimni bekor qiladi (qidiruv). <span class="num">flatMapConcat</span>: ichki oqimlarni navbat bilan, biri tugagach keyingisi. <span class="num">flatMapMerge</span>: parallel, natijalar aralash keladi.</p></details>
+<details><summary>flowOn nima qiladi? Nega collect ichida withContext qilib bo'lmaydi?</summary>
+<p><span class="num">flowOn</span> undan yuqoridagi operatorlar va emitter qaysi dispetcherda ishlashini o'zgartiradi, kollektor o'z kontekstida qoladi. Flow «kontekstni saqlash» qoidasiga amal qiladi: <span class="num">emit</span> kollektorning kontekstida chaqirilishi shart, shuning uchun <span class="num">flow { withContext(IO) { emit(x) } }</span> xato beradi. To'g'risi <span class="num">flowOn(Dispatchers.IO)</span>.</p></details>
+<details><summary>Flow'ni qanday test qilasiz?</summary>
+<p><span class="num">runTest</span> ichida <span class="num">flow.toList()</span> yoki <span class="num">first()</span>; issiq oqimlar uchun Turbine kutubxonasi: <span class="num">flow.test { assertEquals(a, awaitItem()) }</span>. StateFlow da boshlang'ich qiymatni hisobga olish kerak.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>Room'dan kelgan <span class="num">Flow&lt;List&lt;Karta&gt;&gt;</span> ni ekran holatiga aylantiradigan ViewModel kodini so'z bilan tasvirlang: qaysi operatorlar va qaysi strategiya.</li>
+  <li>Qidiruv maydoni uchun qaysi uchta operator va nega?</li>
+  <li>Holatni yangiladingiz, lekin ekran o'zgarmadi. Uchta mumkin bo'lgan sababni ayting.</li>
+  <li>«To'lov bajarildi» xabari ekran aylantirilganda yo'qolib qoldi. Sababi va yechimi?</li>
+  <li><span class="num">lifecycleScope.launch { flow.collect {} }</span> ning xavfi nima?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>callbackFlow: eski qayta chaqiruvni Flow ga aylantirish</summary>
+<p>Joylashuv, Firebase tinglovchilari kabi qayta chaqiruvli API larni <span class="num">callbackFlow { val l = ...; register(l); awaitClose { unregister(l) } }</span> bilan Flow ga o'rash mumkin. <span class="num">awaitClose</span> kuzatish bekor qilinganda tinglovchini olib tashlaydi, bu xotira oqishining oldini oladi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Kotlin: «Asynchronous Flow» (kotlinlang.org/docs/flow.html). Android: «Kotlin flows on Android», «StateFlow and SharedFlow», «UI events» (developer.android.com/topic/architecture/ui-layer/events). Manuel Vivo, «A safer way to collect flows from Android UIs», 2021.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Flow sovuq: har bir kollektorga alohida ishlaydi. ViewModel tashqariga issiq oqim beradi: holat uchun StateFlow (o'zgarmas data class, <span class="num">update</span>, <span class="num">copy</span>), hodisalar uchun Channel, SharedFlow yoki holat. Kuzatish hayot siklini hisobga oladi: <span class="num">collectAsStateWithLifecycle</span>, <span class="num">repeatOnLifecycle</span>.</p>
+  <p><strong>Keyingi dars.</strong> A5. Arxitektura: Clean Architecture qavatlari, SOLID, va MVVM dan MVI ga.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a3-coroutines.html">Oldingi: A3. Coroutines</a><a href="a5-arxitektura.html">Keyingi: A5. Arxitektura</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0, 3], 'Flow: data dan ekrangacha');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Sovuq oqim ----------
+  (function () {
+    var svg = $('cold'), say = $('cdSay'), n = 0, hot = false;
+    function draw() {
+      svg.textContent = ''; marker(svg, 'cdmk');
+      box(svg, 20, 60, 380, 160, hot ? 'shareIn bilan issiq oqim' : 'flow { emit(api.kartalar()) }', hot ? 'bitta umumiy ishga tushish' : 'retsept: kuzatilgunga qadar ishlamaydi', hot ? 'on' : 'live');
+      S(svg, 'text', { x: 36, y: 170, 'class': 'sub' }, 'Blok bajarilgan: ');
+      S(svg, 'text', { x: 36, y: 205, 'class': 'big' }, String(hot ? (n > 0 ? 1 : 0) : n) + ' marta');
+      box(svg, 520, 60, 220, 160, 'Tarmoq', 'so\'rovlar soni', n ? 'live' : '');
+      S(svg, 'text', { x: 536, y: 180, 'class': 'big' }, String(hot ? (n > 0 ? 1 : 0) : n));
+      arrow(svg, 'cdmk', 'M400 140H518');
+      for (var i = 0; i < Math.min(n, 4); i++) { box(svg, 860, 20 + i * 62, 360, 52, (i + 1) + '-kuzatuvchi', 'collect', 'on'); arrow(svg, 'cdmk', 'M740 140H800V' + (46 + i * 62) + 'H858'); }
+      if (!n) S(svg, 'text', { x: 860, y: 140, 'class': 'sub' }, 'Kuzatuvchi yo\'q: hech narsa bajarilmaydi.');
+    }
+    $('cdAdd').addEventListener('click', function () { n = Math.min(4, n + 1); draw(); say.textContent = hot ? `${n}-kuzatuvchi qo'shildi, lekin oqim issiq: blok bir marta ishlagan, hamma kuzatuvchi bitta natijani oladi.` : `${n}-kuzatuvchi collect chaqirdi: flow bloki boshidan yana bir marta bajarildi va yana bitta tarmoq so'rovi ketdi. Jami ${n} ta so'rov bir xil ma'lumot uchun.`; });
+    $('cdShare').addEventListener('click', function () { hot = true; draw(); say.textContent = `Oqim shareIn (yoki stateIn) bilan viewModelScope ichida issiq qilindi: blok bitta, natija barcha kuzatuvchilarga tarqatiladi. ViewModel tashqariga doim shunday oqim beradi.`; });
+    $('cdReset').addEventListener('click', function () { n = 0; hot = false; draw(); say.textContent = `Hali hech kim kuzatmayapti, flow { } bloki bir marta ham bajarilmagan.`; });
+    draw(); say.textContent = `Hali hech kim kuzatmayapti, flow { } bloki bir marta ham bajarilmagan.`;
+  })();
+
+  // ---------- Qidiruv operatorlari ----------
+  (function () {
+    var svg = $('ops'), say = $('opSay');
+    // [vaqt ms, matn]
+    var T = [[0, 'u'], [120, 'uz'], [230, 'uzc'], [340, 'uzca'], [470, 'uzcar'], [580, 'uzcard'], [1100, 'uzcar'], [1180, 'uzcard']];
+    var on = [false, false, false], L = ['debounce(300)', 'distinctUntilChanged()', 'flatMapLatest { api.qidir(it) }'];
+    var root = $('opT'), btns = [];
+    L.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { on[i] = !on[i]; draw(); }); root.appendChild(b); btns.push(b); });
+    function X(t) { return 220 + t / 1800 * 980; }
+    function draw() {
+      btns.forEach(function (b, i) { b.setAttribute('aria-pressed', on[i] ? 'true' : 'false'); });
+      svg.textContent = ''; marker(svg, 'opmk');
+      var rows = [['Terilgan matn', T]];
+      var cur = T;
+      if (on[0]) { var d = []; cur.forEach(function (v, i) { var nx = cur[i + 1]; if (!nx || nx[0] - v[0] >= 300) d.push([v[0] + 300, v[1]]); }); cur = d; rows.push(['debounce(300)', cur]); }
+      if (on[1]) { var e = [], last = null; cur.forEach(function (v) { if (v[1] !== last) e.push(v); last = v[1]; }); cur = e; rows.push(['distinctUntilChanged', cur]); }
+      var req = cur.map(function (v, i) { var nx = cur[i + 1], dur = 400, end = v[0] + dur; var cancelled = on[2] && nx && nx[0] < end; return { s: v[0], e: cancelled ? nx[0] : end, t: v[1], c: cancelled }; });
+      rows.forEach(function (r, ri) {
+        var y = 30 + ri * 70; box(svg, 20, y, 180, 50, r[0], '', ri === 0 ? 'on' : 'live');
+        S(svg, 'line', { x1: 220, y1: y + 25, x2: 1200, y2: y + 25, 'class': 'arr', 'stroke-dasharray': '2 6' });
+        r[1].forEach(function (v) { S(svg, 'circle', { cx: X(v[0]), cy: y + 25, r: 7, 'class': 'box on' }); S(svg, 'text', { x: X(v[0]), y: y + 12, 'text-anchor': 'middle', 'class': 'lbl' }, v[1]); });
+      });
+      var yr = 30 + rows.length * 70; box(svg, 20, yr, 180, 50, 'Server so\'rovlari', String(req.length) + ' ta', 'bad');
+      req.forEach(function (r, i) { var y = yr + 6 + (i % 2) * 22; S(svg, 'rect', { x: X(r.s), y: y, width: Math.max(4, X(r.e) - X(r.s)), height: 18, rx: 3, 'class': 'box ' + (r.c ? 'freed' : 'live') }); S(svg, 'text', { x: X(r.s) + 4, y: y + 14, 'class': 'lbl' }, r.t + (r.c ? ' ✕' : '')); });
+      for (var k = 0; k <= 6; k++) S(svg, 'text', { x: X(k * 300), y: 370, 'text-anchor': 'middle', 'class': 'lbl' }, (k * 300) + ' ms');
+      var done = req.filter(function (r) { return !r.c; }).length, canc = req.length - done;
+      say.textContent = (on[0] || on[1] || on[2] ? '' : 'Operatorlar yo\'q: har bir harf uchun so\'rov. ') + `Serverga ${req.length} ta so'rov ketdi` + (canc ? `, ulardan ${canc} tasi flatMapLatest tomonidan bekor qilindi (natijasi eskirgan edi)` : '') + `. ` + (!on[0] ? `debounce foydalanuvchi terishni to'xtatguncha kutadi. ` : '') + (on[0] && !on[1] ? `«uzcard» ikki marta keldi: distinctUntilChanged ikkinchisini o'tkazib yuboradi. ` : '') + (!on[2] ? `flatMapLatest bo'lmasa, eski so'rovning kech kelgan javobi yangisining ustiga yozilishi mumkin.` : `flatMapLatest yangi matn kelsa eski so'rovni bekor qiladi: ekranda doim oxirgi matnning natijasi.`);
+    }
+    draw();
+  })();
+
+  // ---------- Issiq oqimlar va aylantirish ----------
+  (function () {
+    var svg = $('hot'), say = $('htSay'), cur = 0;
+    var C = [
+      { t: 'StateFlow', r: 'live', got: 'joriy holat: «To\'lov bajarildi»', s: `StateFlow joriy qiymatni saqlaydi. Yangi ekran kuzatishni boshlashi bilan uni darhol oladi. Holat uchun ideal. Lekin hodisa sifatida ishlatilsa, yana bir aylantirishda xabar yana ko'rsatiladi: u «holat», qayta-qayta beriladi. Shuning uchun hodisani holatda saqlasangiz, ko'rsatilgach o'chirish kerak.` },
+      { t: 'SharedFlow (replay = 0)', r: 'bad', got: 'hech narsa: hodisa yo\'qoldi', s: `Hodisa yuborilgan paytda kuzatuvchi yo'q edi, replay 0: hodisa hech kimga yetmadi va yo'qoldi. Foydalanuvchi to'lov natijasini ko'rmadi. replay = 1 qo'yilsa, yangi kuzatuvchi oladi, lekin keyingi har bir yangi kuzatuvchi ham oladi.` },
+      { t: 'Channel', r: 'on', got: 'bufer: «To\'lov bajarildi», bir marta', s: `Channel hodisani buferda saqladi va yangi ekran kuzatishni boshlaganda unga berdi, faqat bir marta. Keyingi aylantirishda u qaytarilmaydi. Kamchiligi: bir nechta kuzatuvchi bo'lsa, hodisa faqat bittasiga yetadi; va kamdan-kam holatlarda kuzatuvchi bekor qilinayotgan paytda hodisa yo'qolishi mumkin.` }
+    ];
+    var setT = tabs('htT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'htmk');
+      box(svg, 20, 40, 300, 90, 'Eski ekran', 'kuzatmoqda', 'on');
+      box(svg, 340, 40, 260, 90, 'Aylantirish', 'kuzatuvchi yo\'q', 'freed');
+      box(svg, 620, 40, 280, 90, 'Yangi ekran', 'kuzatishni boshladi', 'on');
+      box(svg, 380, 200, 300, 100, 'ViewModel', 'yubordi: «To\'lov bajarildi»', 'live');
+      arrow(svg, 'htmk', 'M530 200V132', 'shu payt', 560, 170, 'start');
+      box(svg, 940, 40, 280, 260, 'Yangi ekran oldi', c.t, c.r);
+      code(svg, 956, 150, wrap(c.got, 28));
+      arrow(svg, 'htmk', 'M900 85H938');
+      say.textContent = c.s; say.className = 'say' + (c.r === 'bad' ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoFl', [
+    { name: `Tinglovchilar`, years: `2008-yildan`, art: `<circle cx="30" cy="50" r="10"/><path d="M40 50h40" class="acc"/><circle cx="90" cy="50" r="10" class="lit"/>`, how: `Har bir o'zgarish uchun interfeys va register/unregister.`, better: `Oddiy.`, pain: `Ro'yxatdan chiqarishni unutish: xotira oqishi. Hayot siklini qo'lda kuzatish.`, ex: `ContentObserver, BroadcastReceiver, o'z Listener interfeyslari.` },
+    { name: `RxJava`, years: `2014-yildan`, art: `<path d="M10 50h100"/><circle cx="30" cy="50" r="6" class="lit"/><circle cx="60" cy="50" r="6" class="lit"/><circle cx="90" cy="50" r="6" class="lit"/>`, how: `Observable, Flowable, Subject va yuzlab operatorlar.`, better: `Kuchli kompozitsiya, oqimlar, xatolar bir joyda.`, pain: `Murakkab, katta, Disposable boshqaruvi.`, ex: `BehaviorSubject: StateFlow ning ajdodi.` },
+    { name: `LiveData`, years: `2017`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><circle cx="60" cy="50" r="8" class="lit"/>`, how: `Architecture Components bilan: hayot siklini biladigan kuzatiladigan qiymat.`, better: `Ekran fonda bo'lsa yangilamaydi, xotira oqmaydi, oddiy.`, pain: `Faqat Android va asosiy oqim, operatorlari kam, domain qavatida ishlatib bo'lmaydi, bir martalik hodisalar uchun SingleLiveEvent kabi «xakerliklar».`, ex: `Hozir ham ko'p loyihalarda, lekin yangi kod uchun StateFlow tavsiya etiladi.` },
+    { name: `Flow`, years: `2019`, art: `<path d="M10 60c20-20 30 20 50 0s30-20 50 0" class="acc"/>`, how: `kotlinx.coroutines 1.3 da: coroutines ustidagi sovuq oqim.`, better: `Platformadan mustaqil, bekor qilish va dispetcherlar tekin, Room va DataStore Flow qaytaradi.`, pain: `Holat va tarqatish uchun issiq oqim yo'q edi: BroadcastChannel noqulay edi.`, ex: `Room 2.2 (2019) Flow qaytara boshladi.` },
+    { name: `StateFlow, SharedFlow`, years: `2020-yildan`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><path d="M30 50h60" class="acc"/>`, how: `kotlinx.coroutines 1.4 da barqaror: issiq oqimlar, stateIn/shareIn.`, better: `LiveData o'rnini to'liq bosadi, MVI uchun tabiiy.`, pain: `Hayot sikli: lifecycleScope da oddiy collect xavfli edi.`, ex: `repeatOnLifecycle (Lifecycle 2.4, 2021) va collectAsStateWithLifecycle (Lifecycle 2.6, 2023) bu bo'shliqni yopdi.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>

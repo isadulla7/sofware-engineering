@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A3. Coroutines</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A3. Coroutines: suspend ichkaridan, scope, dispatcher, bekor qilish</h1>
+<p class="lead">Savol: tarmoqdan javob kutayotganda ekran qanday qilib qotmaydi, <span class="num">suspend</span> funksiya ichkarida nimaga aylanadi, va coroutine'lar qanday tartibda yaratiladi, bekor qilinadi va xato beradi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Coroutine</strong> to'xtatib turilishi va keyin davom ettirilishi mumkin bo'lgan hisoblash. U javob kutayotganda oqimni band qilmaydi: oqim boshqa ishga o'tadi, javob kelganda coroutine to'xtagan joyidan davom etadi.</p>
+    <p><span class="num">suspend</span> kalit so'zi «bu funksiya to'xtashi mumkin» degan belgi. Kod esa oddiy ketma-ket kod kabi yoziladi, qayta chaqiruvlarsiz.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>ViewModel'da:</strong> <span class="num">viewModelScope.launch { }</span> ichida tarmoq va baza so'rovlari.</li>
+      <li><strong>Retrofit, Room, DataStore:</strong> ularning metodlari <span class="num">suspend</span> yoki <span class="num">Flow</span> qaytaradi.</li>
+      <li><strong>Compose'da:</strong> <span class="num">LaunchedEffect</span>, <span class="num">rememberCoroutineScope</span>.</li>
+      <li><strong>Suhbatda:</strong> «coroutine turlari», «launch va async farqi», «Dispatchers», «coroutine qanday bekor qilinadi», «SupervisorJob nima» deyarli har doim so'raladi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>asosiy oqim nima va nega uni band qilib bo'lmaydi;</li>
+      <li><span class="num">suspend</span> funksiya kompilyatsiyada holat mashinasiga aylanishi;</li>
+      <li>builderlar: <span class="num">launch</span>, <span class="num">async</span>, <span class="num">withContext</span>, <span class="num">coroutineScope</span>, <span class="num">runBlocking</span>;</li>
+      <li>dispetcherlar, <span class="num">Job</span>, tuzilmaviy parallellik, <span class="num">SupervisorJob</span>;</li>
+      <li>bekor qilish va xatolar qanday tarqalishi.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari; coroutines ViewModel va data qavatlarida"></svg></div>
+  <figcaption>Coroutine'lar ViewModel'da boshlanadi va data qavatigacha boradi: ViewModel ularni yaratadi, repozitoriy va tarmoq <span class="num">suspend</span> funksiyalar beradi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Asosiy oqim, kadr, ANR</li>
+    <li><span class="num">suspend</span> ichkaridan: davom ettirish obyekti va holat mashinasi</li>
+    <li>Coroutine builderlari va «turlari»</li>
+    <li>Dispetcherlar va <span class="num">withContext</span></li>
+    <li><span class="num">Job</span>, tuzilmaviy parallellik, <span class="num">SupervisorJob</span>, Android scope'lari</li>
+    <li>Bekor qilish va istisnolar</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li><span class="num">Flow</span>, <span class="num">StateFlow</span>, <span class="num">SharedFlow</span>, <span class="num">Channel</span>: A4-darsda</li>
+    <li>Compose'dagi <span class="num">LaunchedEffect</span>: A7-darsda</li>
+    <li>Oqimlar va xotira modeli chuqur: backend yo'l xaritasidagi Java yo'nalishida</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Bitta oqim, 16 millisekund</h3>
+<p>Android ilovasida ekranni chizadigan, bosishlarni qabul qiladigan va tizim hodisalariga javob beradigan bitta oqim bor: <strong>asosiy oqim</strong> (main yoki UI thread). Ekran sekundiga 60 marta yangilanadi, ya'ni har bir kadrni chizishga taxminan 16 millisekund bor (90 va 120 Hz ekranlarda undan ham kam). Asosiy oqim shu vaqt ichida boshqa ish bilan band bo'lsa, kadr tashlab yuboriladi va foydalanuvchi «qotish»ni ko'radi. Oqim 5 sekunddan ortiq javob bermasa, tizim «Ilova javob bermayapti» (ANR) oynasini chiqaradi.</p>
+<p>P0 ning 5-darsidagi jadvalni eslang: tarmoq so'rovi millisekundlardan sekundlargacha davom etadi. Uni asosiy oqimda bajarib bo'lmaydi. Android 3.0 (2011) dan boshlab tizim buni o'zi taqiqlaydi: asosiy oqimda tarmoqqa murojaat qilinsa, <span class="num">NetworkOnMainThreadException</span>.</p>
+<p>Demak og'ir ishni boshqa oqimga berish, natijani esa asosiy oqimga qaytarish kerak. Buning eski usullari og'riqli edi:</p>
+<ul>
+  <li><strong>Oqimlar.</strong> Har bir oqim qimmat: o'z steki uchun yuzlab kilobayt yoki bir megabaytgacha xotira, yaratish va almashtirish vaqti. Mingta parallel so'rov uchun mingta oqim ochib bo'lmaydi.</li>
+  <li><strong>Qayta chaqiruvlar.</strong> «So'rov tugaganda shu funksiyani chaqir». Ketma-ket uchta so'rov uchta ichma-ich qayta chaqiruv bo'ladi, xatolarni har birida alohida ushlash kerak, bekor qilish esa qo'lda.</li>
+  <li><strong>Hayot sikli.</strong> Foydalanuvchi ekranni yopdi, so'rov esa davom etyapti va natija yopilgan ekranga yozilmoqchi: qulash yoki xotira oqishi.</li>
+</ul>
+<p>Kerak bo'lgan narsa: kodni oddiy ketma-ket ko'rinishda yozish, lekin kutish paytida oqimni bo'shatish, va ekran yopilganda barcha ishni avtomatik to'xtatish. Coroutines shu uchta talabga javob.</p>
+
+<h3><span class="part">2. Ichkarida</span>Coroutine qanday ishlaydi</h3>
+
+<p class="beat">Kutish paytida oqim bo'shaydi</p>
+<p>Pastdagi chizmada bitta ekran ochilishi: tarmoqdan kartalar ro'yxatini olish va ko'rsatish. Uch usulda solishtiring va asosiy oqim qancha vaqt band bo'lganiga qarang.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="main" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Asosiy oqim va fon oqimining vaqt chizig'i: tarmoq so'rovi qayerda bajariladi"></svg></div>
+  <figcaption>Vaqt chapdan o'ngga, 0 dan 1 sekundgacha. Har bir qator bitta oqim. Ko'k: foydali ish, qizil: oqim band, lekin javob kutmoqda, punktir: oqim bo'sh va boshqa ish qila oladi.</figcaption>
+  <div class="evo-tabs" id="mnT" style="margin-top:0.9rem"></div>
+  <p class="say" id="mnSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">suspend ichkaridan: holat mashinasi</p>
+<p>Protsessorda «funksiyani yarmida to'xtatib, keyin davom ettirish» degan buyruq yo'q (P0, 6-7-darslar). Kotlin buni kompilyator yordamida qiladi. Har bir <span class="num">suspend</span> funksiyaga ko'rinmas qo'shimcha parametr qo'shiladi: <strong>davom ettirish obyekti</strong> (<span class="num">Continuation</span>). Funksiya tanasi esa to'xtash nuqtalari bo'yicha bo'laklarga bo'linadi va <span class="num">label</span> raqamli holat mashinasiga aylanadi. Lokal o'zgaruvchilar to'xtash paytida davom ettirish obyektining maydonlariga saqlanadi.</p>
+<p>Funksiya to'xtaganda u maxsus <span class="num">COROUTINE_SUSPENDED</span> belgisini qaytaradi va oqimni bo'shatadi. Javob kelganda kutubxona <span class="num">continuation.resume(natija)</span> ni chaqiradi, funksiya qaytadan chaqiriladi, <span class="num">label</span> ga qarab kerakli joyga o'tadi va davom etadi. Pastda qadam-baqadam ko'ring.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="sm" style="width:1240px;height:420px" viewBox="0 0 1240 420" role="img" aria-label="suspend funksiya holat mashinasi: label, davom ettirish obyekti va oqim holati"></svg></div>
+  <figcaption>Chapda siz yozgan funksiya va kompilyator ajratgan bo'laklar. O'rtada davom ettirish obyekti: label va saqlangan o'zgaruvchilar. O'ngda asosiy oqim holati.</figcaption>
+  <div class="slider"><button type="button" id="smNext">Keyingi qadam</button><button type="button" id="smReset">Boshidan</button></div>
+  <p class="say" id="smSay" aria-live="polite"></p>
+</figure>
+<p>Bundan uchta muhim xulosa. Birinchisi: <strong><span class="num">suspend</span> funksiya o'zi oqim almashtirmaydi.</strong> U faqat to'xtash imkoniyatini beradi. Qaysi oqimda ishlashini dispetcher hal qiladi. <span class="num">suspend</span> funksiya ichida <span class="num">Thread.sleep</span> yoki og'ir hisob bo'lsa, u oqimni baribir band qiladi. Ikkinchisi: <strong>coroutine arzon.</strong> U oqim emas, heap'dagi kichik obyekt: bir oqimda minglab coroutine yashay oladi. Uchinchisi: <strong><span class="num">suspend</span> funksiyani faqat boshqa <span class="num">suspend</span> funksiyadan yoki coroutine ichidan chaqirish mumkin</strong>, chunki unga davom ettirish obyektini kimdir berishi kerak.</p>
+
+<p class="beat">Coroutine'ni boshlash: builderlar</p>
+<p>Oddiy (suspend bo'lmagan) koddan coroutine'ga kirish uchun <strong>builder</strong> kerak. Suhbatda «coroutine turlari» deb so'ralganda odatda shular nazarda tutiladi:</p>
+<div class="scroll"><table>
+<thead><tr><th>Builder</th><th>Nima qaytaradi</th><th>Nima uchun</th></tr></thead>
+<tbody>
+<tr><td class="num">launch</td><td><span class="num">Job</span></td><td>«Bajar va unut»: natija qaytarmaydigan ish. Xato darhol ota-onaga ko'tariladi.</td></tr>
+<tr><td class="num">async</td><td><span class="num">Deferred&lt;T&gt;</span></td><td>Natija qaytaradigan parallel ish. Natija <span class="num">await()</span> bilan olinadi. Xato <span class="num">await()</span> da tashlanadi, lekin ota-onani ham bekor qiladi.</td></tr>
+<tr><td class="num">withContext</td><td>blok natijasi</td><td>Yangi coroutine emas: joriy coroutine'ni boshqa dispetcherga o'tkazib, natijani qaytaradi. Oqim almashtirishning asosiy usuli.</td></tr>
+<tr><td class="num">coroutineScope</td><td>blok natijasi</td><td>Ichida bir nechta parallel ish ochib, hammasi tugashini kutish. Bittasi xato bersa, qolganlari bekor qilinadi.</td></tr>
+<tr><td class="num">supervisorScope</td><td>blok natijasi</td><td>Xuddi shunday, lekin bitta bolaning xatosi qolganlarini bekor qilmaydi.</td></tr>
+<tr><td class="num">runBlocking</td><td>blok natijasi</td><td>Joriy oqimni bloklab, coroutine tugashini kutadi. Faqat <span class="num">main</span> funksiyada va testlarda. Android ilovasida ishlatilmaydi.</td></tr>
+</tbody></table></div>
+
+<p class="beat">Dispetcherlar: qaysi oqimda</p>
+<p><strong>Dispetcher</strong> coroutine qaysi oqim yoki oqimlar havzasida bajarilishini belgilaydi.</p>
+<ul>
+  <li><span class="num">Dispatchers.Main</span>: Android'ning asosiy oqimi. Ekran bilan ishlash uchun. <span class="num">viewModelScope</span> va <span class="num">lifecycleScope</span> sukut bo'yicha shunda (aniqrog'i <span class="num">Main.immediate</span>: allaqachon asosiy oqimda bo'lsa, navbatga qo'ymasdan darhol bajaradi).</li>
+  <li><span class="num">Dispatchers.IO</span>: kutishga mo'ljallangan katta havza: fayl, tarmoq, baza. Sukut bo'yicha 64 tagacha oqim yoki protsessor yadrolari soni, qaysi biri katta bo'lsa.</li>
+  <li><span class="num">Dispatchers.Default</span>: protsessorni band qiladigan hisob uchun: JSON ni qayta ishlash, saralash, shifrlash. Oqimlar soni yadrolar soniga teng (kamida 2).</li>
+  <li><span class="num">Dispatchers.Unconfined</span>: maxsus holatlar uchun, ilova kodida deyarli ishlatilmaydi.</li>
+</ul>
+<p>IO va Default bitta umumiy oqimlar havzasini bo'lishadi, shuning uchun <span class="num">withContext(Dispatchers.Default)</span> dan <span class="num">IO</span> ga o'tish ko'pincha oqim almashtirmaydi. Qoida: <strong>suspend funksiya o'zini chaqirgan oqimga xavfsiz bo'lishi kerak</strong> («main-safe»). Ya'ni repozitoriy funksiyasi ichida o'zi <span class="num">withContext(Dispatchers.IO)</span> qiladi, ViewModel esa uni asosiy oqimdan bemalol chaqiradi. Retrofit va Room'ning <span class="num">suspend</span> metodlari allaqachon shunday.</p>
+
+<p class="beat">Job va tuzilmaviy parallellik</p>
+<p>Har bir coroutine'ning <strong>Job</strong> i bor: uning holati (faol, tugagan, bekor qilingan) va bolalari. Coroutine boshqa coroutine ichida boshlansa, yangisi eskisining bolasi bo'ladi. Shunday qilib daraxt hosil bo'ladi, va uchta qoida ishlaydi:</p>
+<ul>
+  <li>ota-ona barcha bolalari tugamaguncha tugamaydi;</li>
+  <li>ota-ona bekor qilinsa, barcha bolalari bekor qilinadi;</li>
+  <li>bola xato bilan tugasa (bekor qilishdan boshqa xato), ota-ona va uning orqali qolgan bolalar ham bekor qilinadi.</li>
+</ul>
+<p>Bu <strong>tuzilmaviy parallellik</strong> deyiladi: har bir coroutine'ning egasi bor, va hech biri «yo'qolib» qolmaydi. <span class="num">SupervisorJob</span> uchinchi qoidani o'zgartiradi: bolaning xatosi yuqoriga ko'tarilmaydi, aka-ukalar ishlashda davom etadi. <span class="num">viewModelScope</span> aynan <span class="num">SupervisorJob() + Dispatchers.Main.immediate</span> bilan yaratilgan: bitta so'rovning xatosi ekrandagi boshqa so'rovlarni to'xtatmaydi. ViewModel tozalanganda (<span class="num">onCleared</span>) scope bekor qilinadi va barcha ish to'xtaydi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="tree" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Coroutine daraxti: bekor qilish va xato qanday tarqaladi"></svg></div>
+  <figcaption>Yuqorida scope, pastda uning coroutine'lari. Hodisani tanlang va qaysi coroutine'lar ishlashda davom etishini ko'ring.</figcaption>
+  <div class="evo-tabs" id="trT" style="margin-top:0.9rem"></div>
+  <p class="say" id="trSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Bekor qilish hamkorlikda ishlaydi</p>
+<p>Coroutine'ni majburan to'xtatib bo'lmaydi. Bekor qilish bu Job'ga «bekor qilingan» belgisini qo'yish. Coroutine buni keyingi to'xtash nuqtasida (<span class="num">delay</span>, <span class="num">withContext</span>, <span class="num">await</span>, Retrofit chaqiruvi) sezadi: o'sha joyda <span class="num">CancellationException</span> tashlanadi va <span class="num">finally</span> bloklari bajarilib, coroutine tugaydi. Agar coroutine uzoq sikl ichida hech qachon to'xtamasa, u bekor qilinganini bilmaydi va oxirigacha ishlaydi. Buning uchun sikl ichida <span class="num">ensureActive()</span>, <span class="num">isActive</span> tekshiruvi yoki <span class="num">yield()</span> qo'yiladi.</p>
+<p><span class="num">CancellationException</span> xato emas, signal. Uni ushlab olib yutib yuborish (masalan, <span class="num">catch (e: Exception)</span> yoki <span class="num">runCatching</span> ichida) bekor qilishni buzadi: coroutine «tirik qolib» ishlashda davom etadi. Shuning uchun umumiy <span class="num">catch</span> ichida uni qayta tashlash kerak.</p>
+
+<p class="beat">Xatolar qayerga boradi</p>
+<ul>
+  <li><span class="num">launch</span> ichidagi ushlanmagan xato darhol ota-onaga ko'tariladi. Eng yuqorida hech kim ushlamasa, <span class="num">CoroutineExceptionHandler</span> ga, u ham bo'lmasa, oqimning ushlanmagan xatolar ishlovchisiga boradi: Android'da ilova qulaydi.</li>
+  <li><span class="num">async</span> xatoni <span class="num">Deferred</span> ichida saqlaydi va <span class="num">await()</span> da tashlaydi. Lekin oddiy <span class="num">Job</span> ostida u ota-onani baribir darhol bekor qiladi. Shuning uchun <span class="num">await()</span> ni <span class="num">try</span> ga o'rash yetarli bo'lmasligi mumkin: <span class="num">coroutineScope</span> yoki <span class="num">supervisorScope</span> bilan chegara qo'yiladi.</li>
+  <li><span class="num">CoroutineExceptionHandler</span> faqat eng yuqori (ildiz) coroutine'da yoki <span class="num">SupervisorJob</span> ning bevosita bolasida ishlaydi. Ichki <span class="num">launch</span> ga qo'yilgan handler chaqirilmaydi.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android'da asinxronlik tarixi</h3>
+<div class="bench" id="evoCo"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Asosiy oqim</dt><dd>Ekranni chizadigan va bosishlarni qabul qiladigan oqim. Unda uzoq ish bajarilmaydi.</dd>
+  <dt>ANR</dt><dd>«Application Not Responding»: asosiy oqim 5 sekunddan ortiq javob bermaganda tizim chiqaradigan oyna.</dd>
+  <dt>Coroutine</dt><dd>To'xtatib turilishi va davom ettirilishi mumkin bo'lgan hisoblash. Oqim emas, heap'dagi obyekt.</dd>
+  <dt>suspend funksiya</dt><dd>To'xtashi mumkin bo'lgan funksiya. Faqat coroutine ichidan yoki boshqa suspend funksiyadan chaqiriladi.</dd>
+  <dt>Continuation</dt><dd>Davom ettirish obyekti: coroutine qayerda to'xtagani (label) va lokal o'zgaruvchilarini saqlaydi.</dd>
+  <dt>Builder</dt><dd>Coroutine boshlaydigan funksiya: <span class="num">launch</span>, <span class="num">async</span>, <span class="num">runBlocking</span>; shuningdek scope funksiyalari <span class="num">coroutineScope</span>, <span class="num">withContext</span>.</dd>
+  <dt>Job, Deferred</dt><dd>Coroutine'ning boshqaruv dastagi: holati, bekor qilish, bolalari. <span class="num">Deferred</span> natijali Job.</dd>
+  <dt>CoroutineScope</dt><dd>Coroutine'lar uchun egasi: kontekst (Job va dispetcher) saqlaydi. U bekor qilinsa, ichidagi hamma coroutine to'xtaydi.</dd>
+  <dt>CoroutineContext</dt><dd>Coroutine sozlamalari to'plami: Job, dispetcher, nom, xato ishlovchisi. <span class="num">+</span> bilan birlashtiriladi.</dd>
+  <dt>Dispetcher</dt><dd>Coroutine qaysi oqimda bajarilishini belgilaydi: Main, IO, Default.</dd>
+  <dt>Tuzilmaviy parallellik</dt><dd>Har bir coroutine ota-onaga ega; ota-ona bolalarini kutadi va bekor qilinsa ularni ham bekor qiladi.</dd>
+  <dt>SupervisorJob</dt><dd>Bolaning xatosi ota-onaga va aka-ukalarga tarqalmaydigan Job.</dd>
+  <dt>Hamkorlikdagi bekor qilish</dt><dd>Coroutine bekor qilinganini faqat to'xtash nuqtalarida yoki o'zi tekshirganda sezadi.</dd>
+  <dt>Main-safe</dt><dd>Asosiy oqimdan bemalol chaqirish mumkin bo'lgan funksiya: og'ir ishni o'zi boshqa dispetcherga o'tkazadi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: GlobalScope</b>
+  <p><span class="num">GlobalScope.launch</span> hech kimga tegishli bo'lmagan coroutine yaratadi. Ekran yopilsa ham u ishlayveradi, xatosini hech kim ushlamaydi va testda uni kutib bo'lmaydi. Kutubxona uni «nozik API» deb belgilagan.</p>
+  <p class="why">Ekran bilan bog'liq ish uchun <span class="num">viewModelScope</span>. Ekrandan uzoq yashashi kerak bo'lgan ish (masalan, ma'lumotni sinxronlash) uchun ilova darajasidagi, DI orqali beriladigan o'z scope'ingiz yoki WorkManager.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: runCatching va catch (e: Exception) bekor qilishni yutadi</b>
+  <p><span class="num">runCatching { api.kartalar() }</span> barcha istisnolarni, jumladan <span class="num">CancellationException</span> ni ham ushlaydi. Ekran yopilgan bo'lsa ham, coroutine «xato» deb hisoblab ishlashda davom etadi va holatni yangilashga urinadi.</p>
+  <p class="why">Umumiy <span class="num">catch</span> da <span class="num">if (e is CancellationException) throw e</span>, yoki faqat kutilgan xatolarni ushlash: <span class="num">IOException</span>, <span class="num">HttpException</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: suspend funksiya ichidagi bloklovchi kod</b>
+  <p><span class="num">suspend</span> so'zi kodni avtomatik fon oqimiga o'tkazmaydi. <span class="num">suspend fun hisobla() { katta ro'yxatni saralash }</span> asosiy oqimdan chaqirilsa, saralash asosiy oqimda ketadi va ekran qotadi. Xuddi shunday, coroutine ichidagi <span class="num">Thread.sleep</span> oqimni band qiladi, <span class="num">delay</span> esa yo'q.</p>
+  <p class="why">Og'ir hisob <span class="num">withContext(Dispatchers.Default)</span> ichida, bloklovchi kirish-chiqish <span class="num">withContext(Dispatchers.IO)</span> ichida. Testlarda dispetcherni almashtira olish uchun uni DI orqali berish yaxshi amaliyot.</p>
+</div>
+<div class="rule">
+  <b>Qoida: parallel so'rovlar uchun async, lekin scope ichida</b>
+  <p>Ekran ochilganda profil va kartalarni bir vaqtda yuklash kerak: <span class="num">coroutineScope { val p = async { profil() }; val k = async { kartalar() }; Ekran(p.await(), k.await()) }</span>. Ikki so'rov parallel ketadi, umumiy vaqt eng uzunining vaqti.</p>
+  <p class="why">Bittasi xato bersa, ikkinchisi avtomatik bekor qilinadi va xato bitta joyda ushlanadi. Biri xato bersa ham ikkinchisining natijasini ko'rsatish kerak bo'lsa, <span class="num">supervisorScope</span> va har bir <span class="num">await</span> ni alohida <span class="num">try</span>.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Coroutine nima va u oqimdan nimasi bilan farq qiladi?</summary>
+<p>Coroutine to'xtatib turilishi va keyin davom ettirilishi mumkin bo'lgan hisoblash. U oqim emas: oqimlar ustida ishlaydi va kutish paytida oqimni bo'shatadi. Oqim operatsion tizim resursi, yuzlab kilobayt stek bilan, almashtirish qimmat; coroutine esa heap'dagi kichik obyekt, bir oqimda minglab bo'la oladi. Bekor qilish va xatolar tuzilmaviy parallellik orqali boshqariladi.</p></details>
+<details><summary>suspend funksiya ichkarida qanday ishlaydi?</summary>
+<p>Kompilyator har bir suspend funksiyaga yashirin <span class="num">Continuation</span> parametrini qo'shadi va tanasini to'xtash nuqtalari bo'yicha holat mashinasiga aylantiradi (Continuation Passing Style). Lokal o'zgaruvchilar va <span class="num">label</span> davom ettirish obyektida saqlanadi. To'xtaganda funksiya <span class="num">COROUTINE_SUSPENDED</span> qaytaradi va oqim bo'shaydi. Natija tayyor bo'lganda <span class="num">resume</span> chaqiriladi va funksiya label bo'yicha to'xtagan joyidan davom etadi.</p></details>
+<details><summary>Coroutine qanday turlari bor? launch va async farqi?</summary>
+<p>Builderlar: <span class="num">launch</span> (Job qaytaradi, natijasiz, xato darhol ota-onaga), <span class="num">async</span> (Deferred, natija <span class="num">await</span> bilan, xato <span class="num">await</span> da tashlanadi va ota-onani ham bekor qiladi), <span class="num">runBlocking</span> (oqimni bloklaydi, faqat test va main uchun). Scope funksiyalari: <span class="num">coroutineScope</span>, <span class="num">supervisorScope</span>, <span class="num">withContext</span>. Agar «turlar» deganda scope'lar so'ralsa: <span class="num">viewModelScope</span>, <span class="num">lifecycleScope</span>, o'z scope'imiz, <span class="num">GlobalScope</span> (ishlatilmaydi).</p></details>
+<details><summary>Dispatchers qanday bo'ladi va qaysi biri qachon?</summary>
+<p>Main: asosiy oqim, UI uchun. IO: kutishga mo'ljallangan katta havza (64 tagacha oqim), tarmoq, fayl, baza. Default: yadrolar soniga teng oqimlar, protsessorni band qiladigan hisob uchun. Unconfined: maxsus holatlar. Oqim almashtirish <span class="num">withContext</span> bilan. Repozitoriy funksiyalari main-safe bo'lishi kerak: dispetcherni o'zi tanlaydi.</p></details>
+<details><summary>Coroutine qanday bekor qilinadi?</summary>
+<p><span class="num">job.cancel()</span> yoki scope'ni bekor qilish bilan. Bekor qilish hamkorlikda: coroutine buni keyingi to'xtash nuqtasida sezadi va <span class="num">CancellationException</span> tashlanadi, <span class="num">finally</span> bajariladi. Uzoq hisobda <span class="num">ensureActive()</span>, <span class="num">isActive</span> yoki <span class="num">yield()</span> bilan tekshirish kerak. <span class="num">CancellationException</span> ni yutib yubormaslik kerak. Bekor qilingandan keyin <span class="num">finally</span> da suspend chaqiruv kerak bo'lsa, <span class="num">withContext(NonCancellable)</span>.</p></details>
+<details><summary>Job va SupervisorJob farqi? viewModelScope qanday tuzilgan?</summary>
+<p>Oddiy Job'da bolaning xatosi ota-onani bekor qiladi, u esa qolgan bolalarni. SupervisorJob'da bolaning xatosi tarqalmaydi, faqat o'sha bola tugaydi. <span class="num">viewModelScope</span> = <span class="num">SupervisorJob() + Dispatchers.Main.immediate</span>, va ViewModel tozalanganda bekor qilinadi.</p></details>
+<details><summary>Coroutine'da xatoni qanday ushlash kerak?</summary>
+<p>Kutilgan xatolarni so'rov joyida <span class="num">try/catch</span> bilan (faqat kerakli turlar, <span class="num">CancellationException</span> ni qayta tashlab). Natijani <span class="num">Result</span> yoki sealed natija turiga aylantirib ViewModel'ga berish. Kutilmagan xatolar uchun ildiz coroutine'da <span class="num">CoroutineExceptionHandler</span>: u faqat ildizda yoki supervisor bolasida ishlaydi. Parallel so'rovlarda chegarani <span class="num">coroutineScope</span> yoki <span class="num">supervisorScope</span> bilan qo'yish.</p></details>
+<details><summary>withContext va launch(Dispatchers.IO) farqi?</summary>
+<p><span class="num">withContext</span> yangi coroutine yaratmaydi: joriy coroutine'ni boshqa dispetcherga o'tkazadi, blok tugaguncha kutadi va natijani qaytaradi, ya'ni ketma-ket. <span class="num">launch(Dispatchers.IO)</span> yangi bola coroutine boshlaydi va darhol qaytadi, natija yo'q, ya'ni parallel. Natija kerak bo'lgan oqim almashtirish uchun <span class="num">withContext</span>.</p></details>
+<details><summary>Coroutine'larni qanday test qilasiz?</summary>
+<p><span class="num">kotlinx-coroutines-test</span>: <span class="num">runTest</span> virtual vaqt bilan ishlaydi (<span class="num">delay</span> darhol o'tadi), <span class="num">StandardTestDispatcher</span> va <span class="num">UnconfinedTestDispatcher</span>, <span class="num">Dispatchers.setMain</span> bilan asosiy dispetcherni almashtirish. Dispetcherlarni DI orqali berish ularni testda almashtirishni osonlashtiradi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>Nega <span class="num">suspend</span> funksiya o'zi ekranni qotishdan saqlamaydi? Misol keltiring.</li>
+  <li><span class="num">viewModelScope.launch { val a = async { x() }; val b = async { y() } }</span>: <span class="num">x()</span> xato bersa, <span class="num">y()</span> bilan nima bo'ladi? Boshqa <span class="num">launch</span> lar bilan-chi?</li>
+  <li>Ekran yopildi. Ishlab turgan Retrofit so'rovi bilan nima bo'ladi va nega?</li>
+  <li>Kodingizda <span class="num">catch (e: Exception)</span> bor. U coroutine ichida qanday xavf tug'diradi?</li>
+  <li>DigitalBank'da asinxronlik qanday qilingan edi: coroutines, RxJava yoki qayta chaqiruvlar? Farqini suhbatda qanday tushuntirasiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Main va Main.immediate farqi</summary>
+<p><span class="num">Dispatchers.Main</span> ishni har doim asosiy oqim navbatiga qo'yadi, hatto allaqachon asosiy oqimda bo'lsak ham, va u keyingi siklda bajariladi. <span class="num">Main.immediate</span> agar allaqachon asosiy oqimda bo'lsak, darhol bajaradi. Bu ortiqcha kechikishni va «bir kadr kech» effektini yo'qotadi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Kotlin hujjatlari: «Coroutines guide» (kotlinlang.org/docs/coroutines-guide.html). Android: «Kotlin coroutines on Android», «Best practices for coroutines in Android» (developer.android.com). Roman Elizarov, «Structured concurrency», 2018. Kutubxona versiyalari: github.com/Kotlin/kotlinx.coroutines releases.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Coroutine kutish paytida oqimni bo'shatadi. <span class="num">suspend</span> funksiya holat mashinasiga aylanadi, lekin o'zi oqim almashtirmaydi: buni dispetcher va <span class="num">withContext</span> qiladi. Coroutine'lar daraxt hosil qiladi: ota-ona bekor qilinsa bolalar ham, bola xato bersa ota-ona ham (SupervisorJob bundan mustasno). Bekor qilish hamkorlikda, <span class="num">CancellationException</span> yutilmaydi.</p>
+  <p><strong>Keyingi dars.</strong> A4. Flow: bitta qiymat emas, qiymatlar oqimi. StateFlow, SharedFlow va ularni ekranda xavfsiz kuzatish.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a2-funksiyalar.html">Oldingi: A2. Funksiyalar</a><a href="a4-flow.html">Keyingi: A4. Flow</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [1, 3], 'Coroutines: ViewModel va data');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Asosiy oqim vaqt chizig'i ----------
+  (function () {
+    var svg = $('main'), say = $('mnSay'), cur = 0, X0 = 200, W = 1000;
+    var C = [
+      { t: 'Tarmoq asosiy oqimda', m: [[0, 0.08, 'on', 'bosish'], [0.08, 0.85, 'bad', 'tarmoqni kutish'], [0.85, 0.95, 'on', 'chizish']], b: [], s: `Asosiy oqim 800 ms davomida javob kutib band turdi: shu vaqtda 48 ta kadr chizilmadi, ekran qotdi, bosishlar qabul qilinmadi. Android bunga umuman yo'l qo'ymaydi: NetworkOnMainThreadException. 5 sekunddan oshsa, ANR.` },
+      { t: 'Oqim va qayta chaqiruv', m: [[0, 0.08, 'on', 'bosish'], [0.08, 0.85, 'freed', 'bo\'sh: kadrlar chiziladi'], [0.85, 0.95, 'on', 'natija: chizish']], b: [[0.08, 0.85, 'bad', 'fon oqimi kutib band turibdi']], s: `Asosiy oqim bo'sh, ekran silliq. Lekin fon oqimi butun kutish davomida band: yangi oqim yaratish qimmat, mingta so'rovga mingta oqim kerak. Natijani asosiy oqimga qaytarish, xatolarni ushlash va ekran yopilganda bekor qilishni qo'lda yozish kerak.` },
+      { t: 'Coroutine', m: [[0, 0.08, 'on', 'launch'], [0.08, 0.85, 'freed', 'bo\'sh: coroutine to\'xtagan'], [0.85, 0.95, 'on', 'resume: chizish']], b: [[0.08, 0.1, 'on', ''], [0.1, 0.85, 'freed', 'bo\'sh: boshqa coroutine\'lar ishlaydi']], s: `Coroutine so'rovni yubordi va to'xtadi: hech qaysi oqim band emas, faqat heap'da kichik davom ettirish obyekti turibdi. Javob kelganda u asosiy oqimda davom etdi. Kod esa oddiy ketma-ket ko'rinishda: val kartalar = api.kartalar(); ekran(kartalar).` }
+    ];
+    var setT = tabs('mnT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function bars(y, list) { list.forEach(function (b) { var x = X0 + b[0] * W, w = (b[1] - b[0]) * W; S(svg, 'rect', { x: x, y: y, width: w, height: 56, rx: 4, 'class': 'box ' + b[2] }); if (b[3]) S(svg, 'text', { x: x + 10, y: y + 34, 'class': 'sub' }, b[3]); }); }
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = '';
+      box(svg, 20, 50, 160, 56, 'Asosiy oqim', 'UI', 'on'); box(svg, 20, 140, 160, 56, 'Fon oqimi', cur === 2 ? 'Dispatchers.IO' : '');
+      bars(50, c.m); bars(140, c.b);
+      for (var k = 0; k <= 10; k++) { S(svg, 'line', { x1: X0 + k * 100, y1: 220, x2: X0 + k * 100, y2: 228, 'class': 'arr' }); S(svg, 'text', { x: X0 + k * 100, y: 248, 'text-anchor': 'middle', 'class': 'lbl' }, (k * 100) + ' ms'); }
+      S(svg, 'text', { x: X0, y: 280, 'class': 'sub' }, 'Har 16 ms da bitta kadr chizilishi kerak. Qizil maydon: oqim band, lekin foydali ish yo\'q.');
+      say.textContent = c.s; say.className = 'say' + (cur === 0 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Holat mashinasi ----------
+  (function () {
+    var svg = $('sm'), say = $('smSay'), k = 0;
+    var ST = [
+      { l: '0', v: ['—'], th: 'band: 0-bo\'lak', hi: 0, s: `viewModelScope.launch ichida yukla() chaqirildi. Kompilyator yaratgan davom ettirish obyekti label = 0 bilan. Funksiya 0-bo'lakni bajaradi: token() ni chaqiradi.` },
+      { l: '1', v: ['—'], th: 'bo\'sh', hi: 0, s: `token() tarmoqqa so'rov yubordi va COROUTINE_SUSPENDED qaytardi. yukla() label ni 1 ga qo'yib, o'zi ham COROUTINE_SUSPENDED qaytaradi. Asosiy oqim bo'shadi: ekran chiziladi, bosishlar qabul qilinadi.` },
+      { l: '1', v: ['t = "eyJ..."'], th: 'band: 1-bo\'lak', hi: 1, s: `Token keldi. Kutubxona continuation.resume("eyJ...") ni chaqirdi. yukla() qaytadan chaqiriladi, label = 1 bo'lgani uchun to'g'ridan-to'g'ri 1-bo'lakka o'tadi, natijani t ga yozadi va kartalar(t) ni chaqiradi.` },
+      { l: '2', v: ['t = "eyJ..."'], th: 'bo\'sh', hi: 1, s: `kartalar(t) ham to'xtadi. t endi davom ettirish obyektining maydonida saqlanadi, chunki keyingi bo'lakka kerak. label = 2. Oqim yana bo'sh.` },
+      { l: '2', v: ['t = "eyJ..."', 'k = [3 ta karta]'], th: 'band: 2-bo\'lak', hi: 2, s: `Kartalar keldi, resume chaqirildi, label = 2: 2-bo'lak bajariladi, holat yangilanadi va ekran kartalarni ko'rsatadi. Funksiya oddiy natija bilan tugadi.` }
+    ];
+    function draw() {
+      var s = ST[k]; svg.textContent = ''; marker(svg, 'smmk');
+      group(svg, 20, 20, 520, 380, 'suspend fun yukla()');
+      [['0-bo\'lak', 'val t = token()  // to\'xtash 1'], ['1-bo\'lak', 'val k = kartalar(t)  // to\'xtash 2'], ['2-bo\'lak', 'holat.value = Tayyor(k)']].forEach(function (b, i) {
+        box(svg, 40, 60 + i * 110, 480, 90, b[0], 'label = ' + i, s.hi === i ? (s.th.indexOf('band') === 0 ? 'on' : 'live') : '');
+        code(svg, 56, 136 + i * 110, [b[1]]);
+      });
+      box(svg, 600, 60, 300, 340, 'Davom ettirish obyekti', 'Continuation, heap\'da', 'live');
+      S(svg, 'text', { x: 616, y: 130, 'class': 'sub' }, 'label:'); S(svg, 'text', { x: 616, y: 170, 'class': 'big' }, s.l);
+      S(svg, 'text', { x: 616, y: 230, 'class': 'sub' }, 'saqlangan o\'zgaruvchilar:'); code(svg, 616, 262, s.v);
+      box(svg, 960, 60, 260, 150, 'Asosiy oqim', s.th, s.th === 'bo\'sh' ? 'freed' : 'on');
+      S(svg, 'text', { x: 976, y: 180, 'class': 'val' }, s.th === 'bo\'sh' ? 'ekran chiziladi' : 'kod bajarilmoqda');
+      box(svg, 960, 250, 260, 150, 'Tarmoq', '', k === 1 || k === 3 ? 'live' : '');
+      S(svg, 'text', { x: 976, y: 340, 'class': 'val' }, k === 1 ? 'token kutilmoqda' : k === 3 ? 'kartalar kutilmoqda' : '—');
+      arrow(svg, 'smmk', 'M540 ' + (105 + s.hi * 110) + 'H598');
+      say.textContent = (k + 1) + '/' + ST.length + '. ' + s.s;
+    }
+    $('smNext').addEventListener('click', function () { k = Math.min(ST.length - 1, k + 1); draw(); });
+    $('smReset').addEventListener('click', function () { k = 0; draw(); });
+    draw();
+  })();
+
+  // ---------- Daraxt ----------
+  (function () {
+    var svg = $('tree'), say = $('trSay'), cur = 0;
+    var C = [
+      { t: 'Hammasi ishlayapti', sup: true, st: ['on', 'on', 'on', 'on'], s: `viewModelScope ostida ikki launch: A (kartalar ekrani) va B (bildirishnomalar). A ichida ikki async: profil va kartalar parallel yuklanmoqda.` },
+      { t: 'Ekran yopildi', sup: true, st: ['dead', 'dead', 'dead', 'dead'], s: `ViewModel tozalandi (onCleared), viewModelScope bekor qilindi. Bekor qilish daraxt bo'ylab pastga tarqaldi: A, B va ularning barcha bolalari keyingi to'xtash nuqtasida CancellationException bilan to'xtaydi. Hech qaysi so'rov yopilgan ekranga natija yozmaydi.` },
+      { t: 'profil xato (Job ostida)', sup: true, st: ['bad', 'dead', 'dead', 'on'], s: `A ichidagi profil async xato berdi. A oddiy Job: xato A ga ko'tarildi, A bekor qilindi va o'z navbatida kartalar async ni ham bekor qildi. Lekin viewModelScope SupervisorJob: xato undan yuqoriga o'tmaydi, shuning uchun B ishlashda davom etadi.` },
+      { t: 'profil xato (A supervisorScope)', sup: true, st: ['bad', 'on', 'on', 'on'], s: `A ichida supervisorScope ishlatilgan. profil xato berdi, lekin kartalar davom etyapti: xato aka-ukaga tarqalmaydi. Ekran kartalarni ko'rsatib, profil o'rnida xato xabarini chiqara oladi. Xatoni profil.await() atrofidagi try ushlaydi.` },
+      { t: 'B xato (oddiy Job scope)', sup: false, st: ['dead', 'dead', 'dead', 'bad'], s: `Agar scope oddiy Job bilan yaratilgan bo'lsa: B ning xatosi scope ga ko'tariladi, scope bekor qilinadi va A va uning bolalari ham to'xtaydi. Bitta bildirishnoma xatosi butun ekranni o'ldirdi. viewModelScope aynan shuning uchun SupervisorJob bilan.` }
+    ];
+    var setT = tabs('trT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'trmk');
+      box(svg, 440, 20, 360, 70, 'viewModelScope', c.sup ? 'SupervisorJob + Main.immediate' : 'oddiy Job (taqqoslash uchun)', cur === 1 ? 'dead' : (cur === 4 ? 'dead' : 'on'));
+      box(svg, 200, 140, 360, 70, 'A: launch', cur === 3 ? 'ichida supervisorScope' : 'kartalar ekrani', c.st[1] === 'on' && c.st[0] === 'bad' && cur === 3 ? 'on' : (cur === 2 || cur === 1 || cur === 4 ? 'dead' : 'on'));
+      box(svg, 760, 140, 360, 70, 'B: launch', 'bildirishnomalar', c.st[3]);
+      box(svg, 40, 260, 340, 70, 'async: profil', '', c.st[0]);
+      box(svg, 400, 260, 340, 70, 'async: kartalar', '', c.st[1]);
+      arrow(svg, 'trmk', 'M560 90V115H380V138'); arrow(svg, 'trmk', 'M680 90V115H940V138');
+      arrow(svg, 'trmk', 'M380 210V235H210V258'); arrow(svg, 'trmk', 'M380 210V235H570V258');
+      box(svg, 820, 260, 400, 70, 'Natija', cur === 0 ? 'hammasi faol' : cur === 1 ? 'hammasi bekor qilindi' : cur === 2 ? 'A to\'xtadi, B ishlaydi' : cur === 3 ? 'faqat profil to\'xtadi' : 'butun scope to\'xtadi', cur === 0 || cur === 3 ? 'on' : 'bad');
+      say.textContent = c.s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoCo', [
+    { name: `Thread va Handler`, years: `2008-yildan`, art: `<path d="M16 40h88M16 60h88" /><circle cx="40" cy="40" r="5" class="lit"/><circle cx="80" cy="60" r="5" class="acc"/>`,
+      how: `Fon ishi uchun new Thread(), natijani asosiy oqimga qaytarish uchun Handler va Looper.`, better: `Asosiy oqim bo'shaydi.`, pain: `Har bir so'rovga oqim, qo'lda bekor qilish, ekran yopilganda xotira oqishi.`, ex: `Handler(Looper.getMainLooper()).post { ... }` },
+    { name: `AsyncTask`, years: `2009–2020`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><path d="M30 50h30" class="acc"/>`,
+      how: `doInBackground fon oqimida, onPostExecute asosiy oqimda.`, better: `Oddiy holatlar uchun qulay qolip.`, pain: `Activity'ga havola ushlab qoladi (xotira oqishi), aylantirishda ish yo'qoladi, Android versiyalari orasida ketma-ket yoki parallel bajarilishi o'zgarib turgan.`, ex: `Android 11 (API 30) da eskirgan deb belgilangan.` },
+    { name: `RxJava`, years: `2014-yildan`, art: `<path d="M14 50h92" /><circle cx="30" cy="50" r="6" class="lit"/><circle cx="60" cy="50" r="6" class="lit"/><circle cx="90" cy="50" r="6" class="lit"/>`,
+      how: `Hodisalar oqimi va operatorlar: map, flatMap, zip. subscribeOn va observeOn bilan oqimlar.`, better: `Qayta chaqiruvlar zanjiri yo'qoladi, xatolar bitta joyda, bekor qilish Disposable bilan.`, pain: `O'rganish qiyin, yuzlab operator, bitta so'rov uchun ham Single va zanjir. Disposable'larni unutish oson.`, ex: `2015–2019 yillarda Android'da standart. Hozir ham ko'p eski loyihalarda bor.` },
+    { name: `Kotlin coroutines`, years: `2017 tajriba, 2018 barqaror`, art: `<path d="M20 70c20-40 40-40 60 0" class="acc"/><circle cx="20" cy="70" r="5" class="lit"/><circle cx="80" cy="70" r="5" class="lit"/>`,
+      how: `Kotlin 1.1 da tajriba sifatida, 1.3 (2018) da barqaror. Tuzilmaviy parallellik 2018-yilda kiritildi.`, better: `Oddiy ketma-ket kod, avtomatik bekor qilish, til darajasida qo'llab-quvvatlash.`, pain: `Xatolar va bekor qilish qoidalari nozik, noto'g'ri ishlatish oson.`, ex: `Jetpack 2019-yilda viewModelScope va lifecycleScope ni qo'shdi. Retrofit 2.6 (2019) suspend funksiyalarni qo'llab-quvvatlay boshladi, Room ham.` },
+    { name: `Flow va bugun`, years: `2019-yildan`, art: `<path d="M10 60c20-20 30 20 50 0s30-20 50 0" class="acc"/>`,
+      how: `Ko'p qiymatlar uchun Flow, holat uchun StateFlow (2020). LiveData o'rnini egallab bormoqda.`, better: `Bitta til va bitta model: bitta qiymat uchun suspend, oqim uchun Flow.`, pain: `Hayot siklini hisobga olib kuzatish kerak: A4-darsda.`, ex: `Bugun Google tavsiyalari: coroutines va Flow. Versiyalarni github.com/Kotlin/kotlinx.coroutines dan tekshiring.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
