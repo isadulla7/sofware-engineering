@@ -273,6 +273,7 @@
       E.forEach(function (e) {
         var a = N[e[0]], b = N[e[1]], aw = (e[0] === 'impl' || e[0] === 'api' || e[0] === 'dao') ? 320 : 340, bw = (e[1] === 'impl' || e[1] === 'api' || e[1] === 'dao') ? 320 : 340, d;
         if (e[0] === 'uc' && e[1] === 'mod') d = 'M800 110H812V350H802';
+        else if (e[0] === 'impl' && e[1] === 'dao') d = 'M1200 110H1212V360H1202';
         else if (a.x === b.x) d = 'M' + (a.x + 170) + ' ' + (a.y + 80) + 'V' + (b.y - 2);
         else if (a.x < b.x) d = 'M' + (a.x + aw) + ' ' + (a.y + 40) + 'H' + (a.x + aw + 20) + 'V' + (b.y + 40) + 'H' + (b.x - 2);
         else d = 'M' + a.x + ' ' + (a.y + 40) + 'H' + (a.x - 20) + 'V' + (b.y + 40 + (e[1] === 'mod' ? 0 : 10)) + 'H' + (b.x + bw + 2);
