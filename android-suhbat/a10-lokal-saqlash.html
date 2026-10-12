@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A10. Lokal saqlash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A10. Lokal saqlash: Room va DataStore</h1>
+<p class="lead">Savol: ilova ma'lumotni qurilmada qayerda va qanday saqlaydi, baza o'zgarganda ekran o'zi qanday yangilanadi, sxema o'zgarganda foydalanuvchi ma'lumoti qanday saqlab qolinadi, va sozlamalar uchun nega SharedPreferences emas, DataStore?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Room</strong>: SQLite ustidagi Jetpack kutubxonasi. Jadvallar Kotlin klasslari, so'rovlar annotatsiyadagi SQL, va u kompilyatsiyada tekshiriladi. Natijani <span class="num">suspend</span> yoki <span class="num">Flow</span> bilan qaytaradi.</p>
+    <p><strong>DataStore</strong>: kichik ma'lumot (sozlamalar, bayroqlar) uchun asinxron, tranzaksiyali, <span class="num">Flow</span> asosidagi saqlash. SharedPreferences'ning o'rnini bosadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «lokal bazalar va saqlash bilan ishlash tajribasi: Room va Jetpack DataStore».</li>
+      <li><strong>Bank ilovasida:</strong> kartalar va operatsiyalar keshi (internet yo'q paytda ham ko'rsatish), sozlamalar (til, tema, balansni yashirish), qoralamalar.</li>
+      <li><strong>Sizning tajribangiz:</strong> Oracle va PL/SQL: SQL, indekslar, tranzaksiyalar sizga tanish. Suhbatda buni Room'ga bog'lash kuchli tomoningiz.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>Room tuzilishi: Entity, DAO, Database, va kompilyatsiyadagi tekshiruv;</li>
+      <li>Room Flow baza o'zgarganini qanday biladi;</li>
+      <li>bitta haqiqat manbai va oflayn rejim;</li>
+      <li>migratsiyalar va ularni testlash;</li>
+      <li>DataStore: Preferences va Proto, SharedPreferences'dan farqi;</li>
+      <li>qaysi ma'lumot qayerda saqlanadi.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: lokal saqlash data qavatida"></svg></div>
+  <figcaption>Lokal saqlash data qavatida, tarmoq bilan yonma-yon: repozitoriy ikkalasini birlashtiradi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>SQLiteOpenHelper va SharedPreferences og'rig'i</li>
+    <li>Room: Entity, DAO, Database, TypeConverter, munosabatlar, tranzaksiyalar</li>
+    <li>InvalidationTracker va Flow</li>
+    <li>Bitta haqiqat manbai, oflayn birinchi yondashuv</li>
+    <li>Migratsiyalar</li>
+    <li>DataStore: Preferences va Proto</li>
+    <li>Room 3.0 haqida</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Shifrlash va tokenlarni saqlash: A12-darsda</li>
+    <li>SQL va indekslarning ichki ishi: backend yo'l xaritasidagi Ma'lumotlar bazasi yo'nalishida</li>
+    <li>Paging 3, WorkManager bilan sinxronlash batafsil</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Qo'lda SQL va bloklovchi sozlamalar</h3>
+<p>Android'da SQLite 2008-yildan bor, lekin u bilan ishlash qiyin edi. <span class="num">SQLiteOpenHelper</span>, so'rovlar satr sifatida, natija <span class="num">Cursor</span> orqali ustunlarni raqami bo'yicha o'qish. SQL dagi xato (ustun nomi, sintaksis) faqat ish paytida chiqardi. Har bir jadval uchun o'nlab qator mapping kodi. So'rov asosiy oqimda bajarilsa, ekran qotardi. Ma'lumot o'zgarganda ekranni yangilash qo'lda.</p>
+<p>Sozlamalar uchun <strong>SharedPreferences</strong> ishlatilardi, va uning o'z og'riqlari bor: birinchi o'qishda butun faylni sinxron yuklaydi (asosiy oqimda bo'lsa, qotish), <span class="num">apply()</span> fonda yozadi, lekin Activity to'xtaganda tizim bu yozuvlarni kutadi va bu ANR larga olib kelgan; tur xavfsizligi yo'q (kalit satr, tur o'qishda tanlanadi), xatolar istisno sifatida qaytmaydi, bir nechta qiymatni atom tarzda o'zgartirish yo'q.</p>
+<p>Kerak bo'lgan narsa: SQL ni kompilyatsiyada tekshiradigan, asinxron, o'zgarishlarni o'zi xabar qiladigan baza; va sozlamalar uchun asinxron, xavfsiz, tranzaksiyali saqlash.</p>
+
+<h3><span class="part">2. Ichkarida</span>Room va DataStore</h3>
+
+<p class="beat">Room: uchta qism</p>
+<pre class="code">@Entity(tableName = "cards", indices = [Index("ownerId")])
+data class CardEntity(@PrimaryKey val id: String, val ownerId: String, val masked: String, val balanceTiyin: Long)
+
+@Dao
+interface CardDao {
+    @Query("SELECT * FROM cards WHERE ownerId = :owner ORDER BY masked")
+    fun observe(owner: String): Flow&lt;List&lt;CardEntity&gt;&gt;          // o'zgarsa qayta chiqaradi
+    @Upsert suspend fun upsertAll(cards: List&lt;CardEntity&gt;)
+    @Query("DELETE FROM cards") suspend fun clear()
+    @Transaction suspend fun replaceAll(cards: List&lt;CardEntity&gt;) { clear(); upsertAll(cards) }
+}
+
+@Database(entities = [CardEntity::class, TxEntity::class], version = 2, exportSchema = true)
+@TypeConverters(Converters::class)
+abstract class BankDb : RoomDatabase() { abstract fun cardDao(): CardDao }</pre>
+<ul>
+  <li><strong>Entity</strong>: jadval. Maydonlar ustunlar, <span class="num">@PrimaryKey</span>, indekslar.</li>
+  <li><strong>DAO</strong>: so'rovlar. <span class="num">@Query</span> dagi SQL kompilyatsiyada (KSP) tekshiriladi: jadval yoki ustun nomi xato bo'lsa, ilova yig'ilmaydi. <span class="num">@Insert</span>, <span class="num">@Update</span>, <span class="num">@Delete</span>, <span class="num">@Upsert</span> SQL siz.</li>
+  <li><strong>Database</strong>: jadvallar ro'yxati va versiya. Room KSP bilan barcha DAO larning amalga oshirilishini yaratadi.</li>
+  <li><strong>TypeConverter</strong>: SQLite bilmaydigan turlarni saqlash: <span class="num">Instant</span> ni <span class="num">Long</span> ga, <span class="num">BigDecimal</span> ni <span class="num">String</span> ga (P0, 3-dars: pulni REAL ustunda saqlamang).</li>
+  <li><strong>@Transaction</strong>: bir nechta amalni bitta tranzaksiyada: hammasi yoki hech biri. Oracle'dagi COMMIT/ROLLBACK bilan bir xil g'oya.</li>
+</ul>
+
+<p class="beat">Flow: baza o'zgarganini Room qanday biladi</p>
+<p>DAO metodi <span class="num">Flow</span> qaytarsa, Room so'rovni bajarib natijani chiqaradi va keyin kutadi. Ichkarida <strong>InvalidationTracker</strong> SQLite triggerlari orqali qaysi jadvallar o'zgarganini kuzatadi. Bazaga yozuvchi tranzaksiya tugaganda, Room o'zgargan jadvallar ro'yxatini tekshiradi va shu jadvallarni o'qiydigan barcha Flow larga «qayta so'ra» deydi. Muhim nozik joy: kuzatuv <strong>jadval</strong> darajasida, qator darajasida emas. Pastda sinab ko'ring.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="room" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Room InvalidationTracker: jadval o'zgarganda shu jadvalni kuzatayotgan Flow lar qayta so'raydi"></svg></div>
+  <figcaption>Chapda yozuvchi amal, o'rtada jadvallar va kuzatuvchi, o'ngda ikki ekranning Flow lari. Amalni tanlang.</figcaption>
+  <div class="evo-tabs" id="rmT" style="margin-top:0.9rem"></div>
+  <p class="say" id="rmSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Bitta haqiqat manbai: avval baza, keyin tarmoq</p>
+<p>Bank ilovasida ekran ma'lumotni qayerdan oladi: tarmoqdanmi yoki bazadanmi? Ishonchli javob: <strong>ekran faqat bazani kuzatadi</strong>. Repozitoriy tarmoqdan yangi ma'lumot olganda uni bazaga yozadi, va Room Flow uni ekranga o'zi yetkazadi. Baza bitta haqiqat manbai (single source of truth): ekranda ziddiyatli ikki manba yo'q, internet yo'q paytda oxirgi ma'lum holat ko'rinadi, va ilova ochilishi bilan kesh darhol chiqadi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="ssot" style="width:1240px;height:320px" viewBox="0 0 1240 320" role="img" aria-label="Bitta haqiqat manbai: ekran bazani kuzatadi, tarmoq bazani yangilaydi"></svg></div>
+  <figcaption>Ekran faqat bazadan oladi; tarmoq faqat bazaga yozadi. Qadamlarni bosing.</figcaption>
+  <div class="slider"><button type="button" data-ss="0">Ekran ochildi</button><button type="button" data-ss="1">Tarmoqdan javob keldi</button><button type="button" data-ss="2">Yangilash: internet yo'q</button></div>
+  <p class="say" id="ssSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Migratsiyalar</p>
+<p>Ilovaning yangi versiyasida jadvalga ustun qo'shildi. Foydalanuvchi qurilmasida esa eski sxemali baza va unda ma'lumot bor. Room versiya raqamlarini solishtiradi: <span class="num">version</span> oshgan, demak migratsiya kerak.</p>
+<ul>
+  <li><strong>Qo'lda migratsiya</strong>: <span class="num">val M1_2 = object : Migration(1, 2) { override fun migrate(db) { db.execSQL("ALTER TABLE cards ADD COLUMN currency TEXT NOT NULL DEFAULT 'UZS'") } }</span>.</li>
+  <li><strong>Avtomatik migratsiya</strong>: <span class="num">@Database(autoMigrations = [AutoMigration(from = 1, to = 2)])</span>: Room eksport qilingan sxema JSON fayllarini solishtirib, oddiy o'zgarishlar (ustun qo'shish) uchun SQL ni o'zi yozadi. Buning uchun <span class="num">exportSchema = true</span> va sxema fayllari repozitoriyda saqlanadi.</li>
+  <li><strong>Migratsiya topilmasa</strong>: Room <span class="num">IllegalStateException</span> bilan qulaydi, yangilangan ilova ochilmaydi. <span class="num">fallbackToDestructiveMigration()</span> buning o'rniga bazani o'chirib, qaytadan yaratadi: kesh uchun qabul qilinadi, lekin foydalanuvchi qoralamalari va sozlamalari yo'qoladi.</li>
+  <li><strong>Test</strong>: <span class="num">MigrationTestHelper</span> eski versiyali bazani yaratib, ma'lumot qo'yib, migratsiyani bajaradi va natijani tekshiradi.</li>
+</ul>
+
+<p class="beat">DataStore</p>
+<p>DataStore ikki xil:</p>
+<ul>
+  <li><strong>Preferences DataStore</strong>: kalit-qiymat, lekin kalitlar tur bilan: <span class="num">val TIL = stringPreferencesKey("til")</span>. O'qish <span class="num">dataStore.data.map { it[TIL] ?: "uz" }</span> (Flow), yozish <span class="num">dataStore.edit { it[TIL] = "ru" }</span> (suspend, tranzaksiya: blok ichidagi barcha o'zgarishlar birga yoziladi yoki hech biri).</li>
+  <li><strong>Proto DataStore</strong>: butun sozlamalar bitta turlangan obyekt (protobuf yoki kotlinx.serialization bilan): <span class="num">data class Sozlamalar(val til: String, val balansYashirin: Boolean)</span>. <span class="num">updateData { it.copy(...) }</span>. Tur xavfsizligi to'liq.</li>
+</ul>
+<p>Qoidalar: bitta fayl uchun faqat bitta DataStore nusxasi (ilova bo'yicha singleton, A6), aks holda <span class="num">IllegalStateException</span>. SharedPreferences'dan ko'chish uchun <span class="num">SharedPreferencesMigration</span>. DataStore o'zi shifrlamaydi: maxfiy narsa uchun A12.</p>
+<div class="scroll"><table>
+<thead><tr><th></th><th>SharedPreferences</th><th>DataStore</th></tr></thead>
+<tbody>
+<tr><td>API</td><td>sinxron o'qish, <span class="num">apply</span>/<span class="num">commit</span></td><td>Flow va suspend</td></tr>
+<tr><td>Asosiy oqim</td><td>bloklashi mumkin, ANR manbai</td><td>bloklamaydi</td></tr>
+<tr><td>Xatolar</td><td>yashirin</td><td>Flow da istisno sifatida</td></tr>
+<tr><td>Tranzaksiya</td><td>yo'q</td><td>ha, <span class="num">edit</span>/<span class="num">updateData</span></td></tr>
+<tr><td>Tur xavfsizligi</td><td>yo'q</td><td>turlangan kalitlar, Proto da to'liq</td></tr>
+</tbody></table></div>
+
+<p class="beat">Qaysi ma'lumot qayerda</p>
+<div class="scroll"><table>
+<thead><tr><th>Ma'lumot</th><th>Qayerda</th><th>Nega</th></tr></thead>
+<tbody>
+<tr><td>Kartalar, operatsiyalar tarixi</td><td>Room</td><td>so'rovlar, saralash, oflayn ko'rsatish, Flow</td></tr>
+<tr><td>Til, tema, «balansni yashirish»</td><td>DataStore</td><td>kichik, kalit-qiymat yoki bitta obyekt</td></tr>
+<tr><td>Refresh token</td><td>Keystore bilan shifrlangan (A12)</td><td>maxfiy</td></tr>
+<tr><td>Access token</td><td>xotirada, kerak bo'lsa shifrlangan</td><td>qisqa muddatli</td></tr>
+<tr><td>To'liq karta raqami, CVV, PIN</td><td>hech qayerda</td><td>saqlanmaydi: bank xavfsizlik talablari</td></tr>
+<tr><td>Ko'chirma PDF</td><td>ilovaning ichki fayllari yoki kesh katalogi</td><td>katta fayl</td></tr>
+</tbody></table></div>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android'da lokal saqlash tarixi</h3>
+<div class="bench" id="evoDb"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>SQLite</dt><dd>Android'ga o'rnatilgan, bitta faylda ishlaydigan relyatsion baza.</dd>
+  <dt>Room</dt><dd>SQLite ustidagi Jetpack kutubxonasi: Entity, DAO, Database, kompilyatsiyadagi SQL tekshiruvi, coroutines va Flow.</dd>
+  <dt>Entity, DAO</dt><dd>Jadvalni ifodalaydigan klass; so'rovlar interfeysi.</dd>
+  <dt>@Upsert</dt><dd>Bor bo'lsa yangilash, yo'q bo'lsa qo'shish.</dd>
+  <dt>TypeConverter</dt><dd>SQLite bilmaydigan turni saqlanadigan turga va aksincha aylantiruvchi.</dd>
+  <dt>InvalidationTracker</dt><dd>Room'ning qaysi jadvallar o'zgarganini kuzatib, tegishli Flow larni qayta ishga tushiradigan qismi.</dd>
+  <dt>Bitta haqiqat manbai</dt><dd>Ekran faqat bitta manbadan (baza) oladi, boshqa manbalar (tarmoq) faqat unga yozadi.</dd>
+  <dt>Migratsiya</dt><dd>Eski sxemali bazani ma'lumotini saqlagan holda yangi sxemaga o'tkazish.</dd>
+  <dt>exportSchema, AutoMigration</dt><dd>Har bir versiya sxemasini JSON faylga yozish; ular asosida avtomatik migratsiya.</dd>
+  <dt>Preferences DataStore</dt><dd>Turlangan kalitli asinxron kalit-qiymat saqlash.</dd>
+  <dt>Proto DataStore</dt><dd>Butun sozlamalarni bitta turlangan obyekt sifatida saqlash.</dd>
+  <dt>SQLiteDriver</dt><dd>Room 2.7+ va Room 3 dagi yangi, Multiplatform SQLite kirish qatlami.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: migratsiyasiz versiya</b>
+  <p>Dasturchi Entity'ga maydon qo'shdi, versiyani oshirdi, lekin migratsiya yozmadi. O'z qurilmasida ilovani o'chirib qayta o'rnatgani uchun hammasi ishladi. Do'kondan yangilangan foydalanuvchilarda esa ilova ochilishda qulaydi.</p>
+  <p class="why">Har bir sxema o'zgarishi: versiya, migratsiya (yoki AutoMigration), sxema fayli repozitoriyda va <span class="num">MigrationTestHelper</span> testi. Kod ko'rib chiqishda sxema JSON fayli o'zgargan bo'lsa, migratsiya ham bo'lishi shart.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: o'ziga kerak bo'lmagan jadvalni kuzatish</b>
+  <p>Kartalar ekranining so'rovi operatsiyalar jadvaliga <span class="num">JOIN</span> qiladi. Har yangi operatsiya kelganda kartalar Flow i ham qayta so'raydi, chunki Room jadval darajasida kuzatadi. Ko'p yozuvli ekranlarda bu ortiqcha ish va keraksiz rekompozitsiya.</p>
+  <p class="why">Ekran faqat kerakli jadvallarni o'qisin; Flow'ga <span class="num">distinctUntilChanged()</span> qo'shing (A4): natija o'zgarmagan bo'lsa, ekran yangilanmaydi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: bir faylga ikki DataStore</b>
+  <p>DataStore'ni har safar <span class="num">PreferenceDataStoreFactory.create(...)</span> bilan yoki ikki joyda <span class="num">preferencesDataStore</span> delegati bilan yaratish: bir faylda ikki nusxa, <span class="num">IllegalStateException</span> yoki ma'lumot yo'qolishi.</p>
+  <p class="why">DataStore ilova bo'yicha bitta, DI orqali <span class="num">single</span> (A6).</p>
+</div>
+<div class="rule">
+  <b>Qoida: pulni REAL ustunda saqlamang</b>
+  <p>SQLite'ning <span class="num">REAL</span> turi 3-darsdagi <span class="num">double</span>. Balans va summalar <span class="num">INTEGER</span> (tiyinda) yoki <span class="num">TEXT</span> (BigDecimal satri) ustunda.</p>
+  <p class="why">Oracle'dagi <span class="num">NUMBER(19,2)</span> qoidasining mobil ko'rinishi.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Room nima va SQLiteOpenHelper'dan nimasi yaxshi?</summary>
+<p>SQLite ustidagi abstraksiya: Entity, DAO, Database. SQL kompilyatsiyada tekshiriladi, mapping kodi yaratiladi, suspend va Flow qo'llab-quvvatlanadi, asosiy oqimda so'rovga sukut bo'yicha ruxsat bermaydi, migratsiya va sxema eksporti bor, InvalidationTracker orqali o'zgarishlarni xabar qiladi.</p></details>
+<details><summary>Room Flow qanday qilib yangi ma'lumotni chiqaradi?</summary>
+<p>InvalidationTracker SQLite triggerlari bilan o'zgargan jadvallarni belgilaydi. Yozuvchi tranzaksiya tugagach, shu jadvallarni o'qiydigan Flow lar so'rovni qayta bajaradi va yangi natijani chiqaradi. Kuzatuv jadval darajasida, shuning uchun natija o'zgarmagan bo'lsa ham chiqishi mumkin: distinctUntilChanged.</p></details>
+<details><summary>Migratsiya nima? U bo'lmasa nima bo'ladi?</summary>
+<p>Versiya oshganda eski bazani ma'lumotini saqlab yangi sxemaga o'tkazish: qo'lda Migration(from, to) SQL bilan yoki AutoMigration eksport qilingan sxemalar asosida. Migratsiya topilmasa, Room IllegalStateException bilan qulaydi; fallbackToDestructiveMigration bazani o'chiradi va ma'lumot yo'qoladi. MigrationTestHelper bilan testlanadi.</p></details>
+<details><summary>Oflayn rejimni qanday qilasiz?</summary>
+<p>Bitta haqiqat manbai: ekran faqat Room Flow ni kuzatadi; repozitoriy tarmoqdan yangilaganda bazaga yozadi. Internet yo'q bo'lsa, ekranda oxirgi kesh va «yangilanmadi» belgisi. Yozish amallari (masalan qoralama) navbatga qo'yilib, WorkManager bilan tarmoq paydo bo'lganda yuboriladi. Pul o'tkazmasini oflayn navbatga qo'yish esa xavfli va odatda qilinmaydi.</p></details>
+<details><summary>DataStore va SharedPreferences farqi? Preferences va Proto farqi?</summary>
+<p>DataStore asinxron (Flow, suspend), asosiy oqimni bloklamaydi, tranzaksiyali, xatolarni ochiq beradi, tur xavfsiz kalitlar. SharedPreferences sinxron o'qiydi, apply ANR ga olib kelishi mumkin, tranzaksiya yo'q. Preferences DataStore: turlangan kalit-qiymat. Proto DataStore: butun sozlamalar bitta turlangan obyekt, protobuf yoki kotlinx.serialization bilan.</p></details>
+<details><summary>Tokenni qayerda saqlaysiz?</summary>
+<p>Shifrsiz SharedPreferences yoki DataStore'da emas. Refresh token Android Keystore'dagi kalit bilan shifrlanib (Tink bilan, DataStore yoki faylda) saqlanadi; EncryptedSharedPreferences endi eskirgan deb belgilangan. Access token iloji boricha faqat xotirada. Batafsil A12 da.</p></details>
+<details><summary>Room 3.0 haqida eshitganmisiz?</summary>
+<p>2026-yil martida birinchi alfa chiqdi: faqat KSP va faqat Kotlin, DAO metodlari suspend yoki Flow bo'lishi shart (bloklovchi metodlar yo'q), to'liq SQLiteDriver API ustida (Multiplatform, veb ham), paket nomi <span class="num">androidx.room3</span> ga o'zgaradi. Room 2.x texnik qo'llab-quvvatlash rejimida. (Holatini suhbatdan oldin tekshiring.)</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>Kartalar ekrani uchun Entity, DAO metodlari va repozitoriyning ishlash tartibini tasvirlang.</li>
+  <li>Yangi versiyada operatsiyalar jadvaliga «kategoriya» ustuni qo'shildi. Qadamlaringiz?</li>
+  <li>Operatsiya qo'shilganda kartalar ekrani ham qayta chizilyapti. Sababi va yechimi?</li>
+  <li>«Balansni yashirish» sozlamasini qayerda saqlaysiz va ekran uni qanday oladi?</li>
+  <li>Oracle tajribangizdan qaysi bilimlar Room bilan ishlashda yordam beradi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>WAL rejimi va bir vaqtda o'qish</summary>
+<p>Room SQLite'ni sukut bo'yicha WAL (write-ahead logging) rejimida ochadi: yozish alohida jurnalga ketadi, shuning uchun o'qishlar yozish paytida ham bloklanmaydi. Bu P0 ning 5-darsidagi «ketma-ket yozish tez» g'oyasining amaliy ko'rinishi va Oracle'dagi redo log ga o'xshaydi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Android: «Save data in a local database using Room», «Migrate your Room database», «App startup: DataStore», «Offline-first apps» (developer.android.com). «Room 3.0: Modernizing Room», Android Developers Blog, 2026-yil mart. DataStore: developer.android.com/topic/libraries/architecture/datastore.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Room: Entity, DAO, Database, SQL kompilyatsiyada tekshiriladi, Flow jadval o'zgarganda qayta chiqaradi. Ekran faqat bazani kuzatadi, tarmoq bazani yangilaydi. Har sxema o'zgarishi migratsiya va test bilan. Sozlamalar DataStore'da, bitta nusxa, maxfiy narsa shifrlangan.</p>
+  <p><strong>Keyingi dars.</strong> A11. Firebase: push xabarlar, analitika, qulashlar hisoboti; Git va GitFlow.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a9-tarmoq.html">Oldingi: A9. Tarmoq</a><a href="a11-firebase-git.html">Keyingi: A11. Firebase va Git</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [3, 4], 'Room va DataStore: data qavati');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- InvalidationTracker ----------
+  (function () {
+    var svg = $('room'), say = $('rmSay'), cur = 0;
+    var C = [
+      { t: 'Kartaga balans yozildi', w: 'UPDATE cards SET balance...', tb: ['cards'], a: true, b: false, s: `cards jadvali o'zgardi. InvalidationTracker tranzaksiya tugagach buni sezdi va cards ni o'qiydigan Flow ga (Kartalar ekrani) «qayta so'ra» dedi: yangi ro'yxat chiqdi, ekran yangilandi. Operatsiyalar ekrani tx jadvalini kuzatadi, unga tegilmadi.` },
+      { t: 'Operatsiya qo\'shildi', w: 'INSERT INTO tx ...', tb: ['tx'], a: false, b: true, s: `tx jadvali o'zgardi: faqat Operatsiyalar ekranining Flow i qayta so'radi. Kartalar ekrani tinch.` },
+      { t: 'Operatsiya, lekin kartalar so\'rovi JOIN bilan', w: 'INSERT INTO tx ...', tb: ['tx'], a: true, b: true, join: true, s: `Kartalar so'rovi har bir karta uchun oxirgi operatsiyani olish uchun tx jadvaliga JOIN qiladi. Endi u ikkala jadvalni kuzatadi va har yangi operatsiyada qayta so'raydi, hatto kartalar o'zgarmagan bo'lsa ham. distinctUntilChanged ekranni keraksiz yangilanishdan saqlaydi.` },
+      { t: '@Transaction: 100 ta karta', w: 'replaceAll(100 ta)', tb: ['cards'], a: true, b: false, tx: true, s: `replaceAll @Transaction ichida: clear va 100 ta upsert bitta tranzaksiya. InvalidationTracker tranzaksiya oxirida bir marta xabar beradi: Flow 101 marta emas, bir marta chiqaradi, va ekran hech qachon yarim bo'sh ro'yxatni ko'rmaydi.` }
+    ];
+    var setT = tabs('rmT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'rmmk');
+      box(svg, 20, 40, 300, 110, 'Yozuvchi DAO', c.tx ? '@Transaction' : 'suspend', 'live'); code(svg, 36, 120, [c.w]);
+      group(svg, 400, 20, 360, 300, 'SQLite: bank.db');
+      box(svg, 420, 60, 150, 70, 'cards', c.tb.indexOf('cards') >= 0 ? 'o\'zgardi' : '', c.tb.indexOf('cards') >= 0 ? 'live' : '');
+      box(svg, 590, 60, 150, 70, 'tx', c.tb.indexOf('tx') >= 0 ? 'o\'zgardi' : '', c.tb.indexOf('tx') >= 0 ? 'live' : '');
+      box(svg, 420, 200, 320, 90, 'InvalidationTracker', 'triggerlar, tranzaksiya oxirida xabar', 'on');
+      arrow(svg, 'rmmk', 'M320 95H398'); arrow(svg, 'rmmk', 'M580 130V198');
+      box(svg, 840, 40, 380, 110, 'Kartalar ekrani Flow', c.join ? 'SELECT ... cards JOIN tx' : 'SELECT * FROM cards', c.a ? (c.join ? 'bad' : 'on') : 'freed');
+      S(svg, 'text', { x: 856, y: 130, 'class': 'val' }, c.a ? 'qayta so\'radi' : 'tinch');
+      box(svg, 840, 190, 380, 110, 'Operatsiyalar ekrani Flow', 'SELECT * FROM tx', c.b ? 'on' : 'freed');
+      S(svg, 'text', { x: 856, y: 280, 'class': 'val' }, c.b ? 'qayta so\'radi' : 'tinch');
+      if (c.a) arrow(svg, 'rmmk', 'M740 230H790V95H838'); if (c.b) arrow(svg, 'rmmk', 'M740 260H838');
+      say.textContent = c.s;
+    }
+    draw();
+  })();
+
+  // ---------- Bitta haqiqat manbai ----------
+  (function () {
+    var svg = $('ssot'), say = $('ssSay'), k = -1;
+    var S2 = [
+      { db: 'kesh: 2 ta karta (kecha)', net: 'so\'rov ketdi', ui: '2 ta karta, «yangilanmoqda»', a: [1, 1, 0], s: `Ekran ochildi va darhol bazadagi keshni ko'rsatdi: foydalanuvchi bo'sh ekranni yoki yuklanish belgisini kutmaydi. Shu payt repozitoriy fonda tarmoqqa so'rov yubordi.` },
+      { db: 'yangi: 3 ta karta', net: '200: 3 ta karta', ui: '3 ta karta', a: [1, 1, 1], s: `Tarmoq javobi ekranga emas, bazaga yozildi (bitta tranzaksiyada). Room Flow buni sezib, yangi ro'yxatni ekranga yetkazdi. Ekranda ma'lumotning yagona manbai baza.` },
+      { db: 'o\'zgarmadi: 3 ta karta', net: 'IOException', ui: '3 ta karta + «Internet yo\'q, ma\'lumot 10:42 holatiga»', a: [0, 1, 0], s: `Yangilashda internet yo'q. Baza o'zgarmadi, ekran oxirgi ma'lum holatni ko'rsatishda davom etadi, ustida xato belgisi va oxirgi yangilanish vaqti. Foydalanuvchi ilovadan foydalanishda davom etadi.` }
+    ];
+    function draw() {
+      svg.textContent = ''; marker(svg, 'ssmk'); var s = S2[k] || { db: 'kesh: 2 ta karta (kecha)', net: '—', ui: '—', a: [0, 0, 0] };
+      box(svg, 20, 100, 300, 120, 'Ekran (Compose)', 'faqat bazani kuzatadi', s.a[0] ? 'on' : ''); code(svg, 36, 190, wrap(s.ui, 34), 'sub');
+      box(svg, 470, 100, 300, 120, 'Room (bitta haqiqat manbai)', '', s.a[2] ? 'live' : 'on'); code(svg, 486, 180, [s.db], 'sub');
+      box(svg, 920, 100, 300, 120, 'Tarmoq (Retrofit)', 'faqat bazaga yozadi', k === 2 ? 'bad' : (s.a[1] ? 'live' : '')); code(svg, 936, 190, [s.net], 'sub');
+      arrow(svg, 'ssmk', 'M470 160H322', 'Flow', 396, 150); arrow(svg, 'ssmk', 'M920 160H772', k === 2 ? 'yozilmadi' : 'upsert', 846, 150);
+      S(svg, 'text', { x: 20, y: 280, 'class': 'sub' }, 'Ekran tarmoq bilan to\'g\'ridan-to\'g\'ri gaplashmaydi: shuning uchun ikki manba o\'rtasida ziddiyat yo\'q.');
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-ss]'), function (b) { b.addEventListener('click', function () { k = +b.getAttribute('data-ss'); draw(); say.textContent = S2[k].s; }); });
+    draw(); say.textContent = `Bazada kechagi kesh bor. «Ekran ochildi» ni bosing.`;
+  })();
+
+  window.evoStepper('evoDb', [
+    { name: `SQLite va SharedPreferences`, years: `2008-yildan`, art: `<ellipse cx="60" cy="30" rx="30" ry="10"/><path d="M30 30v40c0 6 13 10 30 10s30-4 30-10V30"/>`, how: `SQLiteOpenHelper, Cursor, satr SQL; sozlamalar uchun XML fayldagi SharedPreferences.`, better: `Har qurilmada bor, tez, ishonchli.`, pain: `Qo'lda mapping, ish paytidagi SQL xatolari, asosiy oqimda bloklash.`, ex: `ContentProvider ilovalar orasida ma'lumot bo'lishish uchun.` },
+    { name: `ORM'lar`, years: `2011–2017`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><path d="M30 50h60" class="acc"/>`, how: `greenDAO, ORMLite, DBFlow; o'z dvigateliga ega Realm (2014).`, better: `Mapping avtomatik, ba'zilarida reaktiv so'rovlar.`, pain: `Har birining o'z qoidalari, Realm'da oqimlar cheklovlari va katta kutubxona.`, ex: `Bugun eski loyihalarda uchraydi.` },
+    { name: `Room`, years: `2017`, art: `<rect x="24" y="24" width="72" height="52" rx="6" class="acc"/><path d="M36 40h48M36 52h48M36 64h30"/>`, how: `Architecture Components bilan: SQLite ustida yupqa qatlam, kompilyatsiyadagi SQL tekshiruvi, LiveData, keyin RxJava, coroutines (2.1) va Flow (2.2, 2019).`, better: `Rasmiy, xavfsiz, testlanadigan, migratsiya vositalari.`, pain: `kapt bilan sekin yig'ish (keyin KSP).`, ex: `Bugun Android'da standart.` },
+    { name: `DataStore`, years: `2020 alfa, 2021 barqaror`, art: `<rect x="30" y="30" width="60" height="40" rx="4"/><path d="M40 50h40" class="acc"/>`, how: `Kotlin coroutines va Flow ustida SharedPreferences o'rnini bosuvchi.`, better: `Asinxron, tranzaksiyali, turlangan.`, pain: `Katta yoki relyatsion ma'lumot uchun emas: buning uchun Room.`, ex: `Multiplatform versiyasi ham bor.` },
+    { name: `Room KMP va Room 3`, years: `2025–2026`, art: `<rect x="20" y="24" width="36" height="52" rx="4"/><rect x="64" y="24" width="36" height="52" rx="4" class="acc"/>`, how: `Room 2.7 Multiplatform va SQLiteDriver API ni barqaror qildi. Room 3.0 ning birinchi alfasi 2026-yil martida: faqat KSP va Kotlin, coroutines birinchi, androidx.room3 paketi, veb qo'llab-quvvatlash.`, better: `Bitta baza kodi Android, iOS, desktop va vebda.`, pain: `Room 3 ga ko'chish: paket nomi, bloklovchi DAO larni olib tashlash.`, ex: `Room 2.x texnik qo'llab-quvvatlash rejimida. Holatini developer.android.com/jetpack/androidx/releases/room3 dan tekshiring.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
