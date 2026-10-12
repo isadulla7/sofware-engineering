@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>7-dars. Mashina kodi va saqlangan dastur</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P0 Kompyuter ichi</p>
+<h1>7-dars. Mashina kodi va saqlangan dastur</h1>
+<p class="lead">Savol: protsessor bajaradigan buyruqlar baytlarda qanday yoziladi, va nega dastur ma'lumot bilan bitta xotirada yotadi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Mashina kodi</strong> protsessor to'g'ridan-to'g'ri bajaradigan buyruqlar, baytlar ko'rinishida. Har bir buyruq son: uning bir qismi «nima qilish kerak», qolgani «nima bilan».</p>
+    <p><strong>Saqlangan dastur</strong> g'oyasi: dastur ham ma'lumot kabi xotirada saqlanadi. Protsessor buyruqlarni xotiradan o'zi o'qiydi, shuning uchun dasturni almashtirish uchun mashinani qayta ulash shart emas, xotiraga boshqa baytlarni yozish kifoya.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Har bir ishga tushadigan faylda.</strong> Ilova, kutubxona, operatsion tizim: ichida mashina kodi.</li>
+      <li><strong>Java'da.</strong> <span class="num">.class</span> fayl ichida baytkod, ya'ni xayoliy mashinaning mashina kodi. JVM uni ish paytida haqiqiy protsessor kodiga aylantiradi.</li>
+      <li><strong>Serverlarda.</strong> Intel/AMD va ARM protsessorlari har xil mashina kodini tushunadi. «exec format error» va <span class="num">UnsupportedClassVersionError</span> xatolari shu yerdan.</li>
+      <li><strong>Xavfsizlikda.</strong> Dastur va ma'lumot bitta xotirada bo'lgani uchun ma'lumotni buyruq qilib bajartirish hujumlari mavjud.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>buyruq baytlarda qanday tuzilgan: buyruq kodi va operandlar;</li>
+      <li>saqlangan dastur nima va u qaysi og'riqdan chiqqan;</li>
+      <li>nega bitta bayt ham buyruq, ham son bo'lishi mumkin;</li>
+      <li>nega x86 uchun yozilgan dastur ARM da ishlamaydi;</li>
+      <li>Java baytkodi nima va u nega «bir marta yoz, hamma joyda ishlat» imkonini beradi.</li>
+    </ul>
+    <p>Amaliy foydasi: dastur boshqa serverda ishga tushmasa, sababi protsessor turimi yoki Java versiyasimi, farqlay olasiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada qavatlar. 6-darsda protsessor qavati qo'shilgan edi. Bu darsda u bilan JVM orasidagi qavat ochiladi: protsessor tushunadigan til.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Java kodidan kalitgacha bo'lgan qavatlar, mashina kodi qavati ajratib ko'rsatilgan"></svg></div>
+  <figcaption>Kodingizdagi bitta qator yuqoridan pastga qanday yo'l bosadi. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Dasturlashning saqlangan dasturdan oldingi usullari va ularning og'rig'i</li>
+      <li>Buyruqni baytlarda yozish: buyruq kodi va operandlar</li>
+      <li>Saqlangan dastur, fon Neyman va Garvard arxitekturalari</li>
+      <li>Buyruqlar to'plami: x86 va ARM, CISC va RISC</li>
+      <li>Java baytkodi, JVM va JIT kompilyator</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Buyruqlarga nom berish va dasturni nomlar bilan yozish (assembler): keyingi bo'lim, 8-darsdan</li>
+      <li>Sakrash buyruqlari bilan <span class="num">if</span> va <span class="num">while</span>: 9-darsda</li>
+      <li>Baytkodning to'liq tuzilishi va JIT ning ichki ishi: Java yo'nalishida</li>
+      <li>Operatsion tizim dasturni qanday ishga tushirishi: Infratuzilma yo'nalishida</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Dastur mashinaning tashqarisida</h3>
+<p>6-darsdagi kichik kompyuter buyruqlarni xotiradan olib bajardi. Bu bugun tabiiy ko'rinadi, lekin birinchi elektron kompyuterlar bunday ishlamagan. Ularda dastur xotirada emas, mashinaning tashqarisida edi, va uni o'zgartirish og'ir jismoniy ish edi.</p>
+<ul>
+  <li><strong>Kabellar va tumblerlar.</strong> ENIAC (1945) hisoblash bloklari orasidagi yuzlab kabellarni qo'lda ulash va minglab tumblerlarni burash bilan dasturlangan. Yangi masala uchun mashinani qayta ulash kunlab, ba'zan haftalab davom etgan. Shu vaqt ichida mashina ishlamay turgan.</li>
+  <li><strong>Teshikli lenta.</strong> Boshqa mashinalarda (masalan, Garvard Mark I, 1944) buyruqlar qog'oz lentadagi teshiklar bilan yozilgan va mashina ularni birin-ketin o'qigan. Qayta ulash kerak emas, lekin lenta faqat oldinga yuradi: «orqaga qaytib, shu qismni yana takrorla» deyish qiyin, sikl uchun lentaning uchlarini yopishtirib halqa qilishgan.</li>
+</ul>
+<p>Ikkala usulda ham ikki og'riq bor. Birinchisi: dasturni almashtirish sekin va qimmat. Ikkinchisi: mashina dasturning istalgan joyiga tez «sakray» olmaydi, chunki dastur o'qilishi qiyin bo'lgan joyda turibdi. Kerak bo'lgan narsa: dasturni ham tez o'qiladigan, istalgan joyiga murojaat qilsa bo'ladigan va osongina qayta yoziladigan joyda saqlash. Bunday joy allaqachon bor edi: ma'lumot uchun xotira.</p>
+
+<h3><span class="part">2. Ichkarida</span>Buyruq ham son</h3>
+
+<p class="beat">Buyruqni baytlarga joylash</p>
+<p>Dasturni xotirada saqlash uchun avval har bir buyruqni son bilan yozishni kelishib olish kerak. 6-darsdagi «yukla R1, [100]» buyrug'ida uch narsa bor: amal (yuklash), registr (R1) va adres (100). Har biriga bitlar ajratamiz.</p>
+<ul>
+  <li><strong>Buyruq kodi.</strong> Qaysi amal bajarilishini bildiradigan son. Inglizcha «opcode». Masalan, yuklash 1, saqlash 2, qo'shish 3.</li>
+  <li><strong>Operandlar.</strong> Amal nima bilan bajarilishi: qaysi registr, qaysi adres yoki qaysi son.</li>
+</ul>
+<p>Bu darsda o'quv protsessori uchun eng sodda kelishuvni olamiz: har bir buyruq 2 bayt. Birinchi baytning yuqori yarmi (4 bit) buyruq kodi, pastki yarmi (4 bit) registr raqami. Ikkinchi bayt adres yoki ikkinchi registr. 4-darsdagi o'n oltilik yozuv bu yerda juda qulay: har bir yarim bayt bitta o'n oltilik raqam, shuning uchun <span class="num">11 0C</span> ni ko'rib, darhol «1-buyruq, R1, 12-adres» deb o'qish mumkin.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="enc" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Buyruq qismlari bitlarga joylanadi va ikki baytga aylanadi"></svg>
+  </div>
+  <figcaption>Chapda buyruq odam yozadigan ko'rinishda. O'rtada uning uch qismi va har biriga ajratilgan bitlar. O'ngda xotiraga yoziladigan ikki bayt.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">Amal</p>
+  <div class="evo-tabs" id="enOp"></div>
+  <div class="slider">
+    <label for="enR">Registr (0 dan 3 gacha):</label>
+    <input class="numin" id="enR" type="number" min="0" max="3" value="1">
+    <label for="enA" id="enAl">Adres (0 dan 255 gacha):</label>
+    <input class="numin" id="enA" type="number" min="0" max="255" value="12">
+  </div>
+  <p class="say" id="enSay" aria-live="polite"></p>
+</figure>
+
+<p>O'quv protsessorimizning to'liq buyruqlar ro'yxati:</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Kod</th><th>Buyruq</th><th>Ikkinchi bayt</th><th>Nima qiladi</th></tr></thead>
+<tbody>
+<tr><td class="num">1</td><td>yukla R, [a]</td><td>adres</td><td>a-adresdagi baytni R registriga oladi</td></tr>
+<tr><td class="num">2</td><td>saqla [a], R</td><td>adres</td><td>R registridagi sonni a-adresga yozadi</td></tr>
+<tr><td class="num">3</td><td>qo'sh R, Q</td><td>ikkinchi registr</td><td>R ga Q ni qo'shadi, natija R da</td></tr>
+<tr><td class="num">4</td><td>ayir R, Q</td><td>ikkinchi registr</td><td>R dan Q ni ayiradi, natija R da</td></tr>
+<tr><td class="num">5</td><td>sakra a</td><td>adres</td><td>buyruq hisoblagichiga a ni yozadi: keyingi buyruq a-adresdan olinadi</td></tr>
+<tr><td class="num">6</td><td>nol bo'lsa sakra R, a</td><td>adres</td><td>R nolga teng bo'lsa sakraydi, aks holda keyingi buyruqqa o'tadi</td></tr>
+<tr><td class="num">F</td><td>to'xta</td><td>ishlatilmaydi</td><td>protsessorni to'xtatadi</td></tr>
+</tbody>
+</table>
+</div>
+<p>Qolgan kodlar (0, 7 dan E gacha) hech qanday buyruqqa berilmagan. Protsessor ularni uchratsa, nima qilishni bilmaydi va to'xtaydi. Haqiqiy protsessorlarda bunday holat «noma'lum buyruq» xatosi deyiladi va operatsion tizim dasturni yopadi.</p>
+<p>Bu kelishuvning o'zi <strong>buyruqlar to'plami</strong> deyiladi: protsessor tushunadigan barcha buyruqlar va ularning baytlarda yozilish qoidasi. Haqiqiy protsessorlarda buyruqlar yuzlab va minglab, qoidalari ancha murakkab, lekin g'oya aynan shu: buyruq kodi va operandlar.</p>
+
+<p class="beat">Saqlangan dastur</p>
+<p>Endi buyruqlar son bo'ldi. Demak ularni ma'lumot bilan bitta xotiraga yozish mumkin. Bu g'oya 1945-yilda Jon fon Neyman imzolagan «EDVAC haqida hisobotning birinchi qoralamasi» hujjatida tizimli bayon qilingan, shuning uchun bunday tuzilma <strong>fon Neyman arxitekturasi</strong> deyiladi (g'oya ustida ENIAC jamoasi ham ishlagan, faqat ular hujjatda nomlanmagan). Uning mohiyati uch jumla:</p>
+<ul>
+  <li>dastur ham, ma'lumot ham bitta xotirada, bir xil baytlar ko'rinishida turadi;</li>
+  <li>protsessor buyruqni buyruq hisoblagichi ko'rsatgan adresdan o'qiydi;</li>
+  <li>xotira qaysi bayt buyruq, qaysi bayt son ekanini bilmaydi.</li>
+</ul>
+<p>Pastdagi chizmada 6-darsdagi o'sha <span class="num">natija = balans + summa</span>, lekin endi haqiqiy baytlar bilan. Xotiraning 0 dan 9 gacha adreslarida dastur (beshta buyruq, har biri 2 bayt), 12 dan 14 gacha adreslarida ma'lumot. Avval dasturni oddiy bajaring. Keyin pastdagi tajribalarni sinab ko'ring.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="prog" style="width:1240px;height:500px" viewBox="0 0 1240 500" role="img" aria-label="Xotirada dastur baytlari va ma'lumot baytlari yonma-yon, protsessor buyruqlarni baytlardan o'qib bajaradi"></svg>
+  </div>
+  <figcaption>Chapda protsessor: buyruq hisoblagichi, o'qilgan ikki bayt va ularning ma'nosi, registrlar. O'ngda xotiraning 16 bayti. Har bir katakda adres va o'n oltilik qiymat. Ko'k kataklar hozir buyruq sifatida o'qilgan baytlar.</figcaption>
+  <div class="slider">
+    <button type="button" id="pgStep">Bitta buyruq</button>
+    <button type="button" id="pgRun">Oxirigacha</button>
+    <button type="button" id="pgReset">Boshidan</button>
+  </div>
+  <p class="pick-label">Tajribalar</p>
+  <div class="evo-tabs" id="pgExp"></div>
+  <div class="slider">
+    <label for="pgA">Adres:</label>
+    <input class="numin" id="pgA" type="number" min="0" max="15" value="13" style="width:5rem">
+    <label for="pgV">Yangi bayt (o'n oltilik):</label>
+    <input class="numin" id="pgV" type="text" value="1E" maxlength="2" style="width:5rem">
+    <button type="button" id="pgW">Xotiraga yoz</button>
+  </div>
+  <p class="say" id="pgSay" aria-live="polite"></p>
+</figure>
+
+<p>Tajribalardan to'rt narsani olib qoling.</p>
+<p><strong>Dasturni almashtirish baytlarni almashtirish.</strong> «Qo'shishni ayirishga almashtir» tajribasida bitta baytni o'zgartirdik, va dastur boshqa ish qila boshladi. Hech qanday kabel ulanmadi. ENIAC da kunlab ketadigan ish bir zumda bo'ldi. Saqlangan dasturning asosiy yutug'i shu.</p>
+<p><strong>Bitta bayt ham son, ham buyruq.</strong> 12-adresdagi <span class="num">32</span> baytini «balans = 50» deb ham, «qo'sh R2, ...» buyrug'ining boshi deb ham o'qish mumkin. Qaysi biri ekanini faqat bitta narsa hal qiladi: protsessor bu baytga qanday yetib keldi. Buyruq hisoblagichi orqali kelsa, bu buyruq. «Yukla» buyrug'i orqali kelsa, bu son. 1-darsdagi «bitlarning ma'nosini o'qigan beradi» degan fikrning eng kuchli ko'rinishi shu.</p>
+<p><strong>Dastur o'z-o'zini buzishi mumkin.</strong> «To'xta buyrug'ini o'chir» tajribasida protsessor dastur tugagan joydan to'xtamay davom etdi va ma'lumotni buyruq deb bajara boshladi. U ma'lumot tugaganini bilmaydi: buyruq hisoblagichi qayerni ko'rsatsa, o'sha yerni o'qiydi.</p>
+<p><strong>Xavf ham shu yerdan.</strong> Agar hujumchi dasturga ma'lumot sifatida o'z baytlarini kiritsa va qandaydir xato tufayli protsessor shu baytlarga sakrasa, hujumchining kodi bajariladi. Bu hujumlar oilasi (bufer to'lishi va kod kiritish) o'nlab yillar davomida eng xavfli zaifliklar bo'lib kelgan. Bugungi protsessor va operatsion tizimlar xotiraning ma'lumot uchun ajratilgan qismini «bajarib bo'lmaydi» deb belgilaydi, va bu ularni ancha qiyinlashtirgan. Java'da esa massiv chegarasidan tashqariga yozib bo'lmaydi: <span class="num">ArrayIndexOutOfBoundsException</span> aynan shunday holatlardan himoya.</p>
+
+<p class="beat">Fon Neyman va Garvard: bitta yo'l yoki ikkita</p>
+<p>Fon Neyman arxitekturasida dastur va ma'lumot bitta xotirada va protsessorga bitta yo'l orqali keladi. Buning narxi bor: protsessor bir vaqtning o'zida buyruqni ham, ma'lumotni ham ola olmaydi, ular bitta yo'lda navbat kutadi. Bu cheklov «fon Neyman tor bo'g'izi» deb ataladi. 5- va 6-darslarda ko'rgan narsa, ya'ni protsessor xotiradan yuzlab marta tez ishlashi, bu tor bo'g'izni yanada og'irlashtiradi.</p>
+<p>Muqobili <strong>Garvard arxitekturasi</strong> (nomi Garvard Mark I dan): buyruqlar uchun alohida xotira, ma'lumot uchun alohida xotira, ikkita alohida yo'l. Bir vaqtda ikkalasini olish mumkin, lekin dasturni ma'lumot kabi yuklab yoki o'zgartirib bo'lmaydi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="vn" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Fon Neyman arxitekturasi: bitta xotira va bitta yo'l; Garvard arxitekturasi: ikki xotira va ikki yo'l"></svg>
+  </div>
+  <figcaption>Chapda fon Neyman: buyruq va ma'lumot bitta yo'ldan navbat bilan keladi. O'ngda Garvard: ikki yo'l, ikki xotira.</figcaption>
+</figure>
+
+<p>Bugungi kompyuterlar ikkalasining aralashmasi. Asosiy xotira fon Neyman tarzida: dastur ham, ma'lumot ham bitta RAM da, shuning uchun dasturni diskdan yuklash mumkin. Protsessor ichida esa 6-darsdagi L1 kesh ikkiga bo'lingan: buyruqlar keshi va ma'lumot keshi. Ya'ni yaqin masofada Garvard tarzida ishlaydi va tor bo'g'izni yumshatadi.</p>
+
+<p class="beat">Buyruqlar to'plami: har bir protsessor oilasining o'z tili</p>
+<p>Biz o'quv protsessori uchun o'z buyruqlar to'plamimizni o'ylab topdik. Haqiqiy protsessor ishlab chiqaruvchilar ham xuddi shunday qiladi, va bugun ikkita to'plam hukmron:</p>
+<ul>
+  <li><strong>x86</strong> (bugungi 64 bitli ko'rinishi x86-64): Intel va AMD protsessorlari, ya'ni deyarli barcha shaxsiy kompyuter va serverlarning katta qismi. 1978-yilgi Intel 8086 dan boshlangan. Buyruqlari har xil uzunlikda: 1 baytdan 15 baytgacha.</li>
+  <li><strong>ARM</strong> (bugungi 64 bitli ko'rinishi ARM64 yoki AArch64): deyarli barcha telefonlar, Apple'ning M protsessorlari, bulutdagi ko'plab serverlar. Buyruqlari bir xil uzunlikda: har biri 4 bayt.</li>
+</ul>
+<p>Pastdagi chizmada bir xil amal uch xil protsessor uchun qanday yozilishi ko'rsatilgan.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="isa" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Ikki registrni qo'shish buyrug'i o'quv protsessorida, x86-64 da va ARM64 da"></svg>
+  </div>
+  <figcaption>Har bir guruhda bitta protsessor oilasi. Yuqorida «ikki registrni qo'shish», pastda «funksiyadan qaytish» buyrug'i, xotirada qanday baytlar bo'lib yotgani bilan.</figcaption>
+</figure>
+
+<p>Bundan amaliy xulosa chiqadi: <strong>bir protsessor uchun yozilgan mashina kodi boshqasida ishlamaydi.</strong> x86 protsessori uchun <span class="num">01 D8</span> «qo'sh» degani, ARM protsessori uchun esa bu baytlar boshqa buyruqning bo'lagi yoki umuman ma'nosiz. Shuning uchun dasturlar har bir protsessor oilasi uchun alohida tayyorlanadi. «Bu ilova Apple M uchun», «bu Docker obrazi faqat amd64 uchun» degan yozuvlar shu haqda.</p>
+<p>Ikki to'plam ikki falsafadan chiqqan. x86 <strong>CISC</strong> («murakkab buyruqlar to'plami») an'anasidan: bitta buyruq ko'p ish qila oladi, masalan xotiradan o'qib, qo'shib, qaytarib yozish. Bu 1970-yillarda muhim edi, chunki xotira qimmat va dastur ixcham bo'lishi kerak edi. ARM <strong>RISC</strong> («qisqartirilgan buyruqlar to'plami») an'anasidan: buyruqlar sodda va bir xil uzunlikda, xotira bilan faqat alohida yuklash va saqlash buyruqlari ishlaydi, xuddi bizning o'quv protsessorimizdagidek. Sodda buyruqlarni tez va kam tok sarflab bajarish oson. Bugun bu chegara xiralashgan: zamonaviy x86 protsessorlari murakkab buyruqlarni ichkarida RISC'ga o'xshash mayda amallarga bo'lib bajaradi.</p>
+
+<p class="beat">Java qayerda: baytkod va JVM</p>
+<p>Agar mashina kodi har bir protsessor uchun har xil bo'lsa, bitta Java dasturi qanday qilib Intel serverda ham, Apple noutbukda ham ishlaydi? Java'ning javobi: kompilyator mashina kodini emas, <strong>baytkodni</strong> yozadi. Baytkod xayoliy protsessor, ya'ni Java virtual mashinasi uchun mashina kodi. Uning ham buyruq kodlari va operandlari bor, xuddi bizning o'quv protsessorimizdagidek, faqat hech qaysi haqiqiy protsessor uni to'g'ridan-to'g'ri bajarmaydi.</p>
+<p>Har bir kompyuterga o'sha kompyuterning protsessori uchun yozilgan JVM o'rnatiladi. U baytkodni o'qiydi va ikki usulda bajaradi: avval birma-bir tarjima qilib (interpretator), keyin tez-tez ishlaydigan qismlarini shu protsessorning haqiqiy mashina kodiga kompilyatsiya qilib (JIT kompilyator, «ayni vaqtida kompilyatsiya»). Natijada bitta <span class="num">.class</span> fayl har qanday protsessorda ishlaydi, mashina kodiga tarjimani esa har bir kompyuterdagi JVM o'zi qiladi.</p>
+
+<figure class="fig">
+  <div class="scrollx">
+    <svg class="dg" id="jvm" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Java kodi kompilyator orqali baytkodga, baytkod JVM orqali turli protsessorlarning mashina kodiga aylanadi"></svg>
+  </div>
+  <figcaption>Chapdan o'ngga: Java matni, javac kompilyatori, bitta .class fayldagi baytkod, va har xil kompyuterlardagi JVM lar uni o'z protsessorining mashina kodiga aylantirishi.</figcaption>
+</figure>
+
+<p>Chizmadagi baytkodga qarang: <span class="num">1B 1C 60 3E</span>. Bu to'rtta bir baytli buyruq: birinchi o'zgaruvchini yukla, ikkinchisini yukla, qo'sh, natijani uchinchi o'zgaruvchiga saqla. Bizning o'quv protsessorimizdagi «yukla, yukla, qo'sh, saqla» bilan bir xil tuzilma. Farqi: JVM registrlar o'rniga stek ishlatadi, shuning uchun buyruqlarda registr raqami yo'q. Stek nimaligini 10-darsda ko'ramiz.</p>
+<p>Bu yo'lning narxi ham bor. Dastur ishga tushganda JVM hali hech narsani mashina kodiga aylantirmagan, kod sekinroq ishlaydi va tezlik asta-sekin oshadi. Bu «qizish» deyiladi. Server qayta ishga tushgandan keyingi birinchi so'rovlar keyingilaridan sekinroq bo'lishining sabablaridan biri shu.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Kabeldan baytkodgacha</h3>
+<p>Bu tarix bitta savol atrofida: dastur qayerda turadi va uni kim tushunadi? Har bosqichda dastur jismoniy qurilmadan bir qadam uzoqlashgan.</p>
+<div class="bench" id="evoCode"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Mashina kodi</dt>
+  <dd>Protsessor to'g'ridan-to'g'ri bajaradigan buyruqlar, baytlar ko'rinishida.</dd>
+  <dt>Buyruq kodi</dt>
+  <dd>Buyruqning qaysi amal ekanini bildiradigan qismi. Inglizcha «opcode».</dd>
+  <dt>Operand</dt>
+  <dd>Buyruq nima bilan ishlashini bildiradigan qismi: registr, adres yoki son.</dd>
+  <dt>Buyruqlar to'plami</dt>
+  <dd>Protsessor tushunadigan barcha buyruqlar va ularning baytlarda yozilish qoidasi. Inglizcha «instruction set architecture», qisqacha ISA. Masalan x86-64, ARM64.</dd>
+  <dt>Saqlangan dastur</dt>
+  <dd>Dastur ma'lumot kabi xotirada saqlanadi va protsessor buyruqlarni xotiradan o'zi o'qiydi degan g'oya.</dd>
+  <dt>Fon Neyman arxitekturasi</dt>
+  <dd>Dastur va ma'lumot bitta xotirada va protsessorga bitta yo'l orqali keladigan tuzilma.</dd>
+  <dt>Fon Neyman tor bo'g'izi</dt>
+  <dd>Buyruq va ma'lumot bitta yo'ldan navbat bilan kelishi tufayli protsessorning xotirani kutib qolishi.</dd>
+  <dt>Garvard arxitekturasi</dt>
+  <dd>Buyruqlar va ma'lumot uchun alohida xotira va alohida yo'l. Bugun protsessor ichidagi L1 keshda ishlatiladi.</dd>
+  <dt>CISC va RISC</dt>
+  <dd>Buyruqlar to'plamini loyihalashning ikki yondashuvi. CISC: murakkab, har xil uzunlikdagi buyruqlar (x86). RISC: sodda, bir xil uzunlikdagi buyruqlar, xotira bilan faqat yuklash va saqlash orqali (ARM).</dd>
+  <dt>Baytkod</dt>
+  <dd>Virtual mashina uchun mashina kodi. Java'da <span class="num">.class</span> fayl ichida turadi.</dd>
+  <dt>JVM</dt>
+  <dd>Java virtual mashinasi: baytkodni o'qib, uni o'zi turgan kompyuter protsessorida bajaradigan dastur.</dd>
+  <dt>Interpretator</dt>
+  <dd>Buyruqlarni birma-bir o'qib, har birini darhol bajaradigan dastur.</dd>
+  <dt>JIT kompilyator</dt>
+  <dd>Dastur ishlab turgan paytda tez-tez bajariladigan kodni mashina kodiga aylantiradigan kompilyator. «Just-in-time», ya'ni «ayni vaqtida».</dd>
+  <dt>Disassembler</dt>
+  <dd>Mashina kodi yoki baytkod baytlarini odam o'qiy oladigan buyruq nomlariga qaytaradigan asbob. Java'da <span class="num">javap -c</span>.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar va qoidalar</h3>
+
+<div class="rule">
+  <b>Tuzoq: «exec format error» va boshqa protsessor</b>
+  <p>Dasturchi Apple M noutbukida (ARM) Docker obrazini yig'ib, uni Intel serverga (x86) qo'yadi. Konteyner ishga tushmaydi va «exec format error» xatosini beradi. Yoki aksincha: x86 uchun yig'ilgan obraz bulutdagi ARM serverda ishlamaydi.</p>
+  <p class="why">Sababi shu darsda: obraz ichidagi dasturlar bitta buyruqlar to'plami uchun mashina kodida, server protsessori esa boshqa tilni tushunadi. Java'ning o'zi ikkala protsessorda ishlaydi, lekin obrazdagi JVM, operatsion tizim va ba'zi kutubxonalar mashina kodida. To'g'risi: obrazni kerakli protsessor uchun yig'ish (Docker'da <span class="num">--platform linux/amd64</span>) yoki ikkalasi uchun yig'ish. Bu Infratuzilma yo'nalishida batafsil.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: UnsupportedClassVersionError</b>
+  <p>Dastur ishga tushganda «class file version 65.0, this version of the Java Runtime only recognizes class file versions up to 61.0» degan xato chiqadi. Bu baytkod yangi Java'da kompilyatsiya qilingan, serverda esa eskiroq JVM turibdi, va u yangi baytkodni tushunmaydi.</p>
+  <p class="why">Har bir <span class="num">.class</span> fayl boshida baytkod versiyasi yozilgan. Eslab qolish kerak bo'lgan juftliklar: 52 bu Java 8, 55 bu Java 11, 61 bu Java 17, 65 bu Java 21. Har bir keyingi Java versiyasi bittaga oshadi. Yechim: yoki serverdagi Java'ni yangilash, yoki kompilyatsiyada eski versiyani nishonga olish (<span class="num">javac --release 17</span>, Maven va Gradle'da xuddi shu sozlama).</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: ma'lumot hech qachon kod sifatida bajarilmasin</b>
+  <p>Saqlangan dasturning eng xavfli tomoni: kod va ma'lumot bir xil baytlar. Java bufer to'lishidan himoya qiladi, lekin xuddi shu xato yuqoriroq qavatda qaytadi: foydalanuvchi kiritgan matn SQL so'rov ichiga yopishtirilsa, baza uni so'rovning bir qismi deb bajaradi. Bu «SQL in'ektsiya» deyiladi.</p>
+  <p class="why">To'g'risi: foydalanuvchidan kelgan qiymat har doim parametr sifatida uzatiladi (<span class="num">PreparedStatement</span> va <span class="num">?</span>, PL/SQL'da bog'langan o'zgaruvchilar), hech qachon so'rov matniga qo'shilmaydi. Bu bitta g'oyaning ikki ko'rinishi: ma'lumot va buyruq orasidagi chegarani saqlash.</p>
+</div>
+
+<div class="rule">
+  <b>Qoida: Java'ning birinchi daqiqalaridagi tezlikka ishonmang</b>
+  <p>JVM ishga tushganda kod interpretatorda ishlaydi, JIT esa tez-tez ishlaydigan joylarni asta-sekin mashina kodiga aylantiradi. Shuning uchun xizmat ishga tushgandan keyingi birinchi so'rovlar sekinroq, va yuk sinovining birinchi daqiqalari umumiy rasmni noto'g'ri ko'rsatadi.</p>
+  <p class="why">Amalda: yuk sinovida qizish vaqtini hisobga olmaslik, yangi nusxani yuk balanslagichga darhol to'liq yuk bilan emas, asta-sekin qo'shish. 6-darsdagi «kichik kodni soat bilan o'lchash» tuzog'ining sabablaridan biri ham shu.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> O'quv protsessorimiz uchun «saqla [15], R2» va «sakra 0» buyruqlarini o'n oltilik baytlarda yozing. Keyin <span class="num">42 01</span> ni o'qing: bu qaysi buyruq? Kodlash chizmasida tekshiring.</li>
+  <li><strong>Dastur chizmasida.</strong> «Qo'shishni ayirishga almashtir» tajribasidan keyin dasturni boshidan bajaring. Natija nechchi chiqdi? Keyin 13-adresga o'n oltilikda <span class="num">3C</span> (o'nlikda 60) yozing va yana bajaring: 50 dan 60 ayirilsa, nega 246 chiqadi (2-darsdagi halqani eslang)?</li>
+  <li><strong>Dastur chizmasida.</strong> «To'xta buyrug'ini o'chir» tajribasini bajaring. Protsessor qaysi adresda va nima uchun to'xtadi?</li>
+  <li><strong>Kodda.</strong> Quyidagi klassni yozing, kompilyatsiya qiling va baytkodini ko'ring:
+    <pre class="code" style="margin-top:0.5rem">public class Qosh {
+    static int qosh(int a, int b) { int c = a + b; return c; }
+}</pre>
+    <pre class="code">javac Qosh.java
+javap -c Qosh          # baytkod buyruqlari
+javap -v Qosh | head   # "major version" qatorini toping
+xxd Qosh.class | head -1   # birinchi to'rt bayt</pre>
+    <span class="num">qosh</span> metodida qaysi buyruqlarni ko'rdingiz? Faylning birinchi to'rt bayti nima? «major version» nechchi va u qaysi Java versiyasiga mos keladi?</li>
+  <li><strong>O'z ishingizda.</strong> Ishdagi serverlaringiz qaysi protsessorda ishlaydi va ularda qaysi Java versiyasi turibdi? Linux'da <span class="num">uname -m</span> (x86_64 yoki aarch64) va <span class="num">java -version</span> buyruqlari javob beradi. Loyihangiz qaysi Java versiyasi uchun kompilyatsiya qilinadi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni o'z so'zlaringiz bilan chatga yozing.</p>
+<ol class="check">
+  <li>Saqlangan dastur g'oyasidan oldin kompyuterlar qanday dasturlangan va buning og'rig'i nima edi?</li>
+  <li>Buyruq baytlarda qaysi qismlardan iborat? O'quv protsessorimizda <span class="num">21 0E</span> nimani bildiradi?</li>
+  <li>Xotiradagi bayt buyruqmi yoki sonmi, buni nima hal qiladi?</li>
+  <li>Nega x86 uchun kompilyatsiya qilingan dastur ARM protsessorida ishlamaydi, Java <span class="num">.class</span> fayli esa ishlaydi?</li>
+  <li><span class="num">UnsupportedClassVersionError</span> chiqdi. Bu nimani bildiradi va qanday tuzatiladi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details>
+  <summary>Buyruqni ham baytlarda yozish shart bo'lsa, dasturchilar qanday ishlagan?</summary>
+  <p>Eng birinchi dasturchilar haqiqatan ham sonlar yozgan: qog'ozda buyruqni o'ylab, uning kodini jadvaldan topib, ikkilik yoki sakkizlik sonni lentaga teshgan. Bu juda sekin va xatoga moyil edi. Tez orada buyruqlarga qisqa nomlar berildi («yukla», «qo'sh») va bu nomlarni sonlarga avtomatik aylantiradigan dastur yozildi. Bu dastur assembler deyiladi, va u keyingi bo'limning mavzusi.</p>
+</details>
+<details>
+  <summary>Dastur o'z buyruqlarini o'zgartira oladimi?</summary>
+  <p>Saqlangan dasturda bu mumkin: buyruq ham bayt, uni «saqla» bilan qayta yozish mumkin. Ilk kompyuterlarda bu usul ataylab ishlatilgan, masalan massiv bo'ylab yurish uchun buyruqdagi adresni har safar bittaga oshirishgan. Keyinchalik protsessorlarga indeks registrlari qo'shildi va bunga ehtiyoj qolmadi. Bugun o'z-o'zini o'zgartiradigan kod deyarli ishlatilmaydi: uni tushunish qiyin, va zamonaviy protsessor hamda operatsion tizimlar dastur kodini yozishdan himoya qiladi. Istisno: JIT kompilyator ish paytida yangi mashina kodini yaratadi, va buning uchun maxsus ruxsat bilan ajratilgan xotiradan foydalanadi.</p>
+</details>
+<details>
+  <summary>CAFEBABE nima?</summary>
+  <p>Har bir <span class="num">.class</span> faylning birinchi to'rt bayti <span class="num">CA FE BA BE</span>. Bu «sehrli son»: fayl formatini aniqlash uchun boshiga qo'yiladigan belgi. JVM fayl shu baytlar bilan boshlanmasa, uni klass fayl deb qabul qilmaydi. O'n oltilik raqamlar orasida A dan F gacha harflar borligi uchun dasturchilar ulardan so'z yasashni yaxshi ko'radi. Ko'p formatlarning o'z sehrli soni bor: PDF fayllar <span class="num">%PDF</span>, ZIP fayllar <span class="num">PK</span> bilan boshlanadi. JAR fayl aslida ZIP arxiv, shuning uchun u ham <span class="num">PK</span> bilan boshlanadi.</p>
+</details>
+<details>
+  <summary>Protsessor ichida ham dastur bormi?</summary>
+  <p>Ko'p murakkab protsessorlarda bor. x86 kabi CISC protsessorlarda ba'zi murakkab buyruqlar to'g'ridan-to'g'ri sxemada emas, protsessor ichidagi kichik xotirada saqlanadigan «mikrodastur» orqali bajariladi: buyruq bir nechta ichki mayda amalga yoyiladi. Bu mikrodastur ishlab chiqaruvchi tomonidan yangilanishi ham mumkin, xavfsizlik tuzatishlari ba'zan shu yo'l bilan chiqariladi.</p>
+</details>
+<details>
+  <summary>Birlamchi manbalar</summary>
+  <p>John von Neumann, «First Draft of a Report on the EDVAC», 1945. Xotirada saqlangan dasturni bajargan birinchi mashina: Manchester «Baby», 1948-yil iyun. Muntazam ishlagan birinchi saqlangan dasturli kompyuter: EDSAC, Kembrij, 1949. Java baytkodi va <span class="num">.class</span> fayl formati: «The Java Virtual Machine Specification», 4- va 6-boblar. Buyruqlar to'plami bo'yicha: Patterson va Hennessy, «Computer Organization and Design», 2-bob.</p>
+</details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Buyruq ham son: buyruq kodi va operandlar. Dastur ma'lumot bilan bitta xotirada baytlar bo'lib yotadi, va bayt buyruqmi yoki sonmi, buni protsessor unga qanday yetib kelgani hal qiladi. Har bir protsessor oilasining o'z buyruqlar to'plami bor, shuning uchun mashina kodi bir oiladan ikkinchisiga o'tmaydi. Java bu muammoni baytkod va JVM bilan hal qiladi.</p>
+  <p><strong>Shu bilan P0 bo'limi tugadi.</strong> Kalitdan boshlab protsessor dasturni qanday bajarishigacha yetib keldik. Bo'limni <a href="p0-xulosa.html">xulosa va test</a> sahifasida takrorlang.</p>
+  <p><strong>Keyingi bo'lim.</strong> P1 Assembler. 8-dars: songa va katakka nom berish. Baytlarni qo'lda yozish og'rig'i qanday hal qilingani.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="06-protsessor.html">Oldingi: 6. Protsessor</a><a href="p0-xulosa.html">Keyingi: P0 xulosa va test</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>
+  DG.stack('where', [
+    { title: 'Sizning kodingiz', sub: 'Java yoki Kotlin matni', ex: 'int c = a + b;', link: 'javac baytkodga aylantiradi' },
+    { title: 'JVM', sub: 'Baytkodni mashina kodiga aylantiradi', ex: 'baytkod: 1B 1C 60 3E', link: 'mashina kodini beradi' },
+    { title: 'Mashina kodi', sub: 'Protsessor tushunadigan baytlar', ex: 'x86-64 da qo\'shish: 01 D8', link: 'protsessor bajaradi' },
+    { title: 'Protsessor', sub: 'Buyruqlarni birin-ketin bajaradi', ex: 'ol, tushun, bajar', link: 'adres bo\'yicha o\'qiydi va yozadi' },
+    { title: 'Xotira (RAM)', sub: 'Raqamlangan baytlar qatori', ex: 'dastur ham, ma\'lumot ham shu yerda', link: 'har bir bayt iborat' },
+    { title: 'Bayt', sub: 'Yonma-yon 8 ta kalit', ex: '10110010 ko\'rinishidagi sakkiz bit', link: 'har bir bit iborat' },
+    { title: 'Kalit (tranzistor)', sub: 'Tokni o\'tkazadi yoki to\'sadi', ex: 'tok bor = 1, tok yo\'q = 0', link: '' }
+  ], [2], 'Mashina kodi: buyruqlar baytlarda');
+</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function hex2(n) { return ('0' + (n & 255).toString(16).toUpperCase()).slice(-2); }
+  function bin(n, w) { var s = n.toString(2); while (s.length < w) s = '0' + s; return s; }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+
+  // O'quv protsessori buyruqlari
+  var OPS = {
+    1: { n: 'yukla', k: 'a' }, 2: { n: 'saqla', k: 'a' }, 3: { n: 'qo\'sh', k: 'r' }, 4: { n: 'ayir', k: 'r' },
+    5: { n: 'sakra', k: 'j' }, 6: { n: 'nol bo\'lsa sakra', k: 'z' }, 15: { n: 'to\'xta', k: 'h' }
+  };
+  function text(b1, b2) {
+    var op = b1 >> 4, r = b1 & 15, o = OPS[op];
+    if (!o) return null;
+    if (o.k === 'a') return op === 1 ? 'yukla R' + r + ', [' + b2 + ']' : 'saqla [' + b2 + '], R' + r;
+    if (o.k === 'r') return o.n + ' R' + r + ', R' + (b2 & 15);
+    if (o.k === 'j') return 'sakra ' + b2;
+    if (o.k === 'z') return 'nol bo\'lsa sakra R' + r + ', ' + b2;
+    return 'to\'xta';
+  }
+
+  // ---------- 1. Kodlash ----------
+  (function () {
+    var svg = $('enc'), say = $('enSay'), cur = 0, LIST = [1, 2, 3, 4, 5, 6, 15];
+    var setO = tabs('enOp', ['yukla', 'saqla', 'qo\'sh', 'ayir', 'sakra', 'nol bo\'lsa sakra', 'to\'xta'], function (i) { cur = i; draw(); });
+    function cl(id, lo, hi) { var v = parseInt($(id).value, 10); if (isNaN(v)) v = lo; return Math.max(lo, Math.min(hi, v)); }
+    function draw() {
+      var op = LIST[cur], o = OPS[op], k = o.k, r = (k === 'j' || k === 'h') ? 0 : cl('enR', 0, 3), a = k === 'h' ? 0 : (k === 'r' ? cl('enA', 0, 3) : cl('enA', 0, 255));
+      $('enAl').textContent = k === 'r' ? 'Ikkinchi registr (0 dan 3 gacha):' : 'Adres (0 dan 255 gacha):';
+      $('enR').disabled = (k === 'j' || k === 'h'); $('enA').disabled = k === 'h';
+      var b1 = (op << 4) | r, b2 = a; setO(cur);
+      svg.textContent = ''; marker(svg, 'enmk');
+      box(svg, 20, 100, 260, 100, 'Buyruq', 'Odam yozadigan ko\'rinish', 'on');
+      S(svg, 'text', { x: 36, y: 182, 'class': 'val' }, text(b1, b2));
+      group(svg, 360, 20, 520, 260, 'Buyruq qismlari');
+      box(svg, 380, 60, 230, 96, 'Buyruq kodi', '4 bit: qaysi amal', 'live'); S(svg, 'text', { x: 396, y: 140, 'class': 'val' }, bin(op, 4) + '  = ' + op.toString(16).toUpperCase());
+      box(svg, 630, 60, 230, 96, 'Registr', k === 'j' || k === 'h' ? '4 bit: ishlatilmaydi, 0' : '4 bit: qaysi registr'); S(svg, 'text', { x: 646, y: 140, 'class': 'val' }, bin(r, 4) + '  = ' + r);
+      box(svg, 380, 172, 480, 92, k === 'r' ? 'Ikkinchi registr' : k === 'h' ? 'Ikkinchi bayt' : 'Adres', k === 'h' ? '8 bit: ishlatilmaydi, 0' : '8 bit'); S(svg, 'text', { x: 396, y: 248, 'class': 'val' }, bin(a, 8) + '  = ' + a);
+      group(svg, 960, 20, 260, 260, 'Xotiraga yoziladi');
+      box(svg, 980, 60, 220, 96, '1-bayt', 'kod va registr', 'on'); S(svg, 'text', { x: 996, y: 142, 'class': 'big' }, hex2(b1));
+      box(svg, 980, 172, 220, 92, '2-bayt', k === 'r' ? 'ikkinchi registr' : 'adres', 'on'); S(svg, 'text', { x: 996, y: 250, 'class': 'big' }, hex2(b2));
+      arrow(svg, 'enmk', 'M280 150H358'); arrow(svg, 'enmk', 'M880 108H978'); arrow(svg, 'enmk', 'M880 218H978');
+      say.textContent = `«${text(b1, b2)}» xotirada ${hex2(b1)} ${hex2(b2)} bo'lib yotadi. Birinchi baytning chap yarmi (${op.toString(16).toUpperCase()}) amalni, o'ng yarmi (${r}) registrni bildiradi.` + (k === 'h' ? ` To'xtash buyrug'iga operand kerak emas, lekin hamma buyruq 2 bayt bo'lishi uchun ikkinchi bayt baribir joy egallaydi.` : k === 'j' ? ` Sakrash buyrug'iga registr kerak emas, shuning uchun o'ng yarim 0.` : ``);
+    }
+    $('enR').addEventListener('input', draw); $('enA').addEventListener('input', draw); draw();
+  })();
+
+  // ---------- 2. Saqlangan dastur ----------
+  (function () {
+    var svg = $('prog'), say = $('pgSay');
+    var INIT = [0x11, 0x0C, 0x12, 0x0D, 0x31, 0x02, 0x21, 0x0E, 0xF0, 0x00, 0x00, 0x00, 0x32, 0x14, 0x00, 0x00];
+    var NOTE = { 12: 'balans', 13: 'summa', 14: 'natija' }, st;
+    function reset(keep) { st = { mem: keep ? st.mem : INIT.slice(), pc: 0, R: [0, 0, 0, 0], last: -1, b: null, halted: false, err: '', n: 0, ch: -1, rch: -1 }; }
+    function step() {
+      if (st.halted) return false;
+      if (st.pc > 14) { st.halted = true; st.err = `Buyruq hisoblagichi ${st.pc} ni ko'rsatyapti, xotira esa 15-adresda tugaydi. Protsessor xotiradan tashqariga chiqdi.`; return false; }
+      var b1 = st.mem[st.pc], b2 = st.mem[st.pc + 1], at = st.pc, op = b1 >> 4, r = b1 & 15, o = OPS[op];
+      st.last = at; st.b = [b1, b2]; st.ch = -1; st.rch = -1; st.n++; st.pc += 2;
+      if (!o) { st.halted = true; st.err = `${at}-adresdagi ${hex2(b1)} baytining buyruq kodi ${op.toString(16).toUpperCase()}. Bunday buyruq yo'q. Protsessor nima qilishni bilmaydi va to'xtaydi: «noma'lum buyruq».`; return false; }
+      if (o.k !== 'j' && o.k !== 'h' && r > 3) { st.halted = true; st.err = `${at}-adresdagi buyruq R${r} registrini so'rayapti, protsessorda esa faqat R0 dan R3 gacha bor. Protsessor to'xtadi.`; return false; }
+      if (o.k === 'r' && (b2 & 15) > 3) { st.halted = true; st.err = `${at}-adresdagi buyruq R${b2 & 15} registrini so'rayapti, bunday registr yo'q. Protsessor to'xtadi.`; return false; }
+      if (op === 1) { if (b2 > 15) { st.halted = true; st.err = `Buyruq ${b2}-adresdan o'qimoqchi, xotira esa 15 da tugaydi.`; return false; } st.R[r] = st.mem[b2]; st.rch = r; }
+      else if (op === 2) { if (b2 > 15) { st.halted = true; st.err = `Buyruq ${b2}-adresga yozmoqchi, xotira esa 15 da tugaydi.`; return false; } st.mem[b2] = st.R[r] & 255; st.ch = b2; }
+      else if (op === 3) { st.R[r] = (st.R[r] + st.R[b2 & 15]) & 255; st.rch = r; }
+      else if (op === 4) { st.R[r] = (st.R[r] - st.R[b2 & 15]) & 255; st.rch = r; }
+      else if (op === 5) { st.pc = b2; }
+      else if (op === 6) { if (st.R[r] === 0) st.pc = b2; }
+      else { st.halted = true; }
+      return true;
+    }
+    function draw() {
+      svg.textContent = ''; marker(svg, 'pgmk');
+      group(svg, 20, 20, 520, 460, 'Protsessor');
+      box(svg, 40, 60, 230, 96, 'Buyruq hisoblagichi', 'Keyingi buyruqning adresi', 'live'); S(svg, 'text', { x: 56, y: 142, 'class': 'big' }, String(st.pc));
+      box(svg, 290, 60, 230, 96, 'O\'qilgan baytlar', st.last < 0 ? 'hali yo\'q' : st.last + ' va ' + (st.last + 1) + '-adreslardan', st.last < 0 ? '' : 'on'); S(svg, 'text', { x: 306, y: 142, 'class': 'big' }, st.b ? hex2(st.b[0]) + ' ' + hex2(st.b[1]) : '--');
+      var t = st.b ? text(st.b[0], st.b[1]) : null;
+      box(svg, 40, 176, 480, 96, 'Boshqaruv bloki tushundi', st.b ? 'kod ' + (st.b[0] >> 4).toString(16).toUpperCase() + ', registr ' + (st.b[0] & 15) + ', ikkinchi bayt ' + st.b[1] : 'buyruq kutilmoqda', st.err ? 'bad' : '');
+      S(svg, 'text', { x: 56, y: 256, 'class': 'val' }, st.err ? 'noma\'lum: protsessor to\'xtadi' : (t || '--'));
+      [0, 1, 2, 3].forEach(function (i) {
+        var x = 40 + i * 122; box(svg, x, 292, 112, 90, 'R' + i, '', st.rch === i ? 'live' : '');
+        S(svg, 'text', { x: x + 16, y: 362, 'class': 'val' }, String(st.R[i]));
+      });
+      S(svg, 'text', { x: 40, y: 416, 'class': 'sub' }, 'Bajarilgan buyruqlar: ' + st.n + (st.halted ? (st.err ? '. Xato bilan to\'xtadi.' : '. To\'xtadi.') : ''));
+      S(svg, 'text', { x: 40, y: 442, 'class': 'sub' }, 'Ma\'lumot: 12 balans, 13 summa, 14 natija (o\'nlik qiymatlar)');
+      group(svg, 620, 20, 600, 460, 'Xotira (RAM): 16 bayt');
+      for (var i = 0; i < 16; i++) {
+        var x = 640 + (i % 4) * 142, y = 60 + Math.floor(i / 4) * 102;
+        var cls = (st.last >= 0 && (i === st.last || i === st.last + 1)) ? (st.err ? 'bad' : 'on') : (i === st.ch ? 'live' : (i === st.pc || i === st.pc + 1) && !st.halted ? 'freed' : '');
+        box(svg, x, y, 132, 90, 'adres ' + i, NOTE[i] ? NOTE[i] + ' = ' + st.mem[i] : (i < 10 ? 'dastur' : ''), cls);
+        S(svg, 'text', { x: x + 16, y: y + 78, 'class': 'big' }, hex2(st.mem[i]));
+      }
+      if (st.last >= 0) arrow(svg, 'pgmk', 'M618 120H522', 'buyruq baytlari', 570, 110);
+    }
+    function report(ok) {
+      if (st.err) { say.textContent = st.err; say.className = 'say bad'; return; }
+      say.className = 'say';
+      var t = text(st.b[0], st.b[1]);
+      if (st.halted) { say.textContent = `«to'xta» buyrug'i bajarildi. Natija: 14-adresda ${st.mem[14]}. Dastur ${st.n} ta buyruq bajardi.`; return; }
+      var w = st.b[0] >> 4, m = w === 1 ? ` ${st.b[1]}-adresdagi ${st.mem[st.b[1]]} soni R${st.b[0] & 15} ga olindi.` : w === 2 ? ` ${st.b[1]}-adresga ${st.mem[st.b[1]]} yozildi.` : (w === 3 || w === 4) ? ` R${st.b[0] & 15} endi ${st.R[st.b[0] & 15]}.` : w === 5 ? ` Buyruq hisoblagichiga ${st.b[1]} yozildi: protsessor sakradi.` : w === 6 ? (st.pc === st.b[1] ? ` Registr nol edi, protsessor ${st.b[1]}-adresga sakradi.` : ` Registr nol emas, sakrash bo'lmadi.`) : '';
+      say.textContent = `${st.last}-adresdan ${hex2(st.b[0])} ${hex2(st.b[1])} o'qildi: «${t}».` + m + ` Buyruq hisoblagichi endi ${st.pc}.`;
+    }
+    var EXP = [
+      { n: 'Asl dastur', f: function () { reset(); return `Asl dastur tiklandi: 0–9-adreslarda beshta buyruq, 12–14-adreslarda ma'lumot. «Bitta buyruq» ni bosing.`; } },
+      { n: 'Qo\'shishni ayirishga almashtir', f: function () { reset(); st.mem[4] = 0x41; return `4-adresdagi bitta bayt ${hex2(0x31)} dan ${hex2(0x41)} ga almashtirildi: buyruq kodi 3 (qo'sh) o'rniga 4 (ayir). Dastur endi balansdan summani ayiradi. Hech qanday kabel ulanmadi, faqat bitta bayt yozildi. «Oxirigacha» ni bosing.`; } },
+      { n: 'To\'xta buyrug\'ini o\'chir', f: function () { reset(); st.mem[8] = 0x10; st.mem[9] = 0; st.mem[10] = 0x10; st.mem[11] = 0; return `8-adresdagi «to'xta» (F0 00) o'rniga, va undan keyingi bo'sh 10-adresga, zararsiz «yukla R0, [0]» (10 00) yozildi. Endi dasturda to'xtash buyrug'i yo'q: protsessor 10-adresdan keyin 12-adresga, ya'ni ma'lumotga yetib boradi va uni ham buyruq deb bajarishga urinadi. «Oxirigacha» ni bosing.`; } },
+      { n: 'Ma\'lumotni buyruq deb bajar', f: function () { reset(); st.pc = 12; return `Buyruq hisoblagichiga 12 yozildi. U yerda balans (32) va summa (14) turibdi. Protsessor ular son ekanini bilmaydi: 32 14 ni buyruq deb o'qiydi. «Bitta buyruq» ni bosing.`; } },
+      { n: 'Cheksiz sikl', f: function () { reset(); st.mem[8] = 0x50; st.mem[9] = 0x00; return `8-adresga «sakra 0» (50 00) yozildi. Dastur oxiriga yetib, boshiga qaytadi va hech qachon tugamaydi. Har aylanishda natija 14-adresga qayta yoziladi. «Oxirigacha» ni bosing: protsessor 40 ta buyruqdan keyin bu chizmada to'xtatiladi, haqiqiy protsessor esa to'xtamaydi.`; } }
+    ];
+    var curE = 0, setE = tabs('pgExp', EXP.map(function (e) { return e.n; }), function (i) { curE = i; setE(i); var m = EXP[i].f(); draw(); say.className = 'say'; say.textContent = m; });
+    $('pgStep').addEventListener('click', function () { if (st.halted) { say.textContent = `Protsessor to'xtagan. «Boshidan» yoki tajribani qayta tanlang.`; return; } step(); draw(); report(); });
+    $('pgRun').addEventListener('click', function () { var k = 0; while (!st.halted && k < 40) { step(); k++; } draw(); if (!st.halted && k >= 40) { say.className = 'say bad'; say.textContent = `40 ta buyruq bajarildi va dastur hali ham tugamadi: bu cheksiz sikl. Haqiqiy kompyuterda bunday dastur protsessor yadrosini 100% band qilib, toki uni to'xtatmaguncha ishlaydi.`; } else report(); });
+    $('pgReset').addEventListener('click', function () { reset(true); draw(); say.className = 'say'; say.textContent = `Registrlar va buyruq hisoblagichi tozalandi, xotiradagi baytlar o'zgarishsiz qoldi. «Bitta buyruq» ni bosing.`; });
+    $('pgW').addEventListener('click', function () {
+      var a = Math.max(0, Math.min(15, parseInt($('pgA').value, 10) || 0)), v = parseInt($('pgV').value, 16);
+      if (isNaN(v) || v < 0 || v > 255) { say.className = 'say bad'; say.textContent = `Bayt o'n oltilikda 00 dan FF gacha bo'lishi kerak.`; return; }
+      st.mem[a] = v; draw(); say.className = 'say';
+      say.textContent = `${a}-adresga ${hex2(v)} yozildi (o'nlikda ${v}).` + (a < 10 ? ` Bu dastur qismi: endi u boshqa buyruq bo'lib o'qiladi. «Boshidan» ni bosib, dasturni qayta bajaring.` : ` Bu ma'lumot qismi. «Boshidan» ni bosib, dasturni qayta bajaring.`);
+    });
+    reset(); setE(0); draw(); say.textContent = EXP[0].f(); draw();
+  })();
+
+  // ---------- 3. Fon Neyman va Garvard ----------
+  (function () {
+    var svg = $('vn'); marker(svg, 'vnmk');
+    group(svg, 20, 20, 580, 260, 'Fon Neyman: bitta xotira, bitta yo\'l');
+    box(svg, 40, 110, 180, 90, 'Protsessor', '', 'on');
+    box(svg, 358, 70, 224, 170, 'Xotira', 'buyruqlar va ma\'lumot aralash', 'live');
+    S(svg, 'text', { x: 374, y: 160, 'class': 'mono' }, '11 0C 12 0D ...');
+    S(svg, 'text', { x: 374, y: 184, 'class': 'mono' }, '32 14 00 ...');
+    arrow(svg, 'vnmk', 'M220 140H356', 'adres', 288, 130); arrow(svg, 'vnmk', 'M356 175H222', 'buyruq yoki son', 288, 195);
+    S(svg, 'text', { x: 288, y: 230, 'text-anchor': 'middle', 'class': 'sub' }, 'bitta yo\'l: navbat bilan');
+    group(svg, 640, 20, 580, 260, 'Garvard: ikki xotira, ikki yo\'l');
+    box(svg, 660, 110, 180, 90, 'Protsessor', '', 'on');
+    box(svg, 1000, 50, 200, 90, 'Buyruqlar xotirasi', 'faqat dastur');
+    box(svg, 1000, 170, 200, 90, 'Ma\'lumot xotirasi', 'faqat sonlar');
+    arrow(svg, 'vnmk', 'M840 125H920V95H998', 'buyruq', 920, 86); arrow(svg, 'vnmk', 'M840 185H920V215H998', 'son', 920, 240);
+  })();
+
+  // ---------- 4. Buyruqlar to'plamlari ----------
+  (function () {
+    var svg = $('isa'); marker(svg, 'ismk');
+    var G = [
+      { t: 'O\'quv protsessorimiz', a: ['qo\'sh R1, R2', '31 02', '2 bayt'], b: ['qaytish buyrug\'i yo\'q', '--', ''] },
+      { t: 'x86-64: Intel, AMD', a: ['add eax, ebx', '01 D8', '2 bayt; boshqalari 1–15 bayt'], b: ['ret', 'C3', '1 bayt'] },
+      { t: 'ARM64: telefonlar, Apple M', a: ['add w0, w0, w1', '00 00 01 0B', '4 bayt; hammasi 4 bayt'], b: ['ret', 'C0 03 5F D6', '4 bayt'] }
+    ];
+    G.forEach(function (g, i) {
+      var x = 20 + i * 410;
+      group(svg, x, 20, 390, 290, g.t);
+      box(svg, x + 20, 60, 350, 110, 'Ikki registrni qo\'shish', g.a[0], 'on');
+      S(svg, 'text', { x: x + 36, y: 140, 'class': 'big' }, g.a[1]); S(svg, 'text', { x: x + 36, y: 162, 'class': 'sub' }, g.a[2]);
+      box(svg, x + 20, 186, 350, 110, 'Funksiyadan qaytish', g.b[0], i === 0 ? 'freed' : '');
+      S(svg, 'text', { x: x + 36, y: 266, 'class': 'big' }, g.b[1]); S(svg, 'text', { x: x + 36, y: 288, 'class': 'sub' }, g.b[2]);
+    });
+  })();
+
+  // ---------- 5. Java baytkodi ----------
+  (function () {
+    var svg = $('jvm'); marker(svg, 'jvmk');
+    box(svg, 20, 150, 220, 100, 'Java matni', 'Qosh.java', 'on'); S(svg, 'text', { x: 36, y: 232, 'class': 'mono' }, 'int c = a + b;');
+    box(svg, 300, 150, 170, 100, 'javac', 'kompilyator, bir marta');
+    group(svg, 530, 60, 290, 280, 'Qosh.class: baytkod');
+    [['1B', 'iload_1', 'a ni yukla'], ['1C', 'iload_2', 'b ni yukla'], ['60', 'iadd', 'qo\'sh'], ['3E', 'istore_3', 'c ga saqla']].forEach(function (r, i) {
+      var y = 100 + i * 58; S(svg, 'rect', { x: 550, y: y, width: 250, height: 48, rx: 5, 'class': 'box live' });
+      S(svg, 'text', { x: 566, y: y + 31, 'class': 'val' }, r[0]); S(svg, 'text', { x: 612, y: y + 22, 'class': 'mono' }, r[1]); S(svg, 'text', { x: 612, y: y + 40, 'class': 'sub' }, r[2]);
+    });
+    group(svg, 880, 20, 340, 170, 'Intel server');
+    box(svg, 900, 60, 300, 110, 'JVM (x86-64 uchun)', 'interpretator, keyin JIT'); S(svg, 'text', { x: 916, y: 150, 'class': 'mono' }, 'mashina kodi: 01 D8 ...');
+    group(svg, 880, 210, 340, 170, 'Apple M noutbuk');
+    box(svg, 900, 250, 300, 110, 'JVM (ARM64 uchun)', 'interpretator, keyin JIT'); S(svg, 'text', { x: 916, y: 340, 'class': 'mono' }, 'mashina kodi: 00 00 01 0B ...');
+    arrow(svg, 'jvmk', 'M240 200H298'); arrow(svg, 'jvmk', 'M470 200H528', '.class', 499, 190);
+    arrow(svg, 'jvmk', 'M820 170H850V115H898');
+    arrow(svg, 'jvmk', 'M820 230H850V305H898');
+  })();
+
+  // ---------- Tarix ----------
+  window.evoStepper('evoCode', [
+    {
+      name: `Tashqi dastur: kabel va lenta`,
+      years: `1940-yillarning o'rtasi`,
+      art: `<path d="M14 30c20 0 20 40 40 40s20-40 40-40" class="acc"/><path d="M14 70c20 0 20-40 40-40s20 40 40 40"/><circle cx="14" cy="30" r="4" class="lit"/><circle cx="94" cy="70" r="4" class="lit"/>`,
+      how: `Dastur mashinaning tashqarisida. ENIAC'da u bloklar orasidagi kabel ulanishlari va tumblerlar holati. Garvard Mark I da qog'oz lentadagi teshiklar, mashina ularni birin-ketin o'qiydi.`,
+      better: `Mashina bir xil hisobni odamdan minglab marta tez bajaradi va har safar qayta qurilmaydi: bitta masala uchun bir marta ulanadi.`,
+      pain: `Yangi masala uchun qayta ulash kunlab davom etadi. Lenta faqat oldinga yuradi, dasturning istalgan joyiga tez qaytib bo'lmaydi.`,
+      ex: `Garvard Mark I (1944) va ENIAC (1945). Garvard Mark I da buyruqlar va ma'lumot alohida joyda turgan: «Garvard arxitekturasi» nomi shundan.`
+    },
+    {
+      name: `Saqlangan dastur`,
+      years: `1945–1949`,
+      art: `<rect x="18" y="20" width="84" height="60" rx="4"/><path d="M18 40h84M18 60h84" /><rect x="22" y="24" width="36" height="12" class="acc"/><rect x="62" y="44" width="36" height="12" class="lit"/>`,
+      how: `Buyruqlar son bilan yoziladi va ma'lumot bilan bitta xotirada saqlanadi. Protsessor buyruq hisoblagichi bo'yicha ularni o'zi o'qiydi.`,
+      better: `Dasturni almashtirish xotiraga yangi sonlar yozish: daqiqalar, kunlar emas. Dastur istalgan joyiga sakray oladi va o'zi bilan ishlaydigan dasturlar (masalan, boshqa dasturni yuklaydigan dastur) yozish mumkin bo'ladi.`,
+      pain: `Dasturchi baytlarni qo'lda yozadi: buyruq kodlarini jadvaldan topadi, adreslarni o'zi hisoblaydi. Bitta buyruq qo'shilsa, undan keyingi barcha adreslar suriladi va qayta hisoblanadi.`,
+      ex: `Fon Neymanning EDVAC hisoboti (1945). Saqlangan dasturni bajargan birinchi mashina: Manchester «Baby», 1948-yil iyun. Muntazam ishlagan birinchisi: EDSAC, Kembrij, 1949.`
+    },
+    {
+      name: `Assembler`,
+      years: `1950-yillar`,
+      art: `<rect x="14" y="24" width="40" height="52" rx="3"/><path d="M20 38h28M20 50h22M20 62h26"/><path d="M58 50h14" class="acc"/><rect x="76" y="24" width="30" height="52" rx="3" class="acc"/>`,
+      how: `Buyruqlar sonlar o'rniga qisqa nomlar bilan yoziladi, adreslarga ham nom beriladi. Maxsus dastur, assembler, matnni mashina kodiga aylantiradi.`,
+      better: `Kod o'qiladigan bo'ldi, adreslarni qo'lda hisoblash yo'qoldi.`,
+      pain: `Har bir buyruq hali ham bitta mashina buyrug'i. Dastur bitta mashina uchun yoziladi va boshqasiga ko'chirilmaydi.`,
+      ex: `Keyingi bo'lim, P1, aynan shu bosqich haqida.`
+    },
+    {
+      name: `Bitta til, ko'p mashina`,
+      years: `1964-yildan`,
+      art: `<rect x="44" y="14" width="32" height="20" rx="3" class="acc"/><rect x="12" y="62" width="26" height="22" rx="3"/><rect x="47" y="62" width="26" height="22" rx="3"/><rect x="82" y="62" width="26" height="22" rx="3"/><path d="M60 34v14M25 48h70M25 48v14M60 48v14M95 48v14"/>`,
+      how: `IBM System/360 oilasi: kichik va arzon modeldan katta va qimmatigacha, hammasi bir xil buyruqlar to'plamini tushunadi. Buyruqlar to'plami alohida, mashinaning ichki qurilishidan mustaqil kelishuv bo'lib qoldi.`,
+      better: `Mijoz kattaroq mashina sotib olsa, dasturlarini qayta yozmaydi. «Arxitektura» atamasi kompyuterlarga nisbatan shu yerdan.`,
+      pain: `Har bir ishlab chiqaruvchining o'z to'plami. IBM uchun yozilgan dastur boshqa firma mashinasida ishlamaydi.`,
+      ex: `Bugungi x86 (1978, Intel 8086 dan) va ARM (1985, Acorn kompaniyasidan) shu g'oyaning davomi: protsessorlar avlodlari almashadi, buyruqlar to'plami qoladi va kengayadi.`
+    },
+    {
+      name: `Virtual mashina kodi`,
+      years: `1995-yildan`,
+      art: `<rect x="40" y="14" width="40" height="26" rx="3" class="lit"/><path d="M60 40v10M30 50h60M30 50v12M90 50v12"/><rect x="12" y="62" width="36" height="24" rx="3"/><rect x="72" y="62" width="36" height="24" rx="3"/>`,
+      how: `Java kompilyatori haqiqiy protsessor kodini emas, xayoliy protsessor kodini, baytkodni yozadi. Har bir kompyuterdagi JVM uni o'z protsessorida bajaradi.`,
+      better: `Bitta .class fayl har qanday protsessor va operatsion tizimda ishlaydi: «bir marta yoz, hamma joyda ishlat». Buyruqlar to'plamlari farqi dasturchidan yashirindi.`,
+      pain: `Dastlab baytkod interpretatorda ishlagan va C'da yozilgan dasturdan ancha sekin edi. Bu Java'ning ilk yillardagi asosiy tanqidi bo'lgan.`,
+      ex: `Java 1.0, 1996-yil yanvar. Xuddi shu g'oya keyinchalik .NET (2002), Android (Dalvik va ART) va brauzerlardagi WebAssembly'da ham ishlatilgan.`
+    },
+    {
+      name: `JIT kompilyatsiya`,
+      years: `1999-yildan bugungacha`,
+      art: `<rect x="12" y="34" width="34" height="32" rx="3" class="lit"/><path d="M46 50h18" class="acc"/><rect x="64" y="34" width="44" height="32" rx="3" class="acc"/><path d="M70 44h32M70 56h24"/>`,
+      how: `JVM dastur ishlab turganda qaysi qismlar tez-tez bajarilishini kuzatadi va ularni shu protsessorning mashina kodiga kompilyatsiya qiladi, kuzatgan narsasiga qarab optimallashtiradi.`,
+      better: `Java kodi tezligi jihatdan oldindan kompilyatsiya qilingan dasturlarga yaqinlashdi, ba'zi holatlarda ulardan o'zib ketadi: JIT dasturning haqiqiy xulqini ko'rib turadi.`,
+      pain: `Qizish vaqti: ishga tushgandan keyin kod bir muddat sekin. Konteyner va serverless davrida tez ishga tushish muhim bo'lib qoldi.`,
+      ex: `HotSpot JVM (1999-yildan, Java 1.3 dan sukut bo'yicha). Qizish muammosiga javoblar: GraalVM Native Image (dasturni oldindan mashina kodiga kompilyatsiya qilish) va OpenJDK'ning Leyden loyihasi. Ularning bugungi holatini Java yo'nalishiga yetganda tekshiramiz.`
+    }
+  ]);
+})();
+</script>
+</body>
+</html>
