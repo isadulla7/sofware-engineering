@@ -410,3 +410,12 @@ main { padding-left: 2rem; padding-right: 2rem; }
 .quiz-best { font-size: 0.9375rem; color: var(--muted); margin: 0.9rem 0 0; }
 
 @media (max-width: 40rem) { .num { white-space: normal; overflow-wrap: anywhere; } }
+
+/* Ovoz chiqarib o'qish */
+.listen { position: sticky; top: 0; z-index: 20; display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem 0.7rem; background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 0.55rem 0.8rem; margin: 0.8rem 0 1.2rem; max-width: none; }
+.listen button, .listen select { font: inherit; font-size: 0.9375rem; color: var(--ink); background: var(--bg); border: 1px solid var(--line); border-radius: 4px; padding: 0.3rem 0.7rem; cursor: pointer; }
+.listen button[data-a="play"] { background: var(--accent); border-color: var(--accent); color: var(--panel); font-weight: 600; }
+.listen label { font-size: 0.875rem; color: var(--muted); display: flex; align-items: center; gap: 0.35rem; }
+.listen-st { font-size: 0.875rem; color: var(--muted); flex: 1 1 14rem; }
+.listen.off button, .listen.off select { opacity: 0.45; pointer-events: none; }
+.reading { background: var(--lamp-soft); outline: 4px solid var(--lamp-soft); border-radius: 2px; }
