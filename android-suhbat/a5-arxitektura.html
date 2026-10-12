@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A5. Arxitektura</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A5. Arxitektura: Clean Architecture, SOLID, MVVM dan MVI ga</h1>
+<p class="lead">Savol: ilova kodi qanday qavatlarga bo'linadi, kim kimni bilishi mumkin, SOLID tamoyillari amalda nimani anglatadi, va MVI MVVM dan nimasi bilan farq qiladi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Arxitektura</strong> kodni qismlarga bo'lish va ular orasidagi bog'lanish qoidalari. Maqsad: o'zgarishni bitta joyda qilish, testlash, va katta jamoada bir-biriga xalaqit bermaslik.</p>
+    <p><strong>Clean Architecture</strong> qavatlar va «bog'liqlik ichkariga qarab» qoidasi. <strong>MVI</strong> ekran qavatidagi qolip: bitta o'zgarmas holat, bitta yo'nalishdagi oqim, niyatlar va reduktor.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada to'g'ridan-to'g'ri:</strong> «MVI, Clean Architecture va SOLID ni chuqur tushunish va amaliy tajriba».</li>
+      <li><strong>Bank ilovalarida:</strong> yuzlab ekran, o'nlab dasturchi, qat'iy test talablari. Arxitekturasiz bunday loyiha bir yilda boshqarib bo'lmas holga keladi.</li>
+      <li><strong>Suhbatda:</strong> «loyihangiz arxitekturasini chizib bering», «use case nima uchun kerak», «MVVM va MVI farqi».</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>Clean Architecture qavatlari va bog'liqlik qoidasi;</li>
+      <li>bog'liqlikni teskari aylantirish: interfeys domain'da, amalga oshirish data'da;</li>
+      <li>SOLID ning beshta tamoyili bank ilovasi misolida;</li>
+      <li>MVVM va MVI: holat, niyat, reduktor, yon ta'sir;</li>
+      <li>o'z loyihangiz arxitekturasini suhbatda chizib berish.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: bu dars ularning hammasi haqida"></svg></div>
+  <figcaption>Bu dars bitta qavat haqida emas, qavatlarning o'zi va ular orasidagi qoidalar haqida.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Arxitekturasiz ilova og'rig'i va MVC, MVP, MVVM tarixi</li>
+    <li>Clean Architecture: presentation, domain, data; bog'liqlik qoidasi</li>
+    <li>Use case, repozitoriy, ma'lumot modellari va ularning aylantirilishi</li>
+    <li>SOLID</li>
+    <li>MVI: State, Intent, Reducer, Effect; MVVM bilan solishtirish</li>
+    <li>Modullarga bo'lish haqida qisqacha</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Qismlarni bir-biriga ulash (DI): A6-darsda</li>
+    <li>Compose'da holatni ko'rsatish: A7-darsda</li>
+    <li>Tarmoq va baza qavatining ichi: A9 va A10-darslarda</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Uch ming qatorli Activity</h3>
+<p>Android'ning dastlabki yillarida hamma narsa <span class="num">Activity</span> ichida yozilardi: ekranni chizish, tugmalarni tinglash, tarmoq so'rovi, JSON ni o'qish, bazaga yozish, xatolarni ko'rsatish. Bank ilovasining kartalar ekrani uch-to'rt ming qatorli bitta klassga aylanardi. Bundan uchta og'riq kelib chiqadi:</p>
+<ul>
+  <li><strong>Ekran aylantirilganda hammasi yo'qoladi.</strong> Android konfiguratsiya o'zgarganda Activity'ni yo'q qilib, qaytadan yaratadi. Activity ichidagi ma'lumot va ishlab turgan so'rovlar yo'qoladi yoki yo'q bo'lgan ekranga natija yozadi.</li>
+  <li><strong>Testlab bo'lmaydi.</strong> Biznes qoidasini («balans yetarli bo'lsa, o'tkazmaga ruxsat») tekshirish uchun butun ekranni emulyatorda ishga tushirish kerak.</li>
+  <li><strong>O'zgarish hamma joyga tegadi.</strong> Server javobi formati o'zgarsa, o'nlab ekranlardagi JSON o'qish kodi o'zgaradi. Ikki dasturchi bitta faylni o'zgartiradi va bir-birining ishini buzadi.</li>
+</ul>
+<p>Kerak bo'lgan narsa: kodni vazifasiga qarab qismlarga bo'lish, va qismlar orasidagi bog'lanishni shunday qilishki, biri o'zgarganda boshqasi o'zgarmasin.</p>
+
+<h3><span class="part">2. Ichkarida</span>Qavatlar va qoidalar</h3>
+
+<p class="beat">Clean Architecture: uch qavat va bitta qoida</p>
+<p>Robert Martin (Uncle Bob) 2012-yilda tavsiflagan g'oya Android'da uch qavat ko'rinishida qo'llanadi:</p>
+<ul>
+  <li><strong>Presentation</strong> (ko'rinish): ekranlar (Compose), ViewModel'lar, ekran holati. Android'ga bog'liq.</li>
+  <li><strong>Domain</strong> (biznes): use case'lar, biznes modellari, repozitoriy interfeyslari. Sof Kotlin, Android'ni bilmaydi.</li>
+  <li><strong>Data</strong> (ma'lumot): repozitoriylarning amalga oshirilishi, Retrofit API, Room DAO, server va baza modellari (DTO, Entity) va ularni domain modeliga aylantiruvchilar.</li>
+</ul>
+<p>Yagona qoida: <strong>bog'liqlik faqat ichkariga, domain tomonga qaraydi.</strong> Presentation domain'ni biladi, data ham domain'ni biladi, domain esa hech kimni bilmaydi. Shuning uchun biznes qoidalari Retrofit'ni ham, Compose'ni ham, Room'ni ham bilmaydi va ulardan birini almashtirish biznes qoidalariga tegmaydi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="clean" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Clean Architecture qavatlari va klasslar; klass tanlansa, u kimni biladi va kimni bilmasligi kerakligi ko'rsatiladi"></svg></div>
+  <figcaption>Uch guruh: presentation, domain, data. Strelkalar «biladi, ishlatadi» degani. Klassni tanlang.</figcaption>
+  <div class="evo-tabs" id="clT" style="margin-top:0.9rem"></div>
+  <p class="say" id="clSay" aria-live="polite"></p>
+</figure>
+<p>Diqqat qiling: <span class="num">CardRepositoryImpl</span> dan <span class="num">CardRepository</span> ga strelka data'dan domain'ga qaraydi, garchi ma'lumot teskari yo'nalishda oqsa ham. Bu <strong>bog'liqlikni teskari aylantirish</strong>: domain «menga kartalar beradigan narsa kerak» deb interfeys e'lon qiladi, data esa uni amalga oshiradi. Ularni ishga tushishda kim ulaydi? DI, A6-darsda.</p>
+<p>Har bir qavatning o'z modeli bor: serverdan keladigan <span class="num">CardDto</span> (maydon nomlari serverdagidek, hammasi ixtiyoriy), bazadagi <span class="num">CardEntity</span>, biznes modeli <span class="num">Card</span> (toza, majburiy maydonlar, <span class="num">value class</span> lar) va ekran modeli <span class="num">CardUi</span> (formatlangan summa, yashirilgan raqam). Ularni bir-biriga aylantiradigan funksiyalar (mapper'lar) qavat chegarasida turadi. Bu ortiqcha ishdek ko'rinadi, lekin server maydon nomini o'zgartirsa, faqat bitta mapper o'zgaradi.</p>
+<p><strong>Use case</strong> bitta biznes amalini ifodalaydigan klass: <span class="num">PerformTransferUseCase</span> limitni tekshiradi, komissiyani hisoblaydi va repozitoriyni chaqiradi. Uning foydasi: bir xil qoida bir nechta ViewModel'da qayta yozilmaydi va Android'siz testlanadi. Kamchiligi: oddiy «repozitoriyni chaqir» use case'lari faqat qo'shimcha qatlam. Google'ning arxitektura qo'llanmasida domain qavati ixtiyoriy deb yozilgan; ko'p jamoalar uni faqat haqiqiy biznes mantiq bo'lgan joyda ishlatadi.</p>
+
+<p class="beat">SOLID</p>
+<p>Besh tamoyil, har birining maqsadi bitta: o'zgarishni oson va xavfsiz qilish. Har birini tanlab, bank ilovasidagi yomon va yaxshi misolni ko'ring.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="solid" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="SOLID tamoyillari: yomon va yaxshi misol"></svg></div>
+  <figcaption>Chapda tamoyil, o'rtada uni buzadigan kod, o'ngda to'g'risi.</figcaption>
+  <div class="evo-tabs" id="soT" style="margin-top:0.9rem"></div>
+  <p class="say" id="soSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">MVVM: ViewModel va kuzatiladigan holat</p>
+<p><strong>MVVM</strong> (Model-View-ViewModel) da ViewModel ekran ma'lumotlarini saqlaydi va ekran ularni kuzatadi. Jetpack ViewModel ekran aylantirilganda yo'q qilinmaydi, shuning uchun ma'lumot va ishlab turgan so'rovlar saqlanadi. Odatiy MVVM da ViewModel bir nechta alohida kuzatiladigan maydon beradi (<span class="num">kartalar</span>, <span class="num">yuklanmoqda</span>, <span class="num">xato</span>) va ekranga bir nechta ochiq metod (<span class="num">yangila()</span>, <span class="num">tanla(id)</span>).</p>
+<p>Muammosi: maydonlar mustaqil o'zgaradi. <span class="num">yuklanmoqda = true</span> va <span class="num">xato = "..."</span> bir vaqtda bo'lib qolishi mumkin, ekran esa nima ko'rsatishni bilmaydi. Ekran o'nlab maydonli bo'lsa, ularning mumkin bo'lgan birikmalari minglab, va ularning bir qismi ma'nosiz.</p>
+
+<p class="beat">MVI: bitta holat, bitta yo'nalish</p>
+<p><strong>MVI</strong> (Model-View-Intent) uchta qoida qo'shadi:</p>
+<ul>
+  <li><strong>Bitta holat.</strong> Ekranning hamma narsasi bitta o'zgarmas <span class="num">data class</span> da: <span class="num">KartalarState(yuklanmoqda, kartalar, tanlangan, xato)</span>. Ekran faqat shuni chizadi. Holat <span class="num">StateFlow</span> da (A4).</li>
+  <li><strong>Niyatlar.</strong> Ekran ViewModel'ning metodlarini emas, bitta kirish nuqtasini chaqiradi: <span class="num">onIntent(KartalarIntent.Yangila)</span>. Barcha mumkin bo'lgan harakatlar bitta <span class="num">sealed interface</span> da sanab o'tilgan.</li>
+  <li><strong>Reduktor.</strong> Yangi holat faqat bitta joyda hisoblanadi: <span class="num">(eskiHolat, natija) -&gt; yangiHolat</span>, sof funksiya, <span class="num">copy()</span> bilan. Bir martalik ishlar (navigatsiya, Snackbar) holatga emas, alohida <strong>effekt</strong> kanaliga yuboriladi.</li>
+</ul>
+<p>Natijada ma'lumot doim bir yo'nalishda aylanadi: ekran → niyat → ViewModel → holat → ekran. Bu <strong>bir tomonlama ma'lumot oqimi</strong> (UDF) deyiladi. Pastdagi chizmada ekrandagi tugmalarni bosing va holat qanday o'zgarishini kuzating.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="mvi" style="width:1240px;height:440px" viewBox="0 0 1240 440" role="img" aria-label="MVI aylanishi: ekran niyat yuboradi, reduktor yangi holat yasaydi, ekran uni chizadi"></svg></div>
+  <figcaption>Chapda ekran, o'rtada ViewModel: niyat, ish va reduktor, o'ngda joriy holat va yuborilgan effektlar. Pastda holatlar tarixi.</figcaption>
+  <div class="slider">
+    <button type="button" data-mv="0">Yangilash</button>
+    <button type="button" data-mv="1">Javob keldi</button>
+    <button type="button" data-mv="2">Tarmoq xatosi</button>
+    <button type="button" data-mv="3">Kartani tanlash</button>
+    <button type="button" data-mv="4">O'tkazma tugmasi</button>
+  </div>
+  <p class="say" id="mvSay" aria-live="polite"></p>
+</figure>
+<div class="scroll"><table>
+<thead><tr><th></th><th>MVVM</th><th>MVI</th></tr></thead>
+<tbody>
+<tr><td>Ekran holati</td><td>bir nechta mustaqil maydon</td><td>bitta o'zgarmas obyekt</td></tr>
+<tr><td>Ekrandan ViewModel'ga</td><td>bir nechta ochiq metod</td><td>bitta <span class="num">onIntent</span>, niyatlar sealed turda</td></tr>
+<tr><td>Holat qayerda o'zgaradi</td><td>istalgan metodda</td><td>faqat reduktorda</td></tr>
+<tr><td>Bir martalik hodisalar</td><td>har xil yechimlar</td><td>alohida effekt kanali</td></tr>
+<tr><td>Ustunligi</td><td>sodda, kam kod</td><td>holat doim izchil, oson testlanadi, holatlar tarixini yozish mumkin</td></tr>
+<tr><td>Kamchiligi</td><td>holatlar ziddiyatga tushadi</td><td>ko'proq qolip kod, katta holatni har safar nusxalash</td></tr>
+</tbody></table></div>
+<p>Compose bilan MVI tabiiy mos keladi: Compose ham «holat kirdi, UI chiqdi» tamoyilida ishlaydi (A7).</p>
+
+<p class="beat">Modullarga bo'lish</p>
+<p>Katta ilovada qavatlar va funksiyalar Gradle modullariga bo'linadi: <span class="num">:feature:cards</span>, <span class="num">:feature:transfers</span>, <span class="num">:core:network</span>, <span class="num">:core:designsystem</span>. Foydasi: o'zgargan modulgina qayta yig'iladi, jamoalar bir-biriga tegmaydi, va modul chegarasi arxitektura qoidalarini kompilyator darajasida majburlaydi: <span class="num">:domain</span> moduli Retrofit'ga bog'liqlik qo'shmasa, u yerdan Retrofit'ni ishlatib bo'lmaydi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android arxitekturasi tarixi</h3>
+<div class="bench" id="evoAr"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Clean Architecture</dt><dd>Kodni qavatlarga bo'lish va bog'liqliklarni faqat ichkariga, biznes qoidalari tomonga yo'naltirish yondashuvi.</dd>
+  <dt>Bog'liqlik qoidasi</dt><dd>Ichki qavat tashqi qavatni bilmaydi: domain na Android'ni, na Retrofit'ni.</dd>
+  <dt>Use case (interactor)</dt><dd>Bitta biznes amalini ifodalaydigan domain klassi.</dd>
+  <dt>Repozitoriy</dt><dd>Ma'lumot qayerdan kelishini (tarmoq, baza, kesh) yashiradigan qatlam. Interfeysi domain'da, amalga oshirilishi data'da.</dd>
+  <dt>DTO, Entity, domain modeli, UI modeli</dt><dd>Server, baza, biznes va ekran uchun alohida ma'lumot klasslari.</dd>
+  <dt>Mapper</dt><dd>Bir qavat modelini boshqasiga aylantiradigan funksiya.</dd>
+  <dt>Bog'liqlikni teskari aylantirish</dt><dd>Yuqori darajadagi kod abstraksiyani e'lon qiladi, past darajadagi kod uni amalga oshiradi.</dd>
+  <dt>SOLID</dt><dd>Yagona mas'uliyat, ochiq-yopiqlik, Liskov o'rnini bosish, interfeyslarni ajratish, bog'liqlikni teskari aylantirish.</dd>
+  <dt>MVVM</dt><dd>ViewModel ekran ma'lumotini saqlaydi, ekran uni kuzatadi.</dd>
+  <dt>MVI</dt><dd>Bitta o'zgarmas holat, niyatlar, reduktor va effektlar bilan bir tomonlama oqim.</dd>
+  <dt>Reduktor</dt><dd>Eski holat va hodisadan yangi holatni hisoblaydigan sof funksiya.</dd>
+  <dt>Effekt (side effect)</dt><dd>Holatga kirmaydigan bir martalik ish: navigatsiya, xabar, tebranish.</dd>
+  <dt>UDF</dt><dd>Bir tomonlama ma'lumot oqimi: holat pastga, hodisalar yuqoriga.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: ViewModel ichida Context yoki View</b>
+  <p>ViewModel ekrandan uzoq yashaydi. Unda <span class="num">Activity</span>, <span class="num">View</span> yoki ekranning <span class="num">Context</span> i saqlansa, aylantirishdan keyin eski ekran xotiradan tozalanmaydi: xotira oqishi. ViewModel'da satr resurslarini o'qish uchun Context olish ham shu tuzoqqa olib boradi.</p>
+  <p class="why">ViewModel faqat ma'lumot beradi; matnni resursdan olishni ekranga qoldirish (holatda <span class="num">@StringRes</span> raqam yoki sealed xato turi). Ilova darajasidagi Context kerak bo'lsa, u DI orqali data qavatiga beriladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: hamma narsani use case ga o'rash</b>
+  <p>Har bir repozitoriy metodiga bitta use case: <span class="num">GetCardsUseCase</span> faqat <span class="num">repo.getCards()</span> ni chaqiradi. Yuzlab foydasiz klass, va yangi dasturchi «haqiqiy mantiq qayerda» deb adashadi.</p>
+  <p class="why">Use case haqiqiy biznes qoidasi bor joyda yoki bir nechta repozitoriyni birlashtirganda. Suhbatda buni aytsangiz, siz qoidani ko'r-ko'rona emas, sababini tushunib qo'llashingiz ko'rinadi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: holatda hodisa</b>
+  <p><span class="num">state.navigateToDetail = true</span>: ekran o'tadi, lekin holat o'zgarmagan, aylantirishdan keyin yana o'tadi. Yoki xabar har qaytishda qayta chiqadi.</p>
+  <p class="why">Bir martalik ishlar effekt kanalida (Channel) yoki holatda, lekin ekran ularni bajargach ViewModel'ga «bajarildi» niyatini yuboradi va reduktor ularni tozalaydi (A4).</p>
+</div>
+<div class="rule">
+  <b>Qoida: jarayon o'limini unutmang</b>
+  <p>ViewModel aylantirishdan omon qoladi, lekin tizim fondagi ilova jarayonini xotira uchun o'ldirsa, yo'q. Foydalanuvchi qaytganda ilova shu ekrandan, lekin bo'sh ViewModel bilan ochiladi: kiritilgan summa, tanlangan karta yo'qolgan.</p>
+  <p class="why">Foydalanuvchi kiritgan kichik ma'lumot <span class="num">SavedStateHandle</span> da saqlanadi. Tekshirish: «Developer options» da «Don't keep activities» yoki <span class="num">adb shell am kill</span>.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Clean Architecture qavatlarini tushuntiring. Kim kimni biladi?</summary>
+<p>Presentation (Compose ekranlar, ViewModel), domain (use case'lar, biznes modellari, repozitoriy interfeyslari, sof Kotlin) va data (repozitoriy amalga oshirilishi, Retrofit, Room, DTO va mapper'lar). Bog'liqlik faqat domain tomonga: presentation va data domain'ni biladi, domain hech kimni bilmaydi. Data'ning domain'ga bog'liqligi interfeys orqali: bog'liqlikni teskari aylantirish. Ularni ishga tushishda DI ulaydi.</p></details>
+<details><summary>Use case nima uchun kerak? Har doim kerakmi?</summary>
+<p>Bitta biznes amalini (limit tekshirish, komissiya hisoblash, bir nechta repozitoriyni birlashtirish) bir joyda saqlash, qayta ishlatish va Android'siz testlash uchun. Har doim emas: faqat repozitoriyni chaqiradigan use case qo'shimcha qatlam xolos. Google qo'llanmasida domain qavati ixtiyoriy.</p></details>
+<details><summary>Nega DTO, Entity va domain modeli alohida?</summary>
+<p>Har biri o'z sababga ko'ra o'zgaradi: server formati, baza sxemasi, biznes qoidasi. Alohida bo'lsa, biri o'zgarganda faqat mapper o'zgaradi. DTO da hamma maydon ixtiyoriy va server nomlari bilan, domain modelida majburiy va to'g'ri turlar bilan: xato chegarada, mapper'da ushlanadi.</p></details>
+<details><summary>SOLID ni misollar bilan ayting.</summary>
+<p>S: bir klass bitta sababga ko'ra o'zgaradi (ViewModel tarmoq so'rovini o'zi yozmaydi). O: yangi to'lov turi qo'shish mavjud kodni o'zgartirmasdan, yangi klass qo'shish bilan (interfeys va ro'yxat, <span class="num">when</span> zanjiri emas). L: voris otaning va'dalarini buzmaydi (fake repozitoriy haqiqiysi o'rnida bemalol ishlaydi). I: katta interfeys o'rniga kichiklari (kartani faqat o'qiydigan ekranga yozish metodlari berilmaydi). D: ViewModel aniq klassga emas, interfeysga bog'liq va u tashqaridan beriladi.</p></details>
+<details><summary>MVVM va MVI farqi? Nega MVI?</summary>
+<p>MVVM'da bir nechta mustaqil kuzatiladigan maydon va bir nechta metod; MVI'da bitta o'zgarmas holat, bitta niyatlar kirishi, holat faqat reduktorda o'zgaradi, bir martalik ishlar effekt kanalida. MVI'da holat doim izchil (yuklanmoqda va xato bir vaqtda bo'lmaydi), testlash oson (niyat berdik, holatni tekshirdik), holatlar ketma-ketligini log qilish mumkin. Narxi: ko'proq kod va har safar holat nusxasi.</p></details>
+<details><summary>Loyihangiz arxitekturasini chizib bering.</summary>
+<p>Bu yerda o'z loyihangizni ayting: modullar (feature va core), har bir ekranda Compose ekran, ViewModel (StateFlow holat, niyatlar), use case'lar qayerda bor, repozitoriy (tarmoq va kesh), Retrofit, Room, DI (qaysi biri), navigatsiya. DigitalBank'da kredit, depozit va kartalar bo'limlarini siz qurgansiz: bitta ekranni misol qilib, ma'lumot serverdan ekrangacha qanday yetib kelishini qadam-baqadam ayting.</p></details>
+<details><summary>ViewModel ekran aylantirilganda qanday saqlanadi? Jarayon o'limida-chi?</summary>
+<p>ViewModel <span class="num">ViewModelStore</span> da saqlanadi, u esa konfiguratsiya o'zgarishida yangi Activity'ga o'tkaziladi. Activity butunlay tugaganda (orqaga bosish) <span class="num">onCleared</span> chaqiriladi. Jarayon o'limida ViewModel yo'qoladi; kichik holat <span class="num">SavedStateHandle</span> orqali Bundle ga saqlanadi va qaytariladi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>«O'tkazma» ekrani uchun qavatlar va klasslarni sanab bering: har biri qaysi qavatda va nimani biladi?</li>
+  <li>Domain moduliga Retrofit bog'liqligini qo'shish nega yomon?</li>
+  <li>Ekran holatini MVI uchun <span class="num">data class</span> qilib yozing: qaysi maydonlar?</li>
+  <li>To'lov muvaffaqiyatli bo'lgach boshqa ekranga o'tish kerak. Buni holatda yoki effektda qilasizmi, va nega?</li>
+  <li>SOLID ning qaysi tamoyilini DigitalBank'da buzilganini ko'rgansiz yoki o'zingiz to'g'ri qo'llagansiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Google'ning arxitektura qo'llanmasi va Clean farqi</summary>
+<p>Google «Guide to app architecture» ikki majburiy (UI va data) va bitta ixtiyoriy (domain) qavatni tavsiya qiladi, UDF va StateFlow bilan. Clean Architecture qat'iyroq: domain majburiy va markazda. Amalda Android jamoalari ikkalasining aralashmasini ishlatadi. Suhbatda ikkalasini bilish va farqini ayta olish yaxshi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Robert C. Martin, «The Clean Architecture», 2012 (blog.cleancoder.com). Android: «Guide to app architecture», «UI layer», «Domain layer» (developer.android.com/topic/architecture). Hannes Dorfmann, «Model-View-Intent on Android», 2016.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Kod uch qavatga bo'linadi, bog'liqlik faqat domain tomonga. Domain interfeys e'lon qiladi, data uni amalga oshiradi. SOLID o'zgarishni xavfsiz qilish uchun. MVI'da bitta o'zgarmas holat, niyatlar, reduktor va effektlar: ma'lumot bir yo'nalishda aylanadi.</p>
+  <p><strong>Keyingi dars.</strong> A6. Bu qismlarni kim yaratib, bir-biriga ulaydi: Dependency Injection, Dagger/Hilt va Koin.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a4-flow.html">Oldingi: A4. Flow</a><a href="a6-di.html">Keyingi: A6. DI</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0, 5], 'Arxitektura: qavatlar va qoidalar');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Clean qavatlar ----------
+  (function () {
+    var svg = $('clean'), say = $('clSay'), cur = 1;
+    var N = {
+      scr: { x: 40, y: 80, t: 'KartalarScreen', s: 'Compose ekran', L: 'presentation' },
+      vm: { x: 40, y: 200, t: 'KartalarViewModel', s: 'StateFlow<KartalarState>', L: 'presentation' },
+      uc: { x: 460, y: 80, t: 'GetCardsUseCase', s: 'biznes qoidasi', L: 'domain' },
+      rep: { x: 460, y: 200, t: 'CardRepository', s: 'interfeys', L: 'domain' },
+      mod: { x: 460, y: 320, t: 'Card', s: 'biznes modeli', L: 'domain' },
+      impl: { x: 880, y: 80, t: 'CardRepositoryImpl', s: 'amalga oshirish', L: 'data' },
+      api: { x: 880, y: 200, t: 'CardApi + CardDto', s: 'Retrofit, server modeli', L: 'data' },
+      dao: { x: 880, y: 320, t: 'CardDao + CardEntity', s: 'Room, baza modeli', L: 'data' }
+    };
+    var E = [['scr', 'vm'], ['vm', 'uc'], ['uc', 'rep'], ['impl', 'rep'], ['impl', 'api'], ['impl', 'dao'], ['uc', 'mod'], ['impl', 'mod']];
+    var K = ['scr', 'vm', 'uc', 'rep', 'impl', 'api'];
+    var TXT = {
+      scr: `Ekran faqat ViewModel'ni biladi: holatni kuzatadi va niyat yuboradi. U Retrofit'ni ham, repozitoriyni ham ko'rmaydi.`,
+      vm: `ViewModel use case'ni (yoki repozitoriy interfeysini) biladi. CardRepositoryImpl, Retrofit, Room haqida hech narsa bilmaydi: ular unga interfeys orqali, DI bilan beriladi. Shuning uchun testda soxta repozitoriy berish oson.`,
+      uc: `Use case domain'da: faqat CardRepository interfeysini va Card modelini biladi. Unda Android importi yo'q, oddiy JUnit bilan testlanadi.`,
+      rep: `CardRepository domain'dagi interfeys. Domain «menga kartalar kerak» deb e'lon qiladi, qanday olinishini bilmaydi. Unga strelkalar ikki tomondan keladi: use case uni ishlatadi, Impl uni amalga oshiradi.`,
+      impl: `CardRepositoryImpl data'da: interfeysni amalga oshiradi, CardApi va CardDao ni ishlatadi, DTO va Entity ni Card ga aylantiradi. Uning domain'ga strelkasi bog'liqlikni teskari aylantirish: past daraja yuqori darajaning shartiga moslashadi.`,
+      api: `CardApi va CardDto faqat data qavatida. Server maydon nomini o'zgartirsa, faqat DTO va mapper o'zgaradi; Card, use case, ViewModel va ekran tegilmaydi.`
+    };
+    var setT = tabs('clT', K.map(function (k) { return N[k].t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var k = K[cur]; setT(cur); svg.textContent = ''; marker(svg, 'clmk');
+      group(svg, 20, 30, 380, 380, 'presentation'); group(svg, 440, 30, 380, 380, 'domain: sof Kotlin'); group(svg, 860, 30, 360, 380, 'data');
+      var rel = {}; E.forEach(function (e) { if (e[0] === k) rel[e[1]] = 'dep'; if (e[1] === k) rel[e[0]] = 'user'; });
+      Object.keys(N).forEach(function (id) { var n = N[id]; box(svg, n.x, n.y, id === 'impl' || id === 'api' || id === 'dao' ? 320 : 340, 80, n.t, n.s, id === k ? 'on' : (rel[id] ? 'live' : '')); });
+      E.forEach(function (e) {
+        var a = N[e[0]], b = N[e[1]], aw = (e[0] === 'impl' || e[0] === 'api' || e[0] === 'dao') ? 320 : 340, bw = (e[1] === 'impl' || e[1] === 'api' || e[1] === 'dao') ? 320 : 340, d;
+        if (e[0] === 'uc' && e[1] === 'mod') d = 'M800 110H812V350H802';
+        else if (a.x === b.x) d = 'M' + (a.x + 170) + ' ' + (a.y + 80) + 'V' + (b.y - 2);
+        else if (a.x < b.x) d = 'M' + (a.x + aw) + ' ' + (a.y + 40) + 'H' + (a.x + aw + 20) + 'V' + (b.y + 40) + 'H' + (b.x - 2);
+        else d = 'M' + a.x + ' ' + (a.y + 40) + 'H' + (a.x - 20) + 'V' + (b.y + 40 + (e[1] === 'mod' ? 0 : 10)) + 'H' + (b.x + bw + 2);
+        arrow(svg, 'clmk', d);
+      });
+      say.textContent = TXT[k];
+    }
+    draw();
+  })();
+
+  // ---------- SOLID ----------
+  (function () {
+    var svg = $('solid'), say = $('soSay'), cur = 0;
+    var P = [
+      { n: 'S: yagona mas\'uliyat', d: 'Klass bitta sababga ko\'ra o\'zgaradi', b: ['class KartalarViewModel {', '  fun yukla() { OkHttp so\'rov,', '    JSON o\'qish, bazaga yozish,', '    formatlash, holat }'], g: ['ViewModel: holat va niyatlar', 'Repository: qayerdan olish', 'Mapper: aylantirish', 'Formatter: summa ko\'rinishi'], s: `ViewModel tarmoq, JSON, baza va formatlashni o'zi qilsa, server formati, baza sxemasi yoki dizayn o'zgarganda u o'zgaradi: to'rtta sabab. Har bir vazifa o'z klassida bo'lsa, o'zgarish bitta joyda.` },
+      { n: 'O: ochiq-yopiqlik', d: 'Kengaytirishga ochiq, o\'zgartirishga yopiq', b: ['fun komissiya(t: Tur) = when (t) {', '  UZCARD -> ...', '  HUMO -> ...', '  // yangi tur: shu yerni o\'zgartir }'], g: ['interface KomissiyaQoidasi', 'class UzcardQoidasi : ...', 'class VisaQoidasi : ...  // yangi', 'ro\'yxatga qo\'shish, eski kod tegilmaydi'], s: `Yangi to'lov turi qo'shilganda har safar when ni o'zgartirish eski, ishlab turgan kodga tegish degani. Interfeys va alohida klasslar bilan yangi tur yangi klass qo'shish orqali qo'shiladi. sealed va when bir joyda bo'lsa, bu ham yaxshi: kompilyator unutilgan joyni ko'rsatadi.` },
+      { n: 'L: Liskov o\'rnini bosish', d: 'Voris ota o\'rnida bemalol ishlaydi', b: ['class FakeRepo : CardRepository {', '  override fun cards() =', '    throw NotImplementedError() }', '// test yiqiladi, mantiq emas'], g: ['class FakeRepo : CardRepository {', '  override fun cards() =', '    flowOf(testKartalar) }', '// haqiqiysi o\'rnida to\'g\'ri ishlaydi'], s: `Voris otaning va'dalarini buzmasligi kerak: interfeys «kartalar oqimini beraman» desa, amalga oshirish istisno tashlamasligi yoki boshqa ma'noda ishlamasligi kerak. Klassik misol: Kvadrat Teng tomonli to'rtburchakdan meros olsa, «enini o'zgartirdim, bo'yi o'zgarmadi» degan kutilma buziladi.` },
+      { n: 'I: interfeyslarni ajratish', d: 'Mijozni keraksiz metodlarga majburlamaslik', b: ['interface CardRepository {', '  cards(); block(); delete();', '  limits(); pin(); statement() }', '// faqat o\'qiydigan ekran ham hammasini oladi'], g: ['interface CardReader { cards() }', 'interface CardControl { block(); pin() }', 'interface CardStatements { statement() }', 'Impl ularning hammasini amalga oshiradi'], s: `Faqat kartalar ro'yxatini ko'rsatadigan ekranga kartani bloklash va PIN o'zgartirish metodlari berilmasligi kerak: testda ularni ham soxtalashtirish kerak bo'ladi va xato bilan chaqirish imkoni bor.` },
+      { n: 'D: bog\'liqlikni teskari aylantirish', d: 'Abstraksiyaga bog\'lanish, aniq klassga emas', b: ['class KartalarViewModel {', '  val repo = CardRepositoryImpl(', '    Retrofit.Builder()...build(),', '    Room.databaseBuilder(...)) }'], g: ['class KartalarViewModel(', '  private val repo: CardRepository', ') : ViewModel()', '// DI beradi: haqiqiysi yoki testniki'], s: `ViewModel aniq klassni o'zi yaratsa, u Retrofit va Room'ga bog'lanib qoladi va testda almashtirib bo'lmaydi. Interfeysga bog'lanib, uni konstruktor orqali olsa, kim beradi degan savol tug'iladi: javob DI, keyingi dars.` }
+    ];
+    var setT = tabs('soT', P.map(function (p) { return p.n.split(':')[0]; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var p = P[cur]; setT(cur); svg.textContent = ''; marker(svg, 'somk');
+      box(svg, 20, 40, 280, 250, p.n, '', 'on'); code(svg, 36, 120, wrap(p.d, 26), 'sub');
+      box(svg, 340, 40, 420, 250, 'Buzilgan', '', 'bad'); code(svg, 356, 110, p.b);
+      box(svg, 800, 40, 420, 250, 'To\'g\'ri', '', 'live'); code(svg, 816, 110, p.g);
+      arrow(svg, 'somk', 'M760 165H798');
+      say.textContent = p.s;
+    }
+    draw();
+  })();
+
+  // ---------- MVI ----------
+  (function () {
+    var svg = $('mvi'), say = $('mvSay');
+    var st = { y: false, k: [], t: null, x: null }, hist = [], eff = [], last = null;
+    function fmt(s) { return ['yuklanmoqda=' + s.y, 'kartalar=' + (s.k.length ? '[' + s.k.join(', ') + ']' : '[]'), 'tanlangan=' + (s.t || 'null'), 'xato=' + (s.x ? '"' + s.x + '"' : 'null')]; }
+    var A = [
+      { i: 'Intent.Yangila', w: 'api.kartalar() boshlandi', r: function (s) { return Object.assign({}, s, { y: true, x: null }); }, s: `Ekran onIntent(Yangila) ni yubordi. ViewModel so'rovni boshladi va reduktor yangi holat yasadi: copy(yuklanmoqda = true, xato = null). Ekran yuklanish indikatorini ko'rsatadi.` },
+      { i: 'Natija.Keldi(kartalar)', w: 'javob: 2 ta karta', r: function (s) { return Object.assign({}, s, { y: false, k: ['8600..1234', '9860..5678'] }); }, s: `So'rov natijasi ichki hodisa sifatida reduktorga keldi: copy(yuklanmoqda = false, kartalar = [...]). Bir vaqtda ham yuklanmoqda, ham ro'yxat degan ziddiyatli holat bo'lmaydi: ikkalasi bitta copy da o'zgardi.` },
+      { i: 'Natija.Xato(IOException)', w: 'tarmoq xatosi', r: function (s) { return Object.assign({}, s, { y: false, x: 'Internet yo\'q' }); }, s: `Xato ham reduktor orqali: copy(yuklanmoqda = false, xato = "Internet yo'q"). Eski kartalar ro'yxati saqlanib qoladi, ekran uni ko'rsatib, ustida xato xabarini chiqarishi mumkin.` },
+      { i: 'Intent.Tanla(1234)', w: 'ish yo\'q', r: function (s) { return Object.assign({}, s, { t: '1234' }); }, s: `Kartani tanlash sof holat o'zgarishi: tarmoq yo'q, faqat copy(tanlangan = "1234").` },
+      { i: 'Intent.OtkazmagaOt', w: 'effekt yuborildi', r: function (s) { return s; }, e: 'Effect.Navigate(Otkazma(1234))', s: `Boshqa ekranga o'tish holat emas, bir martalik ish: u Effect kanaliga yuborildi, holat o'zgarmadi. Ekran effektni bir marta oladi va navigatsiya qiladi. Aylantirishdan keyin u qaytarilmaydi.` }
+    ];
+    function draw() {
+      svg.textContent = ''; marker(svg, 'mvmk');
+      group(svg, 20, 20, 280, 300, 'Ekran');
+      box(svg, 40, 60, 240, 240, 'KartalarScreen', 'holatni chizadi', 'on');
+      code(svg, 56, 130, st.y ? ['[ yuklanmoqda... ]'] : (st.x ? ['! ' + st.x] : []).concat(st.k.map(function (k) { return (st.t && k.indexOf(st.t) >= 0 ? '● ' : '○ ') + k; })).concat(st.k.length || st.x ? [] : ['bo\'sh']), 'sub');
+      group(svg, 360, 20, 480, 300, 'KartalarViewModel');
+      box(svg, 380, 60, 440, 64, 'onIntent / ichki natija', last ? last.i : '—', last ? 'live' : '');
+      box(svg, 380, 140, 440, 64, 'Ish (use case, repozitoriy)', last ? last.w : '—', '');
+      box(svg, 380, 220, 440, 80, 'Reduktor', '(eski holat, hodisa) -> eski.copy(...)', last ? 'on' : '');
+      arrow(svg, 'mvmk', 'M600 124V138'); arrow(svg, 'mvmk', 'M600 204V218');
+      box(svg, 900, 30, 320, 170, 'StateFlow<KartalarState>', 'joriy holat', 'live'); code(svg, 916, 100, fmt(st));
+      box(svg, 900, 220, 320, 100, 'Effektlar (Channel)', eff.length ? 'oxirgisi:' : 'yo\'q', eff.length ? 'bad' : 'freed'); if (eff.length) code(svg, 916, 290, [eff[eff.length - 1]]);
+      arrow(svg, 'mvmk', 'M280 100H378', 'niyat', 329, 90);
+      arrow(svg, 'mvmk', 'M820 260H860V115H898');
+      arrow(svg, 'mvmk', 'M900 160H870V340H160V302', 'holat', 520, 332);
+      S(svg, 'text', { x: 20, y: 380, 'class': 'ttl' }, 'Holatlar tarixi:');
+      hist.slice(-4).forEach(function (h, i) { S(svg, 'text', { x: 20 + i * 305, y: 410, 'class': 'lbl' }, (hist.length - Math.min(4, hist.length) + i + 1) + ') ' + h); });
+    }
+    Array.prototype.forEach.call(document.querySelectorAll('[data-mv]'), function (b) {
+      b.addEventListener('click', function () {
+        var a = A[+b.getAttribute('data-mv')]; last = a; var n = a.r(st); var changed = n !== st; st = n; if (a.e) eff.push(a.e);
+        if (changed) hist.push(a.i.replace('Intent.', '').replace('Natija.', '')); draw(); say.textContent = a.s;
+      });
+    });
+    draw(); say.textContent = `Boshlang'ich holat: KartalarState() hamma maydonlari sukut bo'yicha. Tugmalarni tartib bilan bosing: Yangilash, Javob keldi, Kartani tanlash, O'tkazma.`;
+  })();
+
+  window.evoStepper('evoAr', [
+    { name: `Hammasi Activity'da`, years: `2008–2014`, art: `<rect x="20" y="20" width="80" height="60" rx="4" class="acc"/><path d="M30 34h60M30 46h60M30 58h60M30 70h40"/>`, how: `Activity bir vaqtda ekran, kontroller va ma'lumot qatlami. Ba'zan «MVC» deyilgan, lekin aslida hammasi bitta klassda.`, better: `Tez boshlash, kam fayl.`, pain: `Ming qatorlik klasslar, aylantirishda ma'lumot yo'qolishi, testlab bo'lmaslik.`, ex: `AsyncTask ichki klass sifatida Activity ichida: klassik xotira oqishi manbai.` },
+    { name: `MVP`, years: `2014–2017`, art: `<rect x="10" y="35" width="30" height="30" rx="3"/><rect x="45" y="35" width="30" height="30" rx="3" class="acc"/><rect x="80" y="35" width="30" height="30" rx="3"/>`, how: `Presenter mantiqni oladi, View interfeys orqali boshqariladi: view.showCards(list).`, better: `Presenter'ni JVM'da testlash mumkin.`, pain: `Presenter aylantirishda omon qolmaydi, View interfeysi metodlari ko'payib ketadi, presenter view'ni «buyruq» bilan boshqaradi: holat parchalanadi.`, ex: `Mosby, Moxy kutubxonalari.` },
+    { name: `MVVM va Architecture Components`, years: `2017-yildan`, art: `<rect x="20" y="30" width="34" height="40" rx="3"/><path d="M54 50h12" class="acc"/><rect x="66" y="30" width="34" height="40" rx="3" class="acc"/>`, how: `Google I/O 2017: ViewModel, LiveData, Room. ViewModel aylantirishdan omon qoladi, ekran ma'lumotni kuzatadi.`, better: `Rasmiy yechim, hayot sikli muammolari kutubxona darajasida hal qilindi.`, pain: `Ko'p mustaqil LiveData: holatlar ziddiyati, bir martalik hodisalar muammosi.`, ex: `Bugun ham eng keng tarqalgan qolip.` },
+    { name: `Clean Architecture Android'da`, years: `2014–2016 dan`, art: `<circle cx="60" cy="50" r="38"/><circle cx="60" cy="50" r="24" class="acc"/><circle cx="60" cy="50" r="10" class="lit"/>`, how: `Uncle Bob'ning 2012 yilgi maqolasi Android hamjamiyatida mashhur bo'ldi: qavatlar, use case'lar, bog'liqlik qoidasi.`, better: `Biznes mantiq Android'dan ajraldi, katta jamoalarda tartib.`, pain: `Haddan tashqari qo'llanganda qolip kod ko'payadi.`, ex: `Fernando Cejas'ning «Architecting Android... The clean way?» maqolasi (2014) keng tarqalgan.` },
+    { name: `MVI va UDF`, years: `2016-yildan, Compose bilan kuchaygan`, art: `<path d="M20 50a40 30 0 1 0 80 0a40 30 0 1 0-80 0" /><path d="M95 45l5 5-7 2" class="acc"/>`, how: `Veb dunyosidagi Redux va Cycle.js dan kelgan g'oya: bitta holat, niyatlar, reduktor. Google qo'llanmasi (2021–2022) UDF ni rasmiy tavsiya qildi.`, better: `Holat izchil, Compose bilan tabiiy mos, testlash oson.`, pain: `Ko'proq kod, katta holatni nusxalash, effektlar uchun kelishuv kerak.`, ex: `Orbit MVI, MVIKotlin kabi kutubxonalar, ko'p jamoalar o'z yengil yechimini yozadi.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
