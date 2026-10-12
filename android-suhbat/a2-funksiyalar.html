@@ -1,0 +1,340 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A2. Funksiyalar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A2. Funksiyalar: lambda, inline, crossinline, reified, scope funksiyalar</h1>
+<p class="lead">Savol: Kotlin'da funksiya qiymat sifatida qanday uzatiladi, bu qancha turadi, va <span class="num">inline</span>, <span class="num">noinline</span>, <span class="num">crossinline</span>, <span class="num">reified</span> nima uchun kerak?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Lambda</strong> nomsiz funksiya, uni o'zgaruvchiga saqlash va boshqa funksiyaga argument qilib berish mumkin: <span class="num">kartalar.filter { it.balans &gt; 0 }</span>. Funksiyani argument sifatida oladigan funksiya <strong>yuqori tartibli funksiya</strong> deyiladi.</p>
+    <p><span class="num">inline</span> kompilyatorga «bu funksiyani chaqirma, uning tanasini chaqirilgan joyga ko'chirib qo'y» deydi. Qolgan kalit so'zlar shu ko'chirishning nozik joylarini boshqaradi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Hamma joyda.</strong> <span class="num">map</span>, <span class="num">filter</span>, <span class="num">forEach</span>, <span class="num">let</span>, <span class="num">apply</span>, <span class="num">use</span>, <span class="num">synchronized</span>: hammasi lambda oladigan <span class="num">inline</span> funksiyalar.</li>
+      <li><strong>Compose'da:</strong> har bir <span class="num">@Composable</span> ekran lambdalardan quriladi: <span class="num">onClick = { ... }</span>, <span class="num">Column { ... }</span>.</li>
+      <li><strong>Koin, Ktor, Gradle:</strong> <span class="num">module { single { ... } }</span> kabi DSL lar qabul qiluvchili lambdalarga qurilgan.</li>
+      <li><strong>Suhbatda:</strong> «inline, noinline, crossinline farqi» klassik savol, o'tgan suhbatda ham so'ralgan.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>lambda ichkarida nimaga aylanishi va qachon obyekt yaratilishi;</li>
+      <li><span class="num">inline</span> nimani yutadi va nimani yo'qotadi;</li>
+      <li>lokal bo'lmagan <span class="num">return</span>, <span class="num">noinline</span>, <span class="num">crossinline</span>;</li>
+      <li>tur o'chirilishi va <span class="num">reified</span>;</li>
+      <li><span class="num">let</span>, <span class="num">run</span>, <span class="num">with</span>, <span class="num">apply</span>, <span class="num">also</span> farqi va qaysi biri qachon.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari, Kotlin tili qavati ajratilgan"></svg></div>
+  <figcaption>Bu dars ham til qavatida: funksiyalar va lambdalar yuqoridagi barcha qavatlarda ishlatiladi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Funksiya turlari va yuqori tartibli funksiyalar</li>
+    <li>Lambda baytkodda: obyekt, ushlangan o'zgaruvchilar</li>
+    <li><span class="num">inline</span>, lokal bo'lmagan qaytish, <span class="num">noinline</span>, <span class="num">crossinline</span></li>
+    <li><span class="num">reified</span> tur parametrlari</li>
+    <li>Qabul qiluvchili lambda va scope funksiyalar</li>
+    <li><span class="num">fun interface</span> (SAM)</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li><span class="num">suspend</span> lambdalar va coroutines: A3-darsda</li>
+    <li>Compose'dagi lambdalar barqarorligi va rekompozitsiya: A7-darsda</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Funksiyani uzatish qimmat edi</h3>
+<p>Java 8 gacha funksiyani boshqa funksiyaga berishning yagona yo'li anonim klass edi. Tugma bosilishini tinglash uchun besh-olti qator yozilardi: <span class="num">new View.OnClickListener() { @Override public void onClick(View v) { ... } }</span>. Kod ko'p, va har bir shunday joy alohida klass faylga, xotirada esa alohida obyektga aylanardi.</p>
+<p>Kotlin bu yozuvni bitta qavsga qisqartirdi: <span class="num">setOnClickListener { ... }</span>. Lekin muammo qisman qoldi: lambda baribir obyekt. <span class="num">filter</span>, <span class="num">map</span>, <span class="num">forEach</span> kabi funksiyalar har qadamda chaqiriladi, va har birida yangi obyekt yaratish, virtual chaqiruv qilish kichik, lekin hamma joyda to'lanadigan narx. Kotlin uni <span class="num">inline</span> bilan butunlay yo'qotishni taklif qildi, va bu qaror o'z navbatida yangi savollarni keltirib chiqardi: <span class="num">return</span> qayerdan qaytadi, lambdani saqlab qo'yish mumkinmi, tur ma'lumoti qayerda.</p>
+
+<h3><span class="part">2. Ichkarida</span>Lambda va inline</h3>
+
+<p class="beat">Lambda bu obyekt</p>
+<p>Kotlin'da funksiya ham tur: <span class="num">(Karta) -&gt; Boolean</span> «karta olib, mantiqiy qiymat qaytaradigan funksiya». Baytkodda bu <span class="num">Function1&lt;Karta, Boolean&gt;</span> interfeysi, uning bitta <span class="num">invoke</span> metodi bor. Lambda yozilgan joyda kompilyator shu interfeysni amalga oshiradigan obyektni yaratadi. Agar lambda tashqi o'zgaruvchidan foydalansa (uni <strong>ushlasa</strong>), o'sha o'zgaruvchi obyektning maydoniga ko'chiriladi, va har bir chaqiruvda yangi obyekt yaratiladi. Hech narsa ushlamaydigan lambda esa bitta umumiy nusxa bo'lib qoladi.</p>
+<p>Pastdagi chizmada bitta chaqiruv ikki usulda: <span class="num">filter</span> oddiy funksiya bo'lsa va <span class="num">inline</span> bo'lsa.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="lam" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="Lambda oddiy funksiyaga obyekt bo'lib uzatiladi, inline funksiyada esa tanasi chaqirilgan joyga ko'chiriladi"></svg></div>
+  <figcaption>Chapda siz yozgan kod. O'ngda kompilyator undan nima yasaydi.</figcaption>
+  <div class="evo-tabs" id="lmT" style="margin-top:0.9rem"></div>
+  <p class="say" id="lmSay" aria-live="polite"></p>
+</figure>
+
+<p><span class="num">inline</span> ning yutug'i: lambda obyekti yo'q, virtual chaqiruv yo'q, kompilyator ko'chirilgan kodni birga optimallashtiradi. Narxi: funksiya tanasi har bir chaqirilgan joyga ko'chirilgani uchun kod hajmi o'sadi. Shuning uchun <span class="num">inline</span> faqat lambda oladigan kichik funksiyalar uchun. Lambda olmaydigan funksiyaga <span class="num">inline</span> qo'ysangiz, kompilyator «foydasi kam» deb ogohlantiradi. Yana bir cheklov: ochiq (<span class="num">public</span>) <span class="num">inline</span> funksiya klassning yopiq (<span class="num">private</span>) a'zolariga murojaat qila olmaydi, chunki uning tanasi boshqa modullarga ko'chiriladi.</p>
+
+<p class="beat">return qayerdan qaytadi: lokal bo'lmagan qaytish</p>
+<p>Lambda tanasi chaqirilgan joyga ko'chirilsa, uning ichidagi <span class="num">return</span> endi tashqi funksiyaning <span class="num">return</span> i bo'lib qoladi. Bu <strong>lokal bo'lmagan qaytish</strong> deyiladi. U faqat <span class="num">inline</span> funksiyaga berilgan lambdada ruxsat etiladi. Oddiy lambdada faqat yorliqli qaytish mumkin: <span class="num">return@forEach</span>, u lambdaning o'zidan chiqadi, xolos.</p>
+<p>Ikki kalit so'z shu xatti-harakatni boshqaradi:</p>
+<ul>
+  <li><strong><span class="num">noinline</span></strong>: <span class="num">inline</span> funksiyaning bitta lambda parametrini ko'chirmaslik. Kerak bo'ladi, agar lambdani saqlab qo'yish yoki boshqa oddiy funksiyaga uzatish zarur bo'lsa: ko'chirilgan kodni o'zgaruvchiga saqlab bo'lmaydi, unga obyekt kerak.</li>
+  <li><strong><span class="num">crossinline</span></strong>: lambda ko'chiriladi, lekin u boshqa kontekstda bajariladi, masalan <span class="num">Runnable</span> ichida, boshqa lambda ichida yoki keyinroq. U yerdan tashqi funksiyaga <span class="num">return</span> qilish mantiqsiz, chunki tashqi funksiya allaqachon tugagan bo'lishi mumkin. <span class="num">crossinline</span> shunday <span class="num">return</span> ni taqiqlaydi va kompilyatorga lambdani boshqa kontekstga ko'chirishga ruxsat beradi.</li>
+</ul>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="ret" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Lambda ichidagi return qaysi funksiyadan chiqishi: oddiy, inline, noinline va crossinline holatlarda"></svg></div>
+  <figcaption>Tashqi funksiya ichida lambda olgan funksiya chaqirilgan. Lambdadagi return qaysi qutidan chiqadi?</figcaption>
+  <div class="evo-tabs" id="rtT" style="margin-top:0.9rem"></div>
+  <p class="say" id="rtSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">reified: o'chirilgan turni qaytarish</p>
+<p>A1-darsda aytilgandek, JVM da generik tur ish paytida o'chiriladi. <span class="num">fun &lt;T&gt; parse(json: String): T</span> ichida <span class="num">T</span> qaysi klass ekanini bilib bo'lmaydi, shuning uchun Gson'ga klassni alohida berish kerak: <span class="num">parse(json, Karta::class.java)</span>. <span class="num">inline</span> funksiyada esa tana chaqirilgan joyga ko'chiriladi, va u yerda <span class="num">T</span> aniq: <span class="num">Karta</span>. <span class="num">reified</span> kalit so'zi kompilyatorga «ko'chirganda <span class="num">T</span> o'rniga haqiqiy klassni qo'y» deydi. Shundan keyin funksiya ichida <span class="num">T::class</span> va <span class="num">x is T</span> ishlaydi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="rei" style="width:1240px;height:260px" viewBox="0 0 1240 260" role="img" aria-label="Oddiy generik funksiyada tur ish paytida yo'qoladi, reified inline funksiyada chaqirilgan joyda haqiqiy klass qo'yiladi"></svg></div>
+  <figcaption>Yuqorida oddiy generik funksiya: ish paytida T noma'lum. Pastda reified: chaqirilgan joyda T o'rniga Karta qo'yiladi.</figcaption>
+</figure>
+<p>Android'da ko'p uchraydigan misollar: <span class="num">koinViewModel&lt;KartalarViewModel&gt;()</span> va <span class="num">get&lt;CardRepository&gt;()</span> (Koin aynan shu yo'l bilan klassni topadi), <span class="num">startActivity&lt;DetailActivity&gt;()</span> kabi yordamchilar, JSON dan o'qish yordamchilari.</p>
+
+<p class="beat">Qabul qiluvchili lambda va scope funksiyalar</p>
+<p>Lambda turining yana bir ko'rinishi bor: <span class="num">Karta.() -&gt; Unit</span>. Bu «qabul qiluvchili» lambda: uning ichida <span class="num">this</span> o'sha <span class="num">Karta</span>, va uning a'zolariga nuqtasiz murojaat qilinadi. <span class="num">apply</span>, <span class="num">buildString</span>, Koin'ning <span class="num">module { }</span>, Compose'ning <span class="num">Column { }</span> shunga qurilgan.</p>
+<p>Standart kutubxonada beshta «scope funksiya» bor. Ularning hammasi obyekt ustida blok bajaradi, va ikki savol bilan farqlanadi: blok ichida obyekt <span class="num">this</span> mi yoki <span class="num">it</span> mi, va funksiya nima qaytaradi: obyektning o'zini yoki blok natijasini.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="scp" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Beshta scope funksiya: kontekst obyekti va qaytarish qiymati bo'yicha"></svg></div>
+  <figcaption>Ikki o'q: obyekt blok ichida qanday nomlanadi (this yoki it) va funksiya nima qaytaradi. Funksiyani tanlab, misolini ko'ring.</figcaption>
+  <div class="evo-tabs" id="scT" style="margin-top:0.9rem"></div>
+  <p class="say" id="scSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">fun interface</p>
+<p>Java'dagi bitta metodli interfeysga (<span class="num">Runnable</span>, <span class="num">OnClickListener</span>) Kotlin lambdasi to'g'ridan-to'g'ri beriladi: bu SAM konversiya («yagona abstrakt metod»). Kotlin'ning o'z interfeyslari uchun ham shunday qilish uchun ular <span class="num">fun interface</span> deb e'lon qilinadi: <span class="num">fun interface KartaTanlandi { fun tanlandi(k: Karta) }</span>. Oddiy funksiya turidan (<span class="num">(Karta) -&gt; Unit</span>) farqi: nomi bor, hujjatlashtiriladi va Java'dan qulay chaqiriladi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Funksiyani uzatish tarixi</h3>
+<div class="bench" id="evoFn"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Yuqori tartibli funksiya</dt><dd>Funksiyani argument sifatida oladigan yoki funksiya qaytaradigan funksiya.</dd>
+  <dt>Funksiya turi</dt><dd><span class="num">(A) -&gt; B</span> ko'rinishidagi tur. Baytkodda <span class="num">Function1&lt;A, B&gt;</span> kabi interfeys.</dd>
+  <dt>Ushlash (capture)</dt><dd>Lambdaning tashqi o'zgaruvchidan foydalanishi. Ushlagan lambda har safar yangi obyekt bo'ladi.</dd>
+  <dt>inline</dt><dd>Funksiya va unga berilgan lambdalar tanasini chaqirilgan joyga ko'chirish.</dd>
+  <dt>Lokal bo'lmagan qaytish</dt><dd><span class="num">inline</span> funksiyaga berilgan lambda ichidagi <span class="num">return</span> tashqi funksiyadan chiqadi.</dd>
+  <dt>Yorliqli qaytish</dt><dd><span class="num">return@forEach</span>: faqat lambdaning o'zidan chiqish.</dd>
+  <dt>noinline</dt><dd><span class="num">inline</span> funksiyaning shu lambda parametrini ko'chirmaslik: u oddiy obyekt bo'lib qoladi va uni saqlash yoki uzatish mumkin.</dd>
+  <dt>crossinline</dt><dd>Lambda ko'chiriladi, lekin boshqa kontekstda bajariladi; ichida lokal bo'lmagan <span class="num">return</span> taqiqlanadi.</dd>
+  <dt>reified</dt><dd><span class="num">inline</span> funksiyaning tur parametri: ko'chirishda haqiqiy klass bilan almashtiriladi, ichida <span class="num">T::class</span> va <span class="num">is T</span> ishlaydi.</dd>
+  <dt>Qabul qiluvchili lambda</dt><dd><span class="num">T.() -&gt; R</span>: blok ichida <span class="num">this</span> T obyekti. DSL lar asosi.</dd>
+  <dt>Scope funksiyalar</dt><dd><span class="num">let</span>, <span class="num">run</span>, <span class="num">with</span>, <span class="num">apply</span>, <span class="num">also</span>: obyekt ustida blok bajaradigan standart funksiyalar.</dd>
+  <dt>SAM konversiya, fun interface</dt><dd>Bitta abstrakt metodli interfeys o'rniga lambda berish. Kotlin interfeysi uchun <span class="num">fun interface</span> deb e'lon qilinadi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: forEach ichidagi return</b>
+  <p><span class="num">kartalar.forEach { if (it.bloklangan) return }</span> sikldan emas, butun funksiyadan chiqadi, chunki <span class="num">forEach</span> inline. Dasturchi «bu kartani o'tkazib yuboraman» deb o'ylaydi, aslida qolgan kartalar ham, funksiyaning qolgan qismi ham bajarilmaydi.</p>
+  <p class="why">Elementni o'tkazib yuborish uchun <span class="num">return@forEach</span> (Java'dagi <span class="num">continue</span> kabi). To'xtatish kerak bo'lsa, oddiy <span class="num">for</span> sikli va <span class="num">break</span> ancha tushunarli.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: lambda ushlab qolgan Activity</b>
+  <p>Lambda ushlagan o'zgaruvchilar lambda yashagancha yashaydi. Uzoq yashaydigan obyektga (singleton, statik ro'yxat, tarmoq so'rovining qayta chaqiruvi) berilgan lambda ichida <span class="num">this</span> yoki <span class="num">Activity</span> ga murojaat bo'lsa, ekran yopilgandan keyin ham u xotiradan tozalanmaydi: xotira oqishi.</p>
+  <p class="why">Ekran bilan bog'liq ishlarni ekranning hayot sikliga bog'langan joyda bajarish: <span class="num">viewModelScope</span>, <span class="num">lifecycleScope</span>, Compose'da <span class="num">LaunchedEffect</span>. Bular A3 va A7-darslarda.</p>
+</div>
+<div class="rule">
+  <b>Qoida: scope funksiyalarni zanjir qilib ketmang</b>
+  <p><span class="num">a?.let { it.b?.also { ... }?.run { ... } }</span> kabi zanjirlarda <span class="num">it</span> va <span class="num">this</span> nimani bildirayotganini o'quvchi yo'qotadi. Ichma-ich <span class="num">apply</span> larda esa <span class="num">this</span> eng ichkidagi obyekt, tashqi obyektning bir xil nomli xususiyati sezdirmasdan yopilib qoladi.</p>
+  <p class="why">Bitta ifodada bitta scope funksiya, va oddiy <span class="num">if</span> yoki o'zgaruvchi tushunarliroq bo'lsa, o'shani yozish. Kod ko'rib chiqishda shu ko'p so'raladi.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>inline funksiya nima va nima uchun kerak?</summary>
+<p>Kompilyator funksiyani chaqirish o'rniga uning tanasini va unga berilgan lambdalar tanasini chaqirilgan joyga ko'chiradi. Natijada lambda uchun obyekt yaratilmaydi va virtual chaqiruv yo'q, bu tez-tez chaqiriladigan yuqori tartibli funksiyalarda (<span class="num">map</span>, <span class="num">filter</span>, <span class="num">let</span>) muhim. Qo'shimcha imkoniyatlar: lokal bo'lmagan <span class="num">return</span> va <span class="num">reified</span> tur parametrlari. Narxi: kod hajmi o'sadi, shuning uchun faqat kichik va lambda oladigan funksiyalar uchun.</p></details>
+<details><summary>noinline va crossinline farqi nima?</summary>
+<p>Ikkalasi ham <span class="num">inline</span> funksiyaning lambda parametriga qo'yiladi. <span class="num">noinline</span>: shu lambda umuman ko'chirilmaydi, oddiy obyekt bo'lib qoladi; kerak, agar lambdani o'zgaruvchida saqlash yoki inline bo'lmagan funksiyaga uzatish kerak bo'lsa. <span class="num">crossinline</span>: lambda ko'chiriladi, lekin boshqa kontekstda bajariladi (boshqa lambda, <span class="num">Runnable</span>, obyekt ichida), shuning uchun undan lokal bo'lmagan <span class="num">return</span> taqiqlanadi. Qisqasi: noinline «ko'chirma», crossinline «ko'chir, lekin tashqi funksiyadan qaytishga ruxsat berma».</p></details>
+<details><summary>Lokal bo'lmagan return nima? Nega oddiy lambdada ruxsat yo'q?</summary>
+<p><span class="num">inline</span> funksiyaga berilgan lambda tanasi chaqirilgan joyga ko'chiriladi, shuning uchun undagi <span class="num">return</span> tashqi funksiyadan chiqadi. Oddiy lambda esa obyekt, u istalgan vaqtda, hatto tashqi funksiya tugaganidan keyin chaqirilishi mumkin, u holda «tashqi funksiyadan qaytish»ning ma'nosi yo'q. Oddiy lambdadan faqat yorliqli <span class="num">return@yorliq</span> bilan chiqiladi.</p></details>
+<details><summary>reified nima? Nega u faqat inline bilan ishlaydi?</summary>
+<p>JVM da generik turlar ish paytida o'chiriladi, funksiya ichida <span class="num">T</span> ning klassi noma'lum. <span class="num">inline</span> funksiya chaqirilgan joyga ko'chirilgani uchun u yerda tur aniq, va <span class="num">reified</span> kompilyatorga <span class="num">T</span> ni haqiqiy klass bilan almashtirishni aytadi. Shundan keyin <span class="num">T::class</span>, <span class="num">is T</span>, <span class="num">as T</span> ishlaydi. Oddiy funksiya bitta nusxa bo'lib, hamma chaqiruvlar uchun umumiy, unda bunday almashtirishning iloji yo'q. Misol: Koin'dagi <span class="num">get&lt;T&gt;()</span>, <span class="num">koinViewModel&lt;T&gt;()</span>.</p></details>
+<details><summary>let, run, with, apply, also farqi?</summary>
+<p>Ikki o'lchov. Obyekt blok ichida: <span class="num">it</span> (<span class="num">let</span>, <span class="num">also</span>) yoki <span class="num">this</span> (<span class="num">run</span>, <span class="num">with</span>, <span class="num">apply</span>). Qaytaradi: blok natijasini (<span class="num">let</span>, <span class="num">run</span>, <span class="num">with</span>) yoki obyektning o'zini (<span class="num">apply</span>, <span class="num">also</span>). Odatiy ishlatilishi: <span class="num">?.let</span> null bo'lmasa biror narsa qilish yoki aylantirish; <span class="num">apply</span> obyektni sozlash (builder o'rnida); <span class="num">also</span> yon ish, masalan log yozish; <span class="num">run</span> obyekt ustida hisoblab natija olish; <span class="num">with</span> bitta obyekt ustida bir nechta chaqiruv, kengaytma emas.</p></details>
+<details><summary>Lambda xotirada nima? Har safar yangi obyekt yaratiladimi?</summary>
+<p>Inline bo'lmagan joyda lambda <span class="num">FunctionN</span> interfeysini amalga oshiradigan obyekt. Agar u tashqi o'zgaruvchilarni ushlasa, har chaqiruvda ular bilan yangi obyekt yaratiladi; ushlamasa, bitta umumiy nusxa ishlatiladi. Kotlin 2.0 dan boshlab JVM uchun lambdalar sukut bo'yicha <span class="num">invokedynamic</span> orqali yaratiladi (Java 8 lambdalari kabi), oldin har biri alohida anonim klass edi; Android'da D8 buni yana klasslarga aylantiradi. Inline funksiyaga berilganda esa obyekt umuman yo'q.</p></details>
+<details><summary>Qachon inline qilmaslik kerak?</summary>
+<p>Funksiya katta bo'lsa yoki ko'p joyda chaqirilsa: kod hajmi o'sadi. Lambda parametri bo'lmasa: foydasi deyarli yo'q, kompilyator ogohlantiradi. Funksiya klassning <span class="num">private</span> a'zolariga murojaat qilishi kerak bo'lsa: ochiq inline funksiya buni qila olmaydi. Rekursiv funksiyani inline qilib bo'lmaydi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>Quyidagi kod nimani chop etadi va nega? <span class="num">fun f() { listOf(1, 2, 3).forEach { if (it == 2) return; print(it) }; print("oxiri") }</span></li>
+  <li>O'zingiz <span class="num">inline fun ishlat(blok: () -&gt; Unit)</span> yozdingiz va ichida <span class="num">handler.post { blok() }</span> chaqirdingiz. Kompilyator xato beradi. Nega va qanday tuzatiladi?</li>
+  <li>Nega <span class="num">fun &lt;T&gt; isType(x: Any) = x is T</span> kompilyatsiya bo'lmaydi va qanday tuzatiladi?</li>
+  <li>Retrofit so'rovini sozlashda <span class="num">apply</span>, javobni ekran modeliga aylantirishda <span class="num">let</span>. Nega aynan shular?</li>
+  <li>DigitalBank kodida qayerda yuqori tartibli funksiyalar yoki DSL ishlatilgan edi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Funksiyaga havola va inline xususiyatlar</summary>
+<p><span class="num">kartalar.map(Karta::raqam)</span>: mavjud funksiya yoki xususiyatga havola lambda o'rnida ishlatiladi. Xususiyatlar ham <span class="num">inline</span> bo'lishi mumkin, agar ularda saqlanadigan maydon bo'lmasa: getter va setter chaqirilgan joyga ko'chiriladi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Kotlin hujjatlari: «Higher-order functions and lambdas», «Inline functions», «Scope functions» (kotlinlang.org/docs). Kotlin 2.0 da lambdalarning <span class="num">invokedynamic</span> bilan yaratilishi: «What's new in Kotlin 2.0.0».</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Lambda obyekt, ushlasa har safar yangi. <span class="num">inline</span> funksiya va lambda tanasini chaqirilgan joyga ko'chiradi: obyekt yo'q, lokal bo'lmagan <span class="num">return</span> bor, <span class="num">reified</span> ishlaydi, kod hajmi o'sadi. <span class="num">noinline</span> ko'chirmaydi, <span class="num">crossinline</span> ko'chiradi lekin <span class="num">return</span> ni taqiqlaydi. Scope funksiyalar <span class="num">this</span>/<span class="num">it</span> va nima qaytarishi bilan farqlanadi.</p>
+  <p><strong>Keyingi dars.</strong> A3. Coroutines: <span class="num">suspend</span> funksiya ichkarida nimaga aylanadi, scope, dispatcher, Job, bekor qilish va xatolar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a1-kotlin-va-java.html">Oldingi: A1. Kotlin va Java</a><span class="dim">Keyingi: A3. Coroutines (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [5], 'Funksiyalar: hamma qavatda');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+
+  // ---------- Lambda va inline ----------
+  (function () {
+    var svg = $('lam'), say = $('lmSay'), cur = 0;
+    var setT = tabs('lmT', ['filter oddiy funksiya', 'filter inline funksiya', 'lambda hech narsa ushlamaydi'], function (i) { cur = i; draw(); });
+    function draw() {
+      setT(cur); svg.textContent = ''; marker(svg, 'lmmk');
+      box(svg, 20, 30, 430, 300, 'Siz yozgan kod', 'chegara: tashqi o\'zgaruvchi', 'on');
+      code(svg, 36, 110, cur === 2 ? ['fun musbatlar(k: List<Karta>) =', '  k.filter { it.balans > 0 }'] : ['fun boylar(k: List<Karta>,', '           chegara: Long) =', '  k.filter { it.balans > chegara }']);
+      group(svg, 540, 20, 680, 320, 'Kompilyator yasagani');
+      if (cur === 1) {
+        box(svg, 560, 60, 640, 260, 'Chaqirilgan joyga ko\'chirilgan sikl', 'lambda obyekti yo\'q, invoke chaqiruvi yo\'q', 'live');
+        code(svg, 576, 140, ['val natija = ArrayList<Karta>()', 'for (it in k)', '  if (it.balans > chegara)', '    natija.add(it)', 'return natija']);
+      } else {
+        box(svg, 560, 60, 300, 120, 'Lambda obyekti', cur === 2 ? 'bitta umumiy nusxa' : 'har chaqiruvda yangi', cur === 2 ? 'on' : 'live');
+        code(svg, 576, 136, cur === 2 ? ['Function1: invoke(it)'] : ['Function1: invoke(it)', 'maydon: chegara']);
+        box(svg, 900, 60, 300, 120, 'filter funksiyasi', 'oddiy, bitta nusxa');
+        code(svg, 916, 136, ['for (x in k)', '  if (f.invoke(x)) ...']);
+        arrow(svg, 'lmmk', 'M860 120H898', 'obyekt', 879, 110);
+        S(svg, 'text', { x: 560, y: 230, 'class': 'sub' }, cur === 2 ? 'Hech narsa ushlamagani uchun obyekt bir marta yaratiladi va qayta ishlatiladi.' : 'Har bir element uchun virtual chaqiruv f.invoke(x).');
+        S(svg, 'text', { x: 560, y: 256, 'class': 'sub' }, cur === 2 ? 'Lekin har bir element uchun invoke chaqiruvi baribir bor.' : 'Har bir boylar() chaqiruvida chegara ushlangan yangi obyekt.');
+      }
+      arrow(svg, 'lmmk', 'M450 180H538', 'kotlinc', 494, 170);
+      say.textContent = cur === 0 ? `Agar filter oddiy funksiya bo'lganida: lambda chegara o'zgaruvchisini ushlaydi, shuning uchun har bir boylar() chaqiruvida yangi obyekt yaratiladi va chegara uning maydoniga ko'chiriladi. filter har bir karta uchun shu obyektning invoke() metodini chaqiradi.` : cur === 1 ? `Haqiqatda filter inline. Kompilyator filter tanasini ham, lambda tanasini ham shu joyga ko'chiradi: oddiy for sikli qoladi. Obyekt yo'q, invoke yo'q, chegara oddiy lokal o'zgaruvchi. Standart kolleksiya funksiyalari aynan shuning uchun inline.` : `Lambda tashqi o'zgaruvchi ishlatmasa, unga maydon kerak emas, va kompilyator bitta umumiy nusxa yaratib, uni qayta ishlatadi. Ushlagan lambda esa har safar yangi.`;
+    }
+    draw();
+  })();
+
+  // ---------- return qayerdan ----------
+  (function () {
+    var svg = $('ret'), say = $('rtSay'), cur = 0;
+    var C = [
+      { t: 'inline: return', f: 'inline fun har(blok: () -> Unit)', l: '{ if (bloklangan) return }', ok: 'outer', s: `forEach kabi inline funksiya. Lambda tanasi tashqi funksiyaga ko'chirilgan, shuning uchun return tashqi funksiyadan chiqadi: qolgan elementlar ham, tashqi funksiyaning qolgan qismi ham bajarilmaydi. Bu lokal bo'lmagan qaytish.` },
+      { t: 'inline: return@har', f: 'inline fun har(blok: () -> Unit)', l: '{ if (bloklangan) return@har }', ok: 'lambda', s: `Yorliqli qaytish faqat lambdaning shu chaqiruvidan chiqadi, Java'dagi continue kabi. har keyingi elementga o'tadi, tashqi funksiya davom etadi.` },
+      { t: 'oddiy funksiya: return', f: 'fun har(blok: () -> Unit)', l: '{ if (bloklangan) return }', ok: 'error', s: `har inline emas: lambda obyekt bo'lib uzatiladi va istalgan vaqtda chaqirilishi mumkin. Undan tashqi funksiyaga qaytish ma'nosiz, kompilyator xato beradi: 'return' is not allowed here. Faqat return@har ruxsat.` },
+      { t: 'noinline', f: 'inline fun har(noinline blok: () -> Unit)', l: '{ if (bloklangan) return }', ok: 'error', s: `noinline lambda ko'chirilmaydi, u oddiy obyekt. Uni saqlab qo'yish yoki boshqa funksiyaga berish mumkin, lekin lokal bo'lmagan return yo'q, xuddi oddiy funksiyadagidek.` },
+      { t: 'crossinline', f: 'inline fun har(crossinline blok: () -> Unit) {\n  handler.post { blok() } }', l: '{ if (bloklangan) return }', ok: 'error', s: `blok har ichida emas, handler.post ga berilgan boshqa lambda ichida chaqiriladi: u keyinroq, boshqa vaqtda bajariladi, tashqi funksiya o'shanda allaqachon tugagan. crossinline shunday lambdani ko'chirishga ruxsat beradi, lekin undan lokal bo'lmagan return ni taqiqlaydi. crossinline siz kompilyator handler.post { blok() } qatorida xato beradi.` }
+    ];
+    var setT = tabs('rtT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'rtmk');
+      group(svg, 20, 20, 1200, 290, 'fun tekshir(kartalar: List<Karta>)  — tashqi funksiya');
+      box(svg, 40, 60, 560, 110, 'Lambda olgan funksiya', '', 'on');
+      code(svg, 56, 112, c.f.split('\n'));
+      box(svg, 640, 60, 560, 110, 'Chaqiruv va lambda', 'kartalar.har ...', c.ok === 'error' ? 'bad' : 'live');
+      code(svg, 656, 140, [c.l]);
+      box(svg, 40, 200, 560, 90, 'return qayerdan chiqadi', '', c.ok === 'error' ? 'bad' : 'on');
+      S(svg, 'text', { x: 56, y: 270, 'class': 'val' }, c.ok === 'outer' ? 'tekshir() dan butunlay' : c.ok === 'lambda' ? 'faqat lambdadan, keyingi element' : 'kompilyatsiya xatosi');
+      box(svg, 640, 200, 560, 90, 'tekshir() ning qolgan qismi', '', c.ok === 'outer' ? 'freed' : c.ok === 'lambda' ? 'on' : 'freed');
+      S(svg, 'text', { x: 656, y: 270, 'class': 'val' }, c.ok === 'outer' ? 'bajarilmaydi' : c.ok === 'lambda' ? 'bajariladi' : '—');
+      say.textContent = c.s; say.className = 'say' + (c.ok === 'error' ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- reified ----------
+  (function () {
+    var svg = $('rei'); marker(svg, 'remk');
+    group(svg, 20, 20, 1200, 105, 'Oddiy generik funksiya');
+    box(svg, 40, 50, 400, 64, 'fun <T> parse(json: String): T', 'bitta nusxa, hamma chaqiruvlar uchun');
+    box(svg, 520, 50, 320, 64, 'Ish paytida T = ?', 'tur o\'chirilgan', 'bad');
+    box(svg, 900, 50, 300, 64, 'Yechim: klassni berish', 'parse(json, Karta::class.java)');
+    arrow(svg, 'remk', 'M440 82H518'); arrow(svg, 'remk', 'M840 82H898');
+    group(svg, 20, 140, 1200, 105, 'inline + reified');
+    box(svg, 40, 170, 400, 64, 'inline fun <reified T> parse(json)', 'tana chaqirilgan joyga ko\'chiriladi', 'on');
+    box(svg, 520, 170, 320, 64, 'parse<Karta>(json)', 'chaqirilgan joy', 'live');
+    box(svg, 900, 170, 300, 64, 'Ko\'chirilgan kodda T = Karta', 'T::class, is T ishlaydi', 'on');
+    arrow(svg, 'remk', 'M440 202H518'); arrow(svg, 'remk', 'M840 202H898', 'T → Karta', 869, 192);
+  })();
+
+  // ---------- Scope funksiyalar ----------
+  (function () {
+    var svg = $('scp'), say = $('scSay'), cur = 3;
+    var F = [
+      { n: 'let', c: 'it', r: 'blok natijasi', col: 0, row: 0, ex: `val oxirgi4 = karta?.let { it.raqam.takeLast(4) }`, s: `let: obyekt it bo'lib keladi, blok natijasi qaytadi. Eng ko'p ?.let ko'rinishida: «null bo'lmasa, shu ishni qil». Aylantirish uchun ham: obyektdan boshqa qiymat yasash.` },
+      { n: 'run', c: 'this', r: 'blok natijasi', col: 1, row: 0, ex: `val jami = hisob.run { balans + kredit - qarz }`, s: `run: obyekt this bo'lib keladi, a'zolarga nuqtasiz murojaat, blok natijasi qaytadi. Obyekt ustida hisoblab natija olish uchun.` },
+      { n: 'with', c: 'this', r: 'blok natijasi', col: 1, row: 0, ex: `with(binding) { nom.text = k.nom; balans.text = k.summa }`, s: `with: run bilan bir xil, lekin kengaytma emas, obyekt argument bo'lib beriladi. Bitta obyekt ustida bir nechta chaqiruv uchun. null tekshiruvi yo'q.` },
+      { n: 'apply', c: 'this', r: 'obyektning o\'zi', col: 1, row: 1, ex: `val so'rov = Request.Builder().apply { url(u); header("Auth", t) }.build()`, s: `apply: this bilan sozlaydi va obyektning o'zini qaytaradi. Obyektni yaratib, xususiyatlarini o'rnatish uchun: builder o'rnida.` },
+      { n: 'also', c: 'it', r: 'obyektning o\'zi', col: 0, row: 1, ex: `return karta.also { log("yaratildi: \${it.id}") }`, s: `also: it bilan yon ish bajaradi va obyektning o'zini qaytaradi. Zanjirni buzmasdan log yozish, tekshirish, saqlash uchun.` }
+    ];
+    var setT = tabs('scT', F.map(function (f) { return f.n; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var f = F[cur]; setT(cur); svg.textContent = '';
+      S(svg, 'text', { x: 300, y: 40, 'text-anchor': 'middle', 'class': 'ttl' }, 'obyekt: it');
+      S(svg, 'text', { x: 680, y: 40, 'text-anchor': 'middle', 'class': 'ttl' }, 'obyekt: this');
+      S(svg, 'text', { x: 20, y: 110, 'class': 'ttl' }, 'Qaytaradi:'); S(svg, 'text', { x: 20, y: 130, 'class': 'sub' }, 'blok natijasini');
+      S(svg, 'text', { x: 20, y: 210, 'class': 'ttl' }, 'Qaytaradi:'); S(svg, 'text', { x: 20, y: 230, 'class': 'sub' }, 'obyektning o\'zini');
+      [[0, 0, 'let'], [1, 0, 'run, with'], [0, 1, 'also'], [1, 1, 'apply']].forEach(function (q) {
+        var on = (f.col === q[0] && f.row === q[1]);
+        box(svg, 160 + q[0] * 380, 66 + q[1] * 100, 360, 84, q[2], q[1] ? 'obyektni qaytaradi' : 'natijani qaytaradi', on ? 'on' : '');
+      });
+      box(svg, 920, 66, 300, 184, 'Misol', f.n, 'live');
+      var words = f.ex.split(' '), lines = [], cur2 = '';
+      words.forEach(function (w) { if ((cur2 + ' ' + w).length > 30 && cur2) { lines.push(cur2); cur2 = w; } else cur2 = cur2 ? cur2 + ' ' + w : w; }); lines.push(cur2);
+      code(svg, 936, 136, lines);
+      say.textContent = f.s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoFn', [
+    { name: `Anonim klasslar`, years: `1997–2014, Java 1.1 dan`, art: `<rect x="16" y="20" width="88" height="60" rx="4"/><path d="M28 36h64M28 48h56M28 60h60M28 72h30"/>`,
+      how: `Funksiyani uzatish uchun interfeysni amalga oshiradigan nomsiz klass yoziladi. Har biri alohida klass fayl va alohida obyekt.`,
+      better: `Hodisalarni tinglash va qayta chaqiruvlar mumkin bo'ldi.`,
+      pain: `Bitta qatorli ish uchun olti qator kod. Android'da har bir anonim klass APK hajmiga va metodlar soni chegarasiga qo'shiladi.`,
+      ex: `View.OnClickListener, Runnable, AsyncTask qayta chaqiruvlari.` },
+    { name: `Java 8 lambdalari`, years: `2014`, art: `<path d="M30 80L60 20l30 60" class="acc"/><path d="M42 56h36"/>`,
+      how: `Java'da lambda yozuvi paydo bo'ldi. Ichkarida invokedynamic buyrug'i va LambdaMetafactory: lambda obyekti ish paytida yaratiladi, alohida klass fayl yo'q.`,
+      better: `Qisqa yozuv, oqimlar (Stream API).`,
+      pain: `Android uzoq vaqt Java 8 ni to'liq qo'llamadi: invokedynamic ART da yo'q edi.`,
+      ex: `Android'da Java 8 lambdalari 2017–2018 yillarda yig'ish asboblari orqali qo'llab-quvvatlandi: D8 ularni oddiy klasslarga aylantiradi («desugaring»).` },
+    { name: `Kotlin lambdalari va inline`, years: `2016-yildan`, art: `<path d="M20 50h30" class="acc"/><rect x="54" y="30" width="46" height="40" rx="4"/><path d="M62 44h30M62 56h22"/>`,
+      how: `Kotlin 1.0 funksiya turlari, lambdalar va inline funksiyalar bilan keldi. Standart kolleksiya funksiyalari inline, shuning uchun ularning narxi yo'q.`,
+      better: `Java 6 ishlaydigan eski Android qurilmalarida ham zamonaviy funksional uslub. Lokal bo'lmagan return va reified.`,
+      pain: `Inline bo'lmagan har bir lambda alohida klass bo'lib yig'ilardi: katta loyihalarda klasslar soni ko'p.`,
+      ex: `filter, map, let, apply, use, synchronized: hammasi inline.` },
+    { name: `invokedynamic sukut bo'yicha`, years: `2024-yildan, Kotlin 2.0`, art: `<circle cx="60" cy="50" r="28"/><path d="M48 50h24M60 38v24" class="acc"/>`,
+      how: `Kotlin 2.0 dan JVM uchun lambdalar sukut bo'yicha Java kabi invokedynamic orqali yaratiladi.`,
+      better: `Kamroq klass fayl, kichikroq yig'ma.`,
+      pain: `Ichki tafsilot: dasturchi uchun deyarli farq yo'q. Android'da D8 baribir moslashtiradi.`,
+      ex: `Suhbatda «lambda anonim klassga aylanadi» desangiz, «Kotlin 2.0 dan invokedynamic» deb qo'shish bilimingizni ko'rsatadi.` }
+  ]);
+})();
+</script>
+</body>
+</html>

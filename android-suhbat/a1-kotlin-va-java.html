@@ -1,0 +1,406 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A1. Kotlin va Java</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A1. Kotlin va Java: farqlar, turlar, null xavfsizligi</h1>
+<p class="lead">Savol: Kotlin Java'dan nimasi bilan farq qiladi, nega u Android'ning asosiy tiliga aylandi, va ichkarida uning turlari qanday ishlaydi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Kotlin</strong> JetBrains kompaniyasi yaratgan til. U ham Java kabi JVM baytkodiga kompilyatsiya qilinadi (P0 ning 7-darsi), shuning uchun Java bilan bitta loyihada yonma-yon ishlaydi va Java kutubxonalarini to'g'ridan-to'g'ri chaqiradi.</p>
+    <p>Kotlin Java'ning eng og'riqli joylarini til darajasida yopadi: <span class="num">null</span> xatolari, ortiqcha kod, va o'zgaruvchanlik nazorati.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Android'da asosiy til:</strong> Google 2019-yildan «Kotlin birinchi» yondashuvini e'lon qilgan. Jetpack Compose faqat Kotlin'da.</li>
+      <li><strong>Backend'da:</strong> Spring Kotlin'ni to'liq qo'llaydi, Ktor esa Kotlin uchun yozilgan server freymvorki.</li>
+      <li><strong>Suhbatda:</strong> «Kotlin va Java farqi», «Int va Int? farqi», «data class nima yaratadi» deyarli har bir Android suhbatining birinchi savollari.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>Kotlin kodi telefonga yetib borguncha qanday yo'l bosadi;</li>
+      <li><span class="num">Int</span>, <span class="num">Int?</span> va <span class="num">List&lt;Int&gt;</span> xotirada qanday saqlanadi va <span class="num">==</span> bilan <span class="num">===</span> farqi;</li>
+      <li>null xavfsizligi qanday ishlaydi va qayerda u buziladi;</li>
+      <li><span class="num">data class</span>, <span class="num">object</span>, <span class="num">sealed</span>, kengaytma funksiya ichkarida nimaga aylanadi;</li>
+      <li><span class="num">lateinit</span> va <span class="num">by lazy</span>, <span class="num">Any</span>, <span class="num">Unit</span>, <span class="num">Nothing</span>.</li>
+    </ul>
+  </div>
+</div>
+<p>Pastdagi chizmada Android ilovaning qavatlari. Bu bo'limning har bir darsi shu qavatlardan biri haqida. Bu dars eng pastki qavat haqida: qolgan hamma narsa yoziladigan til.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari, Kotlin tili qavati ajratilgan"></svg></div>
+  <figcaption>Ekrandan tilgacha. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Kotlin qaysi og'riqdan paydo bo'lgan</li>
+      <li>Kompilyatsiya yo'li: Kotlin, baytkod, DEX, ART</li>
+      <li>Turlar: primitiv va «qutilangan» son, <span class="num">==</span> va <span class="num">===</span></li>
+      <li>Null xavfsizligi va platforma turlari</li>
+      <li><span class="num">val</span> va <span class="num">var</span>, <span class="num">const</span>, <span class="num">lateinit</span>, <span class="num">by lazy</span></li>
+      <li><span class="num">data class</span>, <span class="num">object</span>, <span class="num">companion object</span>, <span class="num">sealed</span>, <span class="num">enum</span>, kengaytma funksiyalar</li>
+      <li><span class="num">Any</span>, <span class="num">Unit</span>, <span class="num">Nothing</span></li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Lambda, <span class="num">inline</span>, <span class="num">crossinline</span>, <span class="num">reified</span>, scope funksiyalar: A2-darsda</li>
+      <li>Coroutines: A3-darsda</li>
+      <li>Generiklar va variantlik (<span class="num">in</span>, <span class="num">out</span>): «Chuqurroq» bo'limida qisqacha</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Android'da Java bilan yashash</h3>
+<p>Android 2008-yilda Java tili bilan chiqdi. Uch muammo yillar davomida to'planib bordi.</p>
+<ul>
+  <li><strong>NullPointerException.</strong> Java'da har qanday havola <span class="num">null</span> bo'lishi mumkin, va kompilyator buni tekshirmaydi. Ilova foydalanuvchi qo'lida ishlab turganda qulaydi. <span class="num">null</span> ning muallifi Toni Xoar 2009-yilda uni o'zining «milliard dollarlik xatosi» deb atagan: 1965-yilda kiritilgan bu qulaylik o'n yillar davomida son-sanoqsiz nosozlikka sabab bo'lgan. Android ilovalardagi qulashlarning eng ko'p uchraydigan sababi aynan shu edi.</li>
+  <li><strong>Ortiqcha kod.</strong> Ikki maydonli oddiy ma'lumot klassi uchun Java'da konstruktor, getterlar, <span class="num">equals</span>, <span class="num">hashCode</span>, <span class="num">toString</span> qo'lda yoziladi: o'nlab qator. Maydon qo'shilsa, ularning hammasini yangilash kerak, unutilsa, xato.</li>
+  <li><strong>Eski Java.</strong> Android uzoq vaqt Java 6 va 7 imkoniyatlari bilan qolib ketdi: lambda yo'q, oqimlar yo'q. Java 8 ning lambdalari Android'ga to'liq yetib kelishi uchun yillar kerak bo'ldi.</li>
+</ul>
+<p>Kerak bo'lgan narsa: Java bilan to'liq mos, uning kutubxonalarini ishlatadigan, lekin bu og'riqlarni til darajasida yopadigan til. JetBrains aynan shunday tilni o'z mahsulotlari uchun yaratdi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Kotlin qanday ishlaydi</h3>
+
+<p class="beat">Kodingizdan telefongacha</p>
+<p>Kotlin kompilyatori <span class="num">.kt</span> faylni Java kompilyatori kabi JVM baytkodiga aylantiradi. Lekin telefonda JVM yo'q: Android'ning o'z runtime'i bor, u ART deyiladi va o'z baytkodini, DEX ni tushunadi. Shuning uchun yig'ish jarayonida yana bir qadam bor: D8 (yoki kod kichraytiruvchi R8) barcha <span class="num">.class</span> fayllarni bitta yoki bir nechta <span class="num">classes.dex</span> faylga aylantiradi. Telefonda esa ART DEX ni protsessor uchun mashina kodiga aylantiradi: bir qismini o'rnatishda oldindan, bir qismini ish paytida JIT bilan.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="build" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Kotlin va Java fayllari baytkodga, keyin DEX ga, keyin telefonda mashina kodiga aylanadi"></svg></div>
+  <figcaption>Chapdan o'ngga: manba kod, JVM baytkodi, Android baytkodi, telefondagi mashina kodi. Kotlin va Java bitta yo'ldan yuradi, shuning uchun bitta loyihada aralash ishlaydi.</figcaption>
+</figure>
+<p>Bundan ikki xulosa. Birinchisi: Kotlin va Java bitta baytkodga tushgani uchun ular bir-birini to'g'ridan-to'g'ri chaqiradi, hech qanday ko'prik kerak emas. Ikkinchisi: Kotlin'ning ko'p «sehri» aslida kompilyatorning ishi. <span class="num">data class</span> yozsangiz, kompilyator siz uchun Java'da qo'lda yoziladigan metodlarni yaratadi. Darsning qolgan qismi asosan shu: Kotlin yozuvi ichkarida nimaga aylanadi.</p>
+
+<p class="beat">Turlar: Kotlin'da primitiv yo'q, baytkodda bor</p>
+<p>Java'da ikki xil tur bor: primitivlar (<span class="num">int</span>, <span class="num">long</span>, <span class="num">boolean</span>) va obyektlar (<span class="num">Integer</span>, <span class="num">Long</span>, <span class="num">String</span>). Primitiv bu 4 yoki 8 baytli sonning o'zi. Obyekt esa xotiraning boshqa joyidagi alohida bo'lak (heap), o'zgaruvchida faqat unga havola turadi. Har bir <span class="num">Integer</span> obyekti 4 baytli son uchun 16 bayt atrofida joy oladi: obyekt sarlavhasi va qiymat.</p>
+<p>Kotlin'da dasturchi faqat bitta <span class="num">Int</span> ni ko'radi. Qaysi biriga aylanishini kompilyator hal qiladi:</p>
+<ul>
+  <li><span class="num">Int</span> (null bo'lmaydigan) iloji boricha primitiv <span class="num">int</span> bo'ladi;</li>
+  <li><span class="num">Int?</span> (null bo'lishi mumkin) obyekt <span class="num">Integer</span> bo'ladi, chunki primitivda «hech narsa» degan qiymat yo'q;</li>
+  <li><span class="num">List&lt;Int&gt;</span> ichidagi sonlar ham <span class="num">Integer</span>, chunki JVM generiklari faqat obyektlar bilan ishlaydi. Primitivlar massivi kerak bo'lsa, <span class="num">IntArray</span> ishlatiladi.</li>
+</ul>
+<p>Sonni obyektga o'rash <strong>qutilash</strong> (boxing) deyiladi. Uning bitta tuzog'i bor, va u suhbatlarda ko'p so'raladi: JVM −128 dan 127 gacha bo'lgan <span class="num">Integer</span> obyektlarini oldindan yaratib, keshda saqlaydi. Shu oraliqdagi son qutilansa, yangi obyekt yaratilmaydi, keshdagisi beriladi. Pastdagi chizmada son va e'lonni tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="box" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Kotlin turi baytkodda primitiv yoki obyekt bo'ladi, va ikki qiymatni solishtirish natijasi"></svg></div>
+  <figcaption>Chapda Kotlin'dagi e'lon, o'rtada u baytkodda nimaga aylanishi va xotirada qanday turishi, o'ngda bir xil qiymatli ikki o'zgaruvchini solishtirish.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">E'lon</p>
+  <div class="evo-tabs" id="bxT"></div>
+  <div class="slider">
+    <label for="bxN">Qiymat:</label>
+    <input class="numin" id="bxN" type="number" value="100" style="width:8rem">
+    <button type="button" data-bx="100">100</button>
+    <button type="button" data-bx="127">127</button>
+    <button type="button" data-bx="128">128</button>
+    <button type="button" data-bx="1000">1000</button>
+  </div>
+  <p class="say" id="bxSay" aria-live="polite"></p>
+</figure>
+<p>Asosiy qoida: <strong><span class="num">==</span> qiymatni solishtiradi</strong> (ichkarida <span class="num">equals</span> chaqiriladi), <strong><span class="num">===</span> havolani solishtiradi</strong>, ya'ni ikki o'zgaruvchi aynan bitta obyektni ko'rsatadimi. Java'da esa <span class="num">==</span> obyektlar uchun havolani solishtiradi, va <span class="num">Integer a = 1000, b = 1000; a == b</span> yolg'on chiqadi. Bu Java'dagi eng mashhur tuzoqlardan biri, Kotlin'da u <span class="num">==</span> ning ma'nosini o'zgartirish bilan yopilgan.</p>
+
+<p class="beat">Null xavfsizligi</p>
+<p>Kotlin'da tur ikki xil bo'ladi: <span class="num">String</span> hech qachon null bo'lmaydi, <span class="num">String?</span> null bo'lishi mumkin. Kompilyator <span class="num">String?</span> qiymatda to'g'ridan-to'g'ri metod chaqirishga ruxsat bermaydi: avval null emasligini tekshirish kerak. Shu bilan NullPointerException ning katta qismi ish paytidan kompilyatsiya paytiga ko'chadi: xato foydalanuvchida emas, dasturchining ekranida chiqadi.</p>
+<p>Null bo'lishi mumkin qiymat bilan ishlash uchun to'rtta vosita bor:</p>
+<ul>
+  <li><span class="num">?.</span> xavfsiz chaqiruv: qiymat null bo'lsa, butun ifoda null qaytaradi va davom etmaydi;</li>
+  <li><span class="num">?:</span> Elvis operatori: chap tomon null bo'lsa, o'ng tomonni oladi;</li>
+  <li><span class="num">!!</span> «ishonaman, null emas»: null bo'lsa, NullPointerException tashlaydi;</li>
+  <li>aqlli tur o'zgarishi (smart cast): <span class="num">if (x != null)</span> dan keyin kompilyator <span class="num">x</span> ni null emas deb biladi.</li>
+</ul>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="nul" style="width:1240px;height:260px" viewBox="0 0 1240 260" role="img" aria-label="Xavfsiz chaqiruvlar zanjiri: qaysi qadamda null bo'lsa, zanjir to'xtaydi va Elvis qiymat beradi"></svg></div>
+  <figcaption>Zanjir chapdan o'ngga yuradi. Qaysi bo'g'in null bo'lsa, qolganlari bajarilmaydi. Elvis operatori zaxira qiymatni beradi. «!!» varianti esa null uchragan joyda qulaydi.</figcaption>
+  <p class="pick-label" style="margin-top:0.9rem">Qaysi qiymat null</p>
+  <div class="evo-tabs" id="nlW"></div>
+  <p class="pick-label">Yozuv</p>
+  <div class="evo-tabs" id="nlM"></div>
+  <p class="say" id="nlSay" aria-live="polite"></p>
+</figure>
+<p>Null xavfsizligining bitta teshigi bor: <strong>platforma turlari</strong>. Java kodidan kelgan qiymat haqida Kotlin null bo'lish-bo'lmasligini bilmaydi, chunki Java'da bu ma'lumot yo'q. Bunday tur xato xabarlarida <span class="num">String!</span> deb ko'rsatiladi va kompilyator uni tekshirmaydi. Java kutubxonasi kutilmaganda null qaytarsa, Kotlin kodi ham qulaydi. Himoya: Java'dan kelgan qiymatni darhol aniq tur bilan e'lon qilish (<span class="num">val nom: String? = javaObyekt.getName()</span>), va Java kodida <span class="num">@Nullable</span>, <span class="num">@NonNull</span> annotatsiyalaridan foydalanish: Kotlin ularni o'qiydi.</p>
+
+<p class="beat">val, var va o'zgarmaslik</p>
+<p><span class="num">val</span> qayta tayinlab bo'lmaydigan o'zgaruvchi (Java'dagi <span class="num">final</span>), <span class="num">var</span> esa oddiy o'zgaruvchi. Muhim nozik joy: <span class="num">val</span> havolani qotiradi, obyektni emas. <span class="num">val ro'yxat = mutableListOf(1, 2)</span> ga baribir element qo'shish mumkin. Kotlin'da kolleksiyalar ikki xil interfeysga ega: <span class="num">List</span> (faqat o'qish) va <span class="num">MutableList</span> (o'zgartirish). Ekran holatini <span class="num">List</span> bilan e'lon qilish uni tasodifan o'zgartirishdan himoya qiladi.</p>
+<ul>
+  <li><span class="num">const val</span>: kompilyatsiya paytida ma'lum bo'lgan oddiy qiymat (son, satr). Ishlatilgan joyga to'g'ridan-to'g'ri qo'yib yuboriladi. Faqat yuqori darajada yoki <span class="num">object</span> ichida.</li>
+  <li><span class="num">lateinit var</span>: qiymat keyinroq beriladi (masalan, testda yoki DI orqali). Faqat <span class="num">var</span>, faqat null bo'lmaydigan va primitiv bo'lmagan tur. Berilmasdan o'qilsa, <span class="num">UninitializedPropertyAccessException</span>. Tekshirish: <span class="num">::x.isInitialized</span>.</li>
+  <li><span class="num">val x by lazy { ... }</span>: qiymat birinchi murojaatda bir marta hisoblanadi va saqlanadi. Sukut bo'yicha oqimlar uchun xavfsiz (sinxronlashtirilgan). Faqat <span class="num">val</span>.</li>
+</ul>
+
+<p class="beat">Kompilyator siz uchun yozadigan kod</p>
+<p>Kotlin'ning bir nechta kalit so'zi kompilyatorga «bu klass uchun standart kodni o'zing yoz» deydi. Pastdagi chizmada bitta qator Kotlin kodi baytkodda nimaga aylanishi ko'rsatilgan.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="dat" style="width:1240px;height:380px" viewBox="0 0 1240 380" role="img" aria-label="data class, object, companion object va kengaytma funksiya kompilyator tomonidan nimaga aylanadi"></svg></div>
+  <figcaption>Chapda Kotlin yozuvi, o'ngda kompilyator yaratadigan narsa. Tanlang.</figcaption>
+  <div class="evo-tabs" id="dtT" style="margin-top:0.9rem"></div>
+  <p class="say" id="dtSay" aria-live="polite"></p>
+</figure>
+
+<p><strong><span class="num">sealed</span> va <span class="num">enum</span> farqi.</strong> Ikkalasi ham «cheklangan variantlar to'plami». <span class="num">enum</span> ning har bir qiymati bitta tayyor obyekt va hammasi bir xil maydonlarga ega. <span class="num">sealed class</span> yoki <span class="num">sealed interface</span> ning har bir varianti alohida klass: har xil maydonlarga ega bo'ladi va istalgancha nusxasi yaratiladi. Masalan ekran holati: <span class="num">Yuklanmoqda</span> (maydonsiz), <span class="num">Tayyor(kartalar)</span>, <span class="num">Xato(xabar)</span>. Ikkalasida ham <span class="num">when</span> barcha variantlarni tekshirishga majbur qiladi: yangi variant qo'shilsa, ko'rib chiqilmagan joylar kompilyatsiya xatosi beradi.</p>
+<p><strong><span class="num">Any</span>, <span class="num">Unit</span>, <span class="num">Nothing</span>.</strong> <span class="num">Any</span> barcha null bo'lmaydigan turlarning otasi (Java'dagi <span class="num">Object</span>). <span class="num">Unit</span> «hech narsa qaytarmaydi» degani (Java'dagi <span class="num">void</span>), lekin u haqiqiy tur va yagona qiymatga ega, shuning uchun uni generiklarda ishlatish mumkin. <span class="num">Nothing</span> hech qachon qiymat qaytarmaydigan ifodaning turi: <span class="num">throw</span>, <span class="num">TODO()</span>, cheksiz sikl. U barcha turlarning «bolasi», shuning uchun <span class="num">val x: String = y ?: throw ...</span> kompilyatsiya bo'ladi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Kotlin tarixi</h3>
+<div class="bench" id="evoKt"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>ART</dt><dd>Android Runtime: telefonda ilovani bajaradigan muhit. DEX baytkodini o'rnatishda oldindan va ish paytida mashina kodiga aylantiradi.</dd>
+  <dt>DEX, D8, R8</dt><dd>DEX: Android baytkodi formati. D8: JVM baytkodini DEX ga aylantiradigan asbob. R8: D8 ning ustiga kodni kichraytirish, nomlarni chalkashtirish (obfuskatsiya) va optimallashtirishni qo'shadigan asbob.</dd>
+  <dt>Qutilash (boxing)</dt><dd>Primitiv sonni obyektga o'rash: <span class="num">int</span> dan <span class="num">Integer</span>. Kotlin'da <span class="num">Int?</span> va generiklarda avtomatik bo'ladi.</dd>
+  <dt>Integer keshi</dt><dd>JVM oldindan yaratib qo'yadigan −128 dan 127 gacha <span class="num">Integer</span> obyektlari.</dd>
+  <dt>Strukturaviy va havola tengligi</dt><dd><span class="num">==</span>: qiymatlar teng (<span class="num">equals</span>). <span class="num">===</span>: bitta obyekt.</dd>
+  <dt>Null xavfsizligi</dt><dd>Null bo'lishi mumkin va mumkin bo'lmagan turlarni ajratib, null tekshiruvini kompilyatorga yuklash.</dd>
+  <dt>Platforma turi</dt><dd>Java'dan kelgan, null bo'lish-bo'lmasligi noma'lum tur. <span class="num">String!</span> deb ko'rsatiladi, kompilyator tekshirmaydi.</dd>
+  <dt>Aqlli tur o'zgarishi (smart cast)</dt><dd>Tekshiruvdan keyin kompilyatorning o'zgaruvchi turini o'zi aniqlashtirishi.</dd>
+  <dt>data class</dt><dd>Kompilyator <span class="num">equals</span>, <span class="num">hashCode</span>, <span class="num">toString</span>, <span class="num">copy</span> va <span class="num">componentN</span> ni yaratib beradigan ma'lumot klassi.</dd>
+  <dt>object, companion object</dt><dd><span class="num">object</span>: yagona nusxali klass (singleton). <span class="num">companion object</span>: klass ichidagi shunday obyekt, Java'dagi statik a'zolar o'rnida.</dd>
+  <dt>Kengaytma funksiya</dt><dd>Mavjud klassga uning kodini o'zgartirmasdan «qo'shilgan» funksiya. Ichkarida birinchi parametri o'sha obyekt bo'lgan statik metod.</dd>
+  <dt>sealed</dt><dd>Barcha vorislari bitta modulda va oldindan ma'lum bo'lgan klass yoki interfeys. <span class="num">when</span> uni to'liq tekshira oladi.</dd>
+  <dt>Any, Unit, Nothing</dt><dd>Barcha turlarning otasi; «qiymat yo'q» degan yagona qiymatli tur; hech qachon qiymat qaytarmaydigan ifoda turi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: <span class="num">!!</span> null xavfsizligini o'chiradi</b>
+  <p>Kompilyator xato bersa, <span class="num">!!</span> qo'yib qo'yish eng tez «yechim». Lekin bu Java'dagi holatga qaytish: null kelsa, ilova qulaydi. Bank ilovasida bu odatda serverdan kutilmagan javob kelganda sodir bo'ladi: maydon bo'sh keldi va ekran ochilmay qoldi.</p>
+  <p class="why">To'g'risi: null holatini ataylab hal qilish. <span class="num">?:</span> bilan zaxira qiymat, <span class="num">?: return</span> bilan erta chiqish, yoki xatoni foydalanuvchiga tushunarli ko'rsatish. Kod ko'rib chiqishda har bir <span class="num">!!</span> savol tug'dirishi kerak.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: data class ni HashSet yoki HashMap kaliti qilib, keyin o'zgartirish</b>
+  <p><span class="num">hashCode</span> asosiy konstruktordagi xususiyatlardan hisoblanadi. Obyekt <span class="num">HashSet</span> ga qo'shilgandan keyin uning <span class="num">var</span> xususiyati o'zgartirilsa, u endi to'plamda «topilmaydi»: u eski xesh bo'yicha joylashgan.</p>
+  <p class="why">To'g'risi: data class xususiyatlarini <span class="num">val</span> qilish va o'zgarish kerak bo'lsa <span class="num">copy()</span> bilan yangi obyekt yaratish. MVI dagi ekran holati aynan shunday ishlaydi: holat o'zgarmaydi, har safar yangi nusxa.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: kengaytma funksiya polimorf emas</b>
+  <p>Kengaytma funksiya statik metod bo'lgani uchun qaysi biri chaqirilishi o'zgaruvchining e'lon qilingan turiga qarab kompilyatsiya paytida hal qilinadi, obyektning haqiqiy turiga qarab emas. Ota va bola klassga bir xil nomli kengaytma yozilsa va bola obyekt ota turidagi o'zgaruvchida tursa, otaniki chaqiriladi.</p>
+  <p class="why">Shuningdek, klassning o'z a'zo funksiyasi bir xil nomli kengaytmadan doim ustun. Kengaytma klassning <span class="num">private</span> qismlariga ham kira olmaydi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: Java'dan kelgan qiymat</b>
+  <p>Retrofit, Gson kabi Java'da yozilgan yoki refleksiya bilan ishlaydigan kutubxonalar Kotlin'ning null bo'lmaydigan maydoniga null yozib qo'yishi mumkin. Masalan, Gson Kotlin konstruktorini chetlab o'tadi va serverdan kelmagan maydon <span class="num">String</span> turida bo'lsa ham null bo'lib qoladi. Xato keyinroq, butunlay boshqa joyda chiqadi.</p>
+  <p class="why">To'g'risi: serverdan keladigan modellarda ixtiyoriy maydonlarni <span class="num">String?</span> deb e'lon qilish va Kotlin'ni tushunadigan kutubxonadan foydalanish: <span class="num">kotlinx.serialization</span> yoki Moshi. Bu A9-darsda.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Namunaviy javob yod olish uchun emas: undagi asosiy fikrlar sizning javobingizda bo'lishi kerak.</p>
+<details><summary>Kotlin Java'dan nimasi bilan farq qiladi?</summary>
+<p>Ikkalasi ham JVM baytkodiga kompilyatsiya qilinadi va bir-biri bilan to'liq mos ishlaydi. Asosiy farqlar: Kotlin'da null xavfsizligi tur tizimida (<span class="num">String</span> va <span class="num">String?</span>), Java'da yo'q. Kotlin ixchamroq: <span class="num">data class</span>, xususiyatlar, standart va nomlangan argumentlar, <span class="num">when</span>, kengaytma funksiyalar. Kotlin'da tekshiriladigan istisnolar (checked exceptions) yo'q. Funksiyalar birinchi darajali qiymat: lambda va yuqori tartibli funksiyalar tilning asosi, <span class="num">inline</span> bilan ularning narxi yo'qotiladi. Asinxronlik uchun coroutines. Primitiv va obyekt turlari dasturchidan yashirin, kompilyator tanlaydi. <span class="num">==</span> qiymatni solishtiradi. Kolleksiyalar faqat o'qish va o'zgartirish interfeyslariga bo'lingan.</p></details>
+<details><summary>Int va Int? farqi nima? Xotirada qanday saqlanadi?</summary>
+<p><span class="num">Int</span> null bo'la olmaydi va kompilyator uni iloji boricha primitiv <span class="num">int</span> qiladi: 4 bayt. <span class="num">Int?</span> null bo'lishi mumkin, primitivda esa null yo'q, shuning uchun u <span class="num">java.lang.Integer</span> obyektiga qutilanadi: heap'da taxminan 16 bayt va unga havola. Generiklarda ham (<span class="num">List&lt;Int&gt;</span>) qutilanadi. Ko'p sonli ro'yxatda bu xotira va tezlikka ta'sir qiladi, primitiv massiv kerak bo'lsa <span class="num">IntArray</span>.</p></details>
+<details><summary>== va === farqi nima? val a: Int? = 1000; val b: Int? = 1000; a === b nima beradi?</summary>
+<p><span class="num">==</span> qiymatni solishtiradi (<span class="num">equals</span>, null xavfsiz), <span class="num">===</span> havolani, ya'ni bitta obyektmi. 1000 qutilanganda har safar yangi <span class="num">Integer</span> obyekti yaratiladi, shuning uchun <span class="num">a === b</span> yolg'on, <span class="num">a == b</span> rost. 100 bo'lsa, ikkalasi ham rost, chunki JVM −128 dan 127 gacha Integer obyektlarini keshdan beradi. Kotlin qutilangan sonlar uchun <span class="num">===</span> ishlatilsa ogohlantirish beradi, chunki natija qiymatga bog'liq.</p></details>
+<details><summary>val, const val va var farqi? lateinit va by lazy farqi?</summary>
+<p><span class="num">var</span> o'zgaradi, <span class="num">val</span> bir marta tayinlanadi (lekin u ko'rsatgan obyekt o'zgarishi mumkin), <span class="num">const val</span> kompilyatsiya paytida ma'lum oddiy qiymat va u ishlatilgan joyga qo'yib yuboriladi. <span class="num">lateinit</span>: faqat <span class="num">var</span>, null bo'lmaydigan, primitiv bo'lmagan tur, qiymat keyin beriladi, berilmasdan o'qilsa istisno. <span class="num">by lazy</span>: faqat <span class="num">val</span>, birinchi murojaatda hisoblanadi, sukut bo'yicha sinxronlashtirilgan, keyin keshlanadi.</p></details>
+<details><summary>data class nima yaratadi va qanday cheklovlari bor?</summary>
+<p>Asosiy konstruktordagi xususiyatlar asosida <span class="num">equals</span>, <span class="num">hashCode</span>, <span class="num">toString</span>, <span class="num">copy</span> va <span class="num">component1</span>, <span class="num">component2</span> va hokazo (destrukturlash uchun). Klass tanasidagi xususiyatlar bularga kirmaydi. Cheklovlar: asosiy konstruktorda kamida bitta parametr, data class <span class="num">abstract</span>, <span class="num">open</span>, <span class="num">sealed</span> yoki <span class="num">inner</span> bo'la olmaydi. Java 16 dagi <span class="num">record</span> bunga o'xshaydi, lekin <span class="num">copy</span> yo'q va maydonlari doim o'zgarmas.</p></details>
+<details><summary>object va companion object nima? Ular Java'da nimaga aylanadi?</summary>
+<p><span class="num">object</span> yagona nusxali klass: kompilyator statik <span class="num">INSTANCE</span> maydonini yaratadi, u klass birinchi yuklanganda bir marta va oqimlar uchun xavfsiz yaratiladi. <span class="num">companion object</span> klass ichidagi shunday obyekt, nomi sukut bo'yicha <span class="num">Companion</span>. Java'dan <span class="num">Klass.Companion.metod()</span> deb chaqiriladi; to'g'ridan-to'g'ri statik metod bo'lishi uchun <span class="num">@JvmStatic</span> qo'yiladi.</p></details>
+<details><summary>sealed class va enum farqi? Qachon qaysi biri?</summary>
+<p><span class="num">enum</span>: qat'iy qiymatlar ro'yxati, har biri bitta obyekt, hammasining tuzilishi bir xil (masalan, karta turi: UZCARD, HUMO, VISA). <span class="num">sealed</span>: cheklangan variantlar, lekin har biri o'z maydonlariga ega alohida klass va har biridan ko'p nusxa (masalan, ekran holati yoki tarmoq natijasi: <span class="num">Success(data)</span>, <span class="num">Error(code, message)</span>, <span class="num">Loading</span>). Ikkalasi ham <span class="num">when</span> da to'liq tekshiriladi.</p></details>
+<details><summary>Kengaytma funksiya ichkarida nima? Uni ota klassda va bola klassda bir xil nom bilan yozsak nima bo'ladi?</summary>
+<p>Ichkarida bu statik metod, birinchi parametri o'sha obyekt. Klassning o'zi o'zgarmaydi va kengaytma <span class="num">private</span> qismlarga kira olmaydi. Qaysi kengaytma chaqirilishi o'zgaruvchining e'lon qilingan turiga qarab kompilyatsiya paytida hal qilinadi, shuning uchun polimorfizm yo'q. Klassning o'z a'zo funksiyasi doim ustun.</p></details>
+<details><summary>Platforma turi nima va qanday xavfli?</summary>
+<p>Java'dan kelgan, null bo'lish-bo'lmasligi noma'lum tur, <span class="num">String!</span>. Kompilyator uni tekshirmaydi, shuning uchun Java metodi null qaytarsa va biz uni <span class="num">String</span> deb ishlatsak, NullPointerException. Himoya: qiymatni aniq tur bilan qabul qilish va Java kodida <span class="num">@Nullable</span> annotatsiyalari.</p></details>
+<details><summary>Any, Unit va Nothing nima?</summary>
+<p><span class="num">Any</span>: barcha null bo'lmaydigan turlarning ildizi (<span class="num">Object</span> ga o'xshash, <span class="num">equals</span>, <span class="num">hashCode</span>, <span class="num">toString</span>). <span class="num">Unit</span>: qaytaradigan qiymati yo'q funksiyaning turi, yagona qiymatli haqiqiy obyekt, shuning uchun generiklarda ishlatiladi (<span class="num">() -&gt; Unit</span>). <span class="num">Nothing</span>: qiymati yo'q tur, hech qachon normal qaytmaydigan ifodalar uchun (<span class="num">throw</span>, <span class="num">TODO()</span>); u har qanday turning o'rnida tura oladi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing, men suhbatdoshdek baholayman.</p>
+<ol class="check">
+  <li>Kotlin kodi telefonda ishga tushguncha qaysi bosqichlardan o'tadi?</li>
+  <li><span class="num">val x: Int? = 127; val y: Int? = 127</span>. <span class="num">x === y</span> nima beradi? 128 bo'lsa-chi? Nega?</li>
+  <li>Server javobidagi maydon ba'zan kelmaydi. Kotlin modelida uni qanday e'lon qilasiz va ekranda qanday ko'rsatasiz?</li>
+  <li>Ekran holati uchun nega <span class="num">sealed interface</span>, karta turi uchun nega <span class="num">enum</span>?</li>
+  <li>DigitalBank'da qayerda Java va Kotlin aralash ishlatilgan edi, yoki ishlatilganmi? Bu qanday muammo tug'dirdi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Generiklar: in, out va tur o'chirilishi</summary>
+<p>JVM da generik tur ma'lumoti ish paytida o'chiriladi: <span class="num">List&lt;String&gt;</span> va <span class="num">List&lt;Int&gt;</span> ish paytida bir xil <span class="num">List</span>. Shuning uchun <span class="num">if (x is List&lt;String&gt;)</span> yozib bo'lmaydi. Kotlin'da buning yechimi <span class="num">inline</span> funksiyadagi <span class="num">reified</span> tur, A2-darsda. Variantlik: <span class="num">out T</span> faqat beradi (ishlab chiqaruvchi), shuning uchun <span class="num">List&lt;String&gt;</span> ni <span class="num">List&lt;Any&gt;</span> o'rnida ishlatish mumkin; <span class="num">in T</span> faqat qabul qiladi (iste'molchi), masalan <span class="num">Comparator&lt;in T&gt;</span>. Java'da bu <span class="num">? extends</span> va <span class="num">? super</span>.</p></details>
+<details><summary>value class nima?</summary>
+<p><span class="num">@JvmInline value class KartaRaqami(val qiymat: String)</span>: kompilyatsiyada iloji boricha ichidagi qiymatning o'ziga aylanadigan klass. Natijada tur xavfsizligi bor (karta raqami o'rniga telefon raqamini berib bo'lmaydi), lekin qo'shimcha obyekt yaratilmaydi. Bank ilovasida summa, valyuta, identifikatorlar uchun foydali.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Kotlin hujjatlari: kotlinlang.org/docs (Null safety, Data classes, Sealed classes, Extensions). Kotlin versiyalar tarixi: kotlinlang.org/docs/releases.html. Toni Xoar, «Null References: The Billion Dollar Mistake», QCon, 2009. Android Developers: «Android's Kotlin-first approach».</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Kotlin Java bilan bitta baytkodga tushadi va ko'p ishini kompilyator bajaradi. <span class="num">Int</span> primitiv, <span class="num">Int?</span> va generiklar qutilangan obyekt. <span class="num">==</span> qiymat, <span class="num">===</span> havola. Null xavfsizligi tur tizimida, lekin <span class="num">!!</span> va Java'dan kelgan qiymatlar uni teshadi. <span class="num">data class</span>, <span class="num">object</span>, kengaytmalar ichkarida oddiy Java kodi.</p>
+  <p><strong>Keyingi dars.</strong> A2. Funksiyalar: lambda nimaga aylanadi, <span class="num">inline</span>, <span class="num">noinline</span>, <span class="num">crossinline</span>, <span class="num">reified</span> va scope funksiyalar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="./">Bo'lim mundarijasi</a><a href="a2-funksiyalar.html">Keyingi: A2. Funksiyalar</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [5], 'Kotlin: qolgan hamma narsa shu tilda');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+
+  // ---------- Yig'ish yo'li ----------
+  (function () {
+    var svg = $('build'); marker(svg, 'bdmk');
+    group(svg, 20, 20, 200, 260, 'Manba kod');
+    box(svg, 36, 60, 168, 80, 'Karta.kt', 'Kotlin', 'on'); box(svg, 36, 170, 168, 80, 'Eski.java', 'Java');
+    box(svg, 290, 60, 170, 80, 'kotlinc', 'Kotlin kompilyatori'); box(svg, 290, 170, 170, 80, 'javac', 'Java kompilyatori');
+    box(svg, 530, 110, 190, 90, '.class fayllar', 'JVM baytkodi (7-dars)', 'live');
+    box(svg, 790, 110, 170, 90, 'D8 / R8', 'DEX ga aylantiradi');
+    group(svg, 1010, 20, 210, 260, 'Telefon');
+    box(svg, 1026, 60, 178, 80, 'classes.dex', 'APK yoki AAB ichida');
+    box(svg, 1026, 170, 178, 90, 'ART', 'mashina kodiga aylantiradi', 'on');
+    arrow(svg, 'bdmk', 'M204 100H288'); arrow(svg, 'bdmk', 'M204 210H288');
+    arrow(svg, 'bdmk', 'M460 100H495V140H528'); arrow(svg, 'bdmk', 'M460 210H495V170H528');
+    arrow(svg, 'bdmk', 'M720 155H788'); arrow(svg, 'bdmk', 'M960 155H990V100H1024', 'yig\'ish', 980, 92, 'end');
+    arrow(svg, 'bdmk', 'M1115 140V168');
+  })();
+
+  // ---------- Qutilash ----------
+  (function () {
+    var svg = $('box'), say = $('bxSay'), cur = 0;
+    var T = ['val a: Int', 'val a: Int?', 'val a: List<Int>', 'val a: IntArray'];
+    var setT = tabs('bxT', T, function (i) { cur = i; draw(); });
+    function draw() {
+      var n = parseInt($('bxN').value, 10); if (isNaN(n)) n = 0;
+      var boxed = cur === 1 || cur === 2, cached = n >= -128 && n <= 127;
+      setT(cur); svg.textContent = ''; marker(svg, 'bxmk');
+      box(svg, 20, 110, 260, 100, 'Kotlin', 'Dasturchi ko\'radigan tur', 'on');
+      S(svg, 'text', { x: 36, y: 192, 'class': 'val' }, T[cur].replace('val a', 'a') + (cur === 2 ? ' [' + n + ']' : cur === 3 ? ' [' + n + ']' : ' = ' + n));
+      group(svg, 360, 20, 480, 290, 'Baytkod va xotira');
+      if (!boxed) {
+        box(svg, 380, 60, 440, 100, cur === 3 ? 'int[] massivi' : 'primitiv int', cur === 3 ? 'sonlarning o\'zi yonma-yon, har biri 4 bayt' : 'sonning o\'zi, 4 bayt, obyekt yo\'q', 'live');
+        S(svg, 'text', { x: 396, y: 140, 'class': 'val' }, cur === 3 ? '[' + n + ', ...]' : String(n));
+        S(svg, 'text', { x: 380, y: 200, 'class': 'sub' }, 'Heap\'da alohida obyekt yaratilmaydi.');
+        S(svg, 'text', { x: 380, y: 224, 'class': 'sub' }, 'null bo\'la olmaydi.');
+      } else {
+        box(svg, 380, 60, 190, 100, 'Havola', 'o\'zgaruvchida', '');
+        S(svg, 'text', { x: 396, y: 140, 'class': 'mono' }, '→ obyekt');
+        box(svg, 620, 60, 200, 230, 'Integer obyekti', 'heap\'da, ~16 bayt', 'live');
+        S(svg, 'text', { x: 636, y: 130, 'class': 'sub' }, 'sarlavha: ~12 bayt');
+        S(svg, 'text', { x: 636, y: 160, 'class': 'sub' }, 'qiymat: 4 bayt');
+        S(svg, 'text', { x: 636, y: 200, 'class': 'val' }, String(n));
+        S(svg, 'text', { x: 636, y: 250, 'class': 'sub' }, cached ? 'keshdan olindi' : 'yangi yaratildi');
+        arrow(svg, 'bxmk', 'M570 110H618');
+        S(svg, 'text', { x: 380, y: 200, 'class': 'sub' }, cur === 2 ? 'Generiklar faqat obyekt bilan ishlaydi.' : 'Primitivda null yo\'q, shuning uchun obyekt.');
+      }
+      var eq = true, id = boxed ? cached : true;
+      box(svg, 900, 60, 320, 110, 'b = ' + n + ' (xuddi shu tur)', 'a == b: qiymat teng', 'on'); S(svg, 'text', { x: 916, y: 150, 'class': 'val' }, 'a == b  →  ' + eq);
+      box(svg, 900, 190, 320, 110, 'a === b', 'bitta obyektmi', boxed ? (id ? 'on' : 'bad') : 'freed'); S(svg, 'text', { x: 916, y: 280, 'class': 'val' }, boxed ? 'a === b  →  ' + id : 'primitivda ma\'nosiz');
+      arrow(svg, 'bxmk', 'M840 115H898'); arrow(svg, 'bxmk', 'M840 245H898');
+      if (cur === 0) say.textContent = `Int null bo'la olmaydi, shuning uchun kompilyator uni primitiv int qiladi: 4 bayt, obyekt yo'q. Kotlin primitivlar uchun === ishlatishga ruxsat bermaydi yoki ogohlantiradi: ularda «obyekt» yo'q.`;
+      else if (cur === 3) say.textContent = `IntArray ichkarida int[]: sonlarning o'zi yonma-yon yotadi. 1 million son uchun taxminan 4 MB. List<Int> da esa 1 million Integer obyekti va 1 million havola: bir necha baravar ko'p, va kesh uchun ham yomon (P0, 6-dars).`;
+      else say.textContent = `${n} soni ${cur === 1 ? 'Int? bo\'lgani uchun' : 'generik ro\'yxatda bo\'lgani uchun'} Integer obyektiga qutilandi. ` + (cached ? `U −128 dan 127 gacha oraliqda, shuning uchun JVM keshidagi tayyor obyekt berildi: ikki o'zgaruvchi bitta obyektni ko'rsatadi va === ham rost.` : `U −128 dan 127 gacha oraliqdan tashqarida, shuning uchun har safar yangi obyekt yaratiladi: == rost (qiymat bir xil), === esa yolg'on (ikki xil obyekt). Java'da Integer uchun == aynan shu === kabi ishlaydi, mashhur tuzoq shu.`);
+    }
+    $('bxN').addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-bx]'), function (b) { b.addEventListener('click', function () { $('bxN').value = b.getAttribute('data-bx'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- Null zanjiri ----------
+  (function () {
+    var svg = $('nul'), say = $('nlSay'), w = 3, m = 0;
+    var setW = tabs('nlW', ['mijoz', 'manzil', 'shahar', 'hech biri'], function (i) { w = i; draw(); });
+    var setM = tabs('nlM', ['mijoz?.manzil?.shahar ?: "noma\'lum"', 'mijoz!!.manzil!!.shahar!!'], function (i) { m = i; draw(); });
+    function draw() {
+      setW(w); setM(m); svg.textContent = ''; marker(svg, 'nlmk');
+      var names = ['mijoz', '.manzil', '.shahar'], vals = ['Mijoz(...)', 'Manzil(...)', '"Toshkent"'];
+      var res, bad = false;
+      names.forEach(function (nm, i) {
+        var x = 20 + i * 250, reached = i <= w, isNull = i === w, skipped = i > w;
+        box(svg, x, 60, 220, 100, (m === 0 && i > 0 ? '?' : '') + nm + (m === 1 ? '!!' : ''), skipped ? 'bajarilmadi' : (isNull ? 'null keldi' : vals[i]), skipped ? 'freed' : (isNull ? (m === 1 ? 'bad' : 'live') : 'on'));
+        if (i < 2) arrow(svg, 'nlmk', 'M' + (x + 220) + ' 110H' + (x + 248));
+      });
+      if (m === 0) {
+        res = w === 3 ? '"Toshkent"' : '"noma\'lum"';
+        box(svg, 800, 60, 180, 100, '?: "noma\'lum"', w === 3 ? 'ishlatilmadi' : 'zaxira qiymat berdi', w === 3 ? 'freed' : 'live');
+        arrow(svg, 'nlmk', 'M740 110H798');
+      } else { res = w === 3 ? '"Toshkent"' : 'NullPointerException'; bad = w !== 3; }
+      box(svg, 1020, 60, 200, 100, 'Natija', bad ? 'ilova qulaydi' : 'String', bad ? 'bad' : 'on'); S(svg, 'text', { x: 1036, y: 145, 'class': 'mono' }, res);
+      arrow(svg, 'nlmk', m === 0 ? 'M980 110H1018' : 'M740 110H1018');
+      S(svg, 'text', { x: 20, y: 210, 'class': 'sub' }, m === 0 ? 'Natija turi: String. Elvis tufayli null bo\'lmaydi, shuning uchun ekranga to\'g\'ridan-to\'g\'ri chiqarish mumkin.' : 'Har bir !! kompilyatorga «tekshirma» deydi. Tekshiruv ish paytiga, ya\'ni foydalanuvchiga ko\'chadi.');
+      if (m === 0) say.textContent = w === 3 ? `Hamma qiymat bor: zanjir oxirigacha yurdi va "Toshkent" qaytdi, Elvis ishlatilmadi.` : `${['mijoz', 'manzil', 'shahar'][w]} null: ?. shu joyda zanjirni to'xtatdi va null qaytardi, qolgan qadamlar bajarilmadi. Elvis operatori null o'rniga "noma'lum" ni berdi. Ilova qulamadi.`;
+      else say.textContent = w === 3 ? `Hamma qiymat bor, !! hech narsa qilmadi. Lekin bu kod faqat «omad bo'lsa» ishlaydi.` : `${['mijoz', 'manzil', 'shahar'][w]} null, va !! NullPointerException tashladi. Bu Java'dagi holatning o'zi: kompilyator ogohlantirgan edi, biz uni !! bilan o'chirdik.`;
+      say.className = 'say' + (bad ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Kompilyator yozadigan kod ----------
+  (function () {
+    var svg = $('dat'), say = $('dtSay'), cur = 0;
+    var D = [
+      { k: 'data class Karta(\n  val raqam: String,\n  val balans: Long)', t: 'data class', g: ['konstruktor', 'getRaqam(), getBalans()', 'equals(other)', 'hashCode()', 'toString(): Karta(raqam=..., balans=...)', 'copy(raqam, balans)', 'component1(), component2()'], s: `Bitta qator Kotlin. Java'da shu klass uchun taxminan 50–60 qator qo'lda yoziladi. Hammasi faqat asosiy konstruktordagi xususiyatlar asosida: tanadagi xususiyatlar equals va toString ga kirmaydi. copy() o'zgarmas obyektdan bitta maydoni boshqacha yangi nusxa yasaydi: MVI da holat shunday yangilanadi. component1(), component2() destrukturlash uchun: val (raqam, balans) = karta.` },
+      { k: 'object Sozlamalar {\n  val url = "..."\n}', t: 'object', g: ['final class Sozlamalar', 'private konstruktor', 'static final INSTANCE', 'statik blokda bir marta yaratiladi', 'getUrl()'], s: `object yagona nusxali klass (singleton). Kompilyator statik INSTANCE maydonini yaratadi. U klass birinchi marta ishlatilganda JVM tomonidan bir marta yaratiladi, va JVM klass yuklanishini o'zi sinxronlashtirgani uchun bu oqimlar uchun xavfsiz. Java'dan Sozlamalar.INSTANCE.getUrl() deb chaqiriladi.` },
+      { k: 'class Karta {\n  companion object {\n    fun bosh() = Karta() } }', t: 'companion object', g: ['class Karta', 'static final Companion', 'class Karta.Companion { bosh() }', '@JvmStatic bo\'lsa: static bosh()'], s: `companion object klass ichidagi yagona obyekt, Java'dagi static a'zolar o'rnida. Kotlin'dan Karta.bosh() deb chaqiriladi, lekin baytkodda bu Karta.Companion.bosh(): oddiy obyekt metodi. Java kodi uchun haqiqiy statik metod kerak bo'lsa, @JvmStatic qo'yiladi. Companion interfeys amalga oshira oladi va kengaytma qabul qila oladi, oddiy static esa yo'q.` },
+      { k: 'fun String.yashir() =\n  "**** " + takeLast(4)', t: 'kengaytma funksiya', g: ['static String yashir(String $this)', 'klass String o\'zgarmaydi', 'private a\'zolarga kirmaydi', 'kompilyatsiya paytida tanlanadi'], s: `Kengaytma funksiya String klassiga hech narsa qo'shmaydi. Kompilyator birinchi parametri o'sha satr bo'lgan statik metod yaratadi, va "8600...1234".yashir() chaqiruvi shu statik metodga aylanadi. Shuning uchun u polimorf emas va klassning yopiq qismlarini ko'rmaydi.` }
+    ];
+    var setT = tabs('dtT', D.map(function (d) { return d.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var d = D[cur]; setT(cur); svg.textContent = ''; marker(svg, 'dtmk');
+      box(svg, 20, 30, 400, 320, 'Kotlin', 'Siz yozadigan kod', 'on');
+      d.k.split('\n').forEach(function (l, i) { S(svg, 'text', { x: 36, y: 110 + i * 26, 'class': 'mono', style: 'white-space:pre' }, l); });
+      group(svg, 520, 20, 700, 340, 'Baytkodda kompilyator yaratgani');
+      d.g.forEach(function (g, i) { box(svg, 540 + (i % 2) * 335, 60 + Math.floor(i / 2) * 72, 320, 60, g, '', 'live'); });
+      arrow(svg, 'dtmk', 'M420 190H518', 'kotlinc', 469, 180);
+      say.textContent = d.s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoKt', [
+    { name: `Java va Android`, years: `2008–2016`, art: `<rect x="20" y="24" width="80" height="52" rx="4"/><path d="M34 40h52M34 52h40M34 64h46" class="acc"/>`,
+      how: `Android ilovalar Java tilida yoziladi, lekin telefonda JVM emas, avval Dalvik, keyin ART ishlaydi. Til imkoniyatlari Java 6 va 7 darajasida qolib ketadi.`,
+      better: `Millionlab Java dasturchisi va kutubxonasi Android'ga tayyor holda keldi.`,
+      pain: `NullPointerException, ortiqcha kod, lambda yo'q. Yangi Java versiyalari Android'ga kech yetib keladi.`,
+      ex: `ART Android 5.0 (2014) dan sukut bo'yicha Dalvik o'rnini egalladi.` },
+    { name: `Kotlin paydo bo'ladi`, years: `2011–2016`, art: `<path d="M20 80V20h40L20 60" class="acc"/><path d="M20 80L60 40 100 80"/>`,
+      how: `JetBrains 2011-yilda Kotlin'ni e'lon qiladi: JVM uchun, Java bilan to'liq mos, null xavfsiz va ixcham til. Nomi Sankt-Peterburg yaqinidagi oroldan.`,
+      better: `Java kodi bilan bitta loyihada aralash yashaydi: loyihani bosqichma-bosqich ko'chirish mumkin.`,
+      pain: `Rasmiy qo'llab-quvvatlash yo'q: Google qo'llab-quvvatlamagan tilni katta kompaniyalar tanlashga qo'rqadi.`,
+      ex: `Kotlin 1.0: 2016-yil fevral.` },
+    { name: `Google rasmiy qabul qiladi`, years: `2017–2019`, art: `<circle cx="60" cy="50" r="30"/><path d="M45 50l10 10 20-22" class="acc"/>`,
+      how: `Google I/O 2017 da Kotlin Android uchun rasmiy til deb e'lon qilindi. 2019-yilda «Kotlin birinchi»: yangi Jetpack kutubxonalari va hujjatlar avval Kotlin uchun.`,
+      better: `Coroutines Android'da asinxronlikning standart usuliga aylandi, keyin Flow keldi.`,
+      pain: `Kompilyatsiya Java'dan sekin, katta loyihalarda yig'ish vaqti og'riq.`,
+      ex: `Jetpack Compose (1.0 2021-yil iyul) faqat Kotlin'da yozilgan va faqat Kotlin'da ishlatiladi.` },
+    { name: `K2 kompilyatori`, years: `2024-yildan`, art: `<rect x="16" y="30" width="88" height="40" rx="4"/><path d="M28 50h20M56 50h20" class="acc"/><circle cx="92" cy="50" r="6" class="lit"/>`,
+      how: `Kotlin 2.0 (2024-yil may) bilan kompilyatorning yangi asosi, K2, barqaror bo'ldi. Tilning o'zi deyarli o'zgarmadi, lekin kompilyatsiya tezlashdi va aqlli tur o'zgarishi kuchaydi.`,
+      better: `Tezroq yig'ish, bitta asos ustida JVM, Android, iOS (Kotlin Multiplatform) va boshqa nishonlar.`,
+      pain: `Ba'zi kompilyator plaginlari yangi asosga ko'chirilishi kerak bo'ldi.`,
+      ex: `Kotlin 2.3.0 2025-yil dekabrda, 2.3.20 2026-yil martda chiqdi (JetBrains blogi). Yangi versiyalarni kotlinlang.org/docs/releases.html dan tekshiring.` }
+  ]);
+})();
+</script>
+</body>
+</html>
