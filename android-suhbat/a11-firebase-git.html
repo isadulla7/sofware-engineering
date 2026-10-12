@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A11. Firebase va Git</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A11. Firebase: FCM, Analytics, Crashlytics; Git va GitFlow</h1>
+<p class="lead">Savol: server telefonga push xabarni qanday yetkazadi, ilova qulasa dasturchi buni qanday bilib oladi, foydalanuvchi xatti-harakati qanday o'lchanadi, va jamoa kodini qanday tarmoqlarda yuritadi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Firebase</strong>: Google'ning mobil ilovalar uchun xizmatlar to'plami. Vakansiyada uchtasi: <strong>FCM</strong> (Firebase Cloud Messaging, push xabarlar), <strong>Analytics</strong> (foydalanuvchi hodisalari), <strong>Crashlytics</strong> (qulashlar va xatolar hisoboti).</p>
+    <p><strong>GitFlow</strong>: Git'da tarmoqlarni nomlash va birlashtirish qoidalari: <span class="num">main</span>, <span class="num">develop</span>, <span class="num">feature/*</span>, <span class="num">release/*</span>, <span class="num">hotfix/*</span>.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «Firebase servislarini sozlash va ishlatish (FCM / Push Notifications, Analytics, Crashlytics)» va «Git: GitFlow bo'yicha tarmoqlash, Code Review'da qatnashish».</li>
+      <li><strong>Bank ilovasida:</strong> pul tushgani haqida push, OTP, xavfsizlik ogohlantirishlari; qulashlar foizi (crash-free) asosiy sifat ko'rsatkichi.</li>
+      <li><strong>Sizning tajribangiz:</strong> GitLab CI/CD va kod ko'rib chiqish: suhbatda aniq misol bilan gapiring.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>push xabar yo'li: ro'yxatdan o'tish tokeni, server, FCM, qurilma;</li>
+      <li>notification va data xabarlar farqi, ilova fonda va oldinda bo'lganda;</li>
+      <li>Android 13 ruxsati va bildirishnoma kanallari;</li>
+      <li>Analytics hodisalari va shaxsiy ma'lumot qoidasi;</li>
+      <li>Crashlytics: qulash, fatal bo'lmagan xato, mapping fayli;</li>
+      <li>GitFlow tarmoqlari va kod ko'rib chiqish.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: Firebase va Git barcha qavatlarga tegadi"></svg></div>
+  <figcaption>Firebase SDK lari data va ekran qavatlarida ishlatiladi; Git esa butun loyiha bilan ishlash usuli.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>FCM arxitekturasi va xabar turlari</li>
+    <li>Bildirishnoma ruxsati, kanallar, bosilganda ochish</li>
+    <li>Analytics: hodisalar, parametrlar, foydalanuvchi xususiyatlari</li>
+    <li>Crashlytics: hisobotlar, obfuskatsiya, fatal bo'lmagan xatolar</li>
+    <li>GitFlow va unga muqobillar</li>
+    <li>Kod ko'rib chiqish</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Remote Config, App Distribution, Performance Monitoring</li>
+    <li>Server tomonida FCM ga yuborish kodi (backend yo'l xaritasida)</li>
+    <li>CI/CD sozlash batafsil</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Telefonga xabar yetkazish va ishlab turgan ilovani ko'rish</h3>
+<p><strong>Push.</strong> Server telefonga to'g'ridan-to'g'ri ulana olmaydi: telefonning IP manzili doim o'zgaradi, operator tarmog'i kiruvchi ulanishlarni to'sadi. Ilovaning o'zi har bir necha soniyada serverdan «yangi narsa bormi» deb so'rasa (polling), batareya va trafik tugaydi. Har bir ilova o'z doimiy ulanishini ushlab tursa, yuzta ilova yuzta ulanish. Yechim: telefonda bitta umumiy doimiy ulanish (Google Play xizmatlari orqali), va barcha ilovalar xabarlari shu bitta kanal orqali keladi.</p>
+<p><strong>Qulashlar.</strong> Ilova foydalanuvchi telefonida qulaydi, dasturchi esa buni ko'rmaydi. Foydalanuvchi shikoyat qilmaydi, shunchaki ilovani o'chiradi yoki bahoni tushiradi. Qaysi qurilma, qaysi Android versiyasi, qaysi ekran, qaysi qatorda: bularsiz xatoni takrorlab bo'lmaydi.</p>
+<p><strong>Jamoaviy ishlash.</strong> O'nta dasturchi bitta kod bazasida. Kimdir yangi funksiya yozyapti, kimdir relizni tayyorlayapti, ishlab turgan versiyada esa shoshilinch xato topildi. Qoidasiz tarmoqlash bir-birining ishini buzadi va do'konga tayyor bo'lmagan kod chiqib ketadi.</p>
+
+<h3><span class="part">2. Ichkarida</span>FCM, Analytics, Crashlytics, GitFlow</h3>
+
+<p class="beat">FCM: xabarning yo'li</p>
+<p>Uch ishtirokchi: ilova, sizning backend serveringiz va FCM. Yo'l ikki bosqichli.</p>
+<ol>
+  <li><strong>Ro'yxatdan o'tish.</strong> Ilova FCM SDK dan <strong>ro'yxatdan o'tish tokeni</strong>ni oladi: shu qurilmadagi shu ilova nusxasining manzili. Ilova uni o'z backendiga yuboradi, backend uni foydalanuvchiga bog'lab saqlaydi. Token o'zgarishi mumkin (ilova qayta o'rnatildi, ma'lumotlar tozalandi): <span class="num">onNewToken</span> chaqiriladi va yangisi yana backendga yuboriladi.</li>
+  <li><strong>Yuborish.</strong> Backend FCM ning <strong>HTTP v1 API</strong> siga xabar va tokenni yuboradi. Avtorizatsiya xizmat hisobi (service account) asosidagi qisqa muddatli OAuth2 access token bilan. Eski «server kaliti» bilan ishlaydigan legacy API 2024-yilda o'chirilgan. FCM xabarni qurilmaga Google Play xizmatlarining doimiy ulanishi orqali yetkazadi.</li>
+</ol>
+<p>Xabarlar ikki xil, va ular ilova holatiga qarab turlicha ishlaydi. Bu suhbatda eng ko'p so'raladigan joy.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="fcm" style="width:1240px;height:380px" viewBox="0 0 1240 380" role="img" aria-label="FCM: backend, FCM serveri, qurilma va ilova; xabar turi va ilova holatiga qarab kim bildirishnoma ko'rsatadi"></svg></div>
+  <figcaption>Chapdan o'ngga: backend, FCM, qurilmadagi Google Play xizmatlari, ilova. Pastda natija. Holatni tanlang.</figcaption>
+  <div class="evo-tabs" id="fcT" style="margin-top:0.9rem"></div>
+  <p class="say" id="fcSay" aria-live="polite"></p>
+</figure>
+<ul>
+  <li><strong>Notification xabar</strong> (<span class="num">notification</span> bloki bilan): ilova fonda bo'lsa, tizim uni o'zi bildirishnoma sifatida ko'rsatadi va <span class="num">onMessageReceived</span> chaqirilmaydi; bosilganda ilova ochiladi va <span class="num">data</span> qismi Intent extras'da keladi. Ilova oldinda bo'lsa, <span class="num">onMessageReceived</span> chaqiriladi va ko'rsatish ilovaning ishi.</li>
+  <li><strong>Data xabar</strong> (faqat <span class="num">data</span>): ilova holatidan qat'i nazar <span class="num">onMessageReceived</span> chaqiriladi, bildirishnomani ilova o'zi yasaydi. To'liq nazorat: matn tili, guruhlash, maxfiy qismni yashirish, ichki holatni yangilash.</li>
+  <li><strong>Ruxsat</strong>: Android 13 (API 33) dan bildirishnoma ko'rsatish uchun <span class="num">POST_NOTIFICATIONS</span> ish paytida so'raladi. Rad etilsa, xabar keladi, lekin ko'rinmaydi.</li>
+  <li><strong>Kanallar</strong>: Android 8 dan har bir bildirishnoma kanalga tegishli («Operatsiyalar», «Xavfsizlik», «Aksiyalar»), va foydalanuvchi har birini alohida o'chira oladi. Bank ilovasida xavfsizlik kanalini aksiyalar bilan aralashtirmaslik kerak.</li>
+  <li><strong>Bosilganda</strong>: <span class="num">PendingIntent</span> orqali kerakli ekran ochiladi, avval PIN, keyin tafsilot (A8).</li>
+</ul>
+<p>Bank ilovasiga xos: Google Play xizmatlari bo'lmagan qurilmalar (masalan, Huawei'ning yangi modellari) FCM ni olmaydi; ular uchun boshqa push xizmati (HMS Push Kit) yoki ilova ochilganda tekshirish kerak. Push xabarga maxfiy ma'lumot (to'liq karta raqami, OTP kodining o'zi bloklangan ekranda) qo'yilmaydi yoki bildirishnoma ko'rinishi «maxfiy» qilinadi.</p>
+
+<p class="beat">Analytics</p>
+<p>Firebase Analytics foydalanuvchi harakatlarini <strong>hodisalar</strong> sifatida yozadi: <span class="num">logEvent("transfer_completed") { param("method", "card_to_card"); param("amount_bucket", "100k_1m") }</span>. Ba'zi hodisalar avtomatik (<span class="num">first_open</span>, <span class="num">screen_view</span>, <span class="num">session_start</span>). <strong>Foydalanuvchi xususiyatlari</strong> segmentlash uchun: til, mijoz turi. Hodisalar qurilmada to'planib, guruh bilan yuboriladi; konsolda ular odatda bir necha soatdan keyin ko'rinadi, ishlab chiqishda esa <strong>DebugView</strong> bilan real vaqtda.</p>
+<p>Qoida: <strong>shaxsiy ma'lumot yuborilmaydi</strong>. Ism, telefon, karta raqami, aniq summa Firebase qoidalariga ham, bank maxfiylik talablariga ham zid. Summa o'rniga oraliq, karta o'rniga turi. Hodisa nomlari bir xil uslubda (<span class="num">snake_case</span>, «ob'ekt_harakat») va hujjatlashtirilgan bo'lishi kerak, aks holda bir yildan keyin hech kim ularni tushunmaydi.</p>
+
+<p class="beat">Crashlytics</p>
+<p>Crashlytics ilova qulaganda stek izini, qurilma, Android versiyasi, xotira holatini yig'adi va keyingi ishga tushishda yuboradi. Konsolda qulashlar o'xshashligi bo'yicha guruhlanadi va <strong>crash-free users</strong> (qulashsiz foydalanuvchilar foizi) ko'rsatiladi: bank ilovalarida bu odatda 99,5% dan yuqori bo'lishi kutiladi.</p>
+<ul>
+  <li><strong>Fatal bo'lmagan xatolar</strong>: ushlangan, lekin muhim istisnolar <span class="num">recordException(e)</span> bilan yuboriladi: masalan, JSON xatosi yoki kutilmagan server javobi (A9).</li>
+  <li><strong>Kontekst</strong>: <span class="num">setCustomKey("screen", "transfer")</span>, <span class="num">log("tasdiqlash bosildi")</span> izlari va anonim <span class="num">setUserId</span> (ichki ID, telefon raqami emas).</li>
+  <li><strong>Obfuskatsiya</strong>: release yig'masida R8 klass va metod nomlarini qisqartiradi (<span class="num">a.b.c()</span>). Stek izi o'qib bo'lmaydigan bo'ladi. Yig'ishda yaratiladigan <span class="num">mapping.txt</span> fayli Crashlytics Gradle plagini orqali yuklanadi va konsol stekni asl nomlarga qaytaradi. Pastdagi chizmada ko'ring.</li>
+  <li>ANR lar va boshqa barqarorlik ko'rsatkichlari Google Play Console'ning Android vitals bo'limida ham ko'rinadi.</li>
+</ul>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="crash" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Obfuskatsiya qilingan stek izi va mapping fayli yordamida tiklangan stek izi"></svg></div>
+  <figcaption>Chapda qurilmadan kelgan stek izi, o'ngda konsolda ko'rinadigani.</figcaption>
+  <div class="evo-tabs" id="crT" style="margin-top:0.9rem"></div>
+  <p class="say" id="crSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">GitFlow</p>
+<p>GitFlow (Vinsent Drissen, 2010) besh xil tarmoqni belgilaydi:</p>
+<ul>
+  <li><span class="num">main</span>: faqat do'konga chiqqan versiyalar, har biri teg bilan (<span class="num">v2.4.0</span>).</li>
+  <li><span class="num">develop</span>: keyingi reliz uchun yig'ilayotgan kod.</li>
+  <li><span class="num">feature/*</span>: <span class="num">develop</span> dan ochiladi, tugagach PR va kod ko'rib chiqish orqali <span class="num">develop</span> ga birlashadi.</li>
+  <li><span class="num">release/*</span>: <span class="num">develop</span> dan ochiladi, unda faqat test va tuzatishlar; tayyor bo'lgach <span class="num">main</span> ga (teg bilan) va <span class="num">develop</span> ga birlashadi.</li>
+  <li><span class="num">hotfix/*</span>: <span class="num">main</span> dan ochiladi, shoshilinch tuzatish, keyin <span class="num">main</span> ga (yangi teg) va <span class="num">develop</span> ga.</li>
+</ul>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="gf" style="width:1240px;height:380px" viewBox="0 0 1240 380" role="img" aria-label="GitFlow tarmoqlari va birlashtirishlar ketma-ketligi"></svg></div>
+  <figcaption>Har bir gorizontal chiziq bitta tarmoq, nuqtalar kommitlar, strelkalar birlashtirishlar. Qadamlarni bosing.</figcaption>
+  <div class="slider"><button type="button" id="gfNext">Keyingi qadam</button><button type="button" id="gfReset">Boshidan</button></div>
+  <p class="say" id="gfSay" aria-live="polite"></p>
+</figure>
+<p>Muqobil: <strong>trunk-based</strong> ishlab chiqish (hamma kichik o'zgarishlarni tez-tez bitta asosiy tarmoqqa birlashtiradi, tugallanmagan funksiyalar bayroqlar bilan yashiriladi). Mobil ilovalarda reliz do'kon tekshiruvidan o'tishi sababli GitFlow yoki uning soddalashtirilgan ko'rinishi keng tarqalgan.</p>
+<p><strong>Kod ko'rib chiqish</strong>: PR kichik va bitta maqsadli; tavsifda «nima va nega»; ko'rib chiquvchi mantiq, arxitektura qoidalari (A5), xavfsizlik (A12), testlar va nomlarga qaraydi; sharhlar kodga, odamga emas. <span class="num">rebase</span> PR tarixini toza qiladi, lekin umumiy tarmoqlarda (develop, main) tarix qayta yozilmaydi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Push, qulash hisobotlari va tarmoqlash tarixi</h3>
+<div class="bench" id="evoFb"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>FCM</dt><dd>Firebase Cloud Messaging: server xabarlarini qurilmaga yetkazadigan Google xizmati.</dd>
+  <dt>Ro'yxatdan o'tish tokeni</dt><dd>Muayyan qurilmadagi ilova nusxasining FCM manzili. O'zgarishi mumkin: <span class="num">onNewToken</span>.</dd>
+  <dt>HTTP v1 API</dt><dd>FCM ga xabar yuborishning joriy API si, OAuth2 access token bilan.</dd>
+  <dt>Notification va data xabar</dt><dd>Fonda tizim o'zi ko'rsatadigan xabar; doim ilovaning <span class="num">onMessageReceived</span> iga keladigan xabar.</dd>
+  <dt>Bildirishnoma kanali</dt><dd>Android 8 dan: bildirishnomalar toifasi, foydalanuvchi uni alohida boshqaradi.</dd>
+  <dt>POST_NOTIFICATIONS</dt><dd>Android 13 dan bildirishnoma ko'rsatish uchun ish paytida so'raladigan ruxsat.</dd>
+  <dt>Hodisa, parametr, foydalanuvchi xususiyati</dt><dd>Analytics'da: harakat nomi, uning tafsilotlari, segmentlash uchun foydalanuvchi belgisi.</dd>
+  <dt>Crash-free users</dt><dd>Davr ichida bir marta ham qulashga uchramagan foydalanuvchilar foizi.</dd>
+  <dt>Fatal bo'lmagan xato</dt><dd>Ilova qulamagan, lekin hisobotga yuborilgan istisno.</dd>
+  <dt>Mapping fayli</dt><dd>R8 obfuskatsiyasida qisqartirilgan nomlarni asl nomlarga bog'laydigan fayl.</dd>
+  <dt>GitFlow</dt><dd>main, develop, feature, release, hotfix tarmoqlari va ularni birlashtirish qoidalari.</dd>
+  <dt>Trunk-based</dt><dd>Bitta asosiy tarmoqqa tez-tez kichik birlashtirishlar, bayroqlar bilan.</dd>
+  <dt>Pull request, code review</dt><dd>Tarmoqni birlashtirish so'rovi va uni boshqa dasturchi tomonidan ko'rib chiqish.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: «fonda push kelmayapti»</b>
+  <p>Backend notification xabar yuboradi va <span class="num">onMessageReceived</span> ichida bildirishnomani yasash va hisob holatini yangilash yozilgan. Ilova oldinda bo'lganda hammasi ishlaydi, fonda esa tizim xabarni o'zi ko'rsatadi va kod chaqirilmaydi: holat yangilanmaydi, matn tilga moslanmaydi.</p>
+  <p class="why">Ilova o'zi boshqarishi kerak bo'lgan xabarlar uchun backend bilan data xabarlarga kelishish. Yana tekshirish: Android 13 ruxsati, kanal o'chirilmaganmi, ishlab chiqaruvchining batareya tejash rejimi ilovani to'xtatmaganmi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: mapping fayli yuklanmagan</b>
+  <p>Release'dan keyin Crashlytics'da <span class="num">a.b.c.d(SourceFile)</span> ko'rinishidagi stek izlari: xatoni topib bo'lmaydi. Sababi: CI da mapping yuklash o'chirilgan yoki yig'ma qo'lda qilingan.</p>
+  <p class="why">Crashlytics Gradle plagini release yig'masida mapping'ni avtomatik yuklaydi; CI da shu qadam muvaffaqiyatli o'tganini tekshirish. Har bir yig'ma o'z mapping fayliga ega: eski versiya uchun yangi mapping ishlamaydi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: analitikada shaxsiy ma'lumot</b>
+  <p><span class="num">logEvent("transfer", bundleOf("card" to cardNumber, "amount" to amount))</span>: karta raqami va aniq summa uchinchi tomon xizmatiga ketdi. Bank uchun bu jiddiy buzilish.</p>
+  <p class="why">Analitika hodisalari ro'yxati va parametrlari kelishilgan va ko'rib chiqiladi; faqat toifalar va oraliqlar, ichki anonim ID.</p>
+</div>
+<div class="rule">
+  <b>Qoida: hotfix ikkala tarmoqqa</b>
+  <p>Hotfix <span class="num">main</span> ga birlashtirildi, lekin <span class="num">develop</span> ga emas: keyingi relizda xato qaytib keladi.</p>
+  <p class="why">GitFlow'da hotfix va release tugatilganda ikkala tarmoqqa birlashadi; CI yoki PR shabloni buni eslatsin.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Push xabar qanday ishlaydi, boshidan oxirigacha?</summary>
+<p>Ilova FCM SDK dan ro'yxatdan o'tish tokenini oladi va backendga yuboradi (va <span class="num">onNewToken</span> da yangilaydi). Backend FCM HTTP v1 API ga service account OAuth2 tokeni bilan xabar yuboradi. FCM uni Google Play xizmatlarining doimiy ulanishi orqali qurilmaga yetkazadi. Notification xabar fonda tizim tomonidan ko'rsatiladi, data xabar esa doim <span class="num">FirebaseMessagingService.onMessageReceived</span> ga keladi. Ko'rsatish uchun Android 13 dan ruxsat va kanal kerak.</p></details>
+<details><summary>Notification va data xabar farqi?</summary>
+<p>Notification xabar: fonda tizim o'zi ko'rsatadi, ilova kodi chaqirilmaydi, bosilganda data extras bilan ilova ochiladi; oldinda onMessageReceived. Data xabar: doim onMessageReceived, ko'rsatishni ilova o'zi qiladi. Ikkalasini birga yuborsa, fonda notification kabi ishlaydi.</p></details>
+<details><summary>FCM tokeni qachon o'zgaradi va nima qilish kerak?</summary>
+<p>Ilova qayta o'rnatilganda, ma'lumotlari tozalanganda, yangi qurilmaga tiklanganda, yoki FCM uni yangilaganda. <span class="num">onNewToken</span> da yangi tokenni backendga yuborish, chiqishda esa backenddan o'chirish (boshqa foydalanuvchiga eski egasining pushlari kelmasligi uchun).</p></details>
+<details><summary>Crashlytics'da obfuskatsiya qilingan stek izini qanday o'qiysiz?</summary>
+<p>R8 yig'ishda mapping.txt yaratadi; Crashlytics Gradle plagini uni release yig'masi bilan yuklaydi, konsol stekni asl nomlarga qaytaradi. Yuklanmagan bo'lsa, shu yig'maning mapping faylini qo'lda yuklash mumkin. Qo'shimcha kontekst uchun custom key va loglar, ushlangan muhim xatolar uchun recordException.</p></details>
+<details><summary>Analytics'da qanday hodisalarni yozasiz?</summary>
+<p>Biznes uchun muhim voronkalar: kirish, karta qo'shish, o'tkazma boshlash, tasdiqlash, muvaffaqiyat yoki xato turi. Parametrlarda faqat toifalar va oraliqlar, shaxsiy ma'lumot yo'q. Nomlash kelishuvi va hodisalar ro'yxati hujjatlashtiriladi; ishlab chiqishda DebugView bilan tekshiriladi.</p></details>
+<details><summary>GitFlow'ni tushuntiring. Hotfix qanday qilinadi?</summary>
+<p>main (relizlar va teglar), develop (integratsiya), feature/* (develop dan, PR bilan develop ga), release/* (develop dan, faqat tuzatishlar, main va develop ga), hotfix/* (main dan, tuzatish, main ga yangi teg bilan va develop ga). Hotfix: main dan tarmoq, tuzatish va test, versiyani oshirish (patch), PR, main ga birlashtirish, teg, develop ga birlashtirish, do'konga yig'ma.</p></details>
+<details><summary>Kod ko'rib chiqishda nimalarga qaraysiz?</summary>
+<p>To'g'riligi va chekka holatlar; arxitektura qoidalari (qavatlar, ViewModel'da Context yo'q); coroutine va hayot sikli xatolari; xavfsizlik (log'da token, ochiq ma'lumot); unumdorlik (Compose'da keraksiz rekompozitsiya, asosiy oqimda ish); testlar; nomlar va o'qilishi. Sharh aniq va asoslangan, taklif bilan.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>«Kartangizga pul tushdi» xabari ilova fonda bo'lganda ko'rinmayapti. Qaysi beshta narsani tekshirasiz?</li>
+  <li>Foydalanuvchi chiqdi va boshqa foydalanuvchi kirdi. FCM tokeni bilan nima qilish kerak?</li>
+  <li>Release'dan keyin yangi qulash paydo bo'ldi. Crashlytics'dan qaysi ma'lumotlarni olasiz va keyingi qadamlar?</li>
+  <li>Ishlab turgan 3.2.0 versiyasida jiddiy xato topildi, develop'da esa 3.3 uchun yarim tayyor funksiyalar bor. GitFlow bo'yicha qadamlaringiz?</li>
+  <li>GitLab CI/CD da qanday bosqichlar bor edi va kod ko'rib chiqish qanday tashkil qilingan edi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Xabar ustuvorligi va Doze rejimi</summary>
+<p>Android Doze rejimida (telefon uzoq harakatsiz) tarmoq kirishi cheklanadi. Yuqori ustuvorlikdagi FCM xabarlari qurilmani uyg'otadi va darhol yetkaziladi, oddiylari keyingi «oyna»da. Yuqori ustuvorlik faqat foydalanuvchiga ko'rinadigan muhim xabarlar uchun; aks holda tizim ilovaning ustuvorligini pasaytirishi mumkin.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Firebase: «Firebase Cloud Messaging», «Migrate from legacy FCM APIs to HTTP v1», «About FCM messages», «Firebase Crashlytics: Get deobfuscated crash reports», «Google Analytics for Firebase: Log events» (firebase.google.com/docs). Android: «Notification runtime permission» (Android 13). Vincent Driessen, «A successful Git branching model», 2010.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Push: token ilovadan backendga, xabar backenddan FCM HTTP v1 orqali qurilmaga; notification va data xabarlar fonda turlicha. Analytics: hodisalar, shaxsiy ma'lumotsiz. Crashlytics: qulashlar, fatal bo'lmagan xatolar, mapping fayli. GitFlow: main, develop, feature, release, hotfix; hotfix ikkala tarmoqqa.</p>
+  <p><strong>Keyingi dars.</strong> A12. Mobil bank xavfsizligi.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a10-lokal-saqlash.html">Oldingi: A10. Lokal saqlash</a><a href="a12-xavfsizlik.html">Keyingi: A12. Xavfsizlik</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0, 4], 'Firebase va Git: butun ilova');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- FCM ----------
+  (function () {
+    var svg = $('fcm'), say = $('fcSay'), cur = 0;
+    var C = [
+      { t: 'Token ro\'yxatdan o\'tishi', st: ['live', 'on', 'freed', 'on'], res: 'backend tokenni foydalanuvchiga bog\'ladi', s: `Ilova ishga tushdi, FCM SDK ro'yxatdan o'tish tokenini berdi. Ilova uni o'z backendiga yubordi (foydalanuvchi ID si bilan). Token o'zgarsa onNewToken chaqiriladi va u qayta yuboriladi.` },
+      { t: 'Notification xabar, ilova fonda', st: ['on', 'on', 'live', 'freed'], res: 'tizim o\'zi ko\'rsatdi, onMessageReceived chaqirilmadi', s: `Backend notification bloki bilan xabar yubordi. Ilova fonda: Google Play xizmatlari xabarni oldi va tizim bildirishnomani o'zi ko'rsatdi. Ilova kodi ishlamadi. Bosilganda ilova ochiladi va data qismi Intent extras'da.` },
+      { t: 'Notification xabar, ilova oldinda', st: ['on', 'on', 'on', 'live'], res: 'onMessageReceived: ko\'rsatish ilova ishi', s: `Xuddi o'sha xabar, lekin ilova ochiq: endi tizim ko'rsatmaydi, onMessageReceived chaqiriladi. Ilova o'zi Snackbar yoki bildirishnoma ko'rsatishi va holatni yangilashi kerak.` },
+      { t: 'Data xabar', st: ['on', 'on', 'on', 'live'], res: 'doim onMessageReceived: ilova o\'zi yasaydi', s: `Faqat data qismi. Ilova fonda ham, oldinda ham onMessageReceived chaqiriladi: ilova balansni bazada yangilaydi (A10), o'z tilida, to'g'ri kanalda va maxfiylik sozlamasi bilan bildirishnoma yasaydi.` },
+      { t: 'Android 13, ruxsat yo\'q', st: ['on', 'on', 'on', 'bad'], res: 'xabar keldi, lekin ko\'rinmadi', s: `POST_NOTIFICATIONS ruxsati berilmagan. Xabar qurilmaga yetdi, data xabar bo'lsa kod ham ishladi, lekin bildirishnoma ko'rsatilmaydi. Ruxsatni to'g'ri paytda (masalan, birinchi o'tkazmadan keyin) va sababini tushuntirib so'rash kerak.` }
+    ];
+    var setT = tabs('fcT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    var N = [['Backend', 'HTTP v1 + OAuth2'], ['FCM serveri', 'Google'], ['Google Play xizmatlari', 'qurilmada, doimiy ulanish'], ['Ilova', 'FirebaseMessagingService']];
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'fcmk');
+      N.forEach(function (n, i) { box(svg, 20 + i * 310, 60, 270, 100, n[0], n[1], c.st[i]); if (i < 3) arrow(svg, 'fcmk', 'M' + (290 + i * 310) + ' 110H' + (328 + i * 310)); });
+      if (cur === 0) { arrow(svg, 'fcmk', 'M1065 160V200H155V162', 'token backendga', 610, 222); }
+      group(svg, 640, 240, 580, 120, 'Qurilma ekranida'); box(svg, 660, 270, 540, 70, 'Natija', c.res, c.st[3] === 'bad' ? 'bad' : 'on');
+      say.textContent = c.s; say.className = 'say' + (cur === 4 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Crashlytics ----------
+  (function () {
+    var svg = $('crash'), say = $('crSay'), cur = 0;
+    var C = [
+      { t: 'Mapping yuklanmagan', r: ['java.lang.NullPointerException', '  at a.b.c.d(SourceFile:12)', '  at a.b.e.f(SourceFile:47)', '  at a.g.h.invokeSuspend(SourceFile:3)'], ok: false, s: `R8 nomlarni qisqartirgan, mapping fayli yo'q: konsolda ham a.b.c.d. Qaysi klass va qaysi qator ekanini bilib bo'lmaydi.` },
+      { t: 'Mapping yuklangan', r: ['java.lang.NullPointerException', '  at uz.bank.cards.CardMapper.toUi(CardMapper.kt:31)', '  at uz.bank.cards.CardRepositoryImpl.observe(...kt:58)', '  at uz.bank.cards.KartalarViewModel$load$1.invokeSuspend'], ok: true, s: `Crashlytics shu yig'maning mapping faylidan foydalanib, stekni asl nomlarga qaytardi: CardMapper.toUi, 31-qator. Custom key «screen=cards» va oxirgi loglar bilan xato tez topiladi: server balans maydonini null yuborgan, Gson uni null bo'lmaydigan maydonga yozgan (A1, A9).` }
+    ];
+    var setT = tabs('crT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'crmk');
+      box(svg, 20, 30, 460, 240, 'Qurilmadan kelgan stek izi', 'release, R8 obfuskatsiyasi', 'live'); code(svg, 36, 110, ['java.lang.NullPointerException', '  at a.b.c.d(SourceFile:12)', '  at a.b.e.f(SourceFile:47)', '  at a.g.h.invokeSuspend(SourceFile:3)']);
+      box(svg, 540, 110, 160, 80, 'mapping.txt', c.ok ? 'yuklangan' : 'yo\'q', c.ok ? 'on' : 'bad');
+      box(svg, 760, 30, 460, 240, 'Crashlytics konsolida', '', c.ok ? 'on' : 'bad'); code(svg, 776, 110, c.r.map(function (l) { return l.length > 46 ? l.slice(0, 45) + '…' : l; }));
+      arrow(svg, 'crmk', 'M480 150H538'); arrow(svg, 'crmk', 'M700 150H758');
+      say.textContent = c.s; say.className = 'say' + (c.ok ? '' : ' bad');
+    }
+    draw();
+  })();
+
+  // ---------- GitFlow ----------
+  (function () {
+    var svg = $('gf'), say = $('gfSay'), k = 0;
+    var Y = { main: 60, hotfix: 120, release: 180, develop: 250, feature: 320 };
+    var STEPS = [
+      { s: `Boshlang'ich holat: main da v2.3.0 relizi, develop shundan boshlangan.`, c: [['main', 80, 'v2.3.0'], ['develop', 120]], m: [] },
+      { s: `feature/qr-tolov develop dan ochildi, unda ikki kommit. Tugagach PR, kod ko'rib chiqish va develop ga birlashtirish.`, c: [['feature', 220], ['feature', 300], ['develop', 360]], m: [['develop', 120, 'feature', 200], ['feature', 300, 'develop', 360]] },
+      { s: `release/2.4.0 develop dan ochildi: endi unda faqat test va tuzatishlar. Shu paytda develop da keyingi reliz uchun ish davom etishi mumkin.`, c: [['release', 460], ['release', 520]], m: [['develop', 360, 'release', 440]] },
+      { s: `Reliz tayyor: release main ga birlashtirildi va v2.4.0 tegi qo'yildi, do'konga yig'ma. Release dagi tuzatishlar develop ga ham qaytarildi.`, c: [['main', 600, 'v2.4.0'], ['develop', 620]], m: [['release', 520, 'main', 600], ['release', 520, 'develop', 620]] },
+      { s: `Do'kondagi 2.4.0 da jiddiy xato. hotfix/2.4.1 main dan ochildi, tuzatish va test.`, c: [['hotfix', 720]], m: [['main', 600, 'hotfix', 700]] },
+      { s: `Hotfix main ga (v2.4.1 tegi) va develop ga birlashtirildi. develop ga birlashtirish unutilsa, xato keyingi relizda qaytib keladi.`, c: [['main', 820, 'v2.4.1'], ['develop', 860]], m: [['hotfix', 720, 'main', 820], ['hotfix', 720, 'develop', 860]] }
+    ];
+    function draw() {
+      svg.textContent = ''; marker(svg, 'gfmk');
+      Object.keys(Y).forEach(function (b) { S(svg, 'text', { x: 20, y: Y[b] + 5, 'class': 'ttl' }, b === 'feature' ? 'feature/*' : b === 'release' ? 'release/*' : b === 'hotfix' ? 'hotfix/*' : b); S(svg, 'line', { x1: 130, y1: Y[b], x2: 1220, y2: Y[b], 'class': 'arr', 'stroke-dasharray': '3 6' }); });
+      for (var i = 0; i <= k; i++) {
+        STEPS[i].m.forEach(function (m) { arrow(svg, 'gfmk', 'M' + m[1] + ' ' + Y[m[0]] + 'L' + (m[3] - 8) + ' ' + (Y[m[2]] + (Y[m[2]] > Y[m[0]] ? -8 : 8))); });
+        STEPS[i].c.forEach(function (c) { S(svg, 'circle', { cx: c[1], cy: Y[c[0]], r: 9, 'class': 'box ' + (i === k ? 'live' : 'on') }); if (c[2]) S(svg, 'text', { x: c[1], y: Y[c[0]] - 16, 'text-anchor': 'middle', 'class': 'lbl' }, c[2]); });
+      }
+      say.textContent = (k + 1) + '/' + STEPS.length + '. ' + STEPS[k].s;
+    }
+    $('gfNext').addEventListener('click', function () { k = Math.min(STEPS.length - 1, k + 1); draw(); });
+    $('gfReset').addEventListener('click', function () { k = 0; draw(); });
+    draw();
+  })();
+
+  window.evoStepper('evoFb', [
+    { name: `C2DM va GCM`, years: `2010, 2012`, art: `<circle cx="60" cy="50" r="28"/><path d="M60 22v28l18 10" class="acc"/>`, how: `Google'ning Android uchun push xizmatlari: Cloud to Device Messaging, keyin Google Cloud Messaging.`, better: `Bitta umumiy doimiy ulanish barcha ilovalar uchun.`, pain: `Faqat Android, cheklangan imkoniyatlar.`, ex: `GCM 2019-yilda butunlay o'chirilgan.` },
+    { name: `Crashlytics va Fabric`, years: `2011–2017`, art: `<path d="M30 70l30-40 30 40z" class="acc"/>`, how: `Mustaqil kompaniya Crashlytics qulash hisobotlarini yaratdi, Twitter sotib olib Fabric platformasiga qo'shdi.`, better: `Qulashlar guruhlanadi, real vaqtda.`, pain: `Alohida platforma va kalitlar.`, ex: `Google 2017-yilda Fabric'ni sotib oldi, Crashlytics Firebase'ga ko'chirildi.` },
+    { name: `Firebase va FCM`, years: `2016-yildan`, art: `<path d="M40 80L60 20l20 60z" class="acc"/><path d="M30 80h60"/>`, how: `Google Firebase'ni mobil platforma sifatida kengaytirdi: FCM (GCM vorisi), Analytics, keyin Crashlytics.`, better: `Bitta SDK va konsol, Android, iOS va veb.`, pain: `Google Play xizmatlarisiz qurilmalarda ishlamaydi.`, ex: `Android 13 (2022) dan bildirishnomalar uchun ruxsat.` },
+    { name: `HTTP v1 ga majburiy o'tish`, years: `2023–2024`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><path d="M30 50h60" class="acc"/>`, how: `Server kaliti bilan ishlaydigan legacy FCM API lari eskirgan deb e'lon qilindi va 2024-yilda o'chirildi; HTTP v1 qisqa muddatli OAuth2 tokenlar bilan.`, better: `Xavfsizroq: uzoq muddatli kalit o'g'irlanishi xavfi yo'q.`, pain: `Barcha backendlar ko'chishi kerak bo'ldi.`, ex: `Backend tomonda bu sizning Alipay OAuth tajribangizga o'xshash: service account va qisqa muddatli token.` },
+    { name: `GitFlow va muqobillar`, years: `2010-yildan`, art: `<path d="M20 30h80M20 70h80" /><path d="M40 30l20 40M70 70l20-40" class="acc"/>`, how: `Vinsent Drissen 2010-yilda GitFlow modelini tavsifladi. Keyin GitHub flow va trunk-based yondashuvlari ommalashdi.`, better: `Relizlar va ishlab chiqish aniq ajralgan.`, pain: `Uzoq yashaydigan tarmoqlar birlashtirish ziddiyatlarini ko'paytiradi; muallifning o'zi 2020-yilda doimiy yetkazib beriladigan ilovalar uchun soddaroq modelni tavsiya qilgan.`, ex: `Mobil ilovalarda reliz tsikli tufayli GitFlow hamon keng tarqalgan.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
