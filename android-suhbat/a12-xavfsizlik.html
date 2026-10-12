@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A12. Mobil bank xavfsizligi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A12. Mobil bank xavfsizligi</h1>
+<p class="lead">Savol: hujumchi foydalanuvchi telefoniga, tarmog'iga yoki ilovaning o'ziga kira olsa, bank ilovasi pulni va ma'lumotni qanday himoya qiladi, va bu himoyaning qaysi qismi mobil dasturchining ishi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p>Mobil xavfsizlik bitta qulf emas, bir necha qavatli himoya: qurilmadagi ma'lumot (tokenlar shifrlangan, kalitlar Keystore'da), tarmoq (TLS va sertifikat pinning), ilovaning o'zi (obfuskatsiya, butunlik tekshiruvi), ekran (skrinshot taqiqi, biometriya), va eng muhimi server.</p>
+    <p>Asosiy tamoyil: <strong>mijozga ishonilmaydi</strong>. Ilova hujumchi qo'lida bo'lishi mumkin; har bir muhim tekshiruv serverda takrorlanadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «mobil ilovalarda xavfsizlikning asosiy standartlarini tushunish» FinTech va B2B tajribasi bilan birga afzallik.</li>
+      <li><strong>Bank ilovasida:</strong> har bir ekranda: kirish, PIN, biometriya, tokenlar, o'tkazma tasdiqlash, push.</li>
+      <li><strong>Sizning tajribangiz:</strong> JWT va xavfsiz autentifikatsiya, KIB tizimida WebView integratsiyasi va backend'lar orasida token almashinuvi: bularni suhbatda misol qiling.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>tahdid modeli: kim, qayerdan, nimani o'g'irlamoqchi;</li>
+      <li>tokenlar va kalitlarni saqlash: Keystore, Tink, eskirgan EncryptedSharedPreferences;</li>
+      <li>TLS, sertifikat pinning va Network Security Config;</li>
+      <li>biometriya va CryptoObject;</li>
+      <li>root, qurilma butunligi, Play Integrity API, obfuskatsiya;</li>
+      <li>ekran, buferi, eksport qilingan komponentlar, WebView xavflari; OWASP MASVS.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: xavfsizlik barcha qavatlarda"></svg></div>
+  <figcaption>Xavfsizlik bitta qavatda emas: ekranda, tarmoqda, saqlashda va tilning o'zida.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Tahdid modeli va qavatli himoya</li>
+    <li>Android Keystore, StrongBox, Tink, DataStore</li>
+    <li>TLS, foydalanuvchi sertifikatlari, pinning</li>
+    <li>BiometricPrompt va kriptografik bog'lash</li>
+    <li>Root va butunlik: Play Integrity API</li>
+    <li>R8 obfuskatsiyasi va uning chegarasi</li>
+    <li>FLAG_SECURE, bufer, overlay, eksport qilingan komponentlar, WebView, zaxira nusxa</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Kriptografiya algoritmlarining matematikasi</li>
+    <li>Server tomondagi firibgarlikka qarshi tizimlar</li>
+    <li>PCI DSS kabi standartlarning to'liq talablari</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Ilova hujumchi qo'lida</h3>
+<p>Bank ilovasi foydalanuvchi telefonida ishlaydi, va bu telefon sizning nazoratingizda emas. Haqiqiy hujumlar shu joylardan boshlanadi:</p>
+<ul>
+  <li><strong>Qurilma.</strong> Telefon root qilingan yoki o'g'irlangan: ilova fayllarini o'qish mumkin. Shifrsiz saqlangan token, ilova fayllaridan ko'chirib olingan zaxira nusxa yoki log orqali sessiya o'g'irlanadi.</li>
+  <li><strong>Tarmoq.</strong> Ochiq Wi-Fi da hujumchi o'rtada turib trafikni ko'radi va o'zgartiradi (man-in-the-middle). Agar ilova har qanday sertifikatga ishonsa yoki foydalanuvchi soxta sertifikat o'rnatgan bo'lsa, tokenlar va so'rovlar ochiq.</li>
+  <li><strong>Ilovaning o'zi.</strong> APK ni ochib, kodini o'qish, tekshiruvlarni o'chirish, qayta imzolab tarqatish mumkin. Ilova ichidagi «yashirin» API kalit yoki «root tekshiruvi» bir soatda topiladi.</li>
+  <li><strong>Foydalanuvchi.</strong> Ijtimoiy muhandislik: soxta ilova, ustiga chiqadigan oyna, SMS kodni so'rash, ekranni yozib oladigan zararli ilova.</li>
+</ul>
+<p>Shuning uchun xavfsizlik «bitta qulf» emas, bir necha qavat. Har bir qavat hujumchining ishini qimmatlashtiradi, va hech biri yolg'iz o'zi yetarli emas.</p>
+
+<h3><span class="part">2. Ichkarida</span>Himoya qavatlari</h3>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="lay" style="width:1240px;height:420px" viewBox="0 0 1240 420" role="img" aria-label="Mobil bank xavfsizligi qavatlari: qurilma, ilova, saqlash, tarmoq, ekran va server"></svg></div>
+  <figcaption>Tashqaridan ichkariga: har bir qavat, u nimadan himoya qiladi va uning vositasi. Qavatni tanlang.</figcaption>
+  <div class="evo-tabs" id="lyT" style="margin-top:0.9rem"></div>
+  <p class="say" id="lySay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Saqlash: kalit qurilmadan chiqmasin</p>
+<p><strong>Android Keystore</strong> kriptografik kalitlarni ilova jarayonidan tashqarida, ko'p qurilmalarda alohida apparat muhitida (TEE, Android 9 dan ba'zi qurilmalarda alohida chip, StrongBox) saqlaydi. Ilova kalitning o'zini hech qachon ko'rmaydi: u Keystore'ga «shu ma'lumotni shu kalit bilan shifrla» deydi. Root bo'lgan telefonda ham kalitni ko'chirib olish juda qiyin. Kalitga shartlar qo'yish mumkin: faqat ekran qulfi bor bo'lsa, faqat biometriyadan keyin, faqat shu ilova uchun.</p>
+<p>Ma'lumotni shifrlashning amaliy usuli: <strong>Tink</strong> kutubxonasi (Google), AEAD algoritmi (masalan AES-256-GCM: shifrlaydi va o'zgartirilmaganini ham tekshiradi), Tink kalitlari to'plami esa Keystore'dagi asosiy kalit bilan shifrlangan holda saqlanadi. Shifrlangan ma'lumot DataStore'da (<span class="num">datastore-tink</span> moduli) yoki faylda turadi.</p>
+<p>Ko'p yillar davomida standart javob <strong>EncryptedSharedPreferences</strong> edi (<span class="num">androidx.security:security-crypto</span>). Bu kutubxonaning barcha API lari 1.1.0 versiyasida eskirgan deb belgilangan va yangi relizlar rejalashtirilmagan; tavsiya: DataStore va Tink, Keystore bilan. Suhbatda «tokenni EncryptedSharedPreferences'da saqlayman» deyish endi eskirgan javob; uning eskirganini va o'rnini bilish ustunlik.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="sto" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Refresh tokenni turli usullarda saqlash va hujumchi stsenariylari"></svg></div>
+  <figcaption>Refresh token qayerda saqlanadi va uchta hujumchi stsenariysi natijasi. Usulni tanlang.</figcaption>
+  <div class="evo-tabs" id="soT" style="margin-top:0.9rem"></div>
+  <p class="say" id="soSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Tarmoq: TLS, foydalanuvchi sertifikatlari va pinning</p>
+<p>HTTPS (TLS) trafikni shifrlaydi va server haqiqiy ekanini sertifikat orqali tekshiradi: sertifikat qurilma ishonadigan sertifikat markazi (CA) tomonidan imzolangan bo'lishi kerak. Muammo: agar hujumchi qurilmaga o'z CA sertifikatini o'rnatsa (yoki foydalanuvchini o'rnatishga ko'ndirsa), u istalgan sayt uchun «haqiqiy» sertifikat yasay oladi.</p>
+<ul>
+  <li><strong>Android 7 dan</strong> ilovalar sukut bo'yicha foydalanuvchi o'rnatgan CA larga ishonmaydi, faqat tizimnikiga. Bu Network Security Config bilan boshqariladi (<span class="num">res/xml/network_security_config.xml</span>). Debug yig'masida o'z proksi sertifikatiga ruxsat <span class="num">&lt;debug-overrides&gt;</span> bilan beriladi, release'da emas.</li>
+  <li><strong>Sertifikat pinning</strong>: ilova faqat ma'lum ochiq kalitga (yoki uning xeshiga) ega sertifikatga ishonadi. Root qilingan qurilmada tizim CA si qo'shilgan bo'lsa ham, MITM ishlamaydi. OkHttp'da <span class="num">CertificatePinner</span> yoki Network Security Config'dagi <span class="num">&lt;pin-set&gt;</span>.</li>
+  <li><strong>Pinning narxi</strong>: server sertifikati yoki kaliti almashganda ilova ishlamay qoladi. Shuning uchun kamida ikkita pin (joriy va zaxira kalit), muddat (<span class="num">expiration</span>) va server jamoasi bilan kelishilgan almashtirish rejasi. Pinni yangilashni unutish butun ilovani o'chirib qo'yadi.</li>
+  <li><span class="num">cleartextTrafficPermitted="false"</span>: shifrsiz HTTP umuman taqiqlanadi (Android 9 dan sukut bo'yicha).</li>
+</ul>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="mitm" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="O'rtadagi hujumchi stsenariylari: foydalanuvchi CA si, tizim CA si va pinning"></svg></div>
+  <figcaption>Ilova, o'rtadagi hujumchi proksisi va bank serveri. Stsenariyni tanlang.</figcaption>
+  <div class="evo-tabs" id="mtT" style="margin-top:0.9rem"></div>
+  <p class="say" id="mtSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Biometriya to'g'ri usulda</p>
+<p><span class="num">BiometricPrompt</span> barmoq izi yoki yuz bilan tasdiqlash oynasini ko'rsatadi. Ikki xil ishlatish bor, va farqi muhim:</p>
+<ul>
+  <li><strong>Faqat hodisa</strong>: «tasdiqlandi» qayta chaqiruvi kelganda ilova davom etadi. Root qilingan qurilmada bu qayta chaqiruvni soxtalashtirish mumkin.</li>
+  <li><strong>CryptoObject bilan</strong>: Keystore'da «faqat biometriyadan keyin ishlatiladi» shartli kalit yaratiladi. Biometriya muvaffaqiyatli bo'lgandagina bu kalit bilan refresh tokenni ochish (yoki serverdan kelgan qiymatni imzolash) mumkin. Ya'ni biometriya kriptografik amal bilan bog'langan: uni chetlab o'tib bo'lmaydi.</li>
+</ul>
+<p>Yangi barmoq izi qo'shilganda kalit bekor qilinishi mumkin (<span class="num">setInvalidatedByBiometricEnrollment(true)</span>): o'g'ri telefonga o'z barmog'ini qo'shib, ilovaga kira olmasligi uchun. Biometriya PIN ning o'rnini bosmaydi, uni qulaylashtiradi; zaxira usul har doim PIN.</p>
+
+<p class="beat">Qurilma va ilova butunligi</p>
+<ul>
+  <li><strong>Play Integrity API</strong>: Google serverlari qurilma va ilova haqida imzolangan xulosa beradi: ilova Play'dan o'rnatilganmi va o'zgartirilmaganmi, qurilma haqiqiy va sertifikatlanganmi. Muhim: xulosani <strong>server</strong> tekshiradi, ilova emas; ilova ichidagi tekshiruvni o'chirib qo'yish oson. Eski SafetyNet Attestation API 2022-yilda eskirgan va 2025-yil yanvarida butunlay o'chirilgan.</li>
+  <li><strong>Root aniqlash</strong> (su fayllari, ilovalar, tizim xususiyatlari) qo'shimcha signal, lekin uni chetlab o'tish asboblari (Magisk modullari, Frida) keng tarqalgan. Qaror (ishlashni cheklash, qo'shimcha tasdiqlash) server bilan birga qabul qilinadi.</li>
+  <li><strong>R8</strong> nomlarni chalkashtiradi va keraksiz kodni olib tashlaydi: kodni o'qishni qiyinlashtiradi, lekin sir saqlamaydi. Ilovada <strong>sir bo'lmasligi kerak</strong>: server API kaliti, imzolash kaliti ilova ichida bo'lsa, u ochiq deb hisoblanadi.</li>
+</ul>
+
+<p class="beat">Ekran va komponentlar</p>
+<ul>
+  <li><span class="num">FLAG_SECURE</span>: ekranni skrinshot, ekran yozish va «so'nggi ilovalar» ro'yxatidagi ko'rinishdan himoya qiladi. PIN, karta tafsilotlari, OTP ekranlarida.</li>
+  <li><strong>Overlay</strong> (tapjacking): zararli ilova o'z shaffof oynasini tugma ustiga qo'yadi. <span class="num">filterTouchesWhenObscured</span> yoki Android 12 dan tizim himoyasi.</li>
+  <li><strong>Bufer</strong>: karta raqami nusxalansa, boshqa ilovalar o'qishi mumkin. Android 13 dan nusxalanganda tizim xabari va maxfiy belgisi (<span class="num">ClipDescription.EXTRA_IS_SENSITIVE</span>); vaqt o'tgach buferni tozalash.</li>
+  <li><strong>Eksport qilingan komponentlar</strong>: <span class="num">android:exported="true"</span> Activity yoki Receiver ni boshqa ilovalar chaqira oladi. Android 12 dan intent-filter'li komponentlar uchun bu atribut majburiy. Kerak bo'lmasa <span class="num">false</span>; chuqur havolalardan kelgan ma'lumot tekshiriladi.</li>
+  <li><strong>WebView</strong>: <span class="num">addJavascriptInterface</span> sahifadagi JavaScript'ga ilova metodlarini ochadi; agar WebView begona yoki o'zgartirilgan sahifani yuklasa, u shu metodlarni chaqiradi. Faqat ishonchli domenlar, HTTPS, <span class="num">setAllowFileAccess(false)</span>, token URL'da emas. Bu sizning Bigmart va KIB WebView integratsiyangizga to'g'ridan-to'g'ri tegishli.</li>
+  <li><strong>Zaxira nusxa</strong>: <span class="num">android:allowBackup</span> va <span class="num">dataExtractionRules</span> (Android 12 dan) bilan tokenlar va baza zaxira nusxaga va boshqa qurilmaga ko'chishdan chiqariladi.</li>
+  <li><strong>Loglar</strong>: release'da token, karta raqami, so'rov tanasi logga yozilmaydi (A9).</li>
+</ul>
+<p>Bu talablarning to'liq ro'yxati <strong>OWASP MASVS</strong> (mobil ilova xavfsizligini tekshirish standarti) va uning sinov qo'llanmasi MASTG da. Banklarning xavfsizlik auditlari odatda shularga tayanadi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android xavfsizligi tarixi</h3>
+<div class="bench" id="evoSc"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Tahdid modeli</dt><dd>Kim hujum qiladi, qaysi imkoniyat bilan va nimani o'g'irlamoqchi: himoyani rejalashtirish uchun.</dd>
+  <dt>Android Keystore</dt><dd>Kalitlarni ilovadan tashqarida, ko'pincha apparat muhitida saqlaydigan va ular bilan amallarni bajaradigan tizim xizmati.</dd>
+  <dt>TEE, StrongBox</dt><dd>Protsessor ichidagi himoyalangan muhit; alohida xavfsizlik chipi.</dd>
+  <dt>Tink, AEAD</dt><dd>Google'ning kriptografiya kutubxonasi; shifrlash va butunlikni birga ta'minlaydigan algoritmlar (AES-GCM).</dd>
+  <dt>EncryptedSharedPreferences</dt><dd>security-crypto kutubxonasidagi shifrlangan sozlamalar; eskirgan deb belgilangan.</dd>
+  <dt>TLS, sertifikat markazi (CA)</dt><dd>Trafikni shifrlash va server haqiqiyligini tekshirish protokoli; sertifikatlarni imzolaydigan ishonchli tashkilot.</dd>
+  <dt>MITM</dt><dd>O'rtadagi hujumchi: ikki tomon orasida turib trafikni ko'radi va o'zgartiradi.</dd>
+  <dt>Sertifikat pinning</dt><dd>Faqat oldindan ma'lum ochiq kalitli sertifikatga ishonish.</dd>
+  <dt>Network Security Config</dt><dd>Ilovaning tarmoq xavfsizligi sozlamalari XML fayli: ishonchli CA lar, pinlar, shifrsiz trafik.</dd>
+  <dt>BiometricPrompt, CryptoObject</dt><dd>Biometrik tasdiqlash oynasi; tasdiqlashni Keystore kalitidan foydalanish bilan bog'laydigan obyekt.</dd>
+  <dt>Play Integrity API</dt><dd>Qurilma va ilova butunligi haqida server tekshiradigan imzolangan xulosa beruvchi Google API si.</dd>
+  <dt>Obfuskatsiya</dt><dd>Kodni o'qishni qiyinlashtirish uchun nomlarni chalkashtirish (R8).</dd>
+  <dt>FLAG_SECURE</dt><dd>Oyna mazmunini skrinshot va ekran yozishdan himoya qiluvchi bayroq.</dd>
+  <dt>OWASP MASVS, MASTG</dt><dd>Mobil ilova xavfsizligi talablari standarti va uni tekshirish qo'llanmasi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: xavfsizlik faqat ilovada</b>
+  <p>«Root qilingan qurilmada ilova ochilmaydi», «o'tkazma limiti ilovada tekshiriladi», «PIN urinishlari soni ilovada sanaladi». Hujumchi ilovani o'zgartirib, bu tekshiruvlarni olib tashlaydi yoki API ga to'g'ridan-to'g'ri so'rov yuboradi.</p>
+  <p class="why">Har bir muhim qoida serverda: limitlar, urinishlar soni, sessiya muddati, Play Integrity xulosasini tekshirish. Ilovadagi tekshiruv faqat foydalanuvchiga qulaylik va qo'shimcha to'siq.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: barcha sertifikatlarga ishonadigan TrustManager</b>
+  <p>Test serverida sertifikat muammosi bo'lgani uchun «vaqtincha» barcha sertifikatlarni qabul qiladigan kod yozildi va release'ga tushib qoldi. Ilova endi har qanday MITM ga ochiq. Google Play bunday kodni aniqlab, ilovani rad etishi mumkin.</p>
+  <p class="why">Test uchun Network Security Config'da faqat debug yig'masiga tegishli ishonch qoidalari. Agar backend'da ham shunday vaqtinchalik yechim ishlatilgan bo'lsa (masalan, PKIX xatosi tufayli), uni haqiqiy sertifikat zanjirini to'g'rilash bilan almashtirish ro'yxatda turishi kerak.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ilovadagi sirlar</b>
+  <p><span class="num">const val API_SECRET = "..."</span> yoki <span class="num">BuildConfig</span> dagi to'lov tizimi kaliti. APK dan satrlarni chiqarib olish bir daqiqalik ish, obfuskatsiya satrlarni yashirmaydi.</p>
+  <p class="why">Maxfiy kalitlar faqat serverda. Ilova foydalanuvchi sessiyasi bilan serverga murojaat qiladi, server esa uchinchi tomon API larini o'zi chaqiradi.</p>
+</div>
+<div class="rule">
+  <b>Qoida: pinlarni boshqarish rejasi bilan</b>
+  <p>Pinning qo'shildi, bir yildan keyin server sertifikati yangilandi va kalit almashdi: barcha foydalanuvchilarda ilova tarmoqqa ulanmay qoldi, yangilangan versiya do'kon tekshiruvidan o'tguncha bank xizmati to'xtadi.</p>
+  <p class="why">Kamida ikki pin (joriy va zaxira kalit), ochiq kalit bo'yicha (sertifikat emas), muddati bilan, va kalit almashtirish server jamoasi bilan oldindan rejalashtiriladi.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Tokenni qurilmada qanday xavfsiz saqlaysiz?</summary>
+<p>Access token qisqa muddatli, iloji boricha xotirada. Refresh token shifrlangan: Tink AEAD bilan, Tink kalitlari Android Keystore'dagi asosiy kalit bilan himoyalangan, natija DataStore'da yoki faylda. EncryptedSharedPreferences eskirgan deb belgilangan, uning o'rnida DataStore va Tink. Kerak bo'lsa refresh tokenni ochish biometriyaga bog'lanadi (CryptoObject). Tokenlar zaxira nusxadan chiqariladi, chiqishda o'chiriladi.</p></details>
+<details><summary>Sertifikat pinning nima va qanday qilinadi? Kamchiligi?</summary>
+<p>Ilova faqat ma'lum ochiq kalitli sertifikatga ishonadi: hujumchi o'z CA sini qurilmaga qo'shgan bo'lsa ham MITM ishlamaydi. OkHttp CertificatePinner yoki Network Security Config pin-set. Kamchiligi: server kaliti almashganda ilova ishlamay qoladi, shuning uchun zaxira pin, muddat va almashtirish rejasi kerak.</p></details>
+<details><summary>Android 7 dan tarmoq xavfsizligida nima o'zgardi?</summary>
+<p>Ilovalar sukut bo'yicha foydalanuvchi o'rnatgan CA larga ishonmaydi, faqat tizimnikiga; bu Network Security Config bilan sozlanadi. Android 9 dan shifrsiz HTTP sukut bo'yicha taqiqlangan.</p></details>
+<details><summary>Biometrik autentifikatsiyani qanday to'g'ri qilasiz?</summary>
+<p>BiometricPrompt va CryptoObject: Keystore'da faqat biometriyadan keyin ishlatiladigan kalit (setUserAuthenticationRequired), yangi barmoq izi qo'shilganda bekor bo'ladigan. Muvaffaqiyatli biometriyadan keyingina shu kalit bilan tokenni ochish yoki imzolash mumkin. Shunchaki «muvaffaqiyat» qayta chaqiruviga ishonish root qurilmada chetlab o'tilishi mumkin. Zaxira usul PIN.</p></details>
+<details><summary>Root qilingan qurilmani qanday aniqlaysiz va nima qilasiz?</summary>
+<p>Asosiy vosita Play Integrity API: xulosa serverda tekshiriladi. Qo'shimcha mahalliy tekshiruvlar (su, ma'lum ilovalar, tizim xususiyatlari) chetlab o'tilishi mumkinligini hisobga olaman. Reaksiya biznes bilan kelishiladi: ogohlantirish, ba'zi amallarni cheklash yoki qo'shimcha tasdiqlash. SafetyNet Attestation 2025-yil yanvarida o'chirilgan.</p></details>
+<details><summary>Bank ilovasi uchun yana qanday xavfsizlik choralarini bilasiz?</summary>
+<p>FLAG_SECURE maxfiy ekranlarda; release'da log yo'q; R8; exported komponentlar faqat zarur bo'lsa; chuqur havola ma'lumotlarini tekshirish; WebView'da faqat ishonchli domen va JS interfeysni cheklash; bufer uchun maxfiy belgi; zaxira nusxadan chiqarish; sessiya muddati va fonda qolganda qayta PIN; overlay himoyasi; ilovada sir saqlamaslik; muhim tekshiruvlar serverda; OWASP MASVS bo'yicha audit.</p></details>
+<details><summary>Ilovada API kalitini qanday yashirasiz?</summary>
+<p>Yashirib bo'lmaydi: ilovaga qo'yilgan har qanday sir oxir-oqibat topiladi (obfuskatsiya, NDK va shifrlash faqat vaqtni cho'zadi). To'g'ri yechim: maxfiy kalit serverda, ilova foydalanuvchi sessiyasi bilan o'z serverimizga murojaat qiladi. Ilovadagi ochiq kalitlar (masalan, xarita kaliti) paket nomi va imzo bilan cheklanadi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>Refresh tokenni saqlash rejangizni chizing: qaysi kutubxona, qaysi kalit, qayerda, biometriya bilan qanday bog'lanadi.</li>
+  <li>Test jamoasi Charles orqali trafikni ko'rmoqchi. Buni release'ni zaiflashtirmasdan qanday ta'minlaysiz?</li>
+  <li>Server sertifikati keyingi oy almashadi. Pinning bo'lgan ilovada nima qilish kerak?</li>
+  <li>Root tekshiruvi faqat ilovada bo'lsa, nega bu yetarli emas?</li>
+  <li>KIB va Bigmart WebView integratsiyasida qaysi xavfsizlik choralarini qo'llagansiz yoki qo'llash kerak edi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Kalit attestatsiyasi</summary>
+<p>Keystore kalit yaratganda u haqiqatan apparat muhitida yaratilganini isbotlovchi sertifikatlar zanjirini (key attestation) berishi mumkin. Server uni tekshirib, kalit haqiqiy qurilmada ekanini biladi. Bu qurilmani bog'lash (device binding) uchun ishlatiladi: hisob faqat ro'yxatdan o'tgan qurilmadan ishlaydi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Android: «Security tips», «Android Keystore system», «Network security configuration», «Show a biometric authentication dialog», «Play Integrity API», «About the SafetyNet Attestation API deprecation» (developer.android.com). OWASP MASVS va MASTG: mas.owasp.org. security-crypto kutubxonasining eskirgani: AndroidX Security release notes.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Mijozga ishonilmaydi: muhim qoidalar serverda. Kalitlar Keystore'da, ma'lumot Tink bilan shifrlangan; EncryptedSharedPreferences eskirgan. Tarmoqda TLS, Android 7 dan foydalanuvchi CA lariga ishonch yo'q, pinning rejasi bilan. Biometriya CryptoObject bilan. Butunlik Play Integrity va server tekshiruvi bilan. Ilovada sir yo'q, logda maxfiy ma'lumot yo'q.</p>
+  <p><strong>Keyingi dars.</strong> A13. Bo'lim xulosasi, katta test va suhbat mashqi.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a11-firebase-git.html">Oldingi: A11. Firebase va Git</a><a href="a13-xulosa.html">Keyingi: A13. Xulosa va test</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0, 5], 'Xavfsizlik: barcha qavatlar');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Qavatlar ----------
+  (function () {
+    var svg = $('lay'), say = $('lySay'), cur = 0;
+    var L = [
+      ['Server', 'yakuniy qaror: limit, urinishlar, sessiya, Integrity tekshiruvi', 'Har bir muhim qoida shu yerda. Ilova chetlab o\'tilsa ham, server rad etadi. Mijozga ishonilmaydi.'],
+      ['Qurilma butunligi', 'Play Integrity API, root signallari', 'Qurilma va ilova haqiqiy ekanini Google imzolagan xulosa bilan server tekshiradi. Mahalliy root tekshiruvi qo\'shimcha signal.'],
+      ['Ilova', 'R8, imzo, sirsiz kod, exported=false', 'Kodni o\'qish va o\'zgartirishni qiyinlashtiradi. Lekin ilovadagi har narsa oxir-oqibat ochiq deb hisoblanadi.'],
+      ['Saqlash', 'Keystore, Tink, DataStore, zaxiradan chiqarish', 'Tokenlar shifrlangan, kalit Keystore\'da: root qurilmada fayl o\'qilsa ham, kalitsiz foydasiz.'],
+      ['Tarmoq', 'TLS, Network Security Config, pinning', 'Ochiq Wi-Fi va soxta CA bilan MITM dan himoya. Pinning bilan hatto tizim CA si qo\'shilganda ham.'],
+      ['Ekran va foydalanuvchi', 'FLAG_SECURE, BiometricPrompt + CryptoObject, overlay himoyasi, bufer', 'Skrinshot va ekran yozish, ustiga chiqadigan oynalar, o\'g\'irlangan telefon. Biometriya kalit bilan bog\'langan.']
+    ];
+    var setT = tabs('lyT', L.map(function (l) { return l[0]; }), function (i) { cur = i; draw(); });
+    function draw() {
+      setT(cur); svg.textContent = '';
+      L.slice().reverse().forEach(function (l, j) { var i = L.length - 1 - j; box(svg, 20 + j * 12, 20 + j * 64, 760 - j * 24, 54, l[0], l[1], i === cur ? 'on' : (i === 0 ? 'live' : '')); });
+      S(svg, 'text', { x: 400, y: 412, 'text-anchor': 'middle', 'class': 'sub' }, 'yuqoridan pastga: hujumchiga eng yaqin qavatdan yakuniy qaror qiladigan serverga');
+      box(svg, 820, 60, 400, 300, L[cur][0], '', 'on'); code(svg, 836, 130, wrap(L[cur][2], 44), 'sub');
+      say.textContent = L[cur][2];
+    }
+    draw();
+  })();
+
+  // ---------- Saqlash usullari ----------
+  (function () {
+    var svg = $('sto'), say = $('soSay'), cur = 0;
+    var M = [
+      { t: 'Oddiy SharedPreferences', r: ['bad', 'bad', 'bad'], s: `Token XML faylda ochiq matn. Root qilingan telefonda fayl o'qiladi; allowBackup yoqilgan bo'lsa, zaxira nusxadan ham; va eski versiyalarda adb backup orqali. Hamma stsenariyda token o'g'irlanadi.` },
+      { t: 'EncryptedSharedPreferences', r: ['on', 'live', 'on'], s: `Shifrlangan, kalit Keystore'da: fayl o'qilsa ham foydasiz. Lekin kutubxona eskirgan deb belgilangan: yangi relizlar yo'q, ba'zi qurilmalarda Keystore bilan muammolar ma'lum. Ishlab turgan loyihalarda bor, yangi kodda emas.` },
+      { t: 'Tink + Keystore + DataStore', r: ['on', 'on', 'on'], s: `Tink AEAD bilan shifrlangan, Tink kalitlari Keystore'dagi asosiy kalit bilan himoyalangan, natija DataStore'da (datastore-tink). Fayl o'qilsa ham, kalit qurilmadan chiqmaydi. Zaxira nusxadan chiqarilgan. Joriy tavsiya.` },
+      { t: '+ biometriyaga bog\'langan kalit', r: ['on', 'on', 'on'], b: true, s: `Asosiy kalit setUserAuthenticationRequired bilan: tokenni ochish faqat BiometricPrompt + CryptoObject muvaffaqiyatli bo'lganda. O'g'irlangan, qulfi ochiq telefonda ham biometriyasiz token ochilmaydi; yangi barmoq izi qo'shilsa, kalit bekor bo'ladi.` }
+    ];
+    var setT = tabs('soT', M.map(function (m) { return m.t; }), function (i) { cur = i; draw(); });
+    var A = ['Root: fayllarni o\'qish', 'Zaxira nusxadan tiklash', 'O\'g\'irlangan, ochiq telefon'];
+    function draw() {
+      var m = M[cur]; setT(cur); svg.textContent = ''; marker(svg, 'somk');
+      box(svg, 20, 100, 320, 120, 'Refresh token', m.t, 'live');
+      A.forEach(function (a, i) {
+        var r = m.r[i]; if (i === 2 && !m.b) r = cur === 0 ? 'bad' : 'live';
+        box(svg, 460, 20 + i * 100, 380, 80, a, '', 'on');
+        box(svg, 900, 20 + i * 100, 320, 80, r === 'on' ? 'Himoyalangan' : r === 'live' ? 'Qisman' : 'O\'g\'irlandi', i === 2 ? (m.b ? 'biometriyasiz ochilmaydi' : 'ilova ochiq bo\'lsa sessiya ishlaydi') : '', r === 'on' ? 'on' : r === 'live' ? 'live' : 'bad');
+        arrow(svg, 'somk', 'M840 ' + (60 + i * 100) + 'H898');
+      });
+      arrow(svg, 'somk', 'M340 160H400V60H458'); arrow(svg, 'somk', 'M400 160H458'); arrow(svg, 'somk', 'M400 160V260H458');
+      say.textContent = m.s; say.className = 'say' + (cur === 0 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- MITM ----------
+  (function () {
+    var svg = $('mitm'), say = $('mtSay'), cur = 0;
+    var C = [
+      { t: 'Foydalanuvchi CA si, Android 7+', ok: true, s: `Hujumchi foydalanuvchini o'z sertifikatini o'rnatishga ko'ndirdi. Android 7 dan ilova sukut bo'yicha foydalanuvchi CA lariga ishonmaydi: TLS ulanish rad etiladi, trafik ko'rinmaydi.` },
+      { t: 'Root: tizim CA si qo\'shildi, pinningsiz', ok: false, s: `Root qilingan qurilmada hujumchi o'z CA sini tizim ro'yxatiga qo'shdi. Ilova unga ishonadi va proksi bilan ulanadi: tokenlar va so'rovlar ochiq, javoblarni o'zgartirish mumkin.` },
+      { t: 'Root + pinning', ok: true, s: `Xuddi shu holat, lekin ilova bank serverining ochiq kaliti pinini biladi. Proksi sertifikati boshqa kalit bilan: OkHttp SSLPeerUnverifiedException bilan ulanishni uzadi. MITM ishlamadi.` },
+      { t: 'Barchasiga ishonuvchi TrustManager', ok: false, s: `Kodda «vaqtincha» barcha sertifikatlarni qabul qiladigan TrustManager qolgan. Root ham, soxta CA ham kerak emas: ochiq Wi-Fi dagi har qanday proksi trafikni ko'radi. Eng xavfli xato.` }
+    ];
+    var setT = tabs('mtT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'mtmk');
+      box(svg, 20, 90, 280, 110, 'Bank ilovasi', cur === 2 ? 'pin: sha256/AbC...' : (cur === 3 ? 'TrustManager: hammasi OK' : 'Network Security Config'), cur === 3 ? 'bad' : 'on');
+      box(svg, 470, 90, 300, 110, 'Hujumchi proksisi', 'o\'z sertifikati bilan', c.ok ? 'freed' : 'bad');
+      box(svg, 940, 90, 280, 110, 'Bank serveri', 'haqiqiy sertifikat', 'on');
+      arrow(svg, 'mtmk', 'M300 145H468', c.ok ? 'rad etildi ✕' : 'TLS ulandi', 384, 135); arrow(svg, 'mtmk', 'M770 145H938', c.ok ? '' : 'trafik o\'tadi', 854, 135);
+      box(svg, 20, 230, 1200, 56, c.ok ? 'Natija: trafik himoyalangan' : 'Natija: tokenlar va so\'rovlar hujumchida', '', c.ok ? 'on' : 'bad');
+      say.textContent = c.s; say.className = 'say' + (c.ok ? '' : ' bad');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoSc', [
+    { name: `Dastlabki Android`, years: `2008–2013`, art: `<rect x="35" y="20" width="50" height="60" rx="6"/><path d="M60 40v20" class="acc"/>`, how: `Ilovalar sandbox'da (har biri o'z Linux foydalanuvchisi), ruxsatlar o'rnatishda bir marta.`, better: `Ilovalar bir-birining fayllarini o'qiy olmaydi.`, pain: `Ruxsatlar hammasi yoki hech narsa, foydalanuvchi CA lariga ishonch, adb backup bilan ma'lumot ko'chirish.`, ex: `Keystore API Android 4.3 (2013) dan ilovalar uchun.` },
+    { name: `Ish paytidagi ruxsatlar va to'liq shifrlash`, years: `2015–2016`, art: `<rect x="30" y="30" width="60" height="44" rx="4"/><path d="M45 30v-8a15 15 0 0 1 30 0v8" class="acc"/>`, how: `Android 6: ruxsatlar ish paytida so'raladi, barmoq izi API si. Android 7: foydalanuvchi CA lariga sukut bo'yicha ishonch yo'q, Network Security Config.`, better: `MITM ancha qiyinlashdi.`, pain: `Root qilingan qurilmalar hamon xavf.`, ex: `Network Security Config bilan pinning XML da.` },
+    { name: `Biometriya va StrongBox`, years: `2018–2019`, art: `<circle cx="60" cy="50" r="24"/><path d="M48 50a12 12 0 0 1 24 0M54 50a6 6 0 0 1 12 0" class="acc"/>`, how: `Android 9: BiometricPrompt, StrongBox (alohida xavfsizlik chipi), shifrsiz HTTP sukut bo'yicha taqiqlangan.`, better: `Biometriya kalitlarga bog'lanadi, kalitlar apparatda.`, pain: `Qurilmalar orasida farqlar katta.`, ex: `AndroidX Biometric kutubxonasi eski versiyalarni ham qo'llaydi.` },
+    { name: `Play Integrity`, years: `2021–2025`, art: `<path d="M60 18l30 12v20c0 18-14 28-30 32-16-4-30-14-30-32V30z" class="acc"/>`, how: `Play Integrity API SafetyNet Attestation o'rnini egalladi; SafetyNet 2022 da eskirgan, 2025-yil yanvarida o'chirilgan.`, better: `Ilova, qurilma va hisob butunligi bitta API da, server tekshiradi.`, pain: `Chetlab o'tish asboblari bilan poyga davom etadi.`, ex: `Android 12: exported atributi majburiy, overlay himoyasi; Android 13: bufer ogohlantirishi.` },
+    { name: `security-crypto eskirdi`, years: `2025-yildan`, art: `<rect x="24" y="30" width="72" height="40" rx="4"/><path d="M34 40l52 20M86 40L34 60" class="acc"/>`, how: `EncryptedSharedPreferences va MasterKey eskirgan deb belgilandi, yangi relizlar rejalashtirilmagan.`, better: `Yo'nalish aniq: DataStore + Tink + Keystore.`, pain: `Mavjud loyihalarni ko'chirish kerak.`, ex: `OWASP MASTG ham shunday ko'chishni tavsiya qiladi. Joriy holatni AndroidX release notes dan tekshiring.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
