@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A9. Tarmoq</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A9. Tarmoq: Retrofit va Ktor, JSON, xatolar, tokenlar</h1>
+<p class="lead">Savol: so'rov kodingizdan serverga va javob qaytib ekranga qanday yetib boradi, JSON qanday o'qiladi, xatolar qanday turlanadi, va tokenni yangilash bir vaqtda kelgan o'nta so'rov bilan qanday ishlaydi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Retrofit</strong>: HTTP API ni Kotlin interfeysi sifatida e'lon qilish kutubxonasi. Ichkarida so'rovlarni <strong>OkHttp</strong> yuboradi. <strong>Ktor client</strong>: JetBrains'ning Kotlin uchun yozilgan, Multiplatform HTTP mijozi.</p>
+    <p>JSON ni Kotlin obyektiga aylantirish <strong>serializatsiya</strong> kutubxonasi ishi: kotlinx.serialization, Moshi yoki Gson. <strong>Token</strong>: server bergan, har bir so'rovga qo'shiladigan kirish kaliti (ko'pincha JWT).</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «REST API integratsiyasi (Retrofit/Ktor), JSON, tarmoq xatolarini qayta ishlash va tokenlar bilan ishlash».</li>
+      <li><strong>Bank ilovasida:</strong> har bir ekran serverga boradi; sessiya tokenlari, qisqa muddatli access token va uni yangilash.</li>
+      <li><strong>Sizning tajribangiz:</strong> JWT bilan REST integratsiyasi va backend tomonda Alipay OAuth token oqimi: suhbatda ikki tomonni ham ko'rganingizni ayting.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>Retrofit va OkHttp qanday tuzilgan, interceptor zanjiri;</li>
+      <li>Ktor client va Retrofit farqi;</li>
+      <li>JSON kutubxonalari va Kotlin bilan tuzoqlar;</li>
+      <li>xatolar turlari va ularni ekranga yetkazish;</li>
+      <li>access va refresh token, <span class="num">Authenticator</span>, bir vaqtdagi yangilash;</li>
+      <li>vaqt chegaralari, qayta urinish va idempotentlik.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: tarmoq data qavatida"></svg></div>
+  <figcaption>Tarmoq data qavatida: repozitoriy API ni chaqiradi, natijani domain modeliga aylantiradi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>HTTP so'rov va javob tuzilishi qisqacha</li>
+    <li>Retrofit, OkHttp, interceptorlar, Authenticator</li>
+    <li>Ktor client: dvigatellar va plaginlar</li>
+    <li>kotlinx.serialization, Moshi, Gson</li>
+    <li>Xatolar ierarxiyasi va natija turi</li>
+    <li>Tokenlar, JWT tuzilishi, yangilash oqimi</li>
+    <li>Vaqt chegaralari, qayta urinish, idempotentlik kaliti</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Tokenni qurilmada xavfsiz saqlash va sertifikat pinning: A12-darsda</li>
+    <li>HTTP, TLS, DNS ning ichki ishi: backend yo'l xaritasidagi Tarmoq yo'nalishida</li>
+    <li>WebSocket va gRPC</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Qo'lda HTTP</h3>
+<p>Android'da tarmoqqa birinchi yo'l <span class="num">HttpURLConnection</span> edi: ulanishni ochish, sarlavhalarni qo'yish, oqimdan baytlarni o'qish, ularni satrga, satrni <span class="num">JSONObject</span> ga aylantirib, maydonlarni birma-bir olish. Har bir so'rov o'nlab qator, har bir maydon nomi qo'lda yozilgan satr, va server maydonni o'zgartirsa, xato faqat ish paytida chiqadi. Ulanishlarni qayta ishlatish, kesh, qayta urinish, gzip yo'q edi yoki qo'lda edi. Bunga 4-darsdagi kodirovka tuzoqlari (javob qaysi kodirovkada?) va 5-darsdagi tarmoq kechikishi qo'shiladi.</p>
+<p>Bank ilovasi uchun yana ikki og'riq: har bir so'rovga token qo'shish va token muddati tugaganda uni yangilab, so'rovni takrorlash. Agar buni har bir so'rov joyida yozsak, kod takrorlanadi va bir vaqtda bir nechta so'rov tokenni bir necha marta yangilaydi.</p>
+
+<h3><span class="part">2. Ichkarida</span>So'rovning yo'li</h3>
+
+<p class="beat">Retrofit va OkHttp</p>
+<p>Retrofit'da API interfeys sifatida e'lon qilinadi:</p>
+<pre class="code">interface CardApi {
+    @GET("cards")                 suspend fun cards(): List&lt;CardDto&gt;
+    @GET("cards/{id}")            suspend fun card(@Path("id") id: String): CardDto
+    @POST("transfers")            suspend fun transfer(@Body body: TransferDto,
+                                                        @Header("Idempotency-Key") key: String): TransferResultDto
+}</pre>
+<p><span class="num">retrofit.create(CardApi::class.java)</span> interfeysni amalga oshiradigan obyektni ish paytida yaratadi (Java'ning dinamik proksi mexanizmi bilan). Metod chaqirilganda Retrofit annotatsiyalarni o'qib, HTTP so'rovni yig'adi, uni OkHttp'ga beradi, javobni konvertor (JSON kutubxonasi) bilan obyektga aylantiradi. <span class="num">suspend</span> metodlar Retrofit 2.6 (2019) dan beri: chaqiruv coroutine'ni to'xtatadi va main-safe.</p>
+<p><strong>OkHttp</strong> haqiqiy ishni qiladi: ulanishlar havzasi (bitta serverga ulanishni qayta ishlatish), HTTP/2, gzip, kesh, TLS. Uning asosiy kengaytma nuqtasi <strong>interceptor</strong>: so'rov va javob o'tadigan zanjirning bo'g'ini. Har bir interceptor so'rovni o'zgartirib, keyingisiga beradi va qaytgan javobni o'zgartira oladi. Odatiy zanjir: avtorizatsiya sarlavhasini qo'shuvchi, til va qurilma sarlavhalari, log yozuvchi. Alohida, <strong>Authenticator</strong> javob 401 bo'lganda chaqiriladi: tokenni yangilab, so'rovni yangi token bilan qaytaradi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="chain" style="width:1240px;height:420px" viewBox="0 0 1240 420" role="img" aria-label="So'rov Retrofit, OkHttp interceptorlari va Authenticator orqali serverga va qaytib o'tadi"></svg></div>
+  <figcaption>Chapdan o'ngga so'rov, o'ngdan chapga javob. Holatni tanlang va har bir bo'g'inda nima bo'lishini ko'ring.</figcaption>
+  <div class="evo-tabs" id="chT" style="margin-top:0.9rem"></div>
+  <p class="say" id="chSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Tokenlar va bir vaqtdagi yangilash</p>
+<p>Odatiy sxema ikki token: <strong>access token</strong> qisqa muddatli (daqiqalar), har bir so'rovga <span class="num">Authorization: Bearer ...</span> sarlavhasida qo'shiladi; <strong>refresh token</strong> uzoqroq, faqat yangi access token olish uchun ishlatiladi. Access token o'g'irlansa, u tez eskiradi; refresh token esa qurilmada xavfsiz saqlanadi (A12).</p>
+<p>Ko'p tokenlar <strong>JWT</strong> formatida: nuqta bilan ajratilgan uch qism, sarlavha, ma'lumot va imzo, har biri base64url bilan kodlangan. Muhim: JWT <strong>shifrlanmagan</strong>, faqat imzolangan. Uning ichidagi ma'lumotni (foydalanuvchi ID, muddat) har kim o'qiy oladi; imzo faqat o'zgartirilmaganini kafolatlaydi. Shuning uchun JWT ichiga maxfiy narsa qo'yilmaydi.</p>
+<p>Eng nozik joy: ekran ochilganda bir vaqtda beshta so'rov ketdi va hammasi 401 oldi. Har biri o'zicha tokenni yangilasa, serverga beshta yangilash so'rovi ketadi; ko'p serverlarda refresh token bir martalik, va ikkinchi yangilash birinchisining tokenini bekor qiladi: foydalanuvchi tizimdan chiqarib yuboriladi. To'g'ri yechim: yangilashni bitta qulf (Mutex yoki <span class="num">synchronized</span>) ostida bajarish. Birinchi so'rov yangilaydi, qolganlari kutadi va qulfga kirganda token allaqachon yangi ekanini ko'rib (eski token bilan solishtirib), yangilamasdan takrorlaydi. Yuqoridagi chizmada «5 ta parallel 401» holatini ko'ring.</p>
+
+<p class="beat">Ktor client</p>
+<p>Ktor client Kotlin uchun noldan yozilgan va Multiplatform: bitta tarmoq kodi Android, iOS va desktop'da ishlaydi. Interfeys va annotatsiyalar o'rniga Kotlin funksiyalari: <span class="num">client.get("cards").body&lt;List&lt;CardDto&gt;&gt;()</span>. Ichkarida <strong>dvigatel</strong> (engine) haqiqiy tarmoq ishini qiladi: Android'da odatda OkHttp yoki CIO. Imkoniyatlar <strong>plaginlar</strong> bilan qo'shiladi: <span class="num">ContentNegotiation</span> (JSON), <span class="num">Auth</span> (bearer tokenlar, <span class="num">refreshTokens { }</span> bilan yangilash, bir vaqtdagi yangilashni o'zi boshqaradi), <span class="num">HttpTimeout</span>, <span class="num">Logging</span>, <span class="num">HttpRequestRetry</span>.</p>
+<div class="scroll"><table>
+<thead><tr><th></th><th>Retrofit + OkHttp</th><th>Ktor client</th></tr></thead>
+<tbody>
+<tr><td>API e'loni</td><td>annotatsiyali interfeys</td><td>Kotlin funksiyalari va DSL</td></tr>
+<tr><td>Platforma</td><td>JVM va Android</td><td>Multiplatform</td></tr>
+<tr><td>Kengaytirish</td><td>interceptor, Authenticator, konvertor</td><td>plaginlar</td></tr>
+<tr><td>Token yangilash</td><td>Authenticator va o'z qulfingiz</td><td><span class="num">Auth</span> plagini <span class="num">refreshTokens</span></td></tr>
+<tr><td>Tarqalganligi</td><td>Android'da eng keng tarqalgan</td><td>Kotlin Multiplatform loyihalarda standart</td></tr>
+</tbody></table></div>
+
+<p class="beat">JSON: qaysi kutubxona</p>
+<ul>
+  <li><strong>kotlinx.serialization</strong>: JetBrains'ning kompilyator plagini. <span class="num">@Serializable</span> klasslar uchun serializatorni kompilyatsiyada yaratadi, refleksiyasiz, Multiplatform. Kotlin'ning null bo'lmaydigan turlari va standart qiymatlarini hurmat qiladi: maydon kelmasa va standart qiymati bo'lmasa, aniq xato beradi. Sozlamalar: <span class="num">Json { ignoreUnknownKeys = true; explicitNulls = false }</span>.</li>
+  <li><strong>Moshi</strong>: Square'ning kutubxonasi, Kotlin uchun kod yaratish (KSP) rejimi bor, Kotlin turlarini ham tushunadi.</li>
+  <li><strong>Gson</strong>: eng eski va keng tarqalgan, lekin refleksiya bilan ishlaydi va Kotlin konstruktorini chetlab o'tadi: kelmagan maydon <span class="num">String</span> turida bo'lsa ham null bo'lib qoladi va standart qiymatlar ishlamaydi (A1-darsdagi tuzoq). Yangi Kotlin loyihalarda tavsiya etilmaydi.</li>
+</ul>
+<p>Serverdan kelgan noma'lum maydonlar uchun <span class="num">ignoreUnknownKeys</span> muhim: server yangi maydon qo'shsa, eski ilova versiyalari qulamasligi kerak. Summa uchun serverdan butun son (tiyinda) yoki satr kelishi kerak, <span class="num">double</span> emas (P0, 3-dars).</p>
+
+<p class="beat">Xatolar: turlash va ekranga yetkazish</p>
+<p>Tarmoq so'rovida beshta xil xato bo'ladi va ularning har biri foydalanuvchiga boshqacha ko'rsatiladi:</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="err" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="Tarmoq xatolari turlari: qaysi istisno, qaysi domain xatosi va foydalanuvchiga qanday xabar"></svg></div>
+  <figcaption>Chapda Retrofit/OkHttp tashlaydigan istisno, o'rtada repozitoriy uni aylantiradigan domain xatosi, o'ngda ekrandagi xabar. Turini tanlang.</figcaption>
+  <div class="evo-tabs" id="erT" style="margin-top:0.9rem"></div>
+  <p class="say" id="erSay" aria-live="polite"></p>
+</figure>
+<p>Repozitoriy texnik istisnolarni (<span class="num">IOException</span>, <span class="num">HttpException</span>) ushlab, domain'ning o'z xato turiga aylantiradi: <span class="num">sealed interface BankError { NoInternet; Timeout; Unauthorized; Server(code); Business(code, message) }</span>. ViewModel va ekran Retrofit'ni bilmaydi (A5), faqat shu turlarni. Natija <span class="num">Result&lt;T&gt;</span> yoki o'zimizning <span class="num">sealed</span> turimiz bilan qaytariladi. Unutmang: <span class="num">CancellationException</span> qayta tashlanadi (A3).</p>
+
+<p class="beat">Vaqt chegaralari, qayta urinish va idempotentlik</p>
+<ul>
+  <li><strong>Vaqt chegaralari</strong>: OkHttp'da ulanish, o'qish, yozish va umumiy chaqiruv uchun alohida. Sukut bo'yicha 10 sekund; mobil tarmoqda ba'zi so'rovlar (hisobot yuklash) uchun ko'proq kerak.</li>
+  <li><strong>Qayta urinish</strong>: o'qish so'rovlarini (GET) tarmoq xatosida qayta urinish xavfsiz. Pul o'tkazmasi (POST) esa yo'q: javob kelmagani so'rov bajarilmaganini bildirmaydi. Server so'rovni bajargan, javob yo'lda yo'qolgan bo'lishi mumkin, va qayta urinish ikkinchi o'tkazma bo'ladi.</li>
+  <li><strong>Idempotentlik kaliti</strong>: ilova har bir to'lov uchun noyob ID yaratadi va uni <span class="num">Idempotency-Key</span> sarlavhasida yuboradi. Server bir xil kalitli takroriy so'rovni bajarmaydi, avvalgi natijani qaytaradi. Shunda qayta urinish xavfsiz. Bu sizning backend tajribangizga ham tegishli: to'lov tizimlari integratsiyasida aynan shunday ishlaydi.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Android'da HTTP tarixi</h3>
+<div class="bench" id="evoNw"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>REST API</dt><dd>Resurslar (kartalar, o'tkazmalar) va HTTP metodlari (GET, POST, PUT, DELETE) orqali ishlaydigan server interfeysi.</dd>
+  <dt>HTTP holat kodi</dt><dd>Javob natijasi: 2xx muvaffaqiyat, 4xx mijoz xatosi (400, 401, 403, 404, 409, 429), 5xx server xatosi.</dd>
+  <dt>Retrofit</dt><dd>HTTP API ni annotatsiyali Kotlin/Java interfeysi sifatida e'lon qiladigan kutubxona.</dd>
+  <dt>OkHttp</dt><dd>HTTP mijoz: ulanishlar havzasi, HTTP/2, kesh, TLS, interceptorlar.</dd>
+  <dt>Interceptor</dt><dd>So'rov va javob o'tadigan zanjir bo'g'ini: sarlavha qo'shish, log, kesh. Application interceptor bitta chaqiruvga bir marta, network interceptor har bir haqiqiy tarmoq so'roviga.</dd>
+  <dt>Authenticator</dt><dd>OkHttp'da 401 javobida chaqiriladigan, yangi token bilan so'rov qaytaradigan komponent.</dd>
+  <dt>Ktor client</dt><dd>JetBrains'ning Multiplatform HTTP mijozi, dvigatellar va plaginlar bilan.</dd>
+  <dt>Serializatsiya</dt><dd>Obyektni JSON ga va JSON ni obyektga aylantirish. kotlinx.serialization, Moshi, Gson.</dd>
+  <dt>DTO</dt><dd>Server bilan almashinadigan ma'lumot klassi.</dd>
+  <dt>Access token, refresh token</dt><dd>Qisqa muddatli kirish kaliti va uni yangilash uchun uzoq muddatli kalit.</dd>
+  <dt>JWT</dt><dd>Sarlavha, ma'lumot va imzodan iborat, base64url bilan kodlangan, imzolangan (shifrlanmagan) token.</dd>
+  <dt>Idempotentlik</dt><dd>Amalni bir necha marta bajarish bir marta bajarish bilan bir xil natija berishi. Idempotentlik kaliti bunga erishish usuli.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: log interceptor release'da</b>
+  <p><span class="num">HttpLoggingInterceptor</span> <span class="num">BODY</span> darajasida so'rov va javoblarni to'liq logga yozadi: tokenlar, karta raqamlari, balanslar. Release yig'masida qolib ketsa, ular qurilma logida va log yig'uvchi xizmatlarda qoladi.</p>
+  <p class="why">Log interceptor faqat debug yig'masida qo'shiladi; zarur bo'lsa, maxfiy sarlavhalar <span class="num">redactHeader("Authorization")</span> bilan yashiriladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: har bir so'rov tokenni o'zi yangilaydi</b>
+  <p>Bir vaqtdagi 401 lar parallel yangilashlarni keltirib chiqaradi va refresh token bekor bo'ladi: foydalanuvchi sababsiz tizimdan chiqariladi. Xato faqat sekin internetda va ko'p so'rovli ekranlarda chiqadi, shuning uchun sinovda topilmaydi.</p>
+  <p class="why">Yangilash bitta joyda (Authenticator yoki Ktor Auth plagini) va qulf ostida, eski tokenni joriysi bilan solishtirib.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: to'lov so'rovini avtomatik qayta yuborish</b>
+  <p>OkHttp ulanish xatolarida ba'zi so'rovlarni o'zi takrorlaydi (<span class="num">retryOnConnectionFailure</span>), umumiy qayta urinish interceptorlari esa POST ni ham takrorlashi mumkin. Natija: ikki marta yechilgan pul.</p>
+  <p class="why">Pul bilan bog'liq so'rovlarda idempotentlik kaliti majburiy, va qayta urinish siyosati metod bo'yicha ajratiladi. Javob kelmasa, foydalanuvchiga «holatni tekshiryapmiz» deb, operatsiya holatini alohida so'rov bilan aniqlash.</p>
+</div>
+<div class="rule">
+  <b>Qoida: server xatosining tanasini ham o'qing</b>
+  <p>Bank API lari ko'pincha 200 yoki 4xx bilan birga tanada biznes xatosini qaytaradi: <span class="num">{"code": 1043, "message": "Limit oshib ketdi"}</span>. Faqat HTTP kodiga qarash foydalanuvchiga «Noma'lum xato» ko'rsatadi.</p>
+  <p class="why">Xato tanasini <span class="num">errorBody()</span> dan o'qib, domain xatosiga aylantirish; matnlarni server tilda berishi yoki ilova o'z tarjimasini ko'rsatishi kelishib olinadi.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>Retrofit ichkarida qanday ishlaydi?</summary>
+<p><span class="num">retrofit.create()</span> Java dinamik proksi bilan interfeysni amalga oshiradi. Metod chaqirilganda annotatsiyalar (bir marta tahlil qilinib keshlanadi) bo'yicha OkHttp <span class="num">Request</span> yig'iladi, <span class="num">Call</span> bajariladi (suspend bo'lsa coroutine to'xtatiladi), javob konvertor orqali obyektga aylantiriladi. Tarmoq ishini OkHttp qiladi: ulanishlar havzasi, interceptor zanjiri, TLS, kesh.</p></details>
+<details><summary>Interceptor va Authenticator farqi? Application va network interceptor farqi?</summary>
+<p>Interceptor har bir so'rov va javobga ta'sir qiladi (sarlavha, log). Authenticator faqat 401 javobida chaqiriladi va yangi so'rov qaytaradi (yoki null: taslim). Application interceptor bitta chaqiruvga bir marta ishlaydi, qayta yo'naltirish va qayta urinishlarni ko'rmaydi; network interceptor har bir haqiqiy tarmoq almashinuviga, va haqiqiy ulanishni ko'radi.</p></details>
+<details><summary>Token muddati tugaganda nima bo'ladi? Bir vaqtda bir nechta so'rov 401 olsa-chi?</summary>
+<p>Server 401 qaytaradi, Authenticator refresh token bilan yangi access token oladi, saqlaydi va so'rovni yangi token bilan takrorlaydi. Refresh ham muvaffaqiyatsiz bo'lsa, sessiya tugaydi: tokenlar o'chiriladi va foydalanuvchi kirish ekraniga yuboriladi. Bir vaqtdagi 401 larda yangilash qulf ostida: birinchisi yangilaydi, qolganlari kutadi va token allaqachon yangilanganini ko'rib, yangilamasdan takrorlaydi.</p></details>
+<details><summary>Tarmoq xatolarini qanday qayta ishlaysiz?</summary>
+<p>Repozitoriyda texnik istisnolarni turlayman: <span class="num">IOException</span> (internet yo'q yoki uzildi), <span class="num">SocketTimeoutException</span>, <span class="num">HttpException</span> kod bo'yicha (401, 403, 404, 409, 429, 5xx), serializatsiya xatosi, va tanadagi biznes xatosi. Ularni domain'ning sealed xato turiga aylantirib, Result bilan qaytaraman. ViewModel holatga xatoni qo'yadi, ekran turga qarab xabar va «qayta urinish» tugmasini ko'rsatadi. CancellationException qayta tashlanadi.</p></details>
+<details><summary>Gson, Moshi va kotlinx.serialization farqi?</summary>
+<p>Gson refleksiya bilan ishlaydi va Kotlin konstruktorini chetlab o'tadi: null bo'lmaydigan maydonga null tushishi va standart qiymatlar ishlamasligi mumkin. Moshi Kotlin uchun kod yaratish rejimiga ega. kotlinx.serialization kompilyator plagini bilan serializatorlarni kompilyatsiyada yaratadi, refleksiyasiz, Multiplatform, Kotlin turlarini to'liq hurmat qiladi. Yangi loyihada kotlinx.serialization.</p></details>
+<details><summary>Retrofit va Ktor farqi? Qachon qaysi biri?</summary>
+<p>Retrofit annotatsiyali interfeys, OkHttp ustida, JVM/Android uchun, eng keng tarqalgan, interceptor va Authenticator bilan kengaytiriladi. Ktor Kotlin DSL, Multiplatform, dvigatellar va plaginlar (Auth plagini token yangilashni o'zi boshqaradi). Faqat Android bo'lsa ikkalasi ham yaxshi; iOS bilan umumiy kod kerak bo'lsa Ktor.</p></details>
+<details><summary>JWT nima? Uning ichida parol saqlash mumkinmi?</summary>
+<p>Uch qism: sarlavha (algoritm), ma'lumot (foydalanuvchi, muddat, ruxsatlar), imzo; base64url bilan kodlangan va nuqta bilan ajratilgan. U imzolangan, shifrlanmagan: ichini har kim o'qiy oladi, lekin o'zgartirsa imzo buziladi. Shuning uchun ichida maxfiy ma'lumot yo'q. Mijoz tomonda muddatni o'qib, so'rovdan oldin yangilash mumkin, lekin tekshiruvni server qiladi.</p></details>
+<details><summary>Nega to'lov so'rovini avtomatik qayta yuborib bo'lmaydi?</summary>
+<p>Javob kelmagani so'rov bajarilmaganini bildirmaydi: server bajargan bo'lishi mumkin. Qayta yuborish ikkinchi to'lov. Yechim: idempotentlik kaliti sarlavhasi va server tomonda takroriy kalitni aniqlash, yoki operatsiya holatini alohida tekshirish.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>O'tkazma so'rovi interceptorlardan qanday o'tadi? Qaysi interceptorlar bo'lishi kerak?</li>
+  <li>Ekran ochilganda beshta so'rov 401 oldi. Yangilash kodingiz nima qiladi?</li>
+  <li>Server javobiga yangi maydon qo'shdi va eski ilova versiyalari qulay boshladi. Sababi va yechimi?</li>
+  <li>Foydalanuvchi o'tkazma tugmasini bosdi, javob kelmadi (timeout). Ekranda nima ko'rsatasiz va keyin nima qilasiz?</li>
+  <li>Alipay integratsiyasidagi OAuth token oqimi va mobil ilovadagi token oqimining o'xshash va farqli tomonlari?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>HTTP kesh va ETag</summary>
+<p>OkHttp diskdagi kesh bilan server <span class="num">Cache-Control</span> va <span class="num">ETag</span> sarlavhalariga amal qiladi: o'zgarmagan ma'lumot uchun server 304 qaytaradi va tana yuborilmaydi. Bank ilovasida shaxsiy ma'lumot odatda keshlanmaydi, lekin ma'lumotnomalar (valyutalar ro'yxati, filiallar) uchun foydali.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Retrofit: square.github.io/retrofit. OkHttp: square.github.io/okhttp (Interceptors, Recipes: Handling authentication). Ktor client: ktor.io/docs/client-create-new-application.html, Auth plagini. kotlinx.serialization: github.com/Kotlin/kotlinx.serialization. JWT: RFC 7519. Versiyalar (Retrofit 3, OkHttp 5, Ktor 3) tez o'zgaradi: CHANGELOG dan tekshiring.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Retrofit interfeysdan so'rov yasaydi, OkHttp uni interceptor zanjiri orqali yuboradi; Ktor xuddi shuni plaginlar bilan Multiplatform qiladi. JSON uchun kotlinx.serialization. Xatolar repozitoriyda domain turlariga aylanadi. Token yangilash bitta joyda, qulf ostida. Pul so'rovlari idempotentlik kalitisiz qayta yuborilmaydi.</p>
+  <p><strong>Keyingi dars.</strong> A10. Lokal saqlash: Room va DataStore.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a8-navigatsiya.html">Oldingi: A8. Navigatsiya</a><a href="a10-lokal-saqlash.html">Keyingi: A10. Lokal saqlash</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [3, 4], 'Tarmoq: data qavati');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Interceptor zanjiri ----------
+  (function () {
+    var svg = $('chain'), say = $('chSay'), cur = 0;
+    var C = [
+      { t: '200 OK', st: ['on', 'on', 'on', 'on', 'freed', 'on'], rs: '200: [2 ta karta]', s: `Retrofit metodni HTTP so'rovga aylantirdi. AuthInterceptor Authorization: Bearer <access> sarlavhasini qo'shdi, Logging (faqat debug) yozdi, OkHttp ulanishlar havzasidan tayyor ulanishni oldi. 200 javob zanjir bo'ylab qaytdi va konvertor JSON ni List<CardDto> ga aylantirdi. Authenticator chaqirilmadi.` },
+      { t: '401: token eskirgan', st: ['on', 'on', 'on', 'on', 'live', 'live'], rs: '401 → refresh → 200', s: `Server 401 qaytardi: access token muddati tugagan. OkHttp Authenticator'ni chaqirdi: u refresh token bilan /auth/refresh ga so'rov yubordi, yangi access tokenni saqladi va asl so'rovni yangi sarlavha bilan qaytardi. Ikkinchi urinish 200. Foydalanuvchi hech narsani sezmadi.` },
+      { t: '5 ta parallel 401', st: ['on', 'on', 'on', 'on', 'live', 'live'], rs: '1 ta refresh, 5 ta takror', s: `Bir vaqtda 5 ta so'rov 401 oldi. Authenticator ichida qulf: birinchisi kirib yangiladi. Qolgan to'rttasi qulfni kutdi; kirganda ular o'z so'rovidagi eski tokenni joriy token bilan solishtirdi, farq qiladi, demak allaqachon yangilangan: refresh qilmasdan yangi token bilan takrorladi. Serverga bitta yangilash so'rovi ketdi.` },
+      { t: 'Refresh ham rad etildi', st: ['on', 'on', 'on', 'on', 'bad', 'bad'], rs: '401 → refresh 401 → chiqish', s: `Refresh token ham yaroqsiz (muddati tugagan yoki boshqa qurilmada chiqilgan). Authenticator null qaytaradi, so'rov 401 bilan tugaydi. Repozitoriy uni BankError.Unauthorized ga aylantiradi, sessiya menejeri tokenlarni o'chiradi va ilova kirish ekraniga o'tadi, stek tozalanadi (A8).` },
+      { t: 'Internet yo\'q', st: ['on', 'on', 'on', 'bad', 'freed', 'freed'], rs: 'IOException', s: `OkHttp serverga ulana olmadi: UnknownHostException (IOException ning bir turi). Javob yo'q, Authenticator ishtirok etmaydi. Repozitoriy uni BankError.NoInternet ga aylantiradi, ekran «Internet aloqasini tekshiring» va «Qayta urinish» ni ko'rsatadi.` }
+    ];
+    var setT = tabs('chT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    var N = [['Retrofit', 'cards(): so\'rov yig\'adi'], ['AuthInterceptor', 'Bearer token qo\'shadi'], ['Logging', 'faqat debug'], ['OkHttp tarmoq', 'havza, TLS, HTTP/2'], ['Authenticator', 'faqat 401 da'], ['Server', '/cards']];
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'chmk');
+      N.forEach(function (n, i) { var x = 20 + i * 205; box(svg, x, i === 4 ? 230 : 60, 185, 100, n[0], n[1], c.st[i]); });
+      [0, 1, 2].forEach(function (i) { arrow(svg, 'chmk', 'M' + (205 + i * 205) + ' 95H' + (223 + i * 205)); arrow(svg, 'chmk', 'M' + (223 + i * 205) + ' 135H' + (207 + i * 205)); });
+      arrow(svg, 'chmk', 'M820 95H1043', 'so\'rov', 930, 85); arrow(svg, 'chmk', 'M1043 135H822', 'javob', 930, 155);
+      if (cur >= 1 && cur <= 3) { arrow(svg, 'chmk', 'M1112 160V280H1007', '401', 1124, 220, 'start'); arrow(svg, 'chmk', 'M840 280H760V162', cur === 3 ? 'null: taslim' : 'yangi token bilan qayta', 750, 300, 'end'); }
+      box(svg, 20, 230, 380, 120, 'Natija repozitoriyga', '', cur >= 3 ? 'bad' : 'on'); S(svg, 'text', { x: 36, y: 320, 'class': 'val' }, c.rs);
+      say.textContent = c.s; say.className = 'say' + (cur >= 3 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Xatolar ----------
+  (function () {
+    var svg = $('err'), say = $('erSay'), cur = 0;
+    var E = [
+      { t: 'Internet yo\'q', ex: 'IOException (UnknownHost, ConnectException)', d: 'BankError.NoInternet', u: 'Internet aloqasini tekshiring. [Qayta urinish]', s: `Qurilma tarmoqqa ulanmagan yoki server topilmadi. Qayta urinish tugmasi va, iloji bo'lsa, keshdagi oxirgi ma'lumotni ko'rsatish (A10).` },
+      { t: 'Vaqt tugadi', ex: 'SocketTimeoutException', d: 'BankError.Timeout', u: 'Server javob bermadi. Operatsiya holati tekshirilmoqda...', s: `O'qish so'rovi uchun oddiy qayta urinish. To'lov uchun esa javob yo'qligi «bajarilmadi» degani emas: holatni alohida tekshirish kerak, qayta yuborish faqat idempotentlik kaliti bilan.` },
+      { t: 'HTTP 401 / 403', ex: 'HttpException(401)', d: 'BankError.Unauthorized', u: 'Sessiya tugadi. Qaytadan kiring.', s: `Authenticator yangilay olmagan 401: sessiya menejeri chiqishni bajaradi. 403 esa ruxsat yo'q (masalan, foydalanuvchi roli): chiqarmasdan xabar ko'rsatiladi.` },
+      { t: 'HTTP 5xx', ex: 'HttpException(500, 502, 503)', d: 'BankError.Server(503)', u: 'Xizmat vaqtincha ishlamayapti. Keyinroq urinib ko\'ring.', s: `Server tomonidagi muammo. GET uchun bir-ikki marta kechikish bilan qayta urinish mumkin; xabarda texnik tafsilot ko'rsatilmaydi, lekin Crashlytics yoki analitikaga yoziladi (A11).` },
+      { t: 'Biznes xatosi', ex: '200 yoki 4xx, tanada {"code":1043}', d: 'BankError.Business(1043, "Limit")', u: 'Kunlik o\'tkazma limiti oshib ketdi.', s: `HTTP darajasida hammasi joyida, lekin bank qoidasi rad etdi. Xato tanasini o'qib, kod bo'yicha aniq xabar ko'rsatish. Faqat HTTP kodiga qaralsa, bu «Noma'lum xato» bo'lib qoladi.` },
+      { t: 'JSON xatosi', ex: 'SerializationException', d: 'BankError.Unexpected', u: 'Kutilmagan xato. Biz uni allaqachon bilamiz.', s: `Server shartnomadan tashqari javob berdi: majburiy maydon yo'q yoki turi boshqa. Bu dasturchi xatosi: Crashlytics'ga yozish va foydalanuvchiga umumiy xabar. ignoreUnknownKeys yangi maydonlarda qulashning oldini oladi.` }
+    ];
+    var setT = tabs('erT', E.map(function (e) { return e.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var e = E[cur]; setT(cur); svg.textContent = ''; marker(svg, 'ermk');
+      group(svg, 20, 20, 380, 320, 'data: texnik istisno'); box(svg, 40, 140, 340, 100, 'Retrofit / OkHttp', '', 'bad'); code(svg, 56, 220, wrap(e.ex, 34), 'sub');
+      group(svg, 440, 20, 380, 320, 'domain: xato turi'); box(svg, 460, 140, 340, 100, 'Repozitoriy aylantiradi', '', 'live'); code(svg, 476, 220, [e.d]);
+      group(svg, 860, 20, 360, 320, 'presentation: foydalanuvchiga'); box(svg, 880, 120, 320, 140, 'Ekranda', '', 'on'); code(svg, 896, 200, wrap(e.u, 32), 'sub');
+      arrow(svg, 'ermk', 'M380 190H458'); arrow(svg, 'ermk', 'M800 190H878');
+      say.textContent = e.s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoNw', [
+    { name: `HttpURLConnection`, years: `2008-yildan`, art: `<path d="M20 50h80" /><circle cx="20" cy="50" r="6" class="lit"/><circle cx="100" cy="50" r="6"/>`, how: `Standart Java sinfi va Apache HttpClient. JSON qo'lda: org.json.`, better: `Qo'shimcha kutubxona kerak emas.`, pain: `Ko'p qolip kod, xatolar, oqimlarni qo'lda boshqarish. Apache HttpClient Android 6 da olib tashlandi.`, ex: `Android 3.0 dan asosiy oqimda tarmoq taqiqlangan.` },
+    { name: `Volley`, years: `2013`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><path d="M30 50h60" class="acc"/>`, how: `Google'ning so'rovlar navbati kutubxonasi: rasm va kichik JSON so'rovlar uchun.`, better: `Navbat, kesh, bekor qilish.`, pain: `Katta javoblar uchun yomon, API noqulay.`, ex: `Hozir deyarli ishlatilmaydi.` },
+    { name: `OkHttp va Retrofit`, years: `2013, Retrofit 2: 2016`, art: `<rect x="14" y="30" width="40" height="40" rx="4" class="acc"/><rect x="66" y="30" width="40" height="40" rx="4"/>`, how: `Square: OkHttp HTTP mijoz sifatida, Retrofit API interfeysi sifatida. Konvertorlar Gson, Moshi.`, better: `Annotatsiyali interfeys, interceptorlar, ulanishlar havzasi, HTTP/2.`, pain: `Asinxronlik qayta chaqiruvlar yoki RxJava adapterlari bilan.`, ex: `Android'da de-fakto standart. OkHttp Android'ning o'zida ham ishlatiladi.` },
+    { name: `Coroutines va Kotlin`, years: `2019-yildan`, art: `<path d="M20 70c20-40 40-40 60 0" class="acc"/>`, how: `Retrofit 2.6: suspend metodlar. kotlinx.serialization barqaror (2020), Moshi Kotlin codegen.`, better: `Oddiy ketma-ket kod, Kotlin turlari to'g'ri ishlaydi.`, pain: `Xatolar istisno sifatida, ularni turlash dasturchining ishi.`, ex: `Bugungi odatiy to'plam: Retrofit + OkHttp + kotlinx.serialization.` },
+    { name: `Ktor client va bugun`, years: `Ktor 1.0 2018, Ktor 3 2024`, art: `<rect x="24" y="24" width="72" height="52" rx="6"/><path d="M36 50h48" class="acc"/>`, how: `JetBrains'ning Multiplatform mijozi: dvigatel + plaginlar. Retrofit 3 va OkHttp 5 2025-yilda chiqqan.`, better: `Bitta tarmoq kodi Android va iOS uchun.`, pain: `Retrofit'dagi ko'p tayyor yechimlar plaginlar bilan qayta qilinadi.`, ex: `Joriy versiyalar va o'zgarishlarni rasmiy CHANGELOG lardan tekshiring.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
