@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>A6. Dependency Injection</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Android: suhbatga tayyorgarlik</a></p>
+<h1>A6. Dependency Injection: Dagger/Hilt va Koin</h1>
+<p class="lead">Savol: ViewModel'ga repozitoriy, repozitoriyga Retrofit va Room kerak bo'lsa, ularni kim yaratadi, qancha yashaydi va testda qanday almashtiriladi? Hilt va Koin buni qanday qiladi va farqi nimada?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Dependency Injection</strong> (bog'liqliklarni tashqaridan berish): klass o'ziga kerak bo'lgan obyektlarni o'zi yaratmaydi, ularni konstruktor orqali oladi. Kim yaratadi? Maxsus kutubxona, <strong>DI konteyner</strong>.</p>
+    <p><strong>Hilt</strong> (Dagger ustida) bog'lanishlarni kompilyatsiya paytida tekshiradi va kod yaratadi. <strong>Koin</strong> Kotlin DSL bilan e'lon qilinadi va obyektlarni ish paytida topadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Vakansiyada:</strong> «Koin orqali Dependency Injection tajribasi».</li>
+      <li><strong>Har bir ekranda:</strong> <span class="num">koinViewModel()</span> yoki <span class="num">hiltViewModel()</span> bilan ViewModel olinadi, uning hamma bog'liqliklari bilan.</li>
+      <li><strong>Testlarda:</strong> haqiqiy repozitoriy o'rniga soxtasi beriladi.</li>
+      <li><strong>Suhbatda:</strong> o'tgan safar «qaysi DI ishlatgansiz» deb so'ralgan edi. Bu safar «Koin ichkarida qanday ishlaydi» va «Hilt'dan farqi» ga tayyor bo'lish kerak.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>DI qaysi og'riqni yopadi va qo'lda qanday qilinadi;</li>
+      <li>DI va Service Locator farqi;</li>
+      <li>Hilt: komponentlar, modullar, <span class="num">@Inject</span>, <span class="num">@Binds</span>, scope'lar;</li>
+      <li>Koin: <span class="num">module</span>, <span class="num">single</span>, <span class="num">factory</span>, <span class="num">viewModel</span>, ichkarida qanday topadi;</li>
+      <li>kompilyatsiya va ish paytidagi tekshiruv savdosi.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Android ilova qavatlari: DI ularning hammasini bir-biriga ulaydi"></svg></div>
+  <figcaption>DI qavatlarni bir-biriga ulaydi: ekranga ViewModel, ViewModel'ga use case, unga repozitoriy, repozitoriyga Retrofit va Room.</figcaption>
+</figure>
+
+<div class="scope">
+  <div><h4>Bu dars qamraydi</h4><ul>
+    <li>Qo'lda DI va «tarkib ildizi»</li>
+    <li>Konstruktor orqali berish, DI va Service Locator</li>
+    <li>Obyektlarning yashash muddati: singleton, factory, scope'lar</li>
+    <li>Dagger va Hilt</li>
+    <li>Koin 4: modullar, DSL, ViewModel, parametrlar, nomlar, tekshiruv</li>
+    <li>Testda almashtirish</li>
+  </ul></div>
+  <div><h4>Bu darsga kirmaydi</h4><ul>
+    <li>Dagger'ning murakkab imkoniyatlari: multibindings, subcomponent'lar, assisted injection chuqur</li>
+    <li>Kotlin Multiplatform'da Koin</li>
+  </ul></div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Obyektlar zanjiri</h3>
+<p>A5-darsdagi qoidaga amal qildik: <span class="num">KartalarViewModel</span> repozitoriyni o'zi yaratmaydi, konstruktor orqali oladi. Lekin endi kimdir uni yaratishi kerak, va zanjir uzun:</p>
+<pre class="code">val okHttp = OkHttpClient.Builder().addInterceptor(AuthInterceptor(TokenStore(context))).build()
+val retrofit = Retrofit.Builder().baseUrl(URL).client(okHttp).addConverterFactory(...).build()
+val api = retrofit.create(CardApi::class.java)
+val db = Room.databaseBuilder(context, BankDb::class.java, "bank.db").build()
+val repo = CardRepositoryImpl(api, db.cardDao(), Dispatchers.IO)
+val useCase = GetCardsUseCase(repo)
+val vm = KartalarViewModel(useCase)</pre>
+<p>Bu kodni har bir ekran uchun yozib bo'lmaydi. Uchta savol qoladi:</p>
+<ul>
+  <li><strong>Kim yaratadi?</strong> Agar har bir ekran o'zi yaratsa, kod takrorlanadi va har bir ekran Retrofit'ni bilib qoladi.</li>
+  <li><strong>Qancha yashaydi?</strong> <span class="num">OkHttpClient</span> va baza ilova bo'yicha bitta bo'lishi kerak (ulanishlar havzasi, kesh, bitta fayl). ViewModel esa har bir ekranga o'ziniki. Formatter har safar yangi bo'lsa ham bo'ladi.</li>
+  <li><strong>Testda qanday almashtiriladi?</strong> Testda tarmoqqa bormasdan, soxta API berish kerak.</li>
+</ul>
+<p>Kerak bo'lgan narsa: obyektlarni qanday yaratishni bir joyda e'lon qilish, ularning yashash muddatini belgilash va kerak bo'lganda avtomatik yig'ib berish.</p>
+
+<h3><span class="part">2. Ichkarida</span>Bog'liqliklar grafi</h3>
+
+<p class="beat">Graf va yashash muddati</p>
+<p>Obyektlar va ularning bog'liqliklari <strong>graf</strong> hosil qiladi. DI konteyner bu grafni biladi va so'ralgan obyektni yig'ish uchun kerakli narsalarni pastdan yuqoriga yaratadi. Har bir obyekt uchun yashash muddati beriladi:</p>
+<ul>
+  <li><strong>singleton</strong> (Koin'da <span class="num">single</span>, Hilt'da <span class="num">@Singleton</span>): ilova bo'yicha bitta, birinchi so'ralganda yaratiladi.</li>
+  <li><strong>factory</strong> (Koin'da <span class="num">factory</span>, Hilt'da scope'siz): har so'ralganda yangi.</li>
+  <li><strong>scope'li</strong>: ma'lum obyekt yashaganicha bitta: ViewModel ichida (<span class="num">@ViewModelScoped</span>), Activity ichida, foydalanuvchi sessiyasi ichida.</li>
+</ul>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="graph" style="width:1240px;height:440px" viewBox="0 0 1240 440" role="img" aria-label="Bog'liqliklar grafi: uchta ekran so'raganda qaysi obyektlar nechta yaratiladi"></svg></div>
+  <figcaption>Pastdan yuqoriga: OkHttp, Retrofit, API, baza, repozitoriy, use case, ViewModel'lar. Har bir qutida nechta nusxa yaratilgani. Yashash muddatini tanlang.</figcaption>
+  <div class="evo-tabs" id="grT" style="margin-top:0.9rem"></div>
+  <p class="say" id="grSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">DI va Service Locator</p>
+<p>Bog'liqlikni olishning ikki usuli bor, va suhbatda ularni farqlash so'raladi:</p>
+<ul>
+  <li><strong>DI</strong>: klass bog'liqliklarini konstruktorda e'lon qiladi va ularni tayyor holda oladi. Klass konteynerni bilmaydi. Nima kerakligi konstruktordan ko'rinadi, testda oddiygina boshqasini berasiz.</li>
+  <li><strong>Service Locator</strong>: klass ichida konteynerdan o'zi so'raydi: <span class="num">val repo = get&lt;CardRepository&gt;()</span>. Bog'liqliklar yashirin, klass konteynerga bog'lanib qoladi, testda konteynerni sozlash kerak.</li>
+</ul>
+<p>Koin ko'pincha «service locator» deb tanqid qilinadi, chunki u ish paytida ro'yxatdan topadi va <span class="num">by inject()</span> imkonini beradi. Lekin modullarda <span class="num">single { CardRepositoryImpl(get(), get()) }</span> yozilsa, <span class="num">CardRepositoryImpl</span> konstruktor orqali oladi va Koin'ni bilmaydi: bu DI. Service locator uslubi faqat Android yaratadigan klasslarda (Activity, Fragment) chegarada qoladi. To'g'ri javob: «Koin ichkarida lokator, lekin to'g'ri ishlatilsa klasslarimiz konstruktor orqali oladi».</p>
+
+<p class="beat">Dagger va Hilt: kompilyatsiya paytida</p>
+<p><strong>Dagger</strong> annotatsiyalar asosida kompilyatsiya paytida grafni tekshiradi va uni yig'adigan oddiy Java kodini yaratadi. Refleksiya yo'q, shuning uchun ish paytida tez, va bog'lanmagan bog'liqlik yig'ishda xato beradi. <strong>Hilt</strong> Dagger ustidagi Android uchun tayyor qolip: komponentlar va ularning yashash muddatlari oldindan berilgan.</p>
+<ul>
+  <li><span class="num">@HiltAndroidApp</span> Application klassida: grafning ildizi.</li>
+  <li><span class="num">@Inject constructor(...)</span>: Dagger bu klassni o'zi yarata oladi.</li>
+  <li><span class="num">@Module</span> va <span class="num">@InstallIn(SingletonComponent::class)</span>: Dagger o'zi yarata olmaydigan narsalar (Retrofit, Room) uchun. Ichida <span class="num">@Provides</span> funksiyalar va interfeysni amalga oshirishga bog'lash uchun <span class="num">@Binds</span>.</li>
+  <li><span class="num">@HiltViewModel</span> va <span class="num">@AndroidEntryPoint</span>: ViewModel va Activity/Fragment'ga berish.</li>
+  <li>Komponentlar ierarxiyasi: <span class="num">SingletonComponent</span> (ilova), <span class="num">ActivityRetainedComponent</span> (aylantirishdan omon qoladi), <span class="num">ViewModelComponent</span>, <span class="num">ActivityComponent</span>, <span class="num">FragmentComponent</span>, <span class="num">ViewComponent</span>.</li>
+</ul>
+
+<p class="beat">Koin: Kotlin DSL va ish paytida topish</p>
+<p><strong>Koin</strong> kod yaratmaydi. Modullar oddiy Kotlin kodi:</p>
+<pre class="code">val networkModule = module {
+    single { TokenStore(androidContext()) }
+    single { OkHttpClient.Builder().addInterceptor(AuthInterceptor(get())).build() }
+    single { Retrofit.Builder().baseUrl(URL).client(get()).addConverterFactory(...).build() }
+    single { get&lt;Retrofit&gt;().create(CardApi::class.java) }
+}
+val cardsModule = module {
+    singleOf(::CardRepositoryImpl) { bind&lt;CardRepository&gt;() }
+    factoryOf(::GetCardsUseCase)
+    viewModelOf(::KartalarViewModel)
+}
+// Application.onCreate:
+startKoin { androidContext(this@App); modules(networkModule, dbModule, cardsModule) }
+// Compose ekranda:
+val vm: KartalarViewModel = koinViewModel()</pre>
+<p>Ichkarida Koin har bir e'lonni tur bo'yicha (va kerak bo'lsa nom bo'yicha) kalit qilib jadvalga yozadi. <span class="num">get()</span> chaqirilganda u kerakli turni jadvaldan topadi, e'londagi lambdani chaqiradi va <span class="num">single</span> bo'lsa natijani eslab qoladi. Ya'ni graf ish paytida, birinchi so'rovda yig'iladi. <span class="num">singleOf(::Klass)</span> konstruktorga havola orqali barcha parametrlarni o'zi <span class="num">get()</span> bilan to'ldiradi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="cmp" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Hilt va Koin: graf qachon tekshiriladi va bog'lanmagan bog'liqlik qachon xato beradi"></svg></div>
+  <figcaption>Yuqorida Hilt, pastda Koin. Vaqt chapdan o'ngga: yig'ish, ilovani ishga tushirish, ekranni ochish. Holatni tanlang.</figcaption>
+  <div class="evo-tabs" id="cmT" style="margin-top:0.9rem"></div>
+  <p class="say" id="cmSay" aria-live="polite"></p>
+</figure>
+<p>Koin'ning bu zaifligi uchta usulda yopiladi: <span class="num">koin-test</span> dagi <span class="num">module.verify()</span> testi (barcha konstruktor parametrlari e'lon qilinganini JVM testida tekshiradi), ilova ishga tushganda <span class="num">checkModules</span>, va Koin Annotations yoki Koin kompilyator plagini bilan kompilyatsiya paytida tekshiruv.</p>
+<div class="scroll"><table>
+<thead><tr><th></th><th>Hilt (Dagger)</th><th>Koin</th></tr></thead>
+<tbody>
+<tr><td>Graf qachon tekshiriladi</td><td>kompilyatsiyada</td><td>ish paytida (yoki verify testi, annotatsiyalar bilan kompilyatsiyada)</td></tr>
+<tr><td>Kod yaratish</td><td>ha, KSP yoki kapt</td><td>yo'q, oddiy Kotlin DSL</td></tr>
+<tr><td>Yig'ish vaqti</td><td>sekinroq</td><td>tezroq</td></tr>
+<tr><td>Ish paytidagi narx</td><td>deyarli yo'q</td><td>jadvaldan qidirish va lambda chaqirish: kichik</td></tr>
+<tr><td>O'rganish</td><td>qiyinroq: komponentlar, annotatsiyalar, xato xabarlari uzun</td><td>osonroq</td></tr>
+<tr><td>Kotlin Multiplatform</td><td>yo'q</td><td>ha</td></tr>
+<tr><td>Google tavsiyasi</td><td>rasmiy tavsiya</td><td>jamoa tanlovi</td></tr>
+</tbody></table></div>
+
+<p class="beat">Koin'da tez-tez kerak bo'ladiganlar</p>
+<ul>
+  <li><strong>Nomlar</strong>: bir turdan ikkitasi kerak bo'lsa (ochiq va avtorizatsiyali OkHttp): <span class="num">single(named("auth")) { ... }</span> va <span class="num">get(named("auth"))</span>.</li>
+  <li><strong>Parametrlar</strong>: ish paytida ma'lum qiymat (karta ID): <span class="num">viewModel { (id: String) -&gt; DetailViewModel(id, get()) }</span> va <span class="num">koinViewModel { parametersOf(id) }</span>. Navigatsiya argumentlari uchun <span class="num">SavedStateHandle</span> ham <span class="num">viewModelOf</span> bilan avtomatik beriladi.</li>
+  <li><strong>Scope'lar</strong>: foydalanuvchi sessiyasi kabi o'z yashash muddati bo'lgan obyektlar uchun. Chiqishda scope yopiladi va ichidagi hamma narsa tozalanadi.</li>
+  <li><strong>Testda almashtirish</strong>: testda haqiqiy modul o'rniga soxta modul yuklash (<span class="num">loadKoinModules</span> yoki test uchun alohida <span class="num">startKoin</span>). Eng yaxshisi esa ViewModel va repozitoriyni Koin'siz, konstruktoriga soxtasini berib testlash.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>DI tarixi</h3>
+<div class="bench" id="evoDi"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Bog'liqlik</dt><dd>Klassga ishlashi uchun kerak bo'lgan boshqa obyekt.</dd>
+  <dt>Dependency Injection</dt><dd>Bog'liqliklarni klass ichida yaratmasdan, tashqaridan (konstruktor orqali) berish.</dd>
+  <dt>DI konteyner</dt><dd>Obyektlarni yaratish qoidalarini biladigan va so'ralganini graf bo'yicha yig'ib beradigan kutubxona.</dd>
+  <dt>Service Locator</dt><dd>Klass bog'liqliklarini o'zi umumiy ro'yxatdan so'rab oladigan qolip.</dd>
+  <dt>Konstruktor orqali berish</dt><dd>Bog'liqliklar konstruktor parametrlari: eng ochiq va tavsiya etilgan usul. Maydon orqali (<span class="num">lateinit</span> + <span class="num">@Inject</span>) faqat Android yaratadigan klasslarda.</dd>
+  <dt>Yashash muddati (scope)</dt><dd>Obyekt qancha vaqt bitta nusxada saqlanadi: ilova, ViewModel, Activity, sessiya.</dd>
+  <dt>single, factory, viewModel</dt><dd>Koin'da: ilova bo'yicha bitta; har safar yangi; ViewModel sifatida, ekran bilan yashaydi.</dd>
+  <dt>@Inject, @Module, @Provides, @Binds</dt><dd>Dagger/Hilt: o'zim yarata olaman; yaratish qoidalari to'plami; qanday yaratishni ko'rsatadigan funksiya; interfeysni amalga oshirishga bog'lash.</dd>
+  <dt>Komponent</dt><dd>Hilt'da ma'lum yashash muddatiga ega graf qismi: SingletonComponent, ViewModelComponent va hokazo.</dd>
+  <dt>Qualifier</dt><dd>Bir xil turdagi bir nechta obyektni farqlash uchun nom: Koin'da <span class="num">named()</span>, Hilt'da maxsus annotatsiya.</dd>
+  <dt>Tarkib ildizi (composition root)</dt><dd>Graf yig'iladigan yagona joy: Application.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: Koin'da e'lon qilinmagan bog'liqlik</b>
+  <p>Yangi parametr konstruktorga qo'shildi, lekin modulga qo'shilmadi. Ilova yig'iladi va ishga tushadi, faqat o'sha ekran ochilganda <span class="num">NoDefinitionFoundException</span> bilan qulaydi. Agar ekran kamdan-kam ochilsa, xato foydalanuvchida chiqadi.</p>
+  <p class="why">Har bir modul uchun <span class="num">verify()</span> testi va uni CI da ishga tushirish. Yangi ekranni qo'shgan PR shu test o'tmasa birlashtirilmaydi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ViewModel'ni oddiy factory bilan berish</b>
+  <p>Koin'da ViewModel'ni <span class="num">factory { KartalarViewModel(get()) }</span> deb e'lon qilib, ekranda <span class="num">get()</span> bilan olish: har safar yangi ViewModel, aylantirishda holat yo'qoladi, <span class="num">onCleared</span> chaqirilmaydi va coroutine'lar to'xtamaydi.</p>
+  <p class="why">ViewModel uchun faqat <span class="num">viewModel { }</span> yoki <span class="num">viewModelOf()</span> va ekranda <span class="num">koinViewModel()</span>: ular Jetpack <span class="num">ViewModelStore</span> orqali ishlaydi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: singleton'da ekran Context'i</b>
+  <p><span class="num">single { Formatter(get&lt;Activity&gt;()) }</span> yoki singleton'ga Activity uzatish: Activity yopilgandan keyin ham u singleton ichida yashaydi, xotira oqadi.</p>
+  <p class="why">Singleton'larga faqat <span class="num">androidContext()</span> (Application Context). Ekran Context'i kerak bo'lgan narsa ekran darajasida yaratiladi.</p>
+</div>
+<div class="rule">
+  <b>Qoida: bog'liqliklar konstruktorda, konteyner chegarada</b>
+  <p>Repozitoriy, use case, ViewModel ichida <span class="num">get()</span> yoki <span class="num">by inject()</span> yo'q: hamma narsa konstruktorda. Konteyner faqat modullarda va Android yaratadigan klasslarda (Application, Activity) chaqiriladi.</p>
+  <p class="why">Shunda klasslar DI kutubxonasiga bog'lanmaydi: Koin'dan Hilt'ga yoki aksincha o'tish modullarni qayta yozish bilan cheklanadi va testlar konteynersiz yoziladi.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<details><summary>DI nima va nima uchun kerak?</summary>
+<p>Klass bog'liqliklarini o'zi yaratmasdan konstruktor orqali olishi. Natijada klasslar bir-biridan ajraladi (interfeysga bog'lanadi), testda soxtasini berish oson, obyektlarning yashash muddati (singleton, ekran bo'yicha) bir joyda boshqariladi, va yaratish kodi takrorlanmaydi. DI konteyner esa graf bo'yicha obyektlarni avtomatik yig'adi.</p></details>
+<details><summary>DI va Service Locator farqi? Koin qaysi biri?</summary>
+<p>DI'da bog'liqliklar tashqaridan beriladi va konstruktorda ko'rinadi; Service Locator'da klass ularni o'zi ro'yxatdan so'raydi, bog'liqliklar yashirin. Koin ichkarida lokator: ish paytida tur bo'yicha jadvaldan topadi. Lekin modullarda konstruktor orqali e'lon qilinsa (<span class="num">singleOf(::Repo)</span>), klasslarimiz uchun bu DI: ular Koin'ni bilmaydi. <span class="num">by inject()</span> faqat Activity kabi chegaralarda.</p></details>
+<details><summary>Koin va Hilt farqi? Nega loyihangizda Koin?</summary>
+<p>Hilt (Dagger) grafni kompilyatsiyada tekshiradi va kod yaratadi: xatolar yig'ishda, ish paytida narxi yo'q, lekin yig'ish sekinroq va o'rganish qiyinroq. Koin oddiy Kotlin DSL, kod yaratmaydi, graf ish paytida yig'iladi: yig'ish tez, oson, Multiplatform'da ishlaydi, lekin bog'lanmagan bog'liqlik ish paytida chiqadi; bu verify testi yoki annotatsiyalar bilan yopiladi. Tanlov jamoa hajmi va loyiha talablariga bog'liq.</p></details>
+<details><summary>Koin ichkarida qanday ishlaydi?</summary>
+<p><span class="num">startKoin</span> modullardagi e'lonlarni tur (va nom) bo'yicha kalit bilan ro'yxatga yozadi. <span class="num">get&lt;T&gt;()</span> chaqirilganda T bo'yicha e'lonni topadi, lambdasini chaqiradi; lambda ichidagi <span class="num">get()</span> lar zanjir bo'yicha qolganlarini topadi. <span class="num">single</span> natijasi saqlanadi, <span class="num">factory</span> har safar qayta. <span class="num">get&lt;T&gt;()</span> inline va reified bo'lgani uchun T ning klassini biladi (A2-dars).</p></details>
+<details><summary>single, factory va viewModel farqi?</summary>
+<p><span class="num">single</span>: ilova bo'yicha bitta nusxa (OkHttp, Retrofit, baza, repozitoriy). <span class="num">factory</span>: har so'ralganda yangi (use case, formatter). <span class="num">viewModel</span>: Jetpack ViewModelStore orqali, ekran bilan yashaydi va aylantirishdan omon qoladi, <span class="num">onCleared</span> da tozalanadi.</p></details>
+<details><summary>Interfeys va uning amalga oshirilishini qanday bog'laysiz?</summary>
+<p>Koin: <span class="num">single&lt;CardRepository&gt; { CardRepositoryImpl(get(), get()) }</span> yoki <span class="num">singleOf(::CardRepositoryImpl) { bind&lt;CardRepository&gt;() }</span>. Hilt: abstrakt modulda <span class="num">@Binds abstract fun bind(impl: CardRepositoryImpl): CardRepository</span>, Impl'da <span class="num">@Inject constructor</span>.</p></details>
+<details><summary>Hilt komponentlari va scope'lari?</summary>
+<p>SingletonComponent (<span class="num">@Singleton</span>, ilova), ActivityRetainedComponent (<span class="num">@ActivityRetainedScoped</span>, aylantirishdan omon qoladi), ViewModelComponent (<span class="num">@ViewModelScoped</span>), ActivityComponent, FragmentComponent, ViewComponent. Pastki komponent yuqoridagilarning obyektlarini ko'radi, aksincha emas.</p></details>
+<details><summary>DI bilan qanday test yozasiz?</summary>
+<p>Asosiy usul: ViewModel va repozitoriyni konteynersiz, konstruktoriga soxta yoki mock bog'liqlik berib testlash. Integratsiya testlarida Koin'da test moduli bilan almashtirish, Hilt'da <span class="num">@TestInstallIn</span> yoki <span class="num">@UninstallModules</span>. Koin modullari uchun <span class="num">verify()</span> testi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<ol class="check">
+  <li>OkHttp, Retrofit, CardApi, baza, repozitoriy, use case, ViewModel: har biri uchun Koin'da qaysi e'lon (single, factory, viewModel) va nega?</li>
+  <li>Karta tafsilotlari ekrani karta ID sini oladi. ViewModel'ga uni Koin orqali qanday berasiz?</li>
+  <li>Koin bilan ilova yig'ildi, lekin bitta ekran ochilganda qulaydi. Sababi va uni oldini olish?</li>
+  <li>Nega repozitoriy ichida <span class="num">get()</span> chaqirish yomon?</li>
+  <li>DigitalBank'da qaysi DI ishlatilgan va uni tanlash sababi nima edi deb o'ylaysiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Lazy va Provider</summary>
+<p>Ba'zan bog'liqlik darhol emas, keyinroq kerak bo'ladi yoki uni yaratish qimmat: Koin'da <span class="num">inject()</span> (lazy), Dagger'da <span class="num">Lazy&lt;T&gt;</span> va har safar yangi nusxa uchun <span class="num">Provider&lt;T&gt;</span>. Aylanma bog'liqlik (A ga B kerak, B ga A) odatda dizayn xatosi: uni lazy bilan yashirmasdan, umumiy qismni uchinchi klassga ajratish kerak.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Koin hujjatlari: insert-koin.io/docs (Definitions, Android ViewModel, Verify). Android: «Dependency injection in Android», «Dependency injection with Hilt» (developer.android.com/training/dependency-injection). Martin Fowler, «Inversion of Control Containers and the Dependency Injection pattern», 2004.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Klass bog'liqliklarini konstruktorda oladi, konteyner ularni graf bo'yicha yig'adi va yashash muddatini boshqaradi. Hilt grafni kompilyatsiyada tekshirib kod yaratadi, Koin oddiy DSL va ish paytida topadi; uning zaifligi verify testi bilan yopiladi. ViewModel faqat <span class="num">viewModel</span> e'loni bilan, singleton'larga faqat Application Context.</p>
+  <p><strong>Keyingi dars.</strong> A7. Jetpack Compose: holat, rekompozitsiya va yon ta'sirlar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="a5-arxitektura.html">Oldingi: A5. Arxitektura</a><a href="a7-compose.html">Keyingi: A7. Compose</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ekran (Jetpack Compose)', sub: 'Holatni chizadi, bosishni yuboradi', ex: 'Text(state.balans)', link: 'holatni kuzatadi, niyat yuboradi' },
+    { title: 'ViewModel (MVI)', sub: 'Ekran holatini saqlaydi', ex: 'StateFlow<KartalarState>', link: 'use case chaqiradi' },
+    { title: 'Domain (use case)', sub: 'Biznes qoidasi', ex: 'GetCardsUseCase()', link: 'repozitoriydan so\'raydi' },
+    { title: 'Data (repository)', sub: 'Ma\'lumot qayerdan kelishini yashiradi', ex: 'CardRepository', link: 'tarmoq yoki lokal baza' },
+    { title: 'Tarmoq va lokal saqlash', sub: 'Retrofit/Ktor, Room, DataStore', ex: 'GET /cards, cards jadvali', link: 'hammasi Kotlin tilida' },
+    { title: 'Kotlin tili va ART', sub: 'Til, kompilyator, telefondagi runtime', ex: 'val, suspend, inline, data class', link: '' }
+  ], [0, 5], 'DI: qavatlarni ulaydi');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function line(svg, d) { S(svg, 'path', { d: d, 'class': 'arr' }); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  function wrap(t, n) { var w = t.split(' '), out = [], c = ''; w.forEach(function (x) { if ((c + ' ' + x).length > n && c) { out.push(c); c = x; } else c = c ? c + ' ' + x : x; }); if (c) out.push(c); return out; }
+
+  // ---------- Graf ----------
+  (function () {
+    var svg = $('graph'), say = $('grSay'), cur = 1;
+    var C = [
+      { t: 'Qo\'lda, har ekran o\'zi', c: { ok: 3, rf: 3, api: 3, db: 3, repo: 3, uc: 3 }, s: `Har bir ekran zanjirni o'zi yaratdi: 3 ta OkHttpClient (3 ta ulanishlar havzasi va kesh), 3 ta Retrofit, 3 ta baza ulanishi bitta faylga. Bu xotira isrofi va baza bilan ziddiyatlar manbai, kod esa uch joyda takrorlangan.` },
+      { t: 'DI: to\'g\'ri muddatlar', c: { ok: 1, rf: 1, api: 1, db: 1, repo: 1, uc: 3 }, s: `OkHttp, Retrofit, API, baza va repozitoriy single: ilova bo'yicha bittadan, uchala ekran bir xil nusxani oladi. Use case factory: har bir ViewModel'ga yangisi, chunki u holatsiz va arzon. ViewModel'lar har bir ekranga o'ziniki.` },
+      { t: 'DI: hammasi factory', c: { ok: 3, rf: 3, api: 3, db: 3, repo: 3, uc: 3 }, s: `Hammasi factory bo'lsa, konteyner qo'lda yozilgan holatni takrorlaydi: zanjir har safar yangidan. Yashash muddatini to'g'ri tanlash DI ning yarim foydasi.` }
+    ];
+    var setT = tabs('grT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    var N = [['ok', 'OkHttpClient', 20, 360], ['db', 'BankDatabase', 640, 360], ['rf', 'Retrofit', 20, 270], ['api', 'CardApi', 330, 270], ['repo', 'CardRepositoryImpl', 330, 180], ['uc', 'GetCardsUseCase', 330, 95]];
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'grmk');
+      N.forEach(function (n) { var k = c.c[n[0]]; box(svg, n[2], n[3], 280, 60, n[1], k === 1 ? '1 nusxa: single' : k + ' nusxa' + (cur === 1 && n[0] === 'uc' ? ': factory' : ''), k === 1 ? 'on' : (cur === 1 && n[0] === 'uc' ? 'live' : 'bad')); });
+      ['Kartalar', 'O\'tkazma', 'Tarix'].forEach(function (v, i) { box(svg, 20 + i * 310, 10, 280, 60, v + 'ViewModel', 'har ekranga o\'ziniki', 'live'); });
+      arrow(svg, 'grmk', 'M160 360V332'); arrow(svg, 'grmk', 'M300 300H328'); arrow(svg, 'grmk', 'M470 270V242'); arrow(svg, 'grmk', 'M780 360V210H612'); arrow(svg, 'grmk', 'M470 180V157');
+      arrow(svg, 'grmk', 'M470 95V82H160V72'); arrow(svg, 'grmk', 'M470 95V72'); arrow(svg, 'grmk', 'M470 95V82H780V72');
+      box(svg, 960, 180, 260, 240, 'Jami obyektlar', '', 'live');
+      var tot = 3; Object.keys(c.c).forEach(function (k) { tot += c.c[k]; }); S(svg, 'text', { x: 976, y: 290, 'class': 'big' }, String(tot));
+      S(svg, 'text', { x: 976, y: 330, 'class': 'sub' }, 'shundan baza ulanishi: ' + c.c.db);
+      S(svg, 'text', { x: 976, y: 354, 'class': 'sub' }, 'OkHttp havzasi: ' + c.c.ok);
+      say.textContent = c.s; say.className = 'say' + (cur === 1 ? '' : ' bad');
+    }
+    draw();
+  })();
+
+  // ---------- Hilt va Koin vaqt chizig'i ----------
+  (function () {
+    var svg = $('cmp'), say = $('cmSay'), cur = 0;
+    var C = [
+      { t: 'Hammasi to\'g\'ri', h: ['on', 'on', 'on'], k: ['on', 'on', 'on'], s: `Ikkalasi ham ishlaydi. Hilt grafni yig'ishda tekshirib, uni yig'adigan kodni yaratdi. Koin modullarni ishga tushishda ro'yxatga yozdi va ekran ochilganda graf bo'yicha topdi.` },
+      { t: 'Bog\'liqlik e\'lon qilinmagan', h: ['bad', 'freed', 'freed'], k: ['on', 'on', 'bad'], s: `ViewModel konstruktoriga yangi parametr qo'shildi, lekin uni qanday yaratish e'lon qilinmagan. Hilt: yig'ish xato bilan to'xtaydi, «MissingBinding», ilova umuman chiqmaydi. Koin: ilova yig'iladi va ishga tushadi, faqat shu ekran ochilganda NoDefinitionFoundException. Ekran kam ochilsa, xatoni foydalanuvchi topadi.` },
+      { t: 'Koin + verify testi', h: ['on', 'on', 'on'], k: ['bad', 'freed', 'freed'], s: `Koin modullari uchun module.verify() testi yozilgan va CI da ishlaydi. U barcha konstruktor parametrlari e'lon qilinganini JVM testida tekshiradi: xato foydalanuvchida emas, PR bosqichida chiqadi. Koin Annotations yoki kompilyator plagini bilan esa bu tekshiruv to'g'ridan-to'g'ri kompilyatsiyaga ko'chadi.` }
+    ];
+    var setT = tabs('cmT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    var P = ['Yig\'ish (kompilyatsiya)', 'Ilova ishga tushdi', 'Ekran ochildi'];
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'cmmk');
+      [['Hilt (Dagger)', c.h, 40, ['graf tekshiriladi, kod yaratiladi', 'tayyor kod ishlaydi', 'tayyor zavod chaqiriladi']], ['Koin', c.k, 190, [cur === 2 ? 'verify testi: CI da' : 'oddiy Kotlin kod yig\'iladi', 'modullar ro\'yxatga yoziladi', 'get(): jadvaldan topiladi']]].forEach(function (r) {
+        box(svg, 20, r[2], 200, 110, r[0], '', 'on');
+        r[1].forEach(function (st, i) { var x = 260 + i * 330; box(svg, x, r[2], 300, 110, P[i], r[3][i], st); if (i) arrow(svg, 'cmmk', 'M' + (x - 30) + ' ' + (r[2] + 55) + 'H' + (x - 2)); });
+      });
+      say.textContent = c.s; say.className = 'say' + (cur === 1 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoDi', [
+    { name: `Qo'lda va zavodlar`, years: `2008-yildan`, art: `<rect x="20" y="30" width="80" height="40" rx="4"/><path d="M30 50h60" class="acc"/>`, how: `Application klassida obyektlarni yaratib, statik maydonlarda saqlash; har bir ekran ulardan oladi.`, better: `Kutubxona kerak emas.`, pain: `Takrorlanish, statik holat, testda almashtirish qiyin.`, ex: `Kichik ilovalarda hozir ham to'g'ri yechim: «qo'lda DI» Google hujjatlarida ham bor.` },
+    { name: `Guice`, years: `2007`, art: `<circle cx="60" cy="50" r="28"/><path d="M48 50h24" class="acc"/>`, how: `Google'ning Java uchun DI konteyneri: annotatsiyalar va refleksiya.`, better: `Server Java'da DI ni ommalashtirdi.`, pain: `Refleksiya Android'da juda sekin: ilova ishga tushishi soniyalarga cho'zilgan.`, ex: `RoboGuice Android uchun moslashtirilgan, lekin ildiz otmadi.` },
+    { name: `Dagger 1 va 2`, years: `2012, 2015`, art: `<path d="M30 80L60 20 90 80z" class="acc"/>`, how: `Square kompaniyasi Dagger 1 ni yaratdi (qisman kod yaratish), Google uni Dagger 2 ga aylantirdi: graf to'liq kompilyatsiyada, refleksiyasiz.`, better: `Tez, xatolar yig'ishda.`, pain: `Android uchun ko'p qolip kod: komponentlar, subkomponentlar, Activity'larga qo'lda kiritish. O'rganish qiyin.`, ex: `dagger-android (2017) qolipni kamaytirishga urindi, lekin murakkab qoldi.` },
+    { name: `Koin`, years: `2017-yildan`, art: `<rect x="24" y="24" width="72" height="52" rx="6"/><path d="M36 40h48M36 52h36M36 64h42" class="acc"/>`, how: `Kotlin DSL, kod yaratmasdan, ish paytida topish. Kotlin hamjamiyatida tez ommalashdi.`, better: `Oddiy, tez yig'ish, Kotlin'ga xos.`, pain: `Xatolar ish paytida.`, ex: `Koin 4 (2024) dan Compose va Multiplatform kuchli qo'llab-quvvatlanadi; Koin Annotations va kompilyator plagini kompilyatsiya tekshiruvini qo'shdi. Hozirgi versiya va imkoniyatlarni insert-koin.io dan tekshiring.` },
+    { name: `Hilt`, years: `2020 alfa, 2021 barqaror`, art: `<rect x="30" y="20" width="60" height="60" rx="6" class="acc"/><path d="M45 40v20M75 40v20M45 50h30"/>`, how: `Google Dagger ustida Android uchun tayyor komponentlar va annotatsiyalarni chiqardi.`, better: `Dagger kuchi, qolipsiz. Jetpack bilan integratsiya: hiltViewModel(), WorkManager.`, pain: `Yig'ish vaqti, kapt'dan KSP ga o'tish.`, ex: `Google'ning rasmiy tavsiyasi.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
