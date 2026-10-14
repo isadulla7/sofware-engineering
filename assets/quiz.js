@@ -53,7 +53,7 @@
           if (!ok) b.classList.add('no');
           fb.appendChild(el('p', 'quiz-verdict ' + (ok ? 'ok' : 'no'), ok ? 'To\'g\'ri.' : 'Noto\'g\'ri. To\'g\'ri javob: ' + q.a[q.c]));
           fb.appendChild(el('p', 'quiz-why', q.w));
-          var more = el('p', 'quiz-link'), a = el('a', '', nm(q.l) + ' darsini ochish'); a.href = L.h; more.appendChild(a); fb.appendChild(more);
+          var more = el('p', 'quiz-link'), a = el('a', '', (L.p ? L.p + ' darsini ochish' : q.l + '-darsni ochish')); a.href = L.h; more.appendChild(a); fb.appendChild(more);
           var nx = el('button', 'quiz-next', pos + 1 < order.length ? 'Keyingi savol' : 'Natijani ko\'rish'); nx.type = 'button';
           nx.addEventListener('click', function () { pos++; show(); card.scrollIntoView({ block: 'nearest' }); });
           fb.appendChild(nx); nx.focus();
