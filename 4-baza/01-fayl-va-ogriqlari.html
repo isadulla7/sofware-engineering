@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>1-dars. Ma'lumotni faylda saqlash va og'riqlari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">4. Ma'lumotlar bazasi</a> / D0 Fayldan bazagacha</p>
+<h1>1-dars. Ma'lumotni faylda saqlash va og'riqlari</h1>
+<p class="lead">Savol: ma'lumotlar bazasi paydo bo'lishidan oldin bank hisoblari qayerda va qanday saqlangan, va nega bu usul yetmay qolgan?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Fayl</strong> diskdagi nomlangan baytlar qatori. Operatsion tizim faylni yaratadi, o'qiydi va yozadi, lekin ichida nima borligini bilmaydi.</p>
+    <p>1950–60-yillarda banklar hisoblarni aynan shunday fayllarda saqlagan: har bir dastur o'z fayliga o'zi yozib, o'zi o'qigan. Bu usul <strong>fayl tizimiga asoslangan ishlov</strong> (file processing) deyiladi.</p>
+    <p>Bu dars shu usulning qanday ishlaganini va qaysi og'riqlar ma'lumotlar bazasini (va uni boshqaradigan tizimni, DBMS ni) tug'dirganini ko'rsatadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Bugun ham fayllar bor:</strong> to'lov tizimlari bilan reestr va solishtirish (sverka) fayllari, Markaziy bankka hisobotlar, CSV eksport, loglar, arxivlar.</li>
+      <li><strong>Bazaning har bir imkoniyati shu og'riqlardan biriga javob:</strong> tranzaksiya, qulf, indeks, SQL, ruxsatlar, cheklovlar (constraint). Og'riqni bilsangiz, nega u bor ekanini bilasiz.</li>
+      <li><strong>Suhbatda:</strong> «baza fayldan nimasi bilan farq qiladi?», «lost update nima?», «atomarlik nima?» kabi savollar shu darsga tayanadi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>faylda yozuv va maydon nima va dastur kerakli hisobni qanday topadi;</li>
+      <li>lenta davridagi kechki paketli ishlov qanday ishlagan;</li>
+      <li>faylda saqlashning oltita og'rig'i: takrorlanish, tuzilishga bog'liqlik, yangi savol uchun yangi dastur, bir vaqtdagi murojaat, yarmida to'xtash, ruxsat va qoidalar;</li>
+      <li>DBMS g'oyasi bu og'riqlarni qanday yopadi.</li>
+    </ul>
+    <p>Amaliy foydasi: ishingizdagi fayl almashinuvlarida (reestrlar, eksportlar) qaysi xavf borligini ko'ra olasiz.</p>
+  </div>
+</div>
+<p>Pastdagi chizmada bank ilovasidan diskkacha bo'lgan qavatlar. Butun yo'nalish shu qavatlarni birma-bir ochadi. Bu darsda o'rtadagi «Oracle serveri» qavati hali yo'q: dastur fayllar bilan to'g'ridan-to'g'ri ishlaydi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bank ilovasidan diskkacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Ko'k quti shu darsning mavzusi: DBMS bo'lmagan davrda dastur to'g'ridan-to'g'ri fayllar bilan ishlagan.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Fayl, yozuv, maydon; qat'iy uzunlikdagi yozuv</li>
+      <li>Kerakli yozuvni topish: tartib raqami bo'yicha va qidirib</li>
+      <li>Indeksli fayl (ISAM) g'oyasi</li>
+      <li>Lenta davri: ketma-ket murojaat va kechki paketli ishlov</li>
+      <li>Disk davri: tasodifiy murojaat va oltita og'riq</li>
+      <li>DBMS g'oyasi: dastur va fayl orasidagi vositachi</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Birinchi DBMS'lar (ierarxik va tarmoq) va relyatsion g'oya: 2-darsda</li>
+      <li>Oracle'ning o'zi va versiyalari: 3-darsda</li>
+      <li>Tranzaksiya va qulflar qanday ishlashi: D3 bo'limida</li>
+      <li>Indeks ichkaridan (B-tree): 16-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Hisob ko'p, mijoz kutmaydi, xato qimmat</h3>
+<p>Bankni tasavvur qiling: bir million hisob, kuniga yuz minglab o'tkazma, o'nlab filial va kassa. Bank uchun uchta talab hamma narsadan muhim. Birinchisi, <strong>hech bir so'm yo'qolmasin</strong>: yechilgan pul qayerdadir paydo bo'lishi kerak. Ikkinchisi, <strong>javob tez bo'lsin</strong>: mijoz kassada turibdi. Uchinchisi, <strong>har bir savolga javob bo'lsin</strong>: rahbariyat, auditor, Markaziy bank har kuni yangi narsa so'raydi.</p>
+<p>Kompyuterlar bankka kelganda (1950-yillar), ma'lumotni saqlashning yagona usuli fayl edi. Birinchi bank dasturlari fayl bilan ishlashni o'zi o'rgandi, va har bir dastur buni o'zicha qildi. Quyida bu qanday ishlaganini va qayerda singanini qadamma-qadam ko'ramiz. Har bir og'riqni eslab qoling: kursning qolgan qismida har bir yangi tushuncha (tranzaksiya, qulf, indeks, SQL) aynan shulardan biriga javob bo'lib chiqadi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Fayl, lenta va oltita og'riq</h3>
+
+<p class="beat">Fayl ichida nima bor</p>
+<p>Fayl kitob javoniga o'xshamaydi, ko'proq bitta uzun qog'oz lentaga o'xshaydi: unda harflar ketma-ket yozilgan, ajratuvchi chiziq yo'q. Qayerda bir hisob tugab, keyingisi boshlanishini lentaning o'zi aytmaydi. Bu qoida dasturda: «har 50 harf bitta hisob, ichida birinchi 20 tasi raqam, keyingi 18 tasi ism, oxirgi 12 tasi balans».</p>
+<p>Bitta hisobga tegishli bo'lak <strong>yozuv</strong> (record), uning ichidagi har bir qism <strong>maydon</strong> (field) deyiladi. Hamma yozuv bir xil uzunlikda bo'lsa (<strong>qat'iy uzunlikdagi yozuv</strong>), N-yozuv qayerdaligini hisoblash oson: N × 50. Lekin mijoz hisob raqamini aytadi, tartib raqamini emas, va shunda dastur faylni boshidan o'qib chiqishga majbur. Chizmani qadamma-qadam bosing.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="flT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="fl" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Hisoblar fayli ichida: yozuvlar, maydonlar, kerakli yozuvni topish va indeks"></svg></div>
+  <p class="say" id="flSay" aria-live="polite"></p>
+</figure>
+<p>Oxirgi qadamdagi <strong>indeks</strong> g'oyasini eslab qoling: kitob oxiridagi ko'rsatkich kabi kichik ro'yxat, unda «qaysi raqam qayerda» yozilgan. Oracle'dagi indekslar ham aynan shu g'oyaning rivoji.</p>
+
+<p class="beat">Lenta davri: hamma narsa kechasi</p>
+<p>Birinchi bank kompyuterlarida disk yo'q edi, ma'lumot <strong>magnit lenta</strong>da saqlangan. Lentani magnitofon kassetasi kabi faqat boshidan oxirigacha o'qish mumkin: o'rtadagi bitta hisobga sakrash uchun lentani o'sha joygacha aylantirish kerak. Bu <strong>ketma-ket murojaat</strong> (sequential access).</p>
+<p>Shuning uchun banklar ishni kunduz va kechaga bo'lgan. Kunduzi o'tkazmalar yig'ilgan, kechasi esa hammasi bitta katta dastur bilan qo'llangan. Bu <strong>paketli ishlov</strong> (batch processing) deyiladi. Bugun ham banklarda «kun yopilishi» (operatsion kunni yopish) va kechki joblar bor: bu o'sha davrning merosi.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="btT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="bt" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Lenta davrida kechki paketli ishlov: o'tkazmalarni yig'ish, saralash, ikki lentani birga o'qish, yangi lenta"></svg></div>
+  <p class="say" id="btSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Disk davri: istalgan joyga sakrash va yangi og'riqlar</p>
+<p>1956-yilda IBM birinchi qattiq diskni (IBM 350) chiqardi. Disk plastinka kabi aylanadi va kallak istalgan joyga bir soniyadan kamroq vaqtda borishi mumkin: <strong>tasodifiy murojaat</strong> (random access). Endi kassir mijozning hisobini darhol ochishi, balansni o'sha zahoti o'zgartirishi mumkin edi.</p>
+<p>Lekin bir vaqtda ko'p dastur, ko'p kassa va ko'p fayl paydo bo'ldi, va oltita og'riq ochildi. Ular har bir darslikda (masalan Silberschatz, «Database System Concepts», 1-bob) deyarli shu ro'yxatda keltiriladi. Har birini tanlang va qadamma-qadam bosib chiqing.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="pS" role="group" aria-label="Og'riqni tanlang"></div>
+  <div class="evo-tabs" id="pT" role="group" aria-label="Qadamni tanlang" style="margin-top:-0.4rem"></div>
+  <div class="scrollx"><svg class="dg" id="pn" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Fayllarda saqlashning oltita og'rig'i, har biri qadamma-qadam"></svg></div>
+  <p class="say" id="pSay" aria-live="polite"></p>
+</figure>
+<p>Oltita og'riqni bitta jadvalda yig'amiz. Ikkinchi ustun bugun nima deb atalishi: bu so'zlar keyingi darslarda qayta-qayta uchraydi.</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Og'riq</th><th>Bugungi nomi</th><th>Bazadagi javobi</th><th>Qaysi darsda</th></tr></thead>
+<tbody>
+<tr><td>Bitta mijoz uch faylda, manzillar har xil</td><td>takrorlanish va nomuvofiqlik (redundancy, inconsistency)</td><td>har bir fakt bitta joyda, jadvallar kalit bilan bog'lanadi; normallashtirish</td><td>4</td></tr>
+<tr><td>Maydon qo'shilsa hamma dastur buziladi</td><td>dasturning ma'lumot tuzilishiga bog'liqligi (data dependence)</td><td>tuzilishni faqat DBMS biladi; dastur maydonni nomi bilan so'raydi</td><td>2, 4</td></tr>
+<tr><td>Har yangi savolga yangi dastur</td><td>ma'lumotga erkin murojaat yo'qligi</td><td>SQL: savolni dastur yozmasdan berish</td><td>2, 5</td></tr>
+<tr><td>Ikki kassa bir vaqtda, pul yo'qoldi</td><td>yo'qolgan yangilanish (lost update), bir vaqtdagi murojaat (concurrency)</td><td>qulflar, MVCC, <span class="num">SELECT ... FOR UPDATE</span></td><td>14, 15</td></tr>
+<tr><td>Yarmida tok o'chdi, pul havoda</td><td>atomarlik (atomicity) yo'qligi</td><td>tranzaksiya, <span class="num">COMMIT</span>, <span class="num">ROLLBACK</span>, redo va undo jurnallari</td><td>11, 13</td></tr>
+<tr><td>Faylni o'qigan hammasini ko'radi; qoidani har dastur o'zi tekshiradi</td><td>xavfsizlik va butunlik (integrity) muammolari</td><td>foydalanuvchi va ruxsatlar (<span class="num">GRANT</span>), cheklovlar (<span class="num">CHECK</span>, <span class="num">FOREIGN KEY</span>)</td><td>4, 22</td></tr>
+</tbody>
+</table>
+</div>
+
+<p class="beat">Yechim g'oyasi: vositachi</p>
+<p>Omborxonani tasavvur qiling. Har bir ishchi o'zi kirib, o'zi narsa olib, o'zi yozib ketsa, tartib bo'lmaydi: kim nima olgani noma'lum, ikki kishi bitta qutini talashadi, yozuvlar chalkash. Yechim: omborxonaga <strong>mudir</strong> qo'yish. Ishchilar endi faqat mudirga «menga shu narsani ber» deyishadi. Javonlar qanday tartiblangani, kim birinchi navbatda, kimga nima mumkin, hammasini mudir biladi va kitobga yozib boradi.</p>
+<p>Ma'lumot uchun shunday mudir <strong>DBMS</strong> (Database Management System, ma'lumotlar bazasini boshqarish tizimi) deyiladi. U boshqaradigan ma'lumot to'plami esa <strong>ma'lumotlar bazasi</strong>. Oracle DBMS, uning ichidagi hisoblar va o'tkazmalar esa baza.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="dbT" role="group" aria-label="Holatni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="dbv" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Fayllar davri va DBMS davri: dasturlar fayllarga to'g'ridan-to'g'ri yoki vositachi orqali"></svg></div>
+  <p class="say" id="dbSay" aria-live="polite"></p>
+</figure>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Daftardan diskkacha</h3>
+<p>Bank hisoblarini saqlash tarixi bitta savolning tarixi: yozuvni qayerda saqlaymiz va kerakligini qanday tez topamiz? Har bir bosqich oldingisining og'rig'ini yopgan va o'zining yangi og'rig'ini olib kelgan.</p>
+<div class="bench" id="evoF"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Fayl</dt><dd>Diskdagi nomlangan baytlar qatori. Operatsion tizim uni o'qiydi va yozadi, lekin ichidagi tuzilishni bilmaydi.</dd>
+  <dt>Yozuv (record)</dt><dd>Faylda bitta narsaga (bitta hisobga, bitta o'tkazmaga) tegishli bo'lak.</dd>
+  <dt>Maydon (field)</dt><dd>Yozuv ichidagi bitta qism: hisob raqami, ism, balans.</dd>
+  <dt>Qat'iy uzunlikdagi yozuv</dt><dd>Hamma yozuv bir xil baytdan iborat; qisqa qiymat bo'shliq bilan to'ldiriladi. N-yozuvning joyi N × uzunlik.</dd>
+  <dt>Ketma-ket murojaat (sequential access)</dt><dd>Ma'lumotni faqat boshidan oxirigacha tartib bilan o'qish mumkin. Magnit lentaning xususiyati.</dd>
+  <dt>Tasodifiy murojaat (random access)</dt><dd>Istalgan joyni oldingilarini o'qimasdan darhol o'qish mumkin. Diskning xususiyati. «Tasodifiy» so'zi «istalgan joy» ma'nosida.</dd>
+  <dt>Paketli ishlov (batch processing)</dt><dd>Amallar kun davomida yig'iladi va keyin, odatda kechasi, bitta katta dastur bilan birga qo'llanadi.</dd>
+  <dt>Master fayl va tranzaksiya fayli</dt><dd>Lenta davrida: asosiy holat (hisoblar va balanslar) va kun davomidagi o'zgarishlar (o'tkazmalar). Kechasi ikkalasidan yangi master fayl yasalgan.</dd>
+  <dt>Indeks</dt><dd>Qiymatdan uning joyiga olib boradigan kichik ro'yxat, kitob oxiridagi ko'rsatkich kabi.</dd>
+  <dt>ISAM</dt><dd>Indexed Sequential Access Method: IBM'ning 1960-yillardagi usuli. Fayl kalit bo'yicha tartiblangan, yonida indeks; ketma-ket ham, tez qidirib ham o'qish mumkin.</dd>
+  <dt>Takrorlanish va nomuvofiqlik (redundancy, inconsistency)</dt><dd>Bitta fakt bir nechta joyda saqlanadi va vaqt o'tishi bilan nusxalar bir-biridan farqlanib qoladi.</dd>
+  <dt>Ma'lumotga bog'liqlik (data dependence)</dt><dd>Dastur fayl tuzilishini (qaysi bayt nima) ichida biladi; tuzilish o'zgarsa, dastur ham o'zgarishi kerak. Teskarisi, ma'lumotdan mustaqillik (data independence), DBMS'ning asosiy maqsadlaridan biri.</dd>
+  <dt>Bir vaqtdagi murojaat (concurrency)</dt><dd>Bir nechta dastur yoki foydalanuvchi bitta ma'lumot bilan bir vaqtda ishlashi.</dd>
+  <dt>Yo'qolgan yangilanish (lost update)</dt><dd>Ikki dastur bitta qiymatni o'qib, har biri o'zgartirib yozadi; keyin yozilgani oldingisini izsiz o'chiradi.</dd>
+  <dt>Atomarlik (atomicity)</dt><dd>Bir nechta o'zgarish yo hammasi birga bajariladi, yo hech biri. O'tkazmada: ayirish va qo'shish ajralmas.</dd>
+  <dt>Butunlik (integrity)</dt><dd>Ma'lumot qoidalarga mos bo'lishi: balans manfiy emas, har bir o'tkazmaning mavjud hisobi bor.</dd>
+  <dt>DBMS</dt><dd>Database Management System: dasturlar va ma'lumot orasidagi vositachi. Tuzilish, bir vaqtdagi murojaat, tiklash, ruxsat va qoidalarni bitta joyda boshqaradi. Oracle, PostgreSQL, MySQL, SQL Server DBMS'lardir.</dd>
+  <dt>Ma'lumotlar bazasi</dt><dd>DBMS boshqaradigan, o'zaro bog'langan ma'lumotlar to'plami. Kundalik nutqda «baza» deb DBMS'ning o'zi ham aytiladi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Bugungi fayllar va ularning xavflari</h3>
+<p>Fayllar yo'qolmadi: banklar bugun ham ular bilan har kuni ishlaydi. To'lov tizimlari bilan kunlik reestrlar, Markaziy bankka hisobotlar, CSV eksportlar, loglar. Shu fayllarda 1960-yillardagi og'riqlar aynan qaytadi. Farqi: endi ularni bilasiz.</p>
+<div class="rule">
+  <b>Tuzoq: yarim yozilgan fayl</b>
+  <p>Hamkor tizim reestr faylini sizning papkangizga yozmoqda. Sizning kechki job'ingiz faylni ko'rdi va o'qiy boshladi, lekin fayl hali oxirigacha yozilmagan. Natija: o'tkazmalarning bir qismi solishtirishga tushmay qoladi. Bu «yarmida to'xtash» og'rig'ining zamonaviy ko'rinishi.</p>
+  <p class="why">Qoida: yozuvchi tomon avval vaqtinchalik nom bilan yozadi (masalan <span class="num">reestr.csv.tmp</span>), tugagach nomini o'zgartiradi (<span class="num">rename</span>). Bir papka ichida nom o'zgartirish bitta qadam, yarim holat bo'lmaydi. Qo'shimcha: oxirida yozuvlar soni va summasi (nazorat qatori) yoki tayyorlik belgisi fayli (<span class="num">.done</span>), o'qishda esa ular tekshiriladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: bitta faylni ikki marta qayta ishlash</b>
+  <p>Job yarmida tushdi va qayta ishga tushirildi. Fayldagi birinchi yarim o'tkazmalar ikkinchi marta o'tkazildi. Fayl qaysi qatorlar bajarilganini eslamaydi.</p>
+  <p class="why">Qoida: har bir qatorning noyob identifikatori bo'lsin va bazada «bu ID allaqachon qayta ishlangan» deb tekshirilsin. Shunda qayta ishga tushirish xavfsiz. Bu xususiyat idempotentlik deyiladi va pul bilan ishlaydigan har bir integratsiyada kerak.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: format o'zgarishi</b>
+  <p>Hamkor reestrga yangi ustun qo'shdi va oldindan aytmadi. Sizning parseringiz ustunlarni tartib raqami bo'yicha o'qiydi: summa o'rniga sana o'qildi. Bu «maydon qo'shilsa hamma dastur buziladi» og'rig'ining o'zi.</p>
+  <p class="why">Qoida: format versiyasi va ustun nomlari (sarlavha qatori) bo'yicha o'qish, kutilmagan formatda qatorni o'tkazib yubormasdan butun faylni rad etish va ogohlantirish.</p>
+</div>
+<div class="rule">
+  <b>Qoida: fayl almashinuv uchun, saqlash uchun baza</b>
+  <p>Fayl ikki tizim orasida ma'lumot uzatish, arxivlash va loglar uchun yaxshi. Pul holati (balanslar, o'tkazmalar, provodkalar) esa faqat bazada: tranzaksiya, qulf, cheklov va ruxsat bilan. Fayldan kelgan ma'lumot bazaga yuklangandan keyingina «haqiqat» bo'ladi.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Qo'lda.</strong> Hisoblar fayli: har yozuv 50 bayt, 1 000 000 hisob. Fayl hajmi necha bayt va taxminan necha megabayt? 723-yozuv qaysi baytdan boshlanadi va qaysi baytda tugaydi (yozuvlar 0 dan sanaladi)?</li>
+  <li><strong>Fayl chizmasida.</strong> 4-qadamda: fayl 1 000 000 yozuvli va tartiblanmagan. Bitta qidiruvda o'rtacha nechta yozuv o'qiladi? Kuniga 50 000 ta mijoz kelsa, bir kunda jami nechta yozuv o'qiladi? Indeksli faylda-chi (har bo'lakda 100 yozuv)?</li>
+  <li><strong>Og'riqlar chizmasida.</strong> «Bir vaqtda ikki dastur»da kassa 2 birinchi yozsa, kassa 1 esa keyin yozsa, fayldagi balans qancha bo'ladi va kim zarar ko'radi: bank yoki mijoz?</li>
+  <li><strong>O'z ishingizda.</strong> Uzcard, Humo, Payme yoki Click bilan fayl almashinuvi bormi (reestr, solishtirish)? Uchta savolga javob yozing: fayl yarim yozilganini qanday bilasiz? Fayl ikki marta kelsa nima bo'ladi? Format o'zgarsa nima bo'ladi?</li>
+  <li><strong>O'ylab ko'ring.</strong> «Yarmida to'xtash» og'rig'ini fayllar bilan o'zingiz qanday yechgan bo'lardingiz? (Ishora: o'tkazmadan oldin «nima qilmoqchiman» degan yozuvni alohida jurnal fayliga yozish.) Bu g'oya 11-darsda redo jurnali bo'lib qaytadi.</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni o'z so'zlaringiz bilan chatga yozing.</p>
+<ol class="check">
+  <li>Yozuv va maydon nima? Dastur faylda N-yozuvni qanday topadi, va nega hisob raqami bo'yicha qidirish sekin?</li>
+  <li>Lenta davrida banklar nega o'tkazmalarni kechasi qo'llagan? Bu mijoz uchun nimani anglatgan?</li>
+  <li>Lost update qanday sodir bo'ladi? Ikki kassa misolida qadamma-qadam ayting.</li>
+  <li>Atomarlik nima va o'tkazmada u nega kerak?</li>
+  <li>DBMS nima? U oltita og'riqdan qaysilarini qanday yopadi (har biriga bir gapda)?</li>
+</ol>
+
+<h3><span class="part">8. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching.</p>
+<details><summary>Ma'lumotlar bazasi oddiy fayldan nimasi bilan farq qiladi?</summary>
+<p>Fayl shunchaki baytlar: uning tuzilishini, bir vaqtdagi murojaatni, xatodan tiklanishni va ruxsatlarni har bir dastur o'zi hal qiladi. Bazada bularning hammasini DBMS bitta joyda boshqaradi: tuzilishni biladi va dasturdan yashiradi, tranzaksiya bilan atomarlik beradi, qulflar bilan bir vaqtdagi o'zgarishlarni tartibga soladi, jurnal bilan nosozlikdan keyin tiklaydi, cheklovlar bilan qoidalarni, ruxsatlar bilan xavfsizlikni ta'minlaydi, va SQL bilan istalgan savolga dastur yozmasdan javob beradi.</p></details>
+<details><summary>Lost update nima? Misol keltiring.</summary>
+<p>Ikki jarayon bitta qiymatni o'qiydi, har biri o'z nusxasini o'zgartiradi va yozadi; keyin yozilgani birinchisining o'zgarishini o'chiradi. Misol: balans 1 000 000; kassa 1 300 000 yechadi va 700 000 yozadi, kassa 2 bir vaqtda o'qigan bo'lib 500 000 qo'shadi va 1 500 000 yozadi. To'g'risi 1 200 000. Oracle'da himoya: o'zgartirishni bitta <span class="num">UPDATE ... SET balance = balance - :summa</span> bilan qilish yoki avval <span class="num">SELECT ... FOR UPDATE</span> bilan qatorni qulflash (15-dars).</p></details>
+<details><summary>Atomarlik nima?</summary>
+<p>ACID ning «A» si: tranzaksiyadagi o'zgarishlar yo hammasi saqlanadi, yo hech biri. O'tkazmada debet va kredit ajralmas: server ular orasida o'chsa, qayta ishga tushganda baza yarim bajarilgan o'zgarishni bekor qiladi. Oracle buni undo va redo jurnallari bilan ta'minlaydi (11 va 13-darslar).</p></details>
+<details><summary>Data independence (ma'lumotdan mustaqillik) nima?</summary>
+<p>Dasturlarni o'zgartirmasdan ma'lumot saqlanishini o'zgartira olish. Jismoniy mustaqillik: indeks qo'shish, faylni boshqa diskka ko'chirish dasturga ta'sir qilmaydi. Mantiqiy mustaqillik: jadvalga yangi ustun qo'shish uni ishlatmaydigan dasturlarni buzmaydi. Fayllar davrida bu yo'q edi: bitta maydon qo'shilsa, faylni o'qiydigan hamma dastur qayta yozilgan.</p></details>
+<details><summary>Bugun fayl qachon to'g'ri tanlov va unda nimaga e'tibor berasiz?</summary>
+<p>Tizimlar orasida almashinuv (reestr, hisobot), eksport, log va arxiv uchun. E'tibor: atomar yozish (vaqtinchalik nom va <span class="num">rename</span> yoki tayyorlik belgisi), nazorat qatori (soni va summasi), qatorlarning noyob ID si bilan idempotent qayta ishlash, format versiyasi va ustun nomlari bo'yicha o'qish, kodirovkani aniq belgilash (UTF-8). Pul holatining o'zi esa faqat bazada.</p></details>
+<details><summary>Batch processing nima va u bankda bugun bormi?</summary>
+<p>Amallarni yig'ib, keyin bitta katta jarayon bilan qo'llash. Lenta davrida bu yagona yo'l edi. Bugun banklarda kunlik operatsion kunni yopish, foiz hisoblash, hisobotlar, reestrlarni solishtirish hamon kechki joblar bilan bajariladi (Oracle'da <span class="num">DBMS_SCHEDULER</span>, 25-dars), lekin balanslar o'zgarishi onlayn: tranzaksiya bilan darhol.</p></details>
+
+<h3>Chuqurroq</h3>
+<details><summary>Nega «rename» yarim holat bermaydi?</summary>
+<p>Linux va boshqa POSIX tizimlarda bitta fayl tizimi ichida <span class="num">rename</span> atomar: boshqa dastur yo eski nomni ko'radi, yo yangisini, oraliq holatni hech qachon. Shuning uchun «vaqtinchalik faylga yoz, keyin nomini o'zgartir» usuli keng tarqalgan. Tok o'chishiga ham chidamli bo'lishi uchun nom o'zgartirishdan oldin fayl mazmuni diskka majburan yozilishi kerak (<span class="num">fsync</span>); aks holda nom yangi, mazmuni esa hali operatsion tizim xotirasida bo'lishi mumkin.</p></details>
+<details><summary>COBOL va «copybook»: yozuv tuzilishi qayerda saqlangan?</summary>
+<p>COBOL (1959-yilda yaratilgan biznes tili) yozuv tuzilishini dastur boshida tasvirlaydi: qaysi maydon necha belgi, son yoki matn. Bir nechta dastur bitta faylni o'qisa, bu tasvir alohida faylga (copybook) chiqarilib, hamma dastur uni ulagan. Bu bog'liqlikni kamaytirdi, lekin yo'qotmadi: copybook o'zgarsa ham hamma dasturni qayta kompilyatsiya qilish kerak edi. Ko'plab yirik banklarda COBOL dasturlari hali ham ishlaydi.</p></details>
+<details><summary>Lenta bugun ham ishlatiladimi?</summary>
+<p>Ha, arxiv va zaxira nusxalar uchun: lenta bir gigabayt uchun arzon, uzoq saqlanadi va tarmoqdan uzilgan holda turadi (shifrlovchi viruslardan himoya). Lekin u faqat zaxira uchun, ishlab turgan ma'lumot uchun emas.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>IBM 350 disk: Computer History Museum, «1956: First commercial hard disk drive shipped» (50 ta 24 dyuymli disk, 5 million belgi, taxminan 3,75 MB, o'rtacha murojaat bir soniyadan kam, ijarasi oyiga 750 dollar). Fayl tizimiga asoslangan ishlovning kamchiliklari: Silberschatz, Korth, Sudarshan, «Database System Concepts», 1-bob. ISAM: IBM'ning mainframe'lar uchun usuli, keyinchalik VSAM bilan almashtirilgan.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Fayl shunchaki baytlar qatori; yozuv va maydonlar haqidagi bilim dasturda. Lenta faqat ketma-ket o'qiladi, shuning uchun banklar kechasi paketli ishlov qilgan. Disk istalgan joyga sakrash imkonini berdi, lekin oltita og'riqni ochdi: takrorlanish, tuzilishga bog'liqlik, har savolga yangi dastur, lost update, yarmida to'xtash, ruxsat va qoidalar. Yechim: dasturlar va fayllar orasidagi vositachi, DBMS.</p>
+  <p><strong>Ochiq qolgan savol.</strong> Vositachi ma'lumotni qanday shaklda saqlashi kerak? Daraxt kabimi, tarmoq kabimi yoki jadval kabimi? Bu savolga birinchi javoblar 1960-yillarda paydo bo'ldi, va 1970-yilda Edgar Codd hammasini o'zgartirdi.</p>
+  <p><strong>Keyingi dars.</strong> Ierarxik va tarmoq bazalari, Codd va relyatsion g'oya.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="./">Yo'nalish mundarijasi</a><a href="02-ierarxik-tarmoq-relyatsion.html">Keyingi: 2. Ierarxik, tarmoq, relyatsion</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Bank ilovasi', sub: 'Java backend, mobil ilova, internet-bank', ex: '«O\'tkazish» tugmasi bosildi', link: 'bazaga SQL yuboradi' },
+    { title: 'SQL va PL/SQL', sub: 'Bazaga beriladigan savol va buyruqlar', ex: 'UPDATE accounts SET balance = balance - 500000', link: 'Oracle serveri bajaradi' },
+    { title: 'Oracle serveri (DBMS)', sub: 'Xotira va jarayonlar: hamma so\'rov shu orqali', ex: 'navbat, qulf, tranzaksiya, kesh', link: 'fayllarga yozadi' },
+    { title: 'Baza fayllari', sub: 'Ma\'lumot fayllari, redo va undo', ex: 'bloklar, segmentlar, tablespace', link: 'operatsion tizim orqali' },
+    { title: 'Disk', sub: 'HDD yoki SSD (P0, 5-dars)', ex: '4096 baytli bo\'laklar', link: '' }
+  ], [3], 'Bu dars: DBMS hali yo\'q, dastur fayl bilan o\'zi ishlaydi');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  // Sahna: { g: [[x,y,w,h,nom]], b: [[x,y,w,h,nom,izoh,cls]], a: [[d,yorliq,lx,ly]], c: [[x,y,[qatorlar],cls]], x: [[x,y,matn,cls,anchor]] }
+  function scene(svg, mk, st) {
+    svg.textContent = ''; marker(svg, mk);
+    (st.g || []).forEach(function (g) { group(svg, g[0], g[1], g[2], g[3], g[4]); });
+    (st.b || []).forEach(function (b) { box(svg, b[0], b[1], b[2], b[3], b[4], b[5], b[6]); });
+    (st.a || []).forEach(function (a) { arrow(svg, mk, a[0], a[1], a[2], a[3]); });
+    (st.c || []).forEach(function (c) { code(svg, c[0], c[1], c[2], c[3]); });
+    (st.x || []).forEach(function (t) { S(svg, 'text', { x: t[0], y: t[1], 'class': t[3] || 'sub', 'text-anchor': t[4] || 'start' }, t[2]); });
+  }
+  // Qadamli chizma: bir nechta stsenariy, har birida qadamlar
+  function steps(svgId, scId, stId, sayId, list, mk) {
+    var svg = $(svgId), say = $(sayId), sc = 0, st = 0, setSc = null;
+    if (scId) setSc = tabs(scId, list.map(function (x) { return x.t; }), function (i) { sc = i; st = 0; draw(); });
+    function draw() {
+      if (setSc) setSc(sc);
+      var L = list[sc].steps;
+      var setSt = tabs(stId, L.map(function (x, i) { return (i + 1) + '. ' + x.t; }), function (i) { st = i; draw(); });
+      setSt(st); scene(svg, mk, L[st]); say.textContent = L[st].s;
+      say.className = 'say' + (L[st].bad ? ' bad' : '');
+    }
+    draw();
+  }
+
+  var D = {"FL": [{"t": "Fayl bu baytlar qatori", "g": [[20, 20, 1200, 380, "hisoblar.dat (diskda)"]], "c": [[40, 90, ["20208000100000000001ALIYEV ANVAR      00015000000020208000100000000002KARIMOVA DILNOZA  0000032500002020800010", "0000000003TOSHEV BEKZOD     00007200000020208000100000000004YUSUPOVA MALIKA   00000098000020208000100000000005", "RAHIMOV JASUR     001200000000"], "mono"]], "x": [[40, 200, "Disk va operatsion tizim uchun fayl shunchaki uzun baytlar qatori: boshi, oxiri va nomi bor, xolos.", "sub", "start"], [40, 224, "Qayerda bitta hisob tugab, keyingisi boshlanishini fayl o'zi bilmaydi. Buni faqat dastur biladi.", "sub", "start"]], "s": "1960-yillardagi bank dasturi hisoblarni oddiy faylda saqlagan. Fayl ichida hech qanday belgi yo'q: hisob raqami, ism va balans bir-biriga yopishib turibdi. Bu baytlarni to'g'ri bo'laklash qoidasi faylda emas, dasturning ichida yozilgan."}, {"t": "Yozuv va maydonlar", "g": [[20, 20, 830, 400, "hisoblar.dat: har yozuv 50 bayt"]], "b": [[110, 70, 330, 54, "20208000100000000001", "hisob raqami: 20 bayt", ""], [450, 70, 210, 54, "ALIYEV ANVAR", "mijoz: 18 bayt", ""], [670, 70, 150, 54, "000150000000", "balans: 12 bayt", ""], [110, 136, 330, 54, "20208000100000000002", "hisob raqami: 20 bayt", ""], [450, 136, 210, 54, "KARIMOVA DILNOZA", "mijoz: 18 bayt", ""], [670, 136, 150, 54, "000003250000", "balans: 12 bayt", ""], [110, 202, 330, 54, "20208000100000000003", "hisob raqami: 20 bayt", ""], [450, 202, 210, 54, "TOSHEV BEKZOD", "mijoz: 18 bayt", ""], [670, 202, 150, 54, "000072000000", "balans: 12 bayt", ""], [110, 268, 330, 54, "20208000100000000004", "hisob raqami: 20 bayt", ""], [450, 268, 210, 54, "YUSUPOVA MALIKA", "mijoz: 18 bayt", ""], [670, 268, 150, 54, "000000980000", "balans: 12 bayt", ""], [110, 334, 330, 54, "20208000100000000005", "hisob raqami: 20 bayt", ""], [450, 334, 210, 54, "RAHIMOV JASUR", "mijoz: 18 bayt", ""], [670, 334, 150, 54, "001200000000", "balans: 12 bayt", ""], [880, 70, 340, 160, "Dastur ichidagi kelishuv", "yozuv = 20 + 18 + 12 = 50 bayt", "live"]], "c": [[896, 160, ["raqam   : 0–19 baytlar", "ism     : 20–37 baytlar", "balans  : 38–49 baytlar"], "mono"]], "x": [[30, 104, "0-bayt", "lbl", "start"], [30, 170, "50-bayt", "lbl", "start"], [30, 236, "100-bayt", "lbl", "start"], [30, 302, "150-bayt", "lbl", "start"], [30, 368, "200-bayt", "lbl", "start"]], "s": "Dastur faylni teng bo'laklarga bo'lib o'qiydi. Har bir bo'lak bitta hisob: bu yozuv (record). Yozuv ichidagi har bir qism maydon (field): hisob raqami, ism, balans. Har yozuv aynan 50 bayt, qisqa ism bo'shliq bilan to'ldiriladi. Bu kelishuv faylda emas, dasturda: «birinchi 20 bayt raqam, keyingi 18 bayt ism...»"}, {"t": "N-yozuvga sakrash", "g": [[20, 20, 830, 400, "hisoblar.dat"]], "b": [[110, 70, 330, 54, "20208000100000000001", "hisob raqami: 20 bayt", ""], [450, 70, 210, 54, "ALIYEV ANVAR", "mijoz: 18 bayt", ""], [670, 70, 150, 54, "000150000000", "balans: 12 bayt", ""], [110, 136, 330, 54, "20208000100000000002", "hisob raqami: 20 bayt", ""], [450, 136, 210, 54, "KARIMOVA DILNOZA", "mijoz: 18 bayt", ""], [670, 136, 150, 54, "000003250000", "balans: 12 bayt", ""], [110, 202, 330, 54, "20208000100000000003", "hisob raqami: 20 bayt", ""], [450, 202, 210, 54, "TOSHEV BEKZOD", "mijoz: 18 bayt", ""], [670, 202, 150, 54, "000072000000", "balans: 12 bayt", ""], [110, 268, 330, 54, "20208000100000000004", "hisob raqami: 20 bayt", "on"], [450, 268, 210, 54, "YUSUPOVA MALIKA", "mijoz: 18 bayt", "on"], [670, 268, 150, 54, "000000980000", "balans: 12 bayt", "on"], [110, 334, 330, 54, "20208000100000000005", "hisob raqami: 20 bayt", ""], [450, 334, 210, 54, "RAHIMOV JASUR", "mijoz: 18 bayt", ""], [670, 334, 150, 54, "001200000000", "balans: 12 bayt", ""], [880, 70, 340, 110, "Dastur: 3-yozuv kerak", "3 × 50 = 150-baytdan o'qi", "on"]], "x": [[30, 104, "0-bayt", "lbl", "start"], [30, 170, "50-bayt", "lbl", "start"], [30, 236, "100-bayt", "lbl", "start"], [30, 302, "150-bayt", "lbl", "start"], [30, 368, "200-bayt", "lbl", "start"]], "a": [["M880 125H845V289H822", "150-baytga sakradi", 960, 230]], "s": "Yozuvlar bir xil uzunlikda bo'lgani uchun N-yozuv qayerdaligini hisoblash oson: N × 50. Bu P0 5-darsdagi massiv elementi adresining o'zi. Dastur diskka «150-baytdan 50 bayt o'qi» deydi va kerakli hisobni darhol oladi. Lekin bu faqat yozuvning tartib raqamini bilganda ishlaydi."}, {"t": "Raqam bo'yicha qidirish", "g": [[20, 20, 830, 400, "hisoblar.dat (1 000 000 yozuv)"]], "b": [[110, 70, 330, 54, "20208000100000000001", "hisob raqami: 20 bayt", "live"], [450, 70, 210, 54, "ALIYEV ANVAR", "mijoz: 18 bayt", "live"], [670, 70, 150, 54, "000150000000", "balans: 12 bayt", "live"], [110, 136, 330, 54, "20208000100000000002", "hisob raqami: 20 bayt", "live"], [450, 136, 210, 54, "KARIMOVA DILNOZA", "mijoz: 18 bayt", "live"], [670, 136, 150, 54, "000003250000", "balans: 12 bayt", "live"], [110, 202, 330, 54, "20208000100000000003", "hisob raqami: 20 bayt", "live"], [450, 202, 210, 54, "TOSHEV BEKZOD", "mijoz: 18 bayt", "live"], [670, 202, 150, 54, "000072000000", "balans: 12 bayt", "live"], [110, 268, 330, 54, "20208000100000000004", "hisob raqami: 20 bayt", "on"], [450, 268, 210, 54, "YUSUPOVA MALIKA", "mijoz: 18 bayt", "on"], [670, 268, 150, 54, "000000980000", "balans: 12 bayt", "on"], [110, 334, 330, 54, "20208000100000000005", "hisob raqami: 20 bayt", ""], [450, 334, 210, 54, "RAHIMOV JASUR", "mijoz: 18 bayt", ""], [670, 334, 150, 54, "001200000000", "balans: 12 bayt", ""], [880, 70, 340, 110, "Dastur: ...0004 hisob qayerda?", "tartib raqami noma'lum", "on"], [880, 200, 340, 130, "Har birini o'qib solishtiradi", "1-yozuv: yo'q, 2: yo'q, 3: yo'q, 4: topildi", "live"]], "x": [[30, 104, "0-bayt", "lbl", "start"], [30, 170, "50-bayt", "lbl", "start"], [30, 236, "100-bayt", "lbl", "start"], [30, 302, "150-bayt", "lbl", "start"], [30, 368, "200-bayt", "lbl", "start"]], "c": [[896, 290, ["1 mln yozuvda o'rtacha 500 000 o'qish"], "sub"]], "s": "Kassirga mijoz kelib hisob raqamini aytdi. Bu hisob faylning nechanchi yozuvida, dastur bilmaydi. Yagona yo'l: boshidan boshlab har bir yozuvni o'qib, raqamni solishtirish. Bir million hisobli bankda o'rtacha yarim million yozuv o'qiladi, eng yomon holatda hammasi. Har bir mijoz uchun."}, {"t": "Indeksli fayl (ISAM)", "g": [[20, 20, 830, 400, "hisoblar.dat (raqam bo'yicha tartiblangan)"], [870, 20, 350, 260, "indeks fayli (kichik)"]], "b": [[110, 70, 330, 54, "20208000100000000001", "hisob raqami: 20 bayt", ""], [450, 70, 210, 54, "ALIYEV ANVAR", "mijoz: 18 bayt", ""], [670, 70, 150, 54, "000150000000", "balans: 12 bayt", ""], [110, 136, 330, 54, "20208000100000000002", "hisob raqami: 20 bayt", ""], [450, 136, 210, 54, "KARIMOVA DILNOZA", "mijoz: 18 bayt", ""], [670, 136, 150, 54, "000003250000", "balans: 12 bayt", ""], [110, 202, 330, 54, "20208000100000000003", "hisob raqami: 20 bayt", "live"], [450, 202, 210, 54, "TOSHEV BEKZOD", "mijoz: 18 bayt", "live"], [670, 202, 150, 54, "000072000000", "balans: 12 bayt", "live"], [110, 268, 330, 54, "20208000100000000004", "hisob raqami: 20 bayt", "on"], [450, 268, 210, 54, "YUSUPOVA MALIKA", "mijoz: 18 bayt", "on"], [670, 268, 150, 54, "000000980000", "balans: 12 bayt", "on"], [110, 334, 330, 54, "20208000100000000005", "hisob raqami: 20 bayt", ""], [450, 334, 210, 54, "RAHIMOV JASUR", "mijoz: 18 bayt", ""], [670, 334, 150, 54, "001200000000", "balans: 12 bayt", ""], [890, 300, 330, 100, "Natija: 2 ta o'qish", "indeksdan bo'lak, bo'lakdan yozuv", "on"]], "x": [[30, 104, "0-bayt", "lbl", "start"], [30, 170, "50-bayt", "lbl", "start"], [30, 236, "100-bayt", "lbl", "start"], [30, 302, "150-bayt", "lbl", "start"], [30, 368, "200-bayt", "lbl", "start"]], "c": [[890, 80, ["...0001  →    0-bayt", "...0003  →  100-bayt", "...0101  → 5000-bayt", "...0201  → 10000-bayt", "   ..."], "mono"]], "a": [["M870 104H845V254H822", "shu bo'lakdan o'qi", 960, 262]], "s": "1960-yillarda IBM yechim taklif qildi: faylni hisob raqami bo'yicha tartiblash va yoniga kichik indeks fayli qo'yish. Indeksda har bir bo'lakning birinchi raqami va u qaysi baytdan boshlanishi yozilgan, xuddi kitob oxiridagi ko'rsatkich kabi. Dastur avval indeksdan kerakli bo'lakni topadi, keyin faqat shu bo'lakni o'qiydi. Bu usul ISAM deb atalgan. Indeks g'oyasi bugungi Oracle indekslarining bobosi (16-dars)."}], "BT": [{"t": "x", "steps": [{"t": "Kunduzi o'tkazmalar yig'iladi", "g": [[20, 20, 380, 400, "Kunduzi: filial"], [430, 20, 380, 400, "Kechasi: hisoblash markazi"], [840, 20, 380, 400, "Ertalab"]], "b": [[40, 70, 340, 70, "Operatsionist", "har bir o'tkazmani kartaga yozadi", "on"], [40, 170, 340, 90, "O'tkazmalar dastasi", "kunduzgi tartibda, aralash", "live"], [40, 290, 340, 90, "Mijoz balansni so'radi", "kechagi qog'oz hisobotdan", ""]], "a": [["M210 140V168", null, 0, 0]], "s": "Kunduzi hisoblar faylini hech kim o'zgartirmaydi. Operatsionistlar har bir o'tkazmani perfokartaga yoki lentaga yozib boradi: «A hisobdan B hisobga 500 000». Mijoz balansini so'rasa, unga kechagi hisobotdagi raqam aytiladi: bugungi o'tkazmalar hali hisobga olinmagan."}, {"t": "Kechasi saralash", "g": [[20, 20, 380, 400, "Kunduzi: filial"], [430, 20, 380, 400, "Kechasi: hisoblash markazi"], [840, 20, 380, 400, "Ertalab"]], "b": [[40, 170, 340, 90, "O'tkazmalar dastasi", "aralash tartibda", ""], [450, 70, 340, 90, "Saralash dasturi", "hisob raqami bo'yicha", "on"], [450, 200, 340, 90, "O'tkazmalar lentasi", "endi raqam bo'yicha tartiblangan", "live"]], "a": [["M380 215H415V115H448", null, 0, 0], ["M620 160V198", null, 0, 0]], "s": "Lentani faqat boshidan oxirigacha o'qish mumkin, orqaga sakrab bo'lmaydi. Shuning uchun kechasi avval o'tkazmalar hisob raqami bo'yicha saralanadi: hisoblar lentasi ham shu tartibda yozilgan."}, {"t": "Ikki lentani birga o'qish", "g": [[20, 20, 380, 400, "Kunduzi: filial"], [430, 20, 380, 400, "Kechasi: hisoblash markazi"], [840, 20, 380, 400, "Ertalab"]], "b": [[450, 60, 165, 90, "Eski hisoblar", "kechagi lenta", ""], [625, 60, 165, 90, "O'tkazmalar", "saralangan lenta", "live"], [450, 190, 340, 100, "Yangilash dasturi", "ikkala lentani yonma-yon o'qiydi", "on"], [450, 320, 340, 80, "Yangi hisoblar lentasi", "yangi balanslar yoziladi", "live"]], "a": [["M532 150V188", null, 0, 0], ["M707 150V188", null, 0, 0], ["M620 290V318", null, 0, 0]], "c": [[866, 80, ["hisob ...01: 1 500 000", "  o'tkazma: −500 000", "  yangi:  1 000 000", "hisob ...02: 3 250 000", "  o'tkazma yo'q", "  yangi:  3 250 000"], "mono"]], "s": "Dastur ikki lentani bir vaqtda, yonma-yon o'qiydi: eski hisoblar va o'tkazmalar, ikkalasi ham raqam bo'yicha tartibda. Har bir hisob uchun o'sha hisobga tegishli o'tkazmalarni qo'llaydi va natijani uchinchi, yangi lentaga yozadi. Eski lenta o'zgarmaydi: xato chiqsa, kechani qaytadan boshlash mumkin."}, {"t": "Ertalab natija", "g": [[20, 20, 380, 400, "Kunduzi: filial"], [430, 20, 380, 400, "Kechasi: hisoblash markazi"], [840, 20, 380, 400, "Ertalab"]], "b": [[450, 320, 340, 80, "Yangi hisoblar lentasi", "ertangi kunning asosi", "live"], [860, 70, 340, 90, "Qog'oz hisobot", "har bir hisobning balansi", "on"], [860, 190, 340, 100, "Muammo", "balans faqat kuniga bir marta yangilanadi", "bad"]], "a": [["M790 360H825V115H858", null, 0, 0]], "s": "Ertalab filiallarga yangi balanslar bosilgan qog'oz yetkaziladi. Tizim ishlaydi va ishonchli, lekin hamma narsa bir kun kechikadi: mijoz kunduzi pul qo'ysa, uning balansi ertaga ko'rinadi. Bankomat va onlayn o'tkazma bunday tizimda mumkin emas. Diskning paydo bo'lishi (1956) istalgan yozuvga darhol murojaat qilish imkonini berdi, va bu yangi og'riqlarni ochdi."}]}], "P": [{"t": "Takrorlanish", "steps": [{"t": "Uch dastur, uch fayl", "g": [[20, 20, 1200, 400, "Bank"]], "b": [[40, 70, 360, 70, "Hisoblar dasturi", "hisoblar bo'limi yozgan", ""], [440, 70, 360, 70, "Kreditlar dasturi", "kredit bo'limi yozgan", ""], [840, 70, 360, 70, "Depozitlar dasturi", "depozit bo'limi yozgan", ""], [40, 220, 360, 90, "hisoblar.dat", "mijoz: Aliyev A., Chilonzor 5", ""], [440, 220, 360, 90, "kreditlar.dat", "mijoz: Aliyev A., Chilonzor 5", ""], [840, 220, 360, 90, "depozitlar.dat", "mijoz: Aliyev A., Chilonzor 5", ""]], "a": [["M220 140V218", null, 0, 0], ["M620 140V218", null, 0, 0], ["M1020 140V218", null, 0, 0]], "s": "Har bir bo'lim o'z dasturini va o'z faylini yaratgan. Har bir faylga mijozning ismi va manzili kerak, shuning uchun bitta mijoz haqidagi ma'lumot uch joyda takrorlanadi. Bu ortiqcha joyning o'zi emas, keyingi qadamdagi muammo xavfli."}, {"t": "Mijoz ko'chdi", "bad": true, "g": [[20, 20, 1200, 400, "Bank"]], "b": [[40, 70, 360, 70, "Hisoblar dasturi", "manzilni o'zgartirdi", "on"], [440, 70, 360, 70, "Kreditlar dasturi", "bilmaydi", ""], [840, 70, 360, 70, "Depozitlar dasturi", "bilmaydi", ""], [40, 220, 360, 90, "hisoblar.dat", "mijoz: Aliyev A., Yunusobod 12", "live"], [440, 220, 360, 90, "kreditlar.dat", "mijoz: Aliyev A., Chilonzor 5", "bad"], [840, 220, 360, 90, "depozitlar.dat", "mijoz: Aliyev A., Chilonzor 5", "bad"]], "a": [["M220 140V218", null, 0, 0]], "x": [[620, 360, "Qaysi manzil to'g'ri? Kredit xati eski manzilga ketadi.", "lbl", "middle"]], "s": "Mijoz hisoblar bo'limiga kelib, yangi manzilini aytdi. Hisoblar fayli yangilandi, qolgan ikkitasi yo'q. Endi bankda bitta mijozning ikki xil manzili bor va qaysi biri to'g'ri ekanini hech kim bilmaydi. Bu nomuvofiqlik (inconsistency): takrorlangan ma'lumot vaqt o'tishi bilan albatta bir-biridan farqlanib ketadi."}]}, {"t": "Fayl tuzilishi o'zgarsa", "steps": [{"t": "Uch dastur bitta faylni o'qiydi", "g": [[20, 20, 1200, 400, "Bank"]], "b": [[40, 60, 360, 70, "Kassa dasturi", "yozuv = 50 bayt deb biladi", ""], [440, 60, 360, 70, "Kechki hisob-kitob", "yozuv = 50 bayt deb biladi", ""], [840, 60, 360, 70, "Hisobotlar", "yozuv = 50 bayt deb biladi", ""], [240, 250, 760, 80, "hisoblar.dat", "raqam 20 + ism 18 + balans 12 = 50 bayt", "live"]], "a": [["M220 130V210H500V248", null, 0, 0], ["M620 130V248", null, 0, 0], ["M1020 130V210H740V248", null, 0, 0]], "s": "Yozuv tuzilishi uchta dasturning har birining ichida alohida yozilgan. Hammasi «50 bayt, birinchi 20 tasi raqam...» deb biladi. Hozircha hammasi ishlaydi."}, {"t": "Valyuta maydoni qo'shildi", "bad": true, "g": [[20, 20, 1200, 400, "Bank"]], "b": [[40, 60, 360, 70, "Kassa dasturi", "yangilandi: 53 bayt", "on"], [440, 60, 360, 70, "Kechki hisob-kitob", "hali 50 bayt deb o'qiydi", "bad"], [840, 60, 360, 70, "Hisobotlar", "hali 50 bayt deb o'qiydi", "bad"], [240, 250, 760, 80, "hisoblar.dat", "raqam 20 + ism 18 + balans 12 + valyuta 3 = 53 bayt", "live"]], "a": [["M220 130V210H500V248", null, 0, 0], ["M620 130V248", null, 0, 0], ["M1020 130V210H740V248", null, 0, 0]], "x": [[620, 380, "2-yozuv endi 53-baytdan boshlanadi, eski dastur esa 50-baytdan o'qiydi: hamma narsa siljiydi.", "lbl", "middle"]], "s": "Bank dollar hisoblarini ochmoqchi: yozuvga 3 baytli valyuta maydoni qo'shildi. Kassa dasturi yangilandi, boshqalari esa hali 50 baytdan o'qiydi: ikkinchi yozuvdan boshlab hammasi siljiydi va balans o'rniga ismning bir qismi o'qiladi. Bitta maydon uchun shu faylni o'qiydigan hamma dasturni topib, o'zgartirib, qayta kompilyatsiya qilish va faylni yangi shaklga o'tkazish kerak. Bu dasturning ma'lumot tuzilishiga bog'liqligi (data dependence)."}]}, {"t": "Yangi savol", "steps": [{"t": "Rahbar savol berdi", "g": [[20, 20, 1200, 400, "Bank"]], "b": [[40, 70, 520, 90, "Rahbar", "Toshkentdagi, balansi 100 mln dan ortiq mijozlar ro'yxati kerak", "on"], [640, 70, 560, 90, "Mavjud dasturlar", "kassa, kechki hisob-kitob, oylik hisobot", ""], [40, 250, 520, 100, "Dasturchi", "yangi dastur yozadi: faylni o'qish, filtr, chop etish", "live"], [640, 250, 560, 100, "Natija", "2 haftadan keyin, faqat shu bitta savol uchun", "bad"]], "a": [["M300 160V248", null, 0, 0], ["M560 300H638", null, 0, 0]], "s": "Faylga savol berishning yagona yo'li dastur yozish. Mavjud dasturlarning hech biri bu savolga javob bermaydi, shuning uchun dasturchi yangi dastur yozadi. Ertaga savol biroz o'zgarsa («Samarqanddagilar ham»), yana dastur. Odamlar oddiy savolga ham haftalab javob kutgan."}]}, {"t": "Bir vaqtda ikki dastur", "steps": [{"t": "Ikkalasi o'qiydi", "g": [[20, 20, 1200, 400, "Bir xil vaqtda"]], "b": [[40, 70, 360, 80, "Kassa 1", "mijoz 300 000 yechmoqchi", ""], [840, 70, 360, 80, "Kassa 2", "boshqa odam 500 000 qo'ymoqchi", ""], [440, 260, 360, 90, "hisoblar.dat: ...0001", "balans 1 000 000", "live"]], "a": [["M440 290H220V152", "1 000 000 o'qidi", 300, 280], ["M800 290H1020V152", "1 000 000 o'qidi", 940, 280]], "s": "Disk paydo bo'lgach, bir nechta kassa bitta faylga bir vaqtda murojaat qila boshladi. Ikkala kassa bitta hisobning yozuvini deyarli bir vaqtda o'qidi. Ikkalasining xotirasida balans 1 000 000."}, {"t": "Ikkalasi hisoblaydi", "g": [[20, 20, 1200, 400, "Bir xil vaqtda"]], "b": [[40, 70, 360, 80, "Kassa 1", "1 000 000 − 300 000 = 700 000", "on"], [840, 70, 360, 80, "Kassa 2", "1 000 000 + 500 000 = 1 500 000", "on"], [440, 260, 360, 90, "hisoblar.dat: ...0001", "balans 1 000 000", "live"]], "s": "Har bir kassa o'z xotirasida hisoblaydi. Ikkalasi ham bir-birining borligini bilmaydi. Bu P0 6-darsdagi holat: bitta qator bitta qadam emas, o'qish bilan yozish orasida vaqt bor."}, {"t": "Ikkalasi yozadi", "bad": true, "g": [[20, 20, 1200, 400, "Bir xil vaqtda"]], "b": [[40, 70, 360, 80, "Kassa 1", "700 000 yozdi", ""], [840, 70, 360, 80, "Kassa 2", "1 500 000 yozdi (keyinroq)", ""], [440, 260, 360, 90, "hisoblar.dat: ...0001", "balans 1 500 000", "bad"]], "a": [["M220 150V305H438", "yozdi: 700 000", 300, 296], ["M1020 150V325H802", "yozdi: 1 500 000", 930, 316]], "x": [[620, 395, "To'g'ri javob 1 200 000. Yechilgan 300 000 izsiz yo'qoldi: bank zarar ko'rdi.", "lbl", "middle"]], "s": "Kassa 1 700 000 ni yozdi, bir lahzadan keyin kassa 2 1 500 000 ni yozib, uning ustidan bosdi. Mijoz 300 000 ni naqd olib ketdi, lekin fayl buni «unutdi». Bu yo'qolgan yangilanish (lost update). Tartib boshqacha bo'lsa, aksincha qo'yilgan 500 000 yo'qoladi. Fayl o'zi buni hech qachon to'xtatmaydi: har bir dasturchi o'zi qandaydir qulf o'ylab topishi kerak edi."}]}, {"t": "Yarmida to'xtash", "steps": [{"t": "O'tkazma boshlandi", "g": [[20, 20, 1200, 400, "O'tkazma: A dan B ga 500 000"]], "b": [[40, 70, 520, 80, "O'tkazma dasturi", "1-qadam: A dan ayir; 2-qadam: B ga qo'sh", "on"], [640, 70, 260, 80, "A hisob", "2 000 000", "live"], [940, 70, 260, 80, "B hisob", "100 000", "live"]], "s": "O'tkazma ikki alohida yozish: A hisobning yozuvini o'zgartirish va B hisobning yozuvini o'zgartirish. Fayl uchun bular ikki mustaqil amal, ular bir-biri bilan bog'liqligini fayl bilmaydi."}, {"t": "Birinchi yozuv", "g": [[20, 20, 1200, 400, "O'tkazma: A dan B ga 500 000"]], "b": [[40, 70, 520, 80, "O'tkazma dasturi", "1-qadam bajarildi", "on"], [640, 70, 260, 80, "A hisob", "1 500 000 (diskka yozildi)", "on"], [940, 70, 260, 80, "B hisob", "100 000", "live"]], "a": [["M560 110H638", "yozdi", 600, 100]], "s": "A hisobdan 500 000 ayirildi va diskka yozildi."}, {"t": "Tok o'chdi", "bad": true, "g": [[20, 20, 1200, 400, "O'tkazma: A dan B ga 500 000"]], "b": [[40, 70, 520, 80, "O'tkazma dasturi", "to'xtadi: tok o'chdi", "bad"], [640, 70, 260, 80, "A hisob", "1 500 000", "on"], [940, 70, 260, 80, "B hisob", "100 000 (qo'shilmadi)", "bad"], [40, 250, 1160, 100, "Natija", "500 000 hech kimda yo'q. Qaysi o'tkazmalar yarim qolganini fayldan bilib bo'lmaydi.", "bad"]], "s": "Ikkinchi yozuvdan oldin server o'chdi. A dan pul yechilgan, B ga kelmagan: 500 000 havoda yo'qoldi. Kerakli narsa: ikki yozuv yo ikkalasi ham bo'lsin, yo hech biri. Bu talab atomarlik deyiladi (atom: bo'linmaydigan). Fayl buni bermaydi; har bir dasturchi o'zi jurnal yuritishi va qayta tiklash dasturini yozishi kerak edi."}]}, {"t": "Ruxsat va qoidalar", "steps": [{"t": "Faylni o'qigan hammasini ko'radi", "bad": true, "g": [[20, 20, 1200, 400, "Bank"]], "b": [[40, 70, 520, 90, "Operatsionist dasturi", "faqat ism va balans kerak", ""], [640, 70, 560, 90, "mijozlar.dat", "ism, balans, pasport, telefon, oylik daromad", "live"], [40, 250, 520, 100, "Ruxsat", "operatsion tizim: faylni yo o'qiy oladi, yo yo'q", "bad"], [640, 250, 560, 100, "Qoida: balans manfiy bo'lmasin", "har bir dastur o'zi tekshirishi kerak", "bad"]], "a": [["M560 115H638", null, 0, 0]], "s": "Operatsion tizim ruxsatni butun faylga beradi: yo hammasini o'qiysiz, yo hech narsani. Operatsionistga faqat ism va balans kerak, lekin faylni o'qiy olsa, pasport va daromadni ham ko'radi. «Balans manfiy bo'lmasin» kabi qoidalar ham faylda emas: ularni har bir dastur o'zi tekshirishi kerak, va bittasi unutsa, qoida buziladi."}]}], "DB": [{"t": "x", "steps": [{"t": "Oldin: har dastur faylga o'zi", "g": [[20, 20, 1200, 400, "Fayllar davri"]], "b": [[40, 60, 260, 70, "Kassa", "", ""], [340, 60, 260, 70, "Kechki hisob-kitob", "", ""], [640, 60, 260, 70, "Hisobotlar", "", ""], [940, 60, 260, 70, "Kreditlar", "", ""], [140, 300, 300, 80, "hisoblar.dat", "tuzilishi 4 dasturda", ""], [480, 300, 300, 80, "mijozlar.dat", "takrorlangan", ""], [820, 300, 300, 80, "kreditlar.dat", "takrorlangan", ""]], "a": [["M170 130V298", null, 0, 0], ["M470 130V170H330V298", null, 0, 0], ["M470 130V170H560V298", null, 0, 0], ["M770 130V210H400V298", null, 0, 0], ["M770 130V298", null, 0, 0], ["M1070 130V298", null, 0, 0], ["M1070 130V250H700V298", null, 0, 0]], "x": [[620, 410, "Har dastur bir nechta faylga o'zi boradi va har birining tuzilishini o'zi biladi.", "lbl", "middle"]], "s": "Har bir dastur fayllarga o'zi boradi, har biri fayl tuzilishini o'zi biladi, qulf, jurnal, ruxsat va qoidalarni har biri o'zicha qiladi (yoki qilmaydi). O'n dastur: o'n xil tushuncha."}, {"t": "Keyin: hamma bitta vositachi orqali", "g": [[20, 20, 1200, 400, "DBMS davri"]], "b": [[40, 60, 260, 70, "Kassa", "", ""], [340, 60, 260, 70, "Kechki hisob-kitob", "", ""], [640, 60, 260, 70, "Hisobotlar", "", ""], [940, 60, 260, 70, "Kreditlar", "", ""], [140, 190, 960, 90, "DBMS: ma'lumotlar bazasini boshqarish tizimi", "tuzilishni biladi · navbat va qulf · jurnal va tiklash · ruxsat · qoidalar · istalgan savolga javob", "on"], [140, 330, 960, 70, "Baza fayllari", "ularni faqat DBMS o'qiydi va yozadi", "live"]], "a": [["M170 130V188", null, 0, 0], ["M470 130V188", null, 0, 0], ["M770 130V188", null, 0, 0], ["M1070 130V188", null, 0, 0], ["M620 280V328", null, 0, 0]], "s": "Yechim g'oyasi: dasturlar va fayllar orasiga bitta vositachi qo'yish. Dastur endi «150-baytdan o'qi» demaydi, «...0001 hisobning balansini ber» deydi. Fayl tuzilishi, bir vaqtdagi murojaatlar, yarmida to'xtagan o'zgarishlar, ruxsatlar va qoidalar bitta joyda hal qilinadi. Bu vositachi DBMS (Database Management System) deyiladi; Oracle aynan shunday tizim. Uni qanday qurish kerakligi haqidagi bahs keyingi darsning mavzusi."}]}]};
+  steps('fl', null, 'flT', 'flSay', [{ t: 'x', steps: D.FL }], 'flmk');
+  steps('bt', null, 'btT', 'btSay', D.BT, 'btmk');
+  steps('pn', 'pS', 'pT', 'pSay', D.P, 'pnmk');
+  steps('dbv', null, 'dbT', 'dbSay', D.DB, 'dbmk');
+
+  window.evoStepper('evoF', [
+    { name: `Daftar va kartoteka`, years: `asrlar davomida, 1950-yillargacha`,
+      art: `<rect x="30" y="20" width="60" height="64" rx="3"/><path d="M40 34h40M40 46h40M40 58h40M40 70h26" class="acc"/>`,
+      how: `Har bir hisob uchun daftarda sahifa yoki kartotekada karta. Har bir o'tkazma qo'lda ikki joyga yoziladi: bir hisobdan chiqim, boshqasiga kirim. Ikki tomonlama yozuv usulini 1494-yilda Luka Pacholi kitobida tasvirlagan, va bank provodkalari hamon shu qoidaga amal qiladi.`,
+      better: `Oddiy va tushunarli, har bir yozuvning muallifi va sanasi bor.`,
+      pain: `Sekin, qo'lda xato, hisob ko'p bo'lsa kerakli kartani topish va kun oxirida hammasini jamlash juda ko'p odam talab qiladi.`,
+      ex: `Bugungi «debet» va «kredit», «bosh kitob» (ledger) so'zlari shu davrdan.` },
+    { name: `Perfokarta`, years: `1890 – 1960-yillar`,
+      art: `<rect x="18" y="28" width="84" height="46" rx="3"/><path d="M30 40h4M42 40h4M54 52h4M66 40h4M78 62h4M30 62h4M90 52h4" class="acc"/>`,
+      how: `Herman Hollerith 1890-yilgi AQSH aholi ro'yxati uchun teshikli kartalar va ularni sanaydigan mashinani yaratdi. Keyinchalik IBM ning 80 ustunli kartasi (1928) standart bo'ldi: bitta karta odatda bitta yozuv.`,
+      better: `Mashina sanaydi va saralaydi: qo'ldagi hisob-kitobdan ko'p marta tez.`,
+      pain: `Kartalar dastasi og'ir va sekin, tartibi buzilsa hamma narsa buziladi; bitta yozuvni topish uchun dastani varaqlash kerak.`,
+      ex: `Yozuvning qat'iy uzunligi (80 belgi) shu davrdan: ko'p eski fayl formatlari hamon 80 yoki 132 belgili qatorlarni ishlatadi.` },
+    { name: `Magnit lenta`, years: `1951 – 1960-yillar`,
+      art: `<circle cx="38" cy="50" r="22"/><circle cx="82" cy="50" r="22"/><path d="M38 72h44" class="acc"/>`,
+      how: `UNIVAC I (1951) ma'lumotni magnit lentada saqlagan. Bitta lenta minglab karta o'rnini bosgan va ancha tez o'qilgan. Lekin lenta faqat ketma-ket: boshidan oxirigacha.`,
+      better: `Kartalardan ko'p marta zich va tez; mashina o'zi o'qib, o'zi yozadi.`,
+      pain: `Istalgan yozuvga darhol murojaat yo'q. Shuning uchun ish kechki paketlar bilan qilingan: balans kuniga bir marta yangilangan.`,
+      ex: `Master lenta va o'tkazmalar lentasidan yangi master lenta: kechki «kun yopish» shu yerdan boshlangan.` },
+    { name: `Magnit disk`, years: `1956-yildan`,
+      art: `<ellipse cx="60" cy="40" rx="40" ry="12"/><ellipse cx="60" cy="58" rx="40" ry="12"/><path d="M60 50l30-20" class="acc"/>`,
+      how: `IBM 350 (RAMAC tizimi tarkibida): 50 ta aylanadigan disk, taxminan 5 million belgi (3,75 MB), istalgan yozuvga o'rtacha bir soniyadan kam vaqtda murojaat. Ijarasi oyiga 750 dollar edi.`,
+      better: `Tasodifiy murojaat: kassir mijozning hisobini darhol ochib, o'sha zahoti o'zgartira oladi. Onlayn ishlov mumkin bo'ldi.`,
+      pain: `Ko'p dastur bir vaqtda ko'p faylga: takrorlanish, lost update, yarim qolgan o'zgarishlar, ruxsat muammolari. Fayllarning o'zi bulardan himoya qilmaydi.`,
+      ex: `Bugungi har bir SSD ham tasodifiy murojaatli qurilma; Oracle bloklari diskda shunday o'qiladi.` },
+    { name: `Fayl usullari va COBOL`, years: `1959 – 1960-yillar`,
+      art: `<rect x="20" y="24" width="50" height="56" rx="3"/><rect x="76" y="24" width="24" height="56" rx="3" class="acc"/>`,
+      how: `COBOL (1959) biznes dasturlari uchun til bo'ldi: yozuv tuzilishi dastur boshida tasvirlanadi. IBM indeksli fayl usulini (ISAM) taklif qildi: kalit bo'yicha tartiblangan fayl va uning indeksi.`,
+      better: `Indeks bilan tez qidiruv, umumiy tasvirlar (copybook) bilan kamroq qo'l mehnati.`,
+      pain: `Har bir dastur hamon o'z fayllarini o'zi boshqaradi; og'riqlar dasturlar soni bilan birga o'sdi.`,
+      ex: `Yirik banklarda bugun ham COBOL dasturlari va indeksli fayllar ishlaydi.` },
+    { name: `Vositachi g'oyasi: DBMS`, years: `1960-yillar o'rtasi`,
+      art: `<rect x="44" y="34" width="32" height="32" rx="4" class="acc"/><path d="M20 20l24 20M100 20L76 40M20 80l24-20M100 80L76 60"/>`,
+      how: `Ma'lumotni dasturlardan ajratib, ularni bitta umumiy tizim boshqarsin degan g'oya. Birinchi shunday tizimlar 1960-yillarda paydo bo'ldi: GE'da Charlz Bakman (Charles Bachman) yaratgan IDS va IBM'ning IMS tizimi.`,
+      better: `Tuzilish, bir vaqtdagi murojaat va tiklash bitta joyda; dasturlar faqat so'raydi.`,
+      pain: `Birinchi DBMS'larda ma'lumotga yo'lni dasturchi hali o'zi bilishi kerak edi. Bu keyingi darsning og'rig'i.`,
+      ex: `IMS hamon ba'zi yirik banklarda ishlaydi.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>

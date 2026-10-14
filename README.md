@@ -16,6 +16,8 @@ Sayt sifatida ochish: repo sozlamalarida GitHub Pages yoqilgach, `https://isadul
 8. Xabar almashish
 9. Katta loyiha
 
+O'qish tartibi: Poydevordan keyin 4-yo'nalish (Oracle va PL/SQL) Java'dan oldinga olingan. Papkasi: `4-baza/`.
+
 ## Tuzilishi
 
 ```

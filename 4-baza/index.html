@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>4. Ma'lumotlar bazasi: Oracle va PL/SQL</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / 4. Ma'lumotlar bazasi</p>
+<h1>Ma'lumotlar bazasi: Oracle va PL/SQL</h1>
+<p class="lead">Bank hisoblari, o'tkazmalar va provodkalar oxir-oqibat bazada yashaydi. Bu yo'nalish bazani eng boshidan ochadi: nega fayl yetmay qolgan, relyatsion g'oya qanday tug'ilgan, SQL ichkarida qanday bajariladi, Oracle xotira va diskda qanday tuzilgan, tranzaksiya va qulflar pulni qanday himoya qiladi, va PL/SQL qayerdan kelgan.</p>
+<p class="note">Bu yo'nalish Java'dan oldinga olingan: Oracle PL/SQL developer vakansiyalariga tayyorlanish uchun. Poydevor yo'nalishidagi P0 darslari (ayniqsa 5-dars: RAM va disk) shu yerda tayanch bo'ladi.</p>
+<nav class="toc" aria-label="D0">
+  <h2>D0. Fayldan bazagacha</h2>
+  <ol start="1">
+    <li><a href="01-fayl-va-ogriqlari.html">Ma'lumotni faylda saqlash va og'riqlari</a><span class="tag ok">tayyor</span></li>
+    <li>Ierarxik va tarmoq bazalari, Codd va relyatsion g'oya<span class="tag">navbatda</span></li>
+    <li>Oracle tarixi: v2 dan 23ai gacha<span class="tag">navbatda</span></li>
+  </ol>
+  <p style="margin:0.7rem 0 0">D0 xulosa va test</p>
+</nav><nav class="toc" aria-label="D1">
+  <h2>D1. Relyatsion model va SQL</h2>
+  <ol start="4">
+    <li>Jadval, kalitlar, bog'lanishlar, normallashtirish<span class="tag">navbatda</span></li>
+    <li>SELECT qanday bajariladi: tartib, WHERE, GROUP BY, HAVING<span class="tag">navbatda</span></li>
+    <li>JOIN turlari ichkaridan<span class="tag">navbatda</span></li>
+    <li>Subquery, CTE (WITH), CONNECT BY<span class="tag">navbatda</span></li>
+    <li>Analitik (window) funksiyalar<span class="tag">navbatda</span></li>
+    <li>NULL, tiplar, sana va pul (NUMBER)<span class="tag">navbatda</span></li>
+  </ol>
+  <p style="margin:0.7rem 0 0">D1 xulosa va test</p>
+</nav><nav class="toc" aria-label="D2">
+  <h2>D2. Oracle ichkaridan</h2>
+  <ol start="10">
+    <li>Instance va baza: SGA, PGA, jarayonlar<span class="tag">navbatda</span></li>
+    <li>Disk: blok, segment, tablespace, redo va undo<span class="tag">navbatda</span></li>
+    <li>So'rov yo'li: parse, bind, execute, fetch<span class="tag">navbatda</span></li>
+  </ol>
+  <p style="margin:0.7rem 0 0">D2 xulosa va test</p>
+</nav><nav class="toc" aria-label="D3">
+  <h2>D3. Tranzaksiyalar</h2>
+  <ol start="13">
+    <li>ACID, COMMIT, ROLLBACK, SAVEPOINT<span class="tag">navbatda</span></li>
+    <li>MVCC va izolyatsiya darajalari<span class="tag">navbatda</span></li>
+    <li>Qulflar, lost update, deadlock, SELECT FOR UPDATE<span class="tag">navbatda</span></li>
+  </ol>
+  <p style="margin:0.7rem 0 0">D3 xulosa va test</p>
+</nav><nav class="toc" aria-label="D4">
+  <h2>D4. Tezlik</h2>
+  <ol start="16">
+    <li>B-tree va boshqa indekslar<span class="tag">navbatda</span></li>
+    <li>Optimizator va EXPLAIN PLAN<span class="tag">navbatda</span></li>
+    <li>JOIN usullari, statistika, partitsiyalash<span class="tag">navbatda</span></li>
+  </ol>
+  <p style="margin:0.7rem 0 0">D4 xulosa va test</p>
+</nav><nav class="toc" aria-label="D5">
+  <h2>D5. PL/SQL</h2>
+  <ol start="19">
+    <li>PL/SQL nega paydo bo'lgan: blok, o'zgaruvchilar, tiplar<span class="tag">navbatda</span></li>
+    <li>Kursorlar<span class="tag">navbatda</span></li>
+    <li>Exception va loglash<span class="tag">navbatda</span></li>
+    <li>Protsedura, funksiya, paket<span class="tag">navbatda</span></li>
+    <li>Kolleksiyalar, BULK COLLECT, FORALL<span class="tag">navbatda</span></li>
+    <li>Dinamik SQL va SQL injection<span class="tag">navbatda</span></li>
+    <li>Trigger, avtonom tranzaksiya, DBMS_SCHEDULER<span class="tag">navbatda</span></li>
+  </ol>
+  <p style="margin:0.7rem 0 0">D5 xulosa va test</p>
+</nav><nav class="toc" aria-label="D6">
+  <h2>D6. Java'dan bazaga (keyinroq)</h2>
+  <ol start="26">
+    <li>JDBC, connection pool, Hibernate<span class="tag">navbatda</span></li>
+  </ol>
+  
+</nav>
+<nav class="toc" aria-label="Yakun"><h2>Yakun</h2><p><strong>Yakun: xulosa, test va bank misolida suhbat mashqi (o'tkazma protsedurasi)</strong></p></nav>
+</main>
+</body>
+</html>
