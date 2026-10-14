@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>3-dars. Oracle tarixi: v2 dan 26ai gacha</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">4. Ma'lumotlar bazasi</a> / D0 Fayldan bazagacha</p>
+<h1>3-dars. Oracle tarixi: v2 dan 26ai gacha</h1>
+<p class="lead">Savol: Oracle qanday paydo bo'lgan, har bir versiya qaysi muammoni yechgan, va bugun qaysi versiyalar ishlatiladi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Oracle Database</strong> 1979-yildan beri sotiladigan relyatsion DBMS. Uni 1977-yilda Larri Ellison, Bob Mayner va Ed Outs asos solgan kompaniya yaratgan. Bugun u bank, telekom va davlat tizimlarida eng ko'p ishlatiladigan tijorat bazalaridan biri.</p>
+    <p>Bu dars versiyalar tarixi: har bir versiya qanday og'riqqa javob bergani va bugun siz ishlatadigan qaysi imkoniyat qachon paydo bo'lgani.</p>
+    <p>Diqqat: rejada dars nomi «v2 dan 23ai gacha» edi. 2025-yil oktyabrida 23ai o'rnini 26ai egalladi, shuning uchun dars shu yerdan tugaydi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Ishda:</strong> qaysi SQL yoki PL/SQL imkoniyatidan foydalanish mumkinligi versiyaga bog'liq (masalan <span class="num">FETCH FIRST</span> 12c dan, <span class="num">BOOLEAN</span> SQL'da 23ai dan).</li>
+      <li><strong>Suhbatda:</strong> «qaysi versiyalarda ishlagansiz?», «CDB va PDB nima?», «RAC va Data Guard farqi?», «19c dan nimasi bilan farq qiladi?».</li>
+      <li><strong>Tushunish uchun:</strong> Oracle'ning g'alati odatlari (CONNECT BY, DUAL, VARCHAR2) tarixiy sabablarga ega.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>Oracle qanday tug'ilgan va nega birinchi versiya «2» deb nomlangan;</li>
+      <li>asosiy versiyalar va har biri olib kelgan eng muhim imkoniyat;</li>
+      <li>Oracle arxitekturasi qanday o'sgan: bitta kompyuterdan RAC va multitenant gacha;</li>
+      <li>uzoq muddatli va innovatsion relizlar, versiya raqami nimani bildiradi;</li>
+      <li>bugun qaysi versiyalar dolzarb va qachongacha qo'llab-quvvatlanadi.</li>
+    </ul>
+  </div>
+</div>
+<p>2-darsda relyatsion g'oya qanday tug'ilganini ko'rdik. Bu darsda shu g'oyani sotuvga chiqargan mahsulot va uning 45 yillik yo'li.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bank ilovasidan diskkacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Ko'k quti shu darsning mavzusi: Oracle serverining o'zi va u qanday o'sgani.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Kompaniya tarixi: SDL, Relational Software, Oracle</li>
+      <li>V2 dan 26ai gacha har bir asosiy versiya</li>
+      <li>Arxitektura o'sishi: mijoz-server, PL/SQL, RAC, Data Guard, multitenant</li>
+      <li>Versiya raqamlari, uzoq muddatli va innovatsion relizlar, qo'llab-quvvatlash muddatlari</li>
+      <li>Qaysi imkoniyat qaysi versiyadan: amaliy jadval</li>
+      <li>Nashrlar: Free, Standard, Enterprise</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Instance, SGA, PGA va jarayonlar ichkaridan: 10-darsda</li>
+      <li>Read consistency qanday ishlaydi: 14-darsda</li>
+      <li>Har bir SQL va PL/SQL imkoniyati batafsil: tegishli darslarda</li>
+      <li>Litsenziyalash va narxlar</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>G'oya bor, mahsulot yo'q</h3>
+<p>1970-yillarning o'rtasida relyatsion model maqolalarda mavjud edi, IBM'ning System R loyihasi uni laboratoriyada isbotlayotgan edi. Lekin IBM uni sotuvga chiqarishga shoshilmadi: uning IMS mahsuloti yaxshi pul topardi, yangi mahsulot o'zini o'zi raqobatga qo'ygan bo'lardi. Banklar va davlat idoralari esa hamon navigatsion bazalar bilan qiynalardi.</p>
+<p>Shu bo'shliqni kichik kompaniya ko'rdi. Larri Ellison (Larry Ellison), Bob Mayner (Bob Miner) va Ed Outs (Ed Oates) 1977-yilda Software Development Laboratories kompaniyasini ochishdi. Ular System R haqidagi ochiq maqolalarni o'qib, IBM'dan oldin relyatsion bazani sotuvga chiqarishga qaror qilishdi va SQL tilini tanlashdi, chunki u IBM'ning tili edi: IBM keyinchalik o'z mahsulotini chiqarganda Oracle unga mos bo'lardi. «Oracle» nomi Ellison oldin ishlagan, Markaziy razvedka boshqarmasi buyurtma bergan loyihaning kod nomidan olingan.</p>
+<p>1979-yilda kompaniya Relational Software, Inc. deb nomlandi va Oracle Version 2 ni chiqardi: birinchi tijorat SQL relyatsion bazasi. Versiya 1 hech qachon bo'lmagan: «ikkinchi versiya» xaridorlarga ishonchliroq tuyulsin deb shunday nomlangan. 1982-yilda kompaniya mahsulot nomini oldi: Oracle Systems Corporation, keyinroq Oracle Corporation.</p>
+
+<h3><span class="part">2. Ichkarida</span>Versiyalar va arxitekturaning o'sishi</h3>
+
+<p class="beat">Versiyalar xaritasi</p>
+<p>Har bir versiyani bosing: pastda u nima olib kelgani va bu kursning qaysi darsiga bog'langani. To'q sariq qutilar o'tilgan versiyalar, ko'k tanlangani. Eslab qolish uchun maslahat: har bir versiyadan bitta asosiy so'zni eslang (V4: o'qish izchilligi, V6: qator qulfi, 7: protseduralar, 8: partitsiya, 9i: RAC, 10g: avtomatika, 12c: multitenant, 19c: uzoq qo'llab-quvvatlash, 23ai: vektorlar).</p>
+<figure class="fig">
+  <div class="evo-tabs" id="tlT" role="group" aria-label="Versiyani tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="tl" style="width:1240px;height:470px" viewBox="0 0 1240 470" role="img" aria-label="Oracle versiyalari xaritasi: V2 dan 26ai gacha"></svg></div>
+  <p class="say" id="tlSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Arxitektura qanday o'sgan</p>
+<p>Versiyalar ro'yxatidan ham muhimrog'i: Oracle qanday shaklda ishlashi qanday o'zgargan. Har bir qadam bankning bitta talabiga javob: ko'p foydalanuvchi, tezlik, qoidalar bitta joyda, to'xtovsiz ishlash, kam xarajat.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="arT" role="group" aria-label="Davrni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="ar" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Oracle arxitekturasining o'sishi: bitta kompyuter, mijoz-server, PL/SQL, RAC, multitenant, bulut"></svg></div>
+  <p class="say" id="arSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Versiya raqami va relizlar turlari</p>
+<p>Oracle versiya raqami bir necha qismdan iborat. 12c gacha u shunday edi: <span class="num">11.2.0.4</span>, ya'ni asosiy versiya 11, reliz 2, yamoq to'plami 4. 18c dan boshlab birinchi raqam yilni bildiradi, ikkinchisi chorakda bir chiqadigan <strong>Release Update</strong> (RU, xatolar va xavfsizlik tuzatishlari to'plami) raqami: masalan <span class="num">19.24</span> yoki <span class="num">23.26.1</span>.</p>
+<p>2018-yildan Oracle ikki xil reliz chiqaradi. <strong>Uzoq muddatli</strong> (long term) relizlar ko'p yil qo'llab-quvvatlanadi va banklar ularni ishlab chiqarishda ishlatadi. <strong>Innovatsion</strong> relizlar qisqa muddatli, yangi imkoniyatlarni erta sinash uchun.</p>
+<div class="scroll">
+<table>
+<thead><tr><th>Reliz</th><th>Turi</th><th>Holati (2026-yil oktyabr)</th></tr></thead>
+<tbody>
+<tr><td>11.2.0.4</td><td>11g ning yakuniy relizi</td><td>qo'llab-quvvatlash tugagan; eski tizimlarda hali uchraydi</td></tr>
+<tr><td>12.1.0.2, 12.2.0.1</td><td>12c</td><td>asosiy qo'llab-quvvatlash tugagan</td></tr>
+<tr><td>18c</td><td>12.2 oilasi, qisqa</td><td>tugagan</td></tr>
+<tr><td>19c</td><td>uzoq muddatli, 12.2 oilasining yakuniy relizi</td><td>Oracle e'loniga ko'ra Premier 2029-yil 31-dekabrgacha, Extended 2032-yil 31-dekabrgacha</td></tr>
+<tr><td>21c</td><td>innovatsion</td><td>qisqa muddatli; ishlab chiqarish uchun tavsiya etilmagan</td></tr>
+<tr><td>23ai (2025-yil oktyabrdan 26ai)</td><td>uzoq muddatli, 19c dan keyingi</td><td>joriy versiya; 26ai ga o'tish Release Update 23.26 bilan</td></tr>
+</tbody>
+</table>
+</div>
+<p>Qo'llab-quvvatlash muddatlari vaqt o'tishi bilan o'zgaradi (19c muddati bir necha marta uzaytirilgan). Aniq sanalar har doim Oracle'ning «Lifetime Support Policy» hujjatida va My Oracle Support'dagi Release Schedule eslatmasida.</p>
+
+<p class="beat">Nashrlar (editions)</p>
+<ul>
+  <li><strong>Free</strong> (avval Express Edition, XE): bepul, cheklangan resurslar (protsessor, xotira, hajm). O'qish va mashq uchun ideal.</li>
+  <li><strong>Standard Edition 2</strong>: kichik va o'rta tizimlar uchun, ba'zi imkoniyatlarsiz.</li>
+  <li><strong>Enterprise Edition</strong>: hamma imkoniyat; partitsiyalash, RAC, Active Data Guard kabi ko'plari qo'shimcha pullik opsiya. Banklar odatda shu nashrda.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Kompaniya va mahsulot bosqichlari</h3>
+<p>Versiyalar xaritasini endi og'riq-javob ko'rinishida o'qiymiz: har bosqichda kimlar va nima uchun Oracle'ni tanlagan.</p>
+<div class="bench" id="evoO"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Oracle Database</dt><dd>Oracle kompaniyasining relyatsion DBMS i. Kundalik nutqda shunchaki «Oracle».</dd>
+  <dt>Versiya va reliz</dt><dd>Versiya asosiy raqam (19c, 23ai); reliz uning ichidagi bosqich (11g Release 2). Harflar marketing: i internet, g grid, c cloud, ai sun'iy intellekt.</dd>
+  <dt>Release Update (RU)</dt><dd>Chorakda bir chiqadigan rasmiy yangilanish: xatolar va xavfsizlik tuzatishlari. Versiya raqamining ikkinchi qismi (19.24, 23.26).</dd>
+  <dt>Uzoq muddatli reliz (long term release)</dt><dd>Ko'p yil qo'llab-quvvatlanadigan reliz: 19c, 23ai/26ai. Ishlab chiqarish uchun.</dd>
+  <dt>Innovatsion reliz</dt><dd>Qisqa muddatli reliz yangi imkoniyatlarni sinash uchun: 18c, 21c.</dd>
+  <dt>Premier va Extended Support</dt><dd>Asosiy qo'llab-quvvatlash (yangi tuzatishlar) va kengaytirilgan, odatda qo'shimcha pullik qo'llab-quvvatlash davrlari.</dd>
+  <dt>Mijoz-server (client/server)</dt><dd>Ilova bir kompyuterda, baza boshqa serverda; ular tarmoq orqali SQL va natija almashadi.</dd>
+  <dt>Saqlanadigan protsedura (stored procedure)</dt><dd>Bazaning ichida saqlanadigan va bajariladigan PL/SQL dastur. Oracle7 dan.</dd>
+  <dt>O'qish izchilligi (read consistency)</dt><dd>So'rov o'zi boshlangan paytdagi ma'lumotni ko'radi; o'qiyotganlar yozayotganlarni kutmaydi. Oracle V4 dan.</dd>
+  <dt>Qator darajasidagi qulf (row-level locking)</dt><dd>O'zgarayotgan qatorlargina qulflanadi, jadvalning qolgan qismi bilan boshqalar ishlay oladi. Oracle V6 dan.</dd>
+  <dt>Partitsiyalash</dt><dd>Katta jadvalni mantiqan bitta, jismonan bo'laklarga bo'lib saqlash (masalan oylar bo'yicha). Oracle8 dan.</dd>
+  <dt>RAC</dt><dd>Real Application Clusters: bitta bazani bir vaqtda bir nechta server (instance) boshqaradi. 9i dan.</dd>
+  <dt>Data Guard</dt><dd>Asosiy bazaning jurnallarini zaxira bazaga uzatib, uni yangilab turish; asosiy ishdan chiqsa zaxira ishga tushadi.</dd>
+  <dt>Instance</dt><dd>Ishlab turgan Oracle: xotira va jarayonlar. Baza esa diskdagi fayllar. Batafsil 10-darsda.</dd>
+  <dt>CDB va PDB</dt><dd>Multitenant arxitektura (12c dan): konteyner baza (CDB) ichida bir nechta ulanadigan baza (PDB); ular xotira va jarayonlarni bo'lishadi.</dd>
+  <dt>Exadata</dt><dd>Oracle bazasi uchun maxsus qurilgan apparat va dastur majmuasi (2008-yildan).</dd>
+  <dt>Autonomous Database</dt><dd>Oracle bulutidagi o'zini o'zi boshqaradigan (yamoqlar, sozlash, zaxira avtomatik) baza xizmati.</dd>
+  <dt>Nashr (edition)</dt><dd>Bitta versiyaning litsenziya bo'yicha turlari: Free, Standard Edition 2, Enterprise Edition.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Versiyani biling va unga mos yozing</h3>
+<div class="rule">
+  <b>Qoida: avval versiyani tekshiring</b>
+  <p>Yangi loyihaga yoki bankka kelganda birinchi savol: ishlab chiqarishda qaysi versiya? Test bazasi boshqa versiyada bo'lsa, testda ishlagan kod ishlab chiqarishda kompilyatsiya bo'lmasligi mumkin.</p>
+  <pre class="code" style="margin-top:0.5rem">SELECT banner_full FROM v$version;      -- 18c va undan yangi
+SELECT banner FROM v$version;           -- eski versiyalar
+SELECT version_full FROM v$instance;    -- masalan 19.24.0.0.0</pre>
+</div>
+<div class="rule">
+  <b>Qoida: imkoniyat qaysi versiyadan</b>
+  <p>Suhbatda va ishda ko'p kerak bo'ladigan imkoniyatlar va ular paydo bo'lgan versiya:</p>
+  <div class="scroll"><table>
+  <thead><tr><th>Imkoniyat</th><th>Versiya</th><th>Dars</th></tr></thead>
+  <tbody>
+  <tr><td><span class="num">CONNECT BY</span> (daraxt so'rovi)</td><td>V2</td><td>7</td></tr>
+  <tr><td>Saqlanadigan protsedura, paket, trigger</td><td>Oracle7</td><td>22, 25</td></tr>
+  <tr><td>Partitsiyalash</td><td>Oracle8</td><td>18</td></tr>
+  <tr><td>Analitik funksiyalar (<span class="num">ROW_NUMBER() OVER</span>)</td><td>8i (8.1.6)</td><td>8</td></tr>
+  <tr><td><span class="num">MERGE</span>, flashback query, ANSI JOIN sintaksisi</td><td>9i</td><td>6, 14</td></tr>
+  <tr><td><span class="num">PIVOT</span>, natija keshi</td><td>11g R1</td><td>5</td></tr>
+  <tr><td>Rekursiv <span class="num">WITH</span>, <span class="num">LISTAGG</span></td><td>11g R2</td><td>7, 8</td></tr>
+  <tr><td><span class="num">FETCH FIRST n ROWS</span>, identity ustun, <span class="num">JSON_TABLE</span></td><td>12c</td><td>5, 4</td></tr>
+  <tr><td>Avtomatik indekslash</td><td>19c (Exadata va bulutda)</td><td>16</td></tr>
+  <tr><td>SQL'da <span class="num">BOOLEAN</span>, <span class="num">IF [NOT] EXISTS</span>, <span class="num">FROM</span> siz <span class="num">SELECT</span></td><td>23ai</td><td>9</td></tr>
+  </tbody></table></div>
+</div>
+<div class="rule">
+  <b>Tuzoq: eski kodda eski uslub</b>
+  <p>Eski bank tizimlarida 8i–10g davridan qolgan kod ko'p: tashqi join uchun <span class="num">(+)</span>, sahifalash uchun ichma-ich <span class="num">ROWNUM</span>, satrlarni yig'ish uchun o'z funksiyalari. Ular ishlaydi, lekin o'qish qiyin va ba'zan xato beradi.</p>
+  <p class="why">Qoida: yangi kodni versiya imkon bergan zamonaviy sintaksisda yozing (<span class="num">LEFT JOIN</span>, <span class="num">FETCH FIRST</span>, <span class="num">LISTAGG</span>), eskisini faqat tushunish uchun o'qiy oling. Suhbatda ikkalasini ham bilish kerak.</p>
+</div>
+<div class="rule">
+  <b>Qoida: mashq uchun bepul Oracle</b>
+  <p>Kurs davomida misollarni o'zingiz bajaring. Oracle AI Database Free (bepul nashr) kompyuteringizga Docker orqali o'rnatiladi: masalan jamoa qo'llab-quvvatlaydigan <span class="num">gvenzl/oracle-free</span> obrazi yoki Oracle'ning rasmiy konteyner reyestri. Mijoz sifatida SQL Developer yoki VS Code uchun Oracle kengaytmasi.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Ishda.</strong> Ishlayotgan bazalaringiz (ishlab chiqarish va test) qaysi versiyada? Yuqoridagi so'rovlar bilan tekshiring va natijani yozing. Ular CDB/PDB arxitekturasidami? (<span class="num">SELECT cdb FROM v$database;</span>)</li>
+  <li><strong>Xaritada.</strong> Quyidagilarni versiyalar bo'yicha joylashtiring: qator qulfi, protseduralar, RAC, multitenant, vektor qidiruv, o'qish izchilligi. Keyin xaritani ochib tekshiring.</li>
+  <li><strong>Arxitektura chizmasida.</strong> «Mantiq bazada» qadamida 5 ta SQL va bitta chaqiruvni solishtiring. Server va ilova orasida bitta borib-kelish 1 ms bo'lsa, 10 000 o'tkazma uchun farq qancha?</li>
+  <li><strong>Kodda.</strong> O'zingizning kodingizdan <span class="num">(+)</span> yoki ichma-ich <span class="num">ROWNUM</span> ishlatilgan so'rovni toping va uni zamonaviy sintaksisda qayta yozishga urinib ko'ring (to'liq javobni 5–6-darslarda tekshiramiz).</li>
+  <li><strong>O'rnatish.</strong> Kompyuteringizga Oracle Free o'rnating va <span class="num">SELECT banner_full FROM v$version;</span> ni bajaring. Keyingi bo'limdagi barcha misollar shu bazada bajariladi.</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni o'z so'zlaringiz bilan chatga yozing.</p>
+<ol class="check">
+  <li>Oracle nega IBM'dan oldin relyatsion bazani sotuvga chiqara oldi? Nega SQL tili tanlangan?</li>
+  <li>V4, V6 va Oracle7 versiyalarining har biri bank uchun qaysi muhim narsani olib keldi?</li>
+  <li>RAC va Data Guard farqi nima? Ikkalasi qaysi muammoni yechadi?</li>
+  <li>CDB va PDB nima, multitenant nega paydo bo'lgan?</li>
+  <li>Uzoq muddatli va innovatsion reliz farqi nima? 19c va 23ai/26ai qaysi turga kiradi va 26ai ga o'tish qanday bo'ladi?</li>
+</ol>
+
+<h3><span class="part">8. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching.</p>
+<details><summary>Qaysi Oracle versiyalarida ishlagansiz va ularning farqi nima?</summary>
+<p>Javobni o'z tajribangizga moslang. Namuna: «Asosan 19c da, ilgari 11g va 12c bilan ham. 12c multitenant arxitekturasini olib keldi (CDB/PDB), identity ustunlar, FETCH FIRST, JSON_TABLE. 19c 12.2 oilasining uzoq muddatli relizi: avtomatik indekslash, real vaqt statistikasi. 23ai, hozir 26ai, keyingi uzoq muddatli reliz: SQL'da BOOLEAN, IF EXISTS, JSON-relyatsion duality, vektor qidiruv.»</p></details>
+<details><summary>Instance va database farqi nima?</summary>
+<p>Database diskdagi fayllar: ma'lumot fayllari, nazorat fayllari, jurnal fayllari. Instance xotira (SGA) va fon jarayonlari: ular ishga tushganda bazani ochadi va u bilan ishlaydi. Oddiy o'rnatishda bitta instance bitta bazani boshqaradi; RAC da bitta bazani bir nechta instance boshqaradi. Batafsil 10-darsda.</p></details>
+<details><summary>RAC va Data Guard nima?</summary>
+<p>RAC: bitta baza, umumiy disk, bir nechta server (instance) uni bir vaqtda boshqaradi; bitta server ishdan chiqsa, qolganlari davom etadi, yuk ham bo'linadi. Data Guard: asosiy bazadan alohida zaxira (standby) bazaga redo jurnallarini uzatib, uni sinxron yoki asinxron yangilab turish; falokat (butun markaz ishdan chiqishi) holatida zaxiraga o'tiladi. Active Data Guard bilan zaxira bazadan o'qish (hisobotlar) ham mumkin.</p></details>
+<details><summary>Multitenant (CDB/PDB) nima beradi?</summary>
+<p>Bitta konteyner baza ichida bir nechta ulanadigan baza: ular bitta instance (xotira va jarayonlar) ni bo'lishadi, shuning uchun bitta serverda ko'p baza arzonroq ishlaydi. PDB ni tez nusxalash, uzib boshqa CDB ga ulash, alohida yangilash mumkin. 21c dan boshlab non-CDB arxitekturasi qo'llab-quvvatlanmaydi.</p></details>
+<details><summary>Oracle'ning raqobatchilardan asosiy farqi nima deb o'ylaysiz?</summary>
+<p>Tarixan: o'qish izchilligi (o'qiyotganlar yozayotganlarni kutmaydi, V4 dan), qator darajasidagi qulf va undan kattalashmaydigan qulflar, bazaning ichidagi kuchli PL/SQL, RAC va Data Guard bilan yuqori ishonchlilik, partitsiyalash. Shuning uchun banklar uni ko'p tanlagan. Kamchiligi: narx va litsenziyalash murakkabligi; PostgreSQL ko'p sohalarda raqobatchi bo'lib qolgan.</p></details>
+<details><summary>Nega Oracle'da DUAL jadvali bor?</summary>
+<p>SQL'da <span class="num">SELECT</span> har doim <span class="num">FROM</span> talab qilgan, shuning uchun hech qanday jadvalga tegishli bo'lmagan ifodani hisoblash uchun (<span class="num">SELECT SYSDATE FROM dual</span>) bitta qatorli maxsus jadval ishlatiladi. 23ai dan boshlab <span class="num">FROM</span> siz yozish mumkin: <span class="num">SELECT SYSDATE;</span>. Eski kodlarda DUAL hamma joyda uchraydi.</p></details>
+
+<h3>Chuqurroq</h3>
+<details><summary>Nega VARCHAR emas, VARCHAR2?</summary>
+<p>Oracle VARCHAR2 turini standartning VARCHAR ta'rifi kelajakda o'zgarishi mumkinligi sababli kiritgan va VARCHAR nomini zaxirada saqlagan: hujjatlarda VARCHAR ishlatmaslik, VARCHAR2 ishlatish tavsiya etiladi. Shuningdek Oracle'da bo'sh satr ('') NULL deb hisoblanadi, bu standartdan farq qiladi va ko'p xatolarga sabab bo'ladi (9-dars).</p></details>
+<details><summary>Oracle va Java</summary>
+<p>Oracle 2010-yilda Sun Microsystems'ni sotib oldi va Java'ning egasi bo'ldi. Bazaning ichida Java 8i dan beri ishlaydi (Java saqlanadigan protseduralar), lekin amalda bank mantig'i asosan PL/SQL'da yoziladi. Java'dan bazaga ulanish (JDBC) D6 bo'limida.</p></details>
+<details><summary>Raqobatchilar qisqacha</summary>
+<p>IBM Db2 (System R vorisi, 1983), Microsoft SQL Server (1989, Sybase bilan hamkorlikdan), PostgreSQL (Ingres'ning davomi bo'lgan Postgres loyihasidan, 1996-yildan shu nom bilan), MySQL (1995, 2010-yildan Oracle'niki). Bu kursdagi relyatsion g'oyalar ularning hammasida ishlaydi; farq ichki tuzilish va kengaytmalarda.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database versiyalari va ularning imkoniyatlari: Oracle hujjatlari («New Features Guide» har bir versiya uchun) va Vikipediyadagi «Oracle Database» maqolasining versiyalar jadvali. 23ai nomlanishi: Oracle press-relizi, 2024-yil 2-may. 26ai: Oracle Database blogi, «Oracle Announces Oracle AI Database 26ai», 2025-yil 14-oktyabr (2026-yil yanvar qo'shimchasi bilan). 19c qo'llab-quvvatlash muddatlari: The Register, 2025-yil 18-fevral, Oracle e'loniga tayanib; aniq sanalar uchun Oracle Lifetime Support Policy.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Oracle 1979-yilda birinchi tijorat SQL bazasi sifatida paydo bo'lgan. Asosiy qadamlar: V4 o'qish izchilligi, V6 qator qulfi va PL/SQL, Oracle7 protsedura va paketlar, 8 partitsiyalash, 9i RAC, 10g avtomatika, 12c multitenant, 19c uzoq muddatli reliz, 23ai/26ai vektorlar va AI. Arxitektura bitta kompyuterdan mijoz-server, bazadagi mantiq, klaster va konteynerlar orqali bulutga o'sgan. Ishda birinchi qadam: versiyani tekshirish.</p>
+  <p><strong>D0 bo'limi tugadi.</strong> Keyingi sahifa bo'lim xulosasi va testi: uchala darsning hamma asosiy ma'lumotlari va atamalari bir joyda.</p>
+  <p><strong>Keyingi bo'lim.</strong> D1. Relyatsion model va SQL: jadval, kalitlar, bog'lanishlar va normallashtirishdan boshlaymiz.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="02-ierarxik-tarmoq-relyatsion.html">Oldingi: 2. Ierarxik, tarmoq, relyatsion</a><a href="d0-xulosa.html">Keyingi: D0 xulosa va test</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Bank ilovasi', sub: 'Java backend, mobil ilova, internet-bank', ex: '«O\'tkazish» tugmasi bosildi', link: 'bazaga SQL yuboradi' },
+    { title: 'SQL va PL/SQL', sub: 'Bazaga beriladigan savol va buyruqlar', ex: 'UPDATE accounts SET balance = balance - 500000', link: 'Oracle serveri bajaradi' },
+    { title: 'Oracle serveri (DBMS)', sub: 'Xotira va jarayonlar: hamma so\'rov shu orqali', ex: 'navbat, qulf, tranzaksiya, kesh', link: 'fayllarga yozadi' },
+    { title: 'Baza fayllari', sub: 'Ma\'lumot fayllari, redo va undo', ex: 'bloklar, segmentlar, tablespace', link: 'operatsion tizim orqali' },
+    { title: 'Disk', sub: 'HDD yoki SSD (P0, 5-dars)', ex: '4096 baytli bo\'laklar', link: '' }
+  ], [2], 'Bu dars: Oracle serverining o\'zi va u qanday o\'sgan');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  // Sahna: { g: [[x,y,w,h,nom]], b: [[x,y,w,h,nom,izoh,cls]], a: [[d,yorliq,lx,ly]], c: [[x,y,[qatorlar],cls]], x: [[x,y,matn,cls,anchor]] }
+  function scene(svg, mk, st) {
+    svg.textContent = ''; marker(svg, mk);
+    (st.g || []).forEach(function (g) { group(svg, g[0], g[1], g[2], g[3], g[4]); });
+    (st.b || []).forEach(function (b) { box(svg, b[0], b[1], b[2], b[3], b[4], b[5], b[6]); });
+    (st.a || []).forEach(function (a) { arrow(svg, mk, a[0], a[1], a[2], a[3]); });
+    (st.c || []).forEach(function (c) { code(svg, c[0], c[1], c[2], c[3]); });
+    (st.x || []).forEach(function (t) { S(svg, 'text', { x: t[0], y: t[1], 'class': t[3] || 'sub', 'text-anchor': t[4] || 'start' }, t[2]); });
+  }
+  // Qadamli chizma: bir nechta stsenariy, har birida qadamlar
+  function steps(svgId, scId, stId, sayId, list, mk) {
+    var svg = $(svgId), say = $(sayId), sc = 0, st = 0, setSc = null;
+    if (scId) setSc = tabs(scId, list.map(function (x) { return x.t; }), function (i) { sc = i; st = 0; draw(); });
+    function draw() {
+      if (setSc) setSc(sc);
+      var L = list[sc].steps;
+      var setSt = tabs(stId, L.map(function (x, i) { return (i + 1) + '. ' + x.t; }), function (i) { st = i; draw(); });
+      setSt(st); scene(svg, mk, L[st]); say.textContent = L[st].s;
+      say.className = 'say' + (L[st].bad ? ' bad' : '');
+    }
+    draw();
+  }
+
+  var D = {"TL": [{"t": "x", "steps": [{"t": "V2", "b": [[20, 20, 192, 62, "V2", "1979", "on"], [222, 20, 192, 62, "V3", "1983", ""], [424, 20, 192, 62, "V4", "1984", ""], [626, 20, 192, 62, "V5", "1985", ""], [828, 20, 192, 62, "V6", "1988", ""], [1030, 20, 192, 62, "Oracle7", "1992", ""], [20, 96, 192, 62, "Oracle8", "1997", ""], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "V2 (1979): Birinchi tijorat SQL bazasi", "", "on"]], "x": [[30, 342, "PDP-11 kompyuteri uchun assemblerda yozilgan, 128 KB xotirada ishlagan. SQL: SELECT, JOIN, hatto daraxt uchun CONNECT BY. Versiya 1 umuman chiqmagan:", "sub", "start"], [30, 364, "«ikkinchi versiya» ishonchliroq eshitilsin deb shunday nomlangan.", "sub", "start"], [30, 396, "Nega muhim: IBM ning System R maqolalaridagi g'oyani birinchi bo'lib sotuvga chiqargan. CONNECT BY hamon ishlaydi: 7-dars.", "lbl", "start"]], "s": "V2, 1979. Birinchi tijorat SQL bazasi. PDP-11 kompyuteri uchun assemblerda yozilgan, 128 KB xotirada ishlagan. SQL: SELECT, JOIN, hatto daraxt uchun CONNECT BY. Versiya 1 umuman chiqmagan: «ikkinchi versiya» ishonchliroq eshitilsin deb shunday nomlangan."}, {"t": "V3", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "on"], [424, 20, 192, 62, "V4", "1984", ""], [626, 20, 192, 62, "V5", "1985", ""], [828, 20, 192, 62, "V6", "1988", ""], [1030, 20, 192, 62, "Oracle7", "1992", ""], [20, 96, 192, 62, "Oracle8", "1997", ""], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "V3 (1983): C tilida qayta yozildi", "", "on"]], "x": [[30, 342, "Assemblerdan C ga o'tkazildi: endi bitta kod har xil kompyuter va operatsion tizimlarda (UNIX, mainframe, mini-kompyuterlar) ishlaydi. Bir vaqtdagi", "sub", "start"], [30, 364, "ishni boshqarish yaxshilandi.", "sub", "start"], [30, 396, "Nega muhim: Ko'chmalik (portability) Oracle'ning asosiy afzalligi bo'ldi: mijoz qaysi kompyuterni olmasin, Oracle o'rnatsa bo'lardi.", "lbl", "start"]], "s": "V3, 1983. C tilida qayta yozildi. Assemblerdan C ga o'tkazildi: endi bitta kod har xil kompyuter va operatsion tizimlarda (UNIX, mainframe, mini-kompyuterlar) ishlaydi. Bir vaqtdagi ishni boshqarish yaxshilandi."}, {"t": "V4", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "on"], [626, 20, 192, 62, "V5", "1985", ""], [828, 20, 192, 62, "V6", "1988", ""], [1030, 20, 192, 62, "Oracle7", "1992", ""], [20, 96, 192, 62, "Oracle8", "1997", ""], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "V4 (1984): O'qish izchilligi (read consistency)", "", "on"]], "x": [[30, 342, "Ko'p versiyali o'qish: o'qiyotgan so'rov yozayotganni kutmaydi va yozayotgan o'qiyotganni to'xtatmaydi. So'rov boshlangan paytdagi holatni ko'radi,", "sub", "start"], [30, 364, "o'zgarishlar eski nusxadan (undo) olinadi.", "sub", "start"], [30, 396, "Nega muhim: Oracle'ning eng muhim xususiyatlaridan biri, bugun MVCC deb ataladi: 11 va 14-darslar.", "lbl", "start"]], "s": "V4, 1984. O'qish izchilligi (read consistency). Ko'p versiyali o'qish: o'qiyotgan so'rov yozayotganni kutmaydi va yozayotgan o'qiyotganni to'xtatmaydi. So'rov boshlangan paytdagi holatni ko'radi, o'zgarishlar eski nusxadan (undo) olinadi."}, {"t": "V5", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "on"], [828, 20, 192, 62, "V6", "1988", ""], [1030, 20, 192, 62, "Oracle7", "1992", ""], [20, 96, 192, 62, "Oracle8", "1997", ""], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "V5 (1985): Mijoz-server va taqsimlangan baza", "", "on"]], "x": [[30, 342, "Ilova foydalanuvchining kompyuterida, baza alohida serverda: ular tarmoq orqali gaplashadi (SQL*Net). Bir bazadan boshqasiga murojaat (database link).", "sub", "start"], [30, 364, "Bog'langan ichki so'rovlar (correlated subquery).", "sub", "start"], [30, 396, "Nega muhim: Bugungi har bir ilova shu sxemada: Java backend bazaga tarmoq orqali ulanadi. Ichki so'rovlar: 7-dars.", "lbl", "start"]], "s": "V5, 1985. Mijoz-server va taqsimlangan baza. Ilova foydalanuvchining kompyuterida, baza alohida serverda: ular tarmoq orqali gaplashadi (SQL*Net). Bir bazadan boshqasiga murojaat (database link). Bog'langan ichki so'rovlar (correlated subquery)."}, {"t": "V6", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "on"], [1030, 20, 192, 62, "Oracle7", "1992", ""], [20, 96, 192, 62, "Oracle8", "1997", ""], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "V6 (1988): Qator darajasidagi qulf va PL/SQL", "", "on"]], "x": [[30, 342, "Butun jadvalni emas, faqat o'zgarayotgan qatorni qulflash. Baza ishlab turganda zaxira nusxa olish. B*-tree indekslar. PL/SQL ning birinchi versiyasi", "sub", "start"], [30, 364, "(hali saqlanadigan protsedurasiz).", "sub", "start"], [30, 396, "Nega muhim: Bankda minglab kassir bir vaqtda ishlashi uchun qator qulfi shart: 15-dars. Indekslar: 16-dars. PL/SQL: 19-dars.", "lbl", "start"]], "s": "V6, 1988. Qator darajasidagi qulf va PL/SQL. Butun jadvalni emas, faqat o'zgarayotgan qatorni qulflash. Baza ishlab turganda zaxira nusxa olish. B*-tree indekslar. PL/SQL ning birinchi versiyasi (hali saqlanadigan protsedurasiz)."}, {"t": "Oracle7", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "on"], [20, 96, 192, 62, "Oracle8", "1997", ""], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "Oracle7 (1992): Mantiq bazaning ichida", "", "on"]], "x": [[30, 342, "Saqlanadigan protsedura va funksiyalar, paketlar, triggerlar, bog'liqlik cheklovlari (FOREIGN KEY) baza darajasida, ikki bosqichli commit (bir nechta", "sub", "start"], [30, 364, "baza bitta tranzaksiyada), xarajatga asoslangan optimizator (cost-based optimizer).", "sub", "start"], [30, 396, "Nega muhim: Bank biznes mantig'ini PL/SQL paketlarida saqlash an'anasi shu versiyadan: 22 va 25-darslar. Optimizator: 17-dars.", "lbl", "start"]], "s": "Oracle7, 1992. Mantiq bazaning ichida. Saqlanadigan protsedura va funksiyalar, paketlar, triggerlar, bog'liqlik cheklovlari (FOREIGN KEY) baza darajasida, ikki bosqichli commit (bir nechta baza bitta tranzaksiyada), xarajatga asoslangan optimizator (cost-based optimizer)."}, {"t": "Oracle8", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "on"], [222, 96, 192, 62, "8i", "1998–1999", ""], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "Oracle8 (1997): Partitsiyalash va RMAN", "", "on"]], "x": [[30, 342, "Katta jadvalni bo'laklarga (partition) bo'lish, masalan o'tkazmalarni oylar bo'yicha. Zaxira va tiklash vositasi RMAN. Obyekt turlari (obyekt-", "sub", "start"], [30, 364, "relyatsion imkoniyatlar).", "sub", "start"], [30, 396, "Nega muhim: Yillar davomida to'planadigan o'tkazmalar va provodkalar jadvallari shu bilan boshqariladi: 18-dars.", "lbl", "start"]], "s": "Oracle8, 1997. Partitsiyalash va RMAN. Katta jadvalni bo'laklarga (partition) bo'lish, masalan o'tkazmalarni oylar bo'yicha. Zaxira va tiklash vositasi RMAN. Obyekt turlari (obyekt-relyatsion imkoniyatlar)."}, {"t": "8i", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "on"], [424, 96, 192, 62, "9i", "2001", ""], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "8i (1998–1999): Internet va Java bazada", "", "on"]], "x": [[30, 342, "Baza ichida Java, internet protokollari, qatorlar darajasidagi xavfsizlik (Virtual Private Database), 8.1.6 dan analitik (window) funksiyalar.", "sub", "start"], [30, 374, "Nega muhim: «i» harfi internet degani. Analitik funksiyalar hisobotlarda juda ko'p ishlatiladi: 8-dars.", "lbl", "start"]], "s": "8i, 1998–1999. Internet va Java bazada. Baza ichida Java, internet protokollari, qatorlar darajasidagi xavfsizlik (Virtual Private Database), 8.1.6 dan analitik (window) funksiyalar."}, {"t": "9i", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "on"], [626, 96, 192, 62, "10g", "2003", ""], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "9i (2001): RAC: bir baza, bir nechta server", "", "on"]], "x": [[30, 342, "Real Application Clusters: bitta bazani bir vaqtda bir nechta server boshqaradi; biri ishdan chiqsa, qolganlari davom etadi. Flashback query (o'tgan", "sub", "start"], [30, 364, "vaqtdagi holatni o'qish), MERGE buyrug'i, XML DB, Data Guard nomi bilan zaxira baza.", "sub", "start"], [30, 396, "Nega muhim: Yirik banklarda to'xtovsiz ishlash uchun RAC va Data Guard: 10-darsda tilga olinadi.", "lbl", "start"]], "s": "9i, 2001. RAC: bir baza, bir nechta server. Real Application Clusters: bitta bazani bir vaqtda bir nechta server boshqaradi; biri ishdan chiqsa, qolganlari davom etadi. Flashback query (o'tgan vaqtdagi holatni o'qish), MERGE buyrug'i, XML DB, Data Guard nomi bilan zaxira baza."}, {"t": "10g", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "on"], [828, 96, 192, 62, "11g", "2007 / 2009", ""], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "10g (2003): Avtomatik boshqaruv", "", "on"]], "x": [[30, 342, "«g» grid (tarmoq hisoblash) degani. ASM (disklarni Oracle o'zi boshqaradi), AWR va ADDM (ishlash statistikasini avtomatik yig'ish va tahlil),", "sub", "start"], [30, 364, "flashback database, avtomatik statistika yig'ish; 10g Release 2 da shaffof shifrlash (TDE).", "sub", "start"], [30, 396, "Nega muhim: Sekin so'rovni topishda AWR hisobotlari: 17-dars.", "lbl", "start"]], "s": "10g, 2003. Avtomatik boshqaruv. «g» grid (tarmoq hisoblash) degani. ASM (disklarni Oracle o'zi boshqaradi), AWR va ADDM (ishlash statistikasini avtomatik yig'ish va tahlil), flashback database, avtomatik statistika yig'ish; 10g Release 2 da shaffof shifrlash (TDE)."}, {"t": "11g", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "on"], [1030, 96, 192, 62, "12c", "2013", ""], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "11g (2007 / 2009): Ko'p kundalik qulayliklar", "", "on"]], "x": [[30, 342, "Release 1 (2007): Active Data Guard (zaxira bazadan o'qish), natija keshi, PIVOT. Release 2 (2009): rekursiv WITH, LISTAGG, edition-based redefinition", "sub", "start"], [30, 364, "(ilovani to'xtatmasdan yangilash).", "sub", "start"], [30, 396, "Nega muhim: 11.2.0.4 uzoq yillar ko'p banklarda asosiy versiya bo'lgan; hozir ham eski tizimlarda uchraydi.", "lbl", "start"]], "s": "11g, 2007 / 2009. Ko'p kundalik qulayliklar. Release 1 (2007): Active Data Guard (zaxira bazadan o'qish), natija keshi, PIVOT. Release 2 (2009): rekursiv WITH, LISTAGG, edition-based redefinition (ilovani to'xtatmasdan yangilash)."}, {"t": "12c", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "live"], [1030, 96, 192, 62, "12c", "2013", "on"], [20, 172, 192, 62, "18c", "2018", ""], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "12c (2013): Multitenant: konteyner ichida bazalar", "", "on"]], "x": [[30, 342, "«c» cloud (bulut) degani. CDB konteyner ichida bir nechta PDB (alohida bazalar). Identity ustunlar, FETCH FIRST n ROWS, JSON bilan ishlash (IS JSON,", "sub", "start"], [30, 364, "JSON_TABLE), VARCHAR2 32767 baytgacha; 12.1.0.2 (2014) da In-Memory ustunli saqlash.", "sub", "start"], [30, 396, "Nega muhim: Bugungi o'rnatishlarning asosiy arxitekturasi CDB va PDB: 10-dars.", "lbl", "start"]], "s": "12c, 2013. Multitenant: konteyner ichida bazalar. «c» cloud (bulut) degani. CDB konteyner ichida bir nechta PDB (alohida bazalar). Identity ustunlar, FETCH FIRST n ROWS, JSON bilan ishlash (IS JSON, JSON_TABLE), VARCHAR2 32767 baytgacha; 12.1.0.2 (2014) da In-Memory ustunli saqlash."}, {"t": "18c", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "live"], [1030, 96, 192, 62, "12c", "2013", "live"], [20, 172, 192, 62, "18c", "2018", "on"], [222, 172, 192, 62, "19c", "2019", ""], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "18c (2018): Yillik nomlash", "", "on"]], "x": [[30, 342, "Versiya raqami chiqarilgan yilga bog'landi (18 = 2018). Aslida 12.2 oilasining davomi. Polimorf jadval funksiyalari.", "sub", "start"], [30, 374, "Nega muhim: Endi raqamdan yilni bilish mumkin.", "lbl", "start"]], "s": "18c, 2018. Yillik nomlash. Versiya raqami chiqarilgan yilga bog'landi (18 = 2018). Aslida 12.2 oilasining davomi. Polimorf jadval funksiyalari."}, {"t": "19c", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "live"], [1030, 96, 192, 62, "12c", "2013", "live"], [20, 172, 192, 62, "18c", "2018", "live"], [222, 172, 192, 62, "19c", "2019", "on"], [424, 172, 192, 62, "21c", "2020 / 2021", ""], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "19c (2019): Uzoq muddatli reliz", "", "on"]], "x": [[30, 342, "12.2 oilasining yakuniy, uzoq qo'llab-quvvatlanadigan versiyasi. Avtomatik indekslash, real vaqtdagi statistika, SQL plan boshqaruvi. Oracle'ning", "sub", "start"], [30, 364, "e'loniga ko'ra Premier qo'llab-quvvatlash 2029-yil 31-dekabrgacha, kengaytirilgani 2032-yil 31-dekabrgacha.", "sub", "start"], [30, 396, "Nega muhim: Bugun banklarda eng ko'p uchraydigan versiya. Suhbatda «qaysi versiyada ishlagansiz?» degan savolga ko'pincha shu javob.", "lbl", "start"]], "s": "19c, 2019. Uzoq muddatli reliz. 12.2 oilasining yakuniy, uzoq qo'llab-quvvatlanadigan versiyasi. Avtomatik indekslash, real vaqtdagi statistika, SQL plan boshqaruvi. Oracle'ning e'loniga ko'ra Premier qo'llab-quvvatlash 2029-yil 31-dekabrgacha, kengaytirilgani 2032-yil 31-dekabrgacha."}, {"t": "21c", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "live"], [1030, 96, 192, 62, "12c", "2013", "live"], [20, 172, 192, 62, "18c", "2018", "live"], [222, 172, 192, 62, "19c", "2019", "live"], [424, 172, 192, 62, "21c", "2020 / 2021", "on"], [626, 172, 192, 62, "23ai", "2023 / 2024", ""], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "21c (2020 / 2021): Innovatsion reliz", "", "on"]], "x": [[30, 342, "Qisqa muddatli: yangiliklarni sinash uchun. Blokcheyn jadvallar, ikkilik JSON turi, SQL makroslar, bazada JavaScript.", "sub", "start"], [30, 374, "Nega muhim: Ishlab chiqarishda kam ishlatilgan; uning yangiliklari 23ai ga o'tgan.", "lbl", "start"]], "s": "21c, 2020 / 2021. Innovatsion reliz. Qisqa muddatli: yangiliklarni sinash uchun. Blokcheyn jadvallar, ikkilik JSON turi, SQL makroslar, bazada JavaScript."}, {"t": "23ai", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "live"], [1030, 96, 192, 62, "12c", "2013", "live"], [20, 172, 192, 62, "18c", "2018", "live"], [222, 172, 192, 62, "19c", "2019", "live"], [424, 172, 192, 62, "21c", "2020 / 2021", "live"], [626, 172, 192, 62, "23ai", "2023 / 2024", "on"], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", ""], [20, 262, 1200, 56, "23ai (2023 / 2024): Vektor qidiruv va dasturchilar uchun", "", "on"]], "x": [[30, 342, "Dastlab 23c nomi bilan (2023). 2024-yil 2-mayda 23ai deb qayta nomlandi. AI Vector Search (ma'noga ko'ra qidirish), JSON-relyatsion duality, SQL'da", "sub", "start"], [30, 364, "BOOLEAN turi, FROM DUAL siz SELECT, IF [NOT] EXISTS, sxema darajasidagi ruxsatlar, SQL property graph.", "sub", "start"], [30, 396, "Nega muhim: 19c dan keyingi uzoq muddatli reliz.", "lbl", "start"]], "s": "23ai, 2023 / 2024. Vektor qidiruv va dasturchilar uchun. Dastlab 23c nomi bilan (2023). 2024-yil 2-mayda 23ai deb qayta nomlandi. AI Vector Search (ma'noga ko'ra qidirish), JSON-relyatsion duality, SQL'da BOOLEAN turi, FROM DUAL siz SELECT, IF [NOT] EXISTS, sxema darajasidagi ruxsatlar, SQL property graph."}, {"t": "26ai", "b": [[20, 20, 192, 62, "V2", "1979", "live"], [222, 20, 192, 62, "V3", "1983", "live"], [424, 20, 192, 62, "V4", "1984", "live"], [626, 20, 192, 62, "V5", "1985", "live"], [828, 20, 192, 62, "V6", "1988", "live"], [1030, 20, 192, 62, "Oracle7", "1992", "live"], [20, 96, 192, 62, "Oracle8", "1997", "live"], [222, 96, 192, 62, "8i", "1998–1999", "live"], [424, 96, 192, 62, "9i", "2001", "live"], [626, 96, 192, 62, "10g", "2003", "live"], [828, 96, 192, 62, "11g", "2007 / 2009", "live"], [1030, 96, 192, 62, "12c", "2013", "live"], [20, 172, 192, 62, "18c", "2018", "live"], [222, 172, 192, 62, "19c", "2019", "live"], [424, 172, 192, 62, "21c", "2020 / 2021", "live"], [626, 172, 192, 62, "23ai", "2023 / 2024", "live"], [828, 172, 192, 62, "26ai", "2025-yil oktyabr", "on"], [20, 262, 1200, 56, "26ai (2025-yil oktyabr): 23ai o'rnini bosdi", "", "on"]], "x": [[30, 342, "Oracle AI Database 26ai 2025-yil 14-oktyabrda e'lon qilindi. 23ai dan 26ai ga o'tish oddiy chorak yangilanishi (Release Update 23.26) bilan: bazani", "sub", "start"], [30, 364, "qayta o'rnatish (upgrade) shart emas. Gibrid vektor qidiruv, AI agentlar, MCP qo'llab-quvvatlash, kvantga chidamli shifrlash.", "sub", "start"], [30, 396, "Nega muhim: Linux x86-64 uchun o'z serverga o'rnatiladigan versiyasi 2026-yil yanvar yangilanishi (23.26.1) bilan chiqdi. Bu kurs yozilayotgan", "lbl", "start"], [30, 418, "paytdagi eng so'nggi versiya.", "lbl", "start"]], "s": "26ai, 2025-yil oktyabr. 23ai o'rnini bosdi. Oracle AI Database 26ai 2025-yil 14-oktyabrda e'lon qilindi. 23ai dan 26ai ga o'tish oddiy chorak yangilanishi (Release Update 23.26) bilan: bazani qayta o'rnatish (upgrade) shart emas. Gibrid vektor qidiruv, AI agentlar, MCP qo'llab-quvvatlash, kvantga chidamli shifrlash."}]}], "AR": [{"t": "x", "steps": [{"t": "1979: bitta kompyuter", "g": [[320, 20, 600, 400, "PDP-11 mini-kompyuteri"]], "b": [[40, 60, 220, 60, "Terminal 1", "ekran va klaviatura", ""], [40, 160, 220, 60, "Terminal 2", "", ""], [40, 260, 220, 60, "Terminal 3", "", ""], [360, 80, 520, 80, "Ilova", "o'sha kompyuterda ishlaydi", "live"], [360, 190, 520, 80, "Oracle V2", "assembler, 128 KB xotira", "on"], [360, 300, 520, 80, "Disk", "baza fayllari", ""]], "a": [["M260 90H318", null, 0, 0], ["M260 190H318", null, 0, 0], ["M260 290H318", null, 0, 0], ["M620 160V188", null, 0, 0], ["M620 270V298", null, 0, 0]], "s": "Dastlab hamma narsa bitta kompyuterda edi: ilova ham, baza ham. Foydalanuvchilar unga oddiy terminallar (ekran va klaviatura, o'z protsessori deyarli yo'q) orqali ulangan."}, {"t": "1985: mijoz-server", "g": [[20, 20, 360, 400, "Foydalanuvchi kompyuterlari"], [860, 20, 360, 400, "Server"]], "b": [[40, 70, 320, 70, "Ilova (kassa)", "shaxsiy kompyuterda", ""], [40, 180, 320, 70, "Ilova (hisobot)", "shaxsiy kompyuterda", ""], [40, 290, 320, 70, "Ilova (filial)", "shaxsiy kompyuterda", ""], [440, 170, 360, 90, "Tarmoq", "SQL so'rov ketadi, natija qaytadi", "live"], [880, 120, 320, 90, "Oracle", "faqat baza ishi", "on"], [880, 260, 320, 80, "Disk", "", ""]], "a": [["M360 105H400V215H438", null, 0, 0], ["M360 215H438", null, 0, 0], ["M360 325H400V215", null, 0, 0], ["M800 215H840V165H878", null, 0, 0], ["M1040 210V258", null, 0, 0]], "s": "Shaxsiy kompyuterlar paydo bo'lgach, ilova foydalanuvchining kompyuteriga ko'chdi, baza esa alohida kuchli serverda qoldi. Ular tarmoq orqali gaplashadi: ilova SQL yuboradi, server natija qaytaradi. Bugun ham xuddi shunday, faqat «mijoz» endi Java backend server."}, {"t": "1992: mantiq bazada", "g": [[20, 20, 520, 400, "Oracle7 dan oldin"], [700, 20, 520, 400, "Oracle7 dan keyin"]], "b": [[40, 60, 480, 60, "Ilova", "o'tkazmaning har bir qadamini o'zi qiladi", ""], [40, 300, 480, 80, "Oracle", "5 ta alohida SQL keladi", ""], [720, 60, 480, 60, "Ilova", "faqat bitta chaqiruv", ""], [720, 220, 480, 160, "Oracle", "otkazma paketi ichida: tekshir, yech, qo'sh, yoz, log", "on"]], "c": [[60, 160, ["SELECT balans ...", "UPDATE ... (debet)", "UPDATE ... (kredit)", "INSERT provodka", "COMMIT"], "mono"], [740, 160, ["otkazma.bajar(:a, :b, :summa);"], "mono"]], "a": [["M280 120V298", "5 marta borib-kelish", 360, 290], ["M960 120V218", "1 marta", 1010, 200]], "s": "Oracle7 saqlanadigan protsedura va paketlarni olib keldi: biznes mantiq bazaning ichida, ma'lumotning yonida ishlaydi. Ilova o'tkazmaning har qadamini alohida yuborish o'rniga bitta protsedurani chaqiradi. Tarmoq bo'ylab borib-kelish kamayadi, qoidalar bitta joyda. Ko'p bank tizimlari (jumladan sizning ishingizdagi tizimlar) aynan shu yondashuvda qurilgan."}, {"t": "2001: RAC va zaxira baza", "g": [[20, 20, 760, 400, "Asosiy markaz: RAC"], [820, 20, 400, 400, "Zaxira markaz: Data Guard"]], "b": [[40, 60, 340, 70, "Server 1 (instance)", "xotira va jarayonlar", "on"], [420, 60, 340, 70, "Server 2 (instance)", "xotira va jarayonlar", "on"], [40, 280, 720, 80, "Umumiy disk", "bitta baza: hamma serverlar shu fayllar bilan ishlaydi", "live"], [840, 160, 360, 80, "Zaxira baza (standby)", "o'zgarishlar jurnali bilan nusxa", ""]], "a": [["M210 130V278", null, 0, 0], ["M590 130V278", null, 0, 0], ["M760 320H800V200H838", "chapdan: jurnal (redo) uzatiladi", 1020, 270]], "s": "Bank to'xtab qolmasligi kerak. RAC (9i) da bitta bazani bir nechta server birga boshqaradi: biri o'chsa, ulanishlar boshqasiga o'tadi. Data Guard esa boshqa binoda yoki shaharda zaxira bazani ushlab turadi: asosiy bazadagi har bir o'zgarish jurnali unga uzatiladi. Instance va baza farqi 10-darsning mavzusi."}, {"t": "2013: konteyner ichida bazalar", "g": [[20, 20, 1200, 400, "CDB: konteyner baza (bitta instance)"]], "b": [[40, 60, 1160, 60, "Umumiy xotira va jarayonlar", "hamma PDB lar uchun bitta", "live"], [40, 170, 360, 100, "PDB: bank_core", "hisoblar, o'tkazmalar", "on"], [440, 170, 360, 100, "PDB: kib", "yuridik shaxslar internet-banki", "on"], [840, 170, 360, 100, "PDB: test", "sinov uchun nusxa", ""], [40, 320, 1160, 70, "Har bir PDB alohida baza kabi", "o'z foydalanuvchilari, jadvallari; uzib boshqa CDB ga ulash, nusxalash mumkin", ""]], "s": "12c dan boshlab bitta konteyner baza (CDB) ichida bir nechta «ulanadigan» baza (PDB) yashaydi. Ular xotira va jarayonlarni bo'lishadi, lekin dastur uchun har biri alohida baza. Bu bulut uchun qilingan: bitta serverda ko'p mijozning bazasi. 21c dan boshlab faqat shu arxitektura qo'llab-quvvatlanadi."}, {"t": "Bugun: bulut va AI", "g": [[20, 20, 1200, 400, "Oracle AI Database 26ai"]], "b": [[40, 60, 360, 90, "Relyatsion jadvallar", "hisoblar, o'tkazmalar: SQL", ""], [440, 60, 360, 90, "JSON va graf", "bitta bazada, bitta SQL bilan", ""], [840, 60, 360, 90, "Vektorlar", "ma'noga ko'ra qidirish (AI)", ""], [40, 220, 1160, 80, "Qayerda ishlaydi", "o'z serveringizda, Exadata, Oracle bulutida (Autonomous), Azure, Google Cloud, AWS ichida", "live"], [40, 330, 1160, 60, "Asos o'zgarmagan", "SQL, tranzaksiya, o'qish izchilligi, qulflar, PL/SQL: bu kursning mavzulari", "on"]], "s": "Bugungi Oracle bitta bazada jadval, JSON, graf va vektor ma'lumotlarini saqlaydi va ko'p bulutlarda ishlaydi. Lekin uning yuragi 1980–90-yillarda qurilgan: SQL, tranzaksiyalar, o'qish izchilligi, qator qulflari, PL/SQL. Bu kurs aynan shu yurakni o'rganadi."}]}]};
+  steps('tl', null, 'tlT', 'tlSay', D.TL, 'tlmk');
+  steps('ar', null, 'arT', 'arSay', D.AR, 'armk');
+
+  window.evoStepper('evoO', [
+    { name: `Kichik kompaniya, katta g'oya`, years: `1977 – 1983`,
+      art: `<rect x="30" y="30" width="60" height="40" rx="4" class="acc"/><path d="M40 44h40M40 56h28"/>`,
+      how: `Software Development Laboratories (1977), Relational Software (1979), Oracle Systems (1982). V2 PDP-11 da, V3 C tilida, ko'p platformada.`,
+      better: `Relyatsion bazani birinchi bo'lib sotuvga chiqargan; SQL ni tanlab, IBM bilan moslikni oldindan ta'minlagan.`,
+      pain: `Erta versiyalarda xatolar ko'p bo'lgan; mijozlar ko'pincha sinovchi rolida.`,
+      ex: `Birinchi mijozlar orasida AQSH harbiy va razvedka idoralari bo'lgan.` },
+    { name: `Bank darajasidagi ishonchlilik`, years: `1984 – 1992`,
+      art: `<path d="M20 70h80M30 70V40M50 70V40M70 70V40M90 70V40M20 40l40-20 40 20z" class="acc"/>`,
+      how: `V4 o'qish izchilligi, V5 mijoz-server, V6 qator qulfi va PL/SQL, Oracle7 protseduralar, triggerlar, FOREIGN KEY, ikki bosqichli commit.`,
+      better: `Ko'p foydalanuvchi bir vaqtda, o'qish va yozish bir-birini to'xtatmaydi; qoidalar bazada.`,
+      pain: `Mantiq bazaga ko'chgani sari PL/SQL kodi o'sdi va uni boshqarish alohida san'atga aylandi.`,
+      ex: `Bugungi bank PL/SQL paketlari shu davr g'oyalariga tayanadi.` },
+    { name: `Katta hajm va internet`, years: `1997 – 2001`,
+      art: `<circle cx="60" cy="50" r="30"/><path d="M30 50h60M60 20c-14 18-14 42 0 60M60 20c14 18 14 42 0 60" class="acc"/>`,
+      how: `Oracle8 partitsiyalash va RMAN, 8i Java va analitik funksiyalar, 9i RAC va flashback.`,
+      better: `Milliardlab qatorli jadvallar, to'xtovsiz ishlash, internet ilovalari uchun.`,
+      pain: `Boshqarish murakkab: sozlash uchun tajribali DBA kerak.`,
+      ex: `Internet-banking tizimlari shu davrda paydo bo'ldi.` },
+    { name: `Avtomatika va konsolidatsiya`, years: `2003 – 2017`,
+      art: `<rect x="20" y="24" width="80" height="56" rx="4"/><rect x="30" y="34" width="26" height="36" rx="3" class="acc"/><rect x="64" y="34" width="26" height="36" rx="3" class="acc"/>`,
+      how: `10g ASM, AWR, avtomatik statistika; 11g Active Data Guard; 12c multitenant va In-Memory; Exadata (2008).`,
+      better: `Kamroq qo'l mehnati, bitta serverda ko'p baza, tezroq hisobotlar.`,
+      pain: `Har versiyada o'zgarishlar ko'p: banklar yangilashdan qo'rqib, eski versiyada uzoq qolgan.`,
+      ex: `Shuning uchun 11.2.0.4 uzoq yillar «eng mashhur» versiya bo'lgan.` },
+    { name: `Bulut va AI`, years: `2018 – bugun`,
+      art: `<path d="M30 70h60a16 16 0 0 0-4-31 22 22 0 0 0-42 6 13 13 0 0 0-14 25z" class="acc"/>`,
+      how: `Yillik nomlash (18c, 19c), uzoq muddatli 19c, innovatsion 21c, 23ai (vektorlar), 26ai (AI agentlar, Release Update orqali).`,
+      better: `Bashorat qilinadigan yangilanish jadvali; bitta bazada jadval, JSON, graf va vektor.`,
+      pain: `Marketing nomlari tez o'zgaradi (23c → 23ai → 26ai), asl texnologiyani nomdan ajratib bilish kerak.`,
+      ex: `Bank uchun eng muhim savol hamon o'sha: tranzaksiya, qulf, tezlik va ishonchlilik.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
