@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>2-dars. Ierarxik va tarmoq bazalari, Codd va relyatsion g'oya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">4. Ma'lumotlar bazasi</a> / D0 Fayldan bazagacha</p>
+<h1>2-dars. Ierarxik va tarmoq bazalari, Codd va relyatsion g'oya</h1>
+<p class="lead">Savol: birinchi DBMS'lar ma'lumotni qanday shaklda saqlagan, ular nimada qiynalgan, va nega bugun deyarli hamma bazalar jadvallardan iborat?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Ma'lumot modeli</strong> ma'lumotni qanday shaklda tasavvur qilish va unga qanday savol berish qoidasi. Tarixda uchta asosiy model bo'lgan:</p>
+    <ul>
+      <li><strong>Ierarxik</strong> (daraxt): IBM IMS, 1960-yillar;</li>
+      <li><strong>Tarmoq</strong> (zanjirlar va to'plamlar): IDS va CODASYL, 1960–70-yillar;</li>
+      <li><strong>Relyatsion</strong> (jadvallar): Edgar Kodd (Codd) g'oyasi, 1970-yil. Oracle shu modelda.</li>
+    </ul>
+    <p>Birinchi ikkitasida dasturchi ma'lumotlar orasida yo'l yuradi (navigatsiya), uchinchisida faqat nima kerakligini aytadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Oracle va SQL ning har bir g'oyasi shu yerdan:</strong> jadval, kalit, JOIN, optimizator, «natija ham jadval».</li>
+      <li><strong>Eski modellar o'lmagan:</strong> IMS hamon yirik banklarda ishlaydi; hujjat bazalari (MongoDB) ierarxik, graf bazalari tarmoq g'oyasining davomi.</li>
+      <li><strong>Kundalik xatolar:</strong> PL/SQL'da qatorma-qator sikl yoki ORM'dagi N+1 so'rov aslida relyatsion bazada navigatsiya qilish.</li>
+      <li><strong>Suhbatda:</strong> «relyatsion degani nima?», «relation va relationship farqi?», «SQL nega deklarativ?».</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li>ierarxik model qanday ishlaydi va qaysi savollarda qiynaladi;</li>
+      <li>tarmoq modeli daraxt muammosini qanday yechgan va nimasi qimmat bo'lgan;</li>
+      <li>Kodd nimani taklif qilgan: jadval, kalit, qiymat orqali bog'lanish, deklarativ savol;</li>
+      <li>navigatsion va deklarativ yondashuv farqi;</li>
+      <li>SQL qanday paydo bo'lgan.</li>
+    </ul>
+  </div>
+</div>
+<p>1-darsda dasturlar va fayllar orasiga vositachi (DBMS) qo'yish kerakligini ko'rdik. Bu darsda o'sha vositachi ma'lumotni qanday shaklda ko'rsatishi va dastur unga qanday tilda gapirishi haqida.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bank ilovasidan diskkacha bo'lgan qavatlar va bu dars qaysi qavat haqida ekani"></svg></div>
+  <figcaption>Ko'k quti shu darsning mavzusi: dastur bazaga qanday tilda va qanday shakldagi ma'lumot haqida gapiradi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Ma'lumot modeli tushunchasi</li>
+      <li>Ierarxik model: IMS, segment, DL/I chaqiruvlari</li>
+      <li>Tarmoq modeli: IDS, CODASYL, record va set, ko'rsatkichlar</li>
+      <li>Navigatsion yondashuv va «dasturchi navigator sifatida»</li>
+      <li>Kodd g'oyasi: jadval, kalit, tashqi kalit, deklarativ savol, ma'lumotdan mustaqillik</li>
+      <li>System R, SEQUEL dan SQL gacha, Ingres, birinchi standartlar</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Oracle kompaniyasi va versiyalari: 3-darsda</li>
+      <li>Jadval, kalit va normallashtirish batafsil: 4-darsda</li>
+      <li>SELECT va JOIN qanday bajariladi: 5–6-darslarda</li>
+      <li>Optimizator ichkaridan: 17-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Vositachi bor, lekin yo'lni hamon dasturchi biladi</h3>
+<p>1960-yillarning o'rtasida birinchi DBMS'lar paydo bo'ldi. Ular 1-darsdagi og'riqlarning bir qismini yopdi: ma'lumot dasturlardan ajraldi, bir vaqtdagi murojaat va tiklashni tizim o'zi boshqara boshladi. Lekin bitta savol ochiq qoldi: <strong>vositachi ma'lumotni qanday shaklda ko'rsatadi va dastur unga qanday so'rov beradi?</strong></p>
+<p>Birinchi javob tabiiy edi: hayotdagi kabi. Bankda filial, uning ichida mijozlar, mijozda hisoblar, hisobda o'tkazmalar: bu daraxt. Keyin ma'lum bo'ldiki, hayot daraxtdan murakkab, va daraxt o'rniga zanjirlar tarmog'i paydo bo'ldi. Ikkala holatda ham dasturchi ma'lumotga borish yo'lini o'zi bilishi va o'zi yurishi kerak edi. Bu yondashuv <strong>navigatsion</strong> deyiladi, va uning narxi 1970-yilga kelib juda baland bo'lib ketdi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Daraxt, tarmoq va jadval</h3>
+
+<p class="beat">Ierarxik model: daraxt (IBM IMS)</p>
+<p>Kompyuterdagi papkalarni eslang: «Hujjatlar» papkasi ichida «Bank», uning ichida «2026», ichida fayllar. Har bir papkaning faqat bitta ota papkasi bor. IBM ning IMS tizimi bank ma'lumotini xuddi shunday saqlagan. U 1960-yillarda NASA'ning Apollon dasturi uchun Rokvell (Rockwell) va Katerpillar (Caterpillar) bilan birga yaratilgan: raketaning millionlab detallari ham daraxt (raketa → bo'lak → detal) bo'lgan.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="imT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="im" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Ierarxik model: bank ma'lumoti daraxt shaklida, navigatsiya va muammolari"></svg></div>
+  <p class="say" id="imSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Tarmoq modeli: zanjirlar (IDS, CODASYL)</p>
+<p>Daraxtning «bitta ota» cheklovini olib tashlash uchun Charlz Bakman (Charles Bachman) General Electric'da IDS tizimini yaratdi (1963-yilga kelib). Keyin uning g'oyalari asosida CODASYL qo'mitasi (COBOL tilini ham shu qo'mita yaratgan) tarmoq bazalari standartini yozdi. Tarmoq modelini temir yo'l xaritasi deb tasavvur qiling: bekatlar (yozuvlar) yo'llar (to'plamlar) bilan ulangan, bitta bekatga bir nechta yo'l kiradi. Poezd yo'l bo'ylab bekatdan bekatga yuradi.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="ntT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="nt" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Tarmoq modeli: yozuvlar, to'plamlar, ko'rsatkichlar va navigatsiya"></svg></div>
+  <p class="say" id="ntSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Relyatsion model: hammasi jadval (Kodd, 1970)</p>
+<p>Edgar Kodd IBM'da ishlagan matematik edi. U navigatsion bazalarga qarab bir savol berdi: nega dastur ma'lumot diskda qanday joylashganini bilishi kerak? Uning javobi: ma'lumotni foydalanuvchiga eng oddiy shaklda, <strong>jadval</strong> ko'rinishida ko'rsatish, va savollarni matematik aniq, lekin yo'lsiz tilda berish. Jadvalni matematikada «relation» deyishadi, model nomi shundan: <strong>relyatsion</strong>.</p>
+<p>Muhim nozik joy: «relation» so'zi jadvallar orasidagi bog'lanish emas, <strong>jadvalning o'zi</strong>. Ko'p odam «relyatsion, chunki jadvallar bog'langan» deb o'ylaydi; bu noto'g'ri, va suhbatda buni bilish yaxshi taassurot qoldiradi.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="rlT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="rl" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Relyatsion model: jadvallar, qiymat orqali bog'lanish, deklarativ savol, optimizator va ma'lumotdan mustaqillik"></svg></div>
+  <p class="say" id="rlSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Navigatsion va deklarativ: taksi misolida</p>
+<p>Ikki yondashuv farqini bitta o'xshatish bilan eslab qolish mumkin.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="txT" role="group" aria-label="Yondashuvni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="tx" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Navigatsion va deklarativ yondashuv taksi misolida"></svg></div>
+  <p class="say" id="txSay" aria-live="polite"></p>
+</figure>
+
+<p>Uchta modelni bitta jadvalda solishtiramiz:</p>
+<div class="scroll">
+<table>
+<thead><tr><th></th><th>Ierarxik (IMS)</th><th>Tarmoq (CODASYL)</th><th>Relyatsion (Oracle)</th></tr></thead>
+<tbody>
+<tr><td>Shakl</td><td>daraxt: har yozuvning bitta otasi</td><td>graf: yozuvlar to'plamlar bilan, bir nechta «ota» mumkin</td><td>jadvallar: qatorlar va ustunlar</td></tr>
+<tr><td>Bog'lanish</td><td>joylashuv: bola otaning ostida</td><td>ko'rsatkichlar: disk manzillari zanjiri</td><td>qiymatlar: tashqi kalit ustuni</td></tr>
+<tr><td>Savol qanday beriladi</td><td>yo'l bilan: GU, GN, GNP</td><td>yo'l bilan: FIND, FIND NEXT, GET</td><td>shart bilan: SELECT ... WHERE</td></tr>
+<tr><td>Yo'lni kim tanlaydi</td><td>dasturchi</td><td>dasturchi</td><td>DBMS optimizatori</td></tr>
+<tr><td>Yangi savol</td><td>yangi dastur</td><td>yangi dastur</td><td>yangi SQL qator</td></tr>
+<tr><td>Kuchli tomoni</td><td>tepadan pastga juda tez</td><td>oldindan ma'lum yo'llarda juda tez</td><td>moslashuvchan, sodda, matematik asos</td></tr>
+<tr><td>Bugun</td><td>IMS hamon ishlaydi; hujjat bazalari (JSON)</td><td>IDMS kabi meros tizimlar; graf bazalari</td><td>Oracle, PostgreSQL, SQL Server, MySQL va boshqalar</td></tr>
+</tbody>
+</table>
+</div>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>IDS dan SQL standartigacha</h3>
+<p>Bu bosqichlar bir-biriga javob bo'lib keladi: daraxt fayl og'riqlariga, tarmoq daraxt cheklovlariga, relyatsion g'oya navigatsiya murakkabligiga, SQL esa Koddning matematik tilini oddiy odamlar o'qiy oladigan qilishga.</p>
+<div class="bench" id="evoM"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Ma'lumot modeli</dt><dd>Ma'lumotni qanday shaklda tasavvur qilish va unga qanday savol berish qoidasi: daraxt, tarmoq yoki jadval.</dd>
+  <dt>Ierarxik model</dt><dd>Ma'lumot daraxt shaklida: har bir yozuvning bitta otasi, ko'p bolasi bor. Asosiy namunasi IBM IMS.</dd>
+  <dt>Segment (IMS)</dt><dd>IMS'da yozuv turi: FILIAL, MIJOZ, HISOB kabi.</dd>
+  <dt>DL/I</dt><dd>IMS bazasiga murojaat qilish chaqiruvlari: GU (aniq yozuvni ol), GN (keyingisi), GNP (shu ota ichida keyingisi), ISRT, REPL, DLET (qo'sh, yangila, o'chir).</dd>
+  <dt>Tarmoq modeli</dt><dd>Yozuvlar to'plamlar orqali zanjir bo'lib bog'lanadi; bir yozuv bir nechta to'plamga kira oladi. Asosiy namunasi IDS va CODASYL standarti.</dd>
+  <dt>CODASYL</dt><dd>Kompyuter tillari va ma'lumot tizimlari bo'yicha AQSH qo'mitasi: COBOL ni yaratgan, keyin tarmoq bazalari standartini yozgan.</dd>
+  <dt>Record va set (CODASYL)</dt><dd>Yozuv va to'plam. To'plamning bitta egasi (owner) va ko'p a'zosi (member) bor: masalan, hisob va uning o'tkazmalari.</dd>
+  <dt>Ko'rsatkich (pointer)</dt><dd>Yozuv ichida saqlangan boshqa yozuvning disk manzili. Navigatsion bazalarda bog'lanishlar shu bilan qurilgan.</dd>
+  <dt>Navigatsion yondashuv</dt><dd>Dastur ma'lumotga borish yo'lini o'zi aytadi va yozuvdan yozuvga o'zi yuradi.</dd>
+  <dt>Deklarativ yondashuv</dt><dd>Dastur faqat nima kerakligini (shartni) aytadi; qanday topishni DBMS hal qiladi. SQL deklarativ til.</dd>
+  <dt>Relyatsion model</dt><dd>Koddning modeli: ma'lumot jadvallar (relation) ko'rinishida, bog'lanish qiymatlar orqali, savollar matematik amallar bilan.</dd>
+  <dt>Relation, tuple, attribute</dt><dd>Matematik nomlar: jadval, qator, ustun. «Relation» jadvalning o'zi, jadvallar orasidagi bog'lanish emas (u inglizchada relationship).</dd>
+  <dt>Kalit (key)</dt><dd>Qatorni noyob aniqlaydigan ustun yoki ustunlar: hisob raqami, mijoz ID si.</dd>
+  <dt>Tashqi kalit (foreign key)</dt><dd>Boshqa jadvaldagi qatorning kalitini saqlaydigan ustun: HISOBLAR.MIJOZ_ID MIJOZLAR.ID ga ishora qiladi.</dd>
+  <dt>Relyatsion algebra</dt><dd>Jadvallar ustidagi amallar to'plami: tanlash (shart bo'yicha qatorlar), proyeksiya (kerakli ustunlar), birlashtirish (join), birlashma va ayirma. Har bir amalning natijasi yana jadval.</dd>
+  <dt>Ma'lumotdan mustaqillik (data independence)</dt><dd>Ma'lumotning saqlanishi yoki tuzilishi o'zgarganda (indeks, yangi ustun) dasturlar o'zgarmasligi.</dd>
+  <dt>Optimizator</dt><dd>DBMS ning so'rov uchun eng arzon bajarish yo'lini tanlaydigan qismi.</dd>
+  <dt>SQL</dt><dd>Structured Query Language: IBM'da System R loyihasi uchun yaratilgan relyatsion so'rov tili; dastlabki nomi SEQUEL.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Relyatsion bazada navigatsiya qilmang</h3>
+<p>Relyatsion bazaning kuchi to'plam bilan ishlashda: bitta SQL butun to'plamni oladi yoki o'zgartiradi, yo'lni esa optimizator tanlaydi. Eng ko'p uchraydigan xatolar navigatsion fikrlashning qaytishi.</p>
+<div class="rule">
+  <b>Tuzoq: qatorma-qator sikl («row by row is slow by slow»)</b>
+  <p>PL/SQL'da kursor bilan har bir hisobni ochib, har biri uchun alohida <span class="num">UPDATE</span> qilish: 1 million hisob, 1 million alohida buyruq. Bu CODASYL dagi FIND NEXT ning o'zi.</p>
+  <p class="why">Qoida: imkon bo'lsa bitta SQL bilan butun to'plamni o'zgartirish: <span class="num">UPDATE hisoblar SET foiz = ... WHERE turi = 'DEPOZIT'</span>. Mantiq juda murakkab bo'lsa, BULK COLLECT va FORALL (23-dars).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ORM'dagi N+1 so'rov</b>
+  <p>Java'da mijozlar ro'yxatini olib, keyin har bir mijozning hisoblarini alohida so'rov bilan yuklash: 1 + N so'rov. Ob'yektlar orasida yurish aslida bazada navigatsiya.</p>
+  <p class="why">Qoida: kerakli ma'lumotni bitta JOIN bilan olish yoki ORM'ga oldindan yuklashni aytish (fetch join, D6 bo'limida).</p>
+</div>
+<div class="rule">
+  <b>Qoida: bankdagi ierarxiyalar jadvalda ham yashaydi</b>
+  <p>Hisoblar rejasi (balans hisoblari guruhlari), filiallar tuzilishi, tashkiliy tuzilma: bular tabiatan daraxt. Relyatsion bazada ular «ota ID» ustuni bilan saqlanadi (<span class="num">parent_id</span>), daraxt bo'ylab yurish esa SQL'ning o'zida: Oracle'da <span class="num">CONNECT BY</span> yoki rekursiv <span class="num">WITH</span> (7-dars). Ya'ni ierarxik model g'oyasi yo'qolmagan, relyatsion model ichiga sig'gan.</p>
+</div>
+<div class="rule">
+  <b>Qoida: kalit qiymat, manzil emas</b>
+  <p>Jadvallarni qiymatlar bog'laydi. Shuning uchun kalit o'zgarmas bo'lishi kerak: hisob raqami yoki texnik ID. O'zgaradigan narsa (telefon, ism) kalit bo'lsa, unga ishora qilgan hamma qator ham o'zgarishi kerak bo'ladi.</p>
+</div>
+
+<h3><span class="part">6. Mashq</span></h3>
+<ol class="task">
+  <li><strong>Daraxt chizmasida.</strong> Mijoz Aliyevning ikkinchi filialda ham hisobi bor. IMS daraxtida buni qanday ifodalaysiz va qanday muammo chiqadi?</li>
+  <li><strong>Tarmoq chizmasida.</strong> «...03 hisobga bugun kelgan barcha o'tkazmalar» uchun navigatsiya dasturini FIND/GET buyruqlari bilan yozib ko'ring (qaysi to'plam bo'ylab yurasiz?).</li>
+  <li><strong>Relyatsion chizmada.</strong> Xuddi shu savolni SQL bilan yozing: <span class="num">otkazmalar</span> jadvalidan, <span class="num">kredit = '...03'</span>. Ikkala variantni solishtiring: qaysi biri tuzilish o'zgarganda buzilmaydi?</li>
+  <li><strong>O'z ishingizda.</strong> Ishlayotgan bazangizda daraxt shaklidagi ma'lumot bormi (hisoblar rejasi, filiallar, menyu)? U qaysi ustun orqali saqlangan va qanday so'rov bilan o'qiladi?</li>
+  <li><strong>O'z ishingizda.</strong> Kursor ichida qatorma-qator UPDATE qiladigan PL/SQL kodni toping. Uni bitta SQL ga aylantirsa bo'ladimi?</li>
+</ol>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni o'z so'zlaringiz bilan chatga yozing.</p>
+<ol class="check">
+  <li>Ierarxik modelda o'tkazmani saqlash nega muammo? Tarmoq modeli buni qanday yechdi?</li>
+  <li>«Dasturchi navigator sifatida» degani nima? Navigatsion yondashuvning ikkita og'rig'ini ayting.</li>
+  <li>Kodd nima taklif qildi? Relyatsion modelda jadvallar nima orqali bog'lanadi?</li>
+  <li>«Relation» so'zi nimani anglatadi? «Relyatsion, chunki jadvallar bog'langan» degan gap nega noto'g'ri?</li>
+  <li>Deklarativ til nima va relyatsion bazada yo'lni kim tanlaydi? Bu ma'lumotdan mustaqillikka qanday yordam beradi?</li>
+</ol>
+
+<h3><span class="part">8. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching.</p>
+<details><summary>Relyatsion baza nima?</summary>
+<p>Edgar Kodd 1970-yilda taklif qilgan modelga asoslangan baza: ma'lumot jadvallarda (relation) saqlanadi, har bir qator kalit bilan aniqlanadi, jadvallar ko'rsatkichlar bilan emas, qiymatlar (tashqi kalitlar) orqali bog'lanadi. Savollar deklarativ tilda (SQL) beriladi va natija ham jadval. Bajarish yo'lini DBMS optimizatori tanlaydi, shuning uchun saqlanish o'zgarsa ham dasturlar o'zgarmaydi.</p></details>
+<details><summary>Relation va relationship farqi nima?</summary>
+<p>Relation bu jadvalning o'zi (matematik atama: bir xil tuzilishdagi qatorlar to'plami). Relationship esa jadvallar (yoki sohadagi narsalar) orasidagi bog'lanish, masalan «mijozning hisoblari bor». «Relyatsion» nomi birinchisidan kelgan.</p></details>
+<details><summary>Relyatsion modeldan oldin qanday bazalar bo'lgan?</summary>
+<p>Ierarxik (IBM IMS: daraxt, har yozuvning bitta otasi) va tarmoq (Bakmanning IDS va CODASYL standarti: yozuvlar to'plamlar va ko'rsatkichlar bilan bog'langan). Ikkalasi navigatsion: dasturchi yo'lni o'zi yozgan. Ular tez edi, lekin har yangi savol yangi dastur talab qilgan va tuzilish o'zgarishi dasturlarni buzgan.</p></details>
+<details><summary>SQL nega deklarativ til deyiladi? Bu amalda nimani beradi?</summary>
+<p>SQL'da nima kerakligi (qaysi ustunlar, qaysi shart) yoziladi, qanday topish emas. Yo'lni optimizator statistika va indekslarga qarab tanlaydi. Amalda: indeks qo'shsangiz yoki jadval o'ssa, kod o'zgarmasdan reja o'zgaradi; shu sababli sekin so'rovda birinchi qadam bajarish rejasini ko'rish (EXPLAIN PLAN).</p></details>
+<details><summary>Qatorma-qator ishlov nega relyatsion bazada sekin?</summary>
+<p>Har bir qator uchun alohida SQL buyruq: har biri SQL va PL/SQL dvigatellari orasida o'tish, alohida bajarish va ko'pincha alohida tarmoq so'rovi. Bitta to'plamli SQL esa ishni baza ichida bir marta va optimal yo'l bilan qiladi. Qoida: imkon qadar bitta SQL, bo'lmasa BULK COLLECT va FORALL.</p></details>
+<details><summary>Oracle'da ierarxik ma'lumot qanday saqlanadi va o'qiladi?</summary>
+<p>Jadvalda o'z otasining ID sini saqlaydigan ustun bilan (<span class="num">parent_id</span>). O'qish: <span class="num">START WITH ... CONNECT BY PRIOR id = parent_id</span> (Oracle'ning o'z sintaksisi, <span class="num">LEVEL</span>, <span class="num">SYS_CONNECT_BY_PATH</span> bilan) yoki standart rekursiv <span class="num">WITH</span> (Oracle 11g Release 2 dan).</p></details>
+
+<h3>Chuqurroq</h3>
+<details><summary>«Katta bahs» (1974)</summary>
+<p>1974-yilda ACM SIGFIDET (keyinchalik SIGMOD deb nomlangan) seminarida Kodd va Bakman tarafdorlari ochiq bahslashgan: relyatsion modelmi yoki CODASYL'mi. Navigatsiya tarafdorlari relyatsion tizimlarni «amalda sekin bo'ladi» deb tanqid qilgan. Bahsni amaliyot hal qildi: System R va Ingres relyatsion tizimni samarali qurish mumkinligini ko'rsatdi, 1980-yillarda esa tijorat relyatsion bazalari bozorni egalladi.</p></details>
+<details><summary>Koddning 12 qoidasi</summary>
+<p>1985-yilda Kodd ko'p kompaniyalar o'z mahsulotini «relyatsion» deb sotayotganini ko'rib, haqiqiy relyatsion DBMS ga qo'yiladigan qoidalarni e'lon qildi (nomi 12 qoida, aslida 0-qoida bilan 13 ta). Masalan: hamma ma'lumot jadval qiymati sifatida; har bir qiymatga jadval nomi, kalit va ustun nomi orqali yetib borish; NULL ning tizimli ishlov berilishi; jadvallar tavsifi (katalog) ham jadvalda; jismoniy va mantiqiy mustaqillik. Hech bir tijorat bazasi hammasiga to'liq javob bermaydi.</p></details>
+<details><summary>Eski modellar bugun qayerda?</summary>
+<p>IMS hamon IBM mainframe'larida ishlaydi va IBM uni banklar va yirik korxonalarda ishlatilishini aytadi. CODASYL g'oyasi IDMS kabi tizimlarda yashaydi. 2000-yillarda NoSQL to'lqini bilan ikkala g'oya yangi ko'rinishda qaytdi: hujjat bazalari (JSON hujjat ichida hujjat, ya'ni daraxt) va graf bazalari (tugunlar va ularni bog'lovchi chiziqlar, ya'ni tarmoq). Oracle ham JSON va graf imkoniyatlarini relyatsion baza ichiga qo'shgan (3-dars).</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>E. F. Codd, «A Relational Model of Data for Large Shared Data Banks», Communications of the ACM, 1970-yil iyun. C. W. Bachman, «The Programmer as Navigator», 1973-yilgi Tyuring mukofoti ma'ruzasi (CACM, 1973-yil noyabr). IMS tarixi: IBM History, «Information Management System» (ishlab chiqish 1963-yilda boshlangan, birinchi o'rnatish 1968-yil 14-avgust, Rokvell, Dauni). SQL tarixi: D. Chamberlin va R. Boyce, SEQUEL (1974).</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Birinchi DBMS'lar navigatsion edi: ierarxik (daraxt, IMS) va tarmoq (zanjirlar, IDS/CODASYL). Ular tez, lekin dasturchi yo'lni o'zi yozgan, har yangi savol yangi dastur, tuzilish o'zgarsa dasturlar buzilgan. Kodd (1970) hammasini jadvalga aylantirdi: bog'lanish qiymat orqali, savol shart bilan, yo'lni DBMS tanlaydi. Uning ustiga IBM'da SQL yaratildi.</p>
+  <p><strong>Ochiq qolgan savol.</strong> IBM relyatsion g'oyani o'zi yaratgan, lekin uni birinchi bo'lib sotmagan. Kim, qachon va qanday qilib birinchi tijorat SQL bazasini bozorga chiqardi?</p>
+  <p><strong>Keyingi dars.</strong> Oracle tarixi: v2 dan 23ai gacha.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="01-fayl-va-ogriqlari.html">Oldingi: 1. Fayl va og'riqlari</a><a href="03-oracle-tarixi.html">Keyingi: 3. Oracle tarixi</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Bank ilovasi', sub: 'Java backend, mobil ilova, internet-bank', ex: '«O\'tkazish» tugmasi bosildi', link: 'bazaga SQL yuboradi' },
+    { title: 'SQL va PL/SQL', sub: 'Bazaga beriladigan savol va buyruqlar', ex: 'UPDATE accounts SET balance = balance - 500000', link: 'Oracle serveri bajaradi' },
+    { title: 'Oracle serveri (DBMS)', sub: 'Xotira va jarayonlar: hamma so\'rov shu orqali', ex: 'navbat, qulf, tranzaksiya, kesh', link: 'fayllarga yozadi' },
+    { title: 'Baza fayllari', sub: 'Ma\'lumot fayllari, redo va undo', ex: 'bloklar, segmentlar, tablespace', link: 'operatsion tizim orqali' },
+    { title: 'Disk', sub: 'HDD yoki SSD (P0, 5-dars)', ex: '4096 baytli bo\'laklar', link: '' }
+  ], [1, 2], 'Bu dars: DBMS ma\'lumotni qanday shaklda ko\'rsatadi va qanday tilda gapiradi');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  // Sahna: { g: [[x,y,w,h,nom]], b: [[x,y,w,h,nom,izoh,cls]], a: [[d,yorliq,lx,ly]], c: [[x,y,[qatorlar],cls]], x: [[x,y,matn,cls,anchor]] }
+  function scene(svg, mk, st) {
+    svg.textContent = ''; marker(svg, mk);
+    (st.g || []).forEach(function (g) { group(svg, g[0], g[1], g[2], g[3], g[4]); });
+    (st.b || []).forEach(function (b) { box(svg, b[0], b[1], b[2], b[3], b[4], b[5], b[6]); });
+    (st.a || []).forEach(function (a) { arrow(svg, mk, a[0], a[1], a[2], a[3]); });
+    (st.c || []).forEach(function (c) { code(svg, c[0], c[1], c[2], c[3]); });
+    (st.x || []).forEach(function (t) { S(svg, 'text', { x: t[0], y: t[1], 'class': t[3] || 'sub', 'text-anchor': t[4] || 'start' }, t[2]); });
+  }
+  // Qadamli chizma: bir nechta stsenariy, har birida qadamlar
+  function steps(svgId, scId, stId, sayId, list, mk) {
+    var svg = $(svgId), say = $(sayId), sc = 0, st = 0, setSc = null;
+    if (scId) setSc = tabs(scId, list.map(function (x) { return x.t; }), function (i) { sc = i; st = 0; draw(); });
+    function draw() {
+      if (setSc) setSc(sc);
+      var L = list[sc].steps;
+      var setSt = tabs(stId, L.map(function (x, i) { return (i + 1) + '. ' + x.t; }), function (i) { st = i; draw(); });
+      setSt(st); scene(svg, mk, L[st]); say.textContent = L[st].s;
+      say.className = 'say' + (L[st].bad ? ' bad' : '');
+    }
+    draw();
+  }
+
+  var D = {"IMS": [{"t": "x", "steps": [{"t": "Daraxt", "g": [[880, 20, 340, 400, "IMS atamalari"]], "b": [[300, 40, 260, 56, "FILIAL: Chilonzor", "ildiz (root)", ""], [60, 140, 260, 56, "MIJOZ: Aliyev A.", "otasi: Chilonzor", ""], [540, 140, 260, 56, "MIJOZ: Karimova D.", "otasi: Chilonzor", ""], [20, 240, 200, 56, "HISOB ...01", "1 500 000", ""], [240, 240, 200, 56, "HISOB ...02", "320 000", ""], [580, 240, 200, 56, "HISOB ...03", "100 000", ""], [20, 340, 200, 56, "O'TKAZMA №1", "...03 ga 500 000", ""]], "a": [["M430 96V118H190V138", null, 0, 0], ["M430 118H670V138", null, 0, 0], ["M190 196V218H120V238", null, 0, 0], ["M190 218H340V238", null, 0, 0], ["M670 196V238", null, 0, 0], ["M120 296V338", null, 0, 0]], "c": [[896, 70, ["segment  = yozuv turi", "ota      = parent", "bola     = child", "ildiz    = root"], "mono"]], "x": [[896, 190, "Har bir yozuvning faqat bitta", "sub", "start"], [896, 212, "otasi bor. Bolalari ko'p", "sub", "start"], [896, 234, "bo'lishi mumkin.", "sub", "start"]], "s": "IMS ma'lumotni oila shajarasi yoki papkalar daraxti kabi saqlaydi. Eng tepada ildiz (filial), uning bolalari mijozlar, mijozning bolalari hisoblar, hisobning bolalari o'tkazmalar. Har bir yozuvning faqat bitta otasi bor. IMS'da yozuv turi «segment» deyiladi. Diskda bola otasining yonida, ketma-ket yotadi: shuning uchun tepadan pastga yurish juda tez."}, {"t": "Yo'l bilan yurish", "g": [[880, 20, 340, 400, "Dastur (DL/I chaqiruvlari)"]], "b": [[300, 40, 260, 56, "FILIAL: Chilonzor", "ildiz (root)", "on"], [60, 140, 260, 56, "MIJOZ: Aliyev A.", "otasi: Chilonzor", "on"], [540, 140, 260, 56, "MIJOZ: Karimova D.", "otasi: Chilonzor", ""], [20, 240, 200, 56, "HISOB ...01", "1 500 000", "on"], [240, 240, 200, 56, "HISOB ...02", "320 000", ""], [580, 240, 200, 56, "HISOB ...03", "100 000", ""], [20, 340, 200, 56, "O'TKAZMA №1", "...03 ga 500 000", ""]], "a": [["M430 96V118H190V138", null, 0, 0], ["M430 118H670V138", null, 0, 0], ["M190 196V218H120V238", null, 0, 0], ["M190 218H340V238", null, 0, 0], ["M670 196V238", null, 0, 0], ["M120 296V338", null, 0, 0]], "c": [[896, 70, ["GU  FILIAL(NOMI='CHILONZOR')", "    MIJOZ(ISM='ALIYEV')", "    HISOB(RAQAM='...01')", "", "REPL  HISOB  (balansni", "       yangilash)"], "mono"]], "x": [[896, 240, "GU  = Get Unique: aniq yozuvga bor", "sub", "start"], [896, 262, "GN  = Get Next: keyingisiga o't", "sub", "start"], [896, 284, "GNP = shu ota ichida keyingisi", "sub", "start"], [896, 306, "REPL, ISRT, DLET: yangila, qo'sh, o'chir", "sub", "start"]], "s": "Dastur hisobga borish uchun yo'lni o'zi aytadi: «Chilonzor filialiga kir, undan Aliyevga, undan ...01 hisobga». Bu buyruqlar DL/I tilida: GU (aniq yozuvni ol), GN (keyingisi), GNP (shu ota ichida keyingisi). Dastur daraxt tuzilishini va qaysi yo'ldan yurishni yoddan bilishi kerak."}, {"t": "O'tkazmaning ikki otasi", "bad": true, "g": [[880, 20, 340, 400, "Muammo"]], "b": [[300, 40, 260, 56, "FILIAL: Chilonzor", "ildiz (root)", ""], [60, 140, 260, 56, "MIJOZ: Aliyev A.", "otasi: Chilonzor", ""], [540, 140, 260, 56, "MIJOZ: Karimova D.", "otasi: Chilonzor", ""], [20, 240, 200, 56, "HISOB ...01", "1 500 000", ""], [240, 240, 200, 56, "HISOB ...02", "320 000", ""], [580, 240, 200, 56, "HISOB ...03", "100 000", "live"], [20, 340, 200, 56, "O'TKAZMA №1", "...03 ga 500 000", "bad"], [580, 340, 200, 56, "O'TKAZMA №1 (nusxa)", "...01 dan 500 000", "bad"]], "a": [["M430 96V118H190V138", null, 0, 0], ["M430 118H670V138", null, 0, 0], ["M190 196V218H120V238", null, 0, 0], ["M190 218H340V238", null, 0, 0], ["M670 196V238", null, 0, 0], ["M120 296V338", null, 0, 0], ["M680 296V338", null, 0, 0]], "x": [[896, 70, "O'tkazma ikki hisobga tegishli:", "sub", "start"], [896, 92, "...01 dan chiqadi, ...03 ga kiradi.", "sub", "start"], [896, 126, "Daraxtda faqat bitta ota mumkin.", "sub", "start"], [896, 160, "Yechim 1: nusxa (takrorlanish).", "sub", "start"], [896, 182, "Yechim 2: «mantiqiy ko'rsatkich»", "sub", "start"], [896, 204, "(IMS buni keyin qo'shgan),", "sub", "start"], [896, 226, "lekin dastur yanada murakkab.", "sub", "start"]], "s": "Bankning eng muhim yozuvi, o'tkazma, ikki hisobni bog'laydi: bittasidan chiqadi, boshqasiga kiradi. Daraxtda esa har bir yozuvning faqat bitta otasi bo'ladi. O'tkazmani ...01 ostiga qo'ysak, Karimova o'z hisobiga kelgan pulni ko'rmaydi. Uning ostiga ham nusxa qo'ysak, 1-darsdagi takrorlanish og'rig'i qaytadi. Hayotdagi ko'p narsa daraxt emas: bir mijozning bir nechta filialda hisobi bo'ladi, bitta hisobning bir nechta egasi bo'ladi."}, {"t": "Kutilmagan savol", "bad": true, "g": [[880, 20, 340, 400, "Savol"]], "b": [[300, 40, 260, 56, "FILIAL: Chilonzor", "ildiz (root)", "live"], [60, 140, 260, 56, "MIJOZ: Aliyev A.", "otasi: Chilonzor", "live"], [540, 140, 260, 56, "MIJOZ: Karimova D.", "otasi: Chilonzor", "live"], [20, 240, 200, 56, "HISOB ...01", "1 500 000", "live"], [240, 240, 200, 56, "HISOB ...02", "320 000", "live"], [580, 240, 200, 56, "HISOB ...03", "100 000", "live"], [20, 340, 200, 56, "O'TKAZMA №1", "...03 ga 500 000", "live"]], "a": [["M430 96V118H190V138", null, 0, 0], ["M430 118H670V138", null, 0, 0], ["M190 196V218H120V238", null, 0, 0], ["M190 218H340V238", null, 0, 0], ["M670 196V238", null, 0, 0], ["M120 296V338", null, 0, 0]], "x": [[896, 70, "«Bugun 1 mln dan katta barcha", "sub", "start"], [896, 92, "o'tkazmalar ro'yxati kerak»", "sub", "start"], [896, 136, "O'tkazmalar daraxtning eng pastida.", "sub", "start"], [896, 158, "Ularga faqat tepadan, har bir", "sub", "start"], [896, 180, "filial, mijoz va hisob orqali", "sub", "start"], [896, 202, "yetib borish mumkin.", "sub", "start"], [896, 246, "Natija: butun bazani aylanib", "sub", "start"], [896, 268, "chiqadigan yangi dastur.", "sub", "start"]], "s": "Daraxt bitta yo'l uchun qulay: tepadan pastga. «Bu mijozning hisoblari» degan savol tez. Lekin «bugungi hamma katta o'tkazmalar» degan savol uchun dastur butun daraxtni aylanib chiqishi kerak, va bu savol uchun yangi dastur yoziladi. Ma'lumotning shakli savollarning shaklini oldindan belgilab qo'ygan."}]}], "NET": [{"t": "x", "steps": [{"t": "Yozuvlar va to'plamlar", "g": [[880, 20, 340, 400, "CODASYL atamalari"]], "b": [[40, 50, 260, 56, "MIJOZ: Aliyev A.", "yozuv (record)", ""], [560, 50, 260, 56, "MIJOZ: Karimova D.", "yozuv (record)", ""], [40, 200, 260, 56, "HISOB ...01", "balans 1 500 000", ""], [560, 200, 260, 56, "HISOB ...03", "balans 100 000", ""], [300, 330, 260, 56, "O'TKAZMA №1", "500 000", ""]], "a": [["M170 106V198", "to'plam: MIJOZ-HISOB", 250, 160], ["M690 106V198", "to'plam: MIJOZ-HISOB", 770, 160], ["M170 256V358H298", "to'plam: DEBET", 220, 350], ["M690 256V358H562", "to'plam: KREDIT", 630, 350]], "c": [[896, 70, ["record = yozuv", "set    = to'plam:", "         ega + a'zolar", "owner  = ega", "member = a'zo"], "mono"]], "x": [[896, 210, "Bir yozuv bir nechta to'plamning", "sub", "start"], [896, 232, "a'zosi bo'la oladi: o'tkazma", "sub", "start"], [896, 254, "DEBET to'plamida ...01 ga,", "sub", "start"], [896, 276, "KREDIT to'plamida ...03 ga", "sub", "start"], [896, 298, "tegishli. Ikki «ota» mumkin.", "sub", "start"]], "s": "Charlz Bakman (GE) yaratgan IDS va undan o'sgan CODASYL standarti daraxt cheklovini olib tashladi. Yozuvlar «to'plamlar» (set) bilan bog'lanadi: har bir to'plamning bitta egasi (owner) va ko'p a'zosi (member) bor. Bir yozuv bir nechta to'plamda a'zo bo'la oladi. Endi o'tkazma bir vaqtning o'zida ...01 hisobning chiqimlari (DEBET) va ...03 hisobning kirimlari (KREDIT) ichida turadi, nusxasiz."}, {"t": "Ko'rsatkichlar", "g": [[880, 20, 340, 400, "Diskda nima yozilgan"]], "b": [[40, 50, 260, 56, "MIJOZ: Aliyev A.", "yozuv (record)", ""], [560, 50, 260, 56, "MIJOZ: Karimova D.", "yozuv (record)", ""], [40, 200, 260, 56, "HISOB ...01", "balans 1 500 000", "live"], [560, 200, 260, 56, "HISOB ...03", "balans 100 000", ""], [300, 330, 260, 56, "O'TKAZMA №1", "500 000", "live"]], "a": [["M170 106V198", "to'plam: MIJOZ-HISOB", 250, 160], ["M690 106V198", "to'plam: MIJOZ-HISOB", 770, 160], ["M170 256V358H298", "to'plam: DEBET", 220, 350], ["M690 256V358H562", "to'plam: KREDIT", 630, 350]], "c": [[896, 70, ["HISOB ...01 (adres 4100):", "  raqam, balans,", "  DEBET birinchisi → 7340", "", "O'TKAZMA №1 (adres 7340):", "  summa 500 000,", "  DEBET keyingisi  → 7512", "  KREDIT keyingisi → 0", "  egasi (DEBET)    → 4100"], "mono"]], "s": "To'plamlar diskda ko'rsatkichlar bilan yasalgan: har bir yozuvda keyingi a'zoning disk manzili (adresi) yozilgan, xuddi zanjir halqalari kabi. Hisobdan uning birinchi o'tkazmasiga, undan keyingisiga sakrab yurish juda tez: qidirish yo'q, faqat manzil bo'yicha o'qish. Bu tezlik CODASYL bazalarini 1970-yillarda mashhur qildi."}, {"t": "Navigatsiya", "g": [[880, 20, 340, 400, "Dastur (CODASYL DML)"]], "b": [[40, 50, 260, 56, "MIJOZ: Aliyev A.", "yozuv (record)", ""], [560, 50, 260, 56, "MIJOZ: Karimova D.", "yozuv (record)", ""], [40, 200, 260, 56, "HISOB ...01", "balans 1 500 000", "on"], [560, 200, 260, 56, "HISOB ...03", "balans 100 000", ""], [300, 330, 260, 56, "O'TKAZMA №1", "500 000", "on"]], "a": [["M170 106V198", "to'plam: MIJOZ-HISOB", 250, 160], ["M690 106V198", "to'plam: MIJOZ-HISOB", 770, 160], ["M170 256V358H298", "to'plam: DEBET", 220, 350], ["M690 256V358H562", "to'plam: KREDIT", 630, 350]], "c": [[896, 70, ["MOVE \"...01\" TO RAQAM", "FIND ANY HISOB", "  USING RAQAM", "FIND FIRST OTKAZMA", "  WITHIN DEBET", "loop: GET OTKAZMA", "  FIND NEXT OTKAZMA", "  WITHIN DEBET", "  (oxiri bo'lguncha)"], "mono"]], "s": "Dastur bazada yo'l yuradi: «...01 hisobni top, uning DEBET zanjiridagi birinchi o'tkazmaga o't, keyingisiga o't...». Bakman 1973-yilgi Tyuring mukofoti ma'ruzasini aynan shunday atagan: «Dasturchi navigator sifatida». Dasturchi kema kapitani kabi: ma'lumotlar dengizida qaysi yo'ldan suzishni o'zi tanlaydi va o'zi boshqaradi."}, {"t": "Narxi", "bad": true, "g": [[880, 20, 340, 400, "Muammo"]], "b": [[40, 50, 260, 56, "MIJOZ: Aliyev A.", "yozuv (record)", "bad"], [560, 50, 260, 56, "MIJOZ: Karimova D.", "yozuv (record)", "bad"], [40, 200, 260, 56, "HISOB ...01", "balans 1 500 000", "bad"], [560, 200, 260, 56, "HISOB ...03", "balans 100 000", "bad"], [300, 330, 260, 56, "O'TKAZMA №1", "500 000", "bad"]], "a": [["M170 106V198", "to'plam: MIJOZ-HISOB", 250, 160], ["M690 106V198", "to'plam: MIJOZ-HISOB", 770, 160], ["M170 256V358H298", "to'plam: DEBET", 220, 350], ["M690 256V358H562", "to'plam: KREDIT", 630, 350]], "x": [[896, 70, "1. Har yangi savol uchun yangi", "sub", "start"], [896, 92, "   navigatsiya dasturi.", "sub", "start"], [896, 126, "2. Yangi to'plam qo'shilsa,", "sub", "start"], [896, 148, "   ko'rsatkichlar qayta quriladi,", "sub", "start"], [896, 170, "   dasturlar o'zgaradi.", "sub", "start"], [896, 204, "3. Kod juda murakkab: bitta", "sub", "start"], [896, 226, "   noto'g'ri FIND NEXT va", "sub", "start"], [896, 248, "   dastur boshqa zanjirga", "sub", "start"], [896, 270, "   o'tib ketadi.", "sub", "start"], [896, 304, "Dastur hamon ma'lumotning", "sub", "start"], [896, 326, "jismoniy tuzilishiga bog'liq.", "sub", "start"]], "s": "Tarmoq modeli kuchli va tez edi, lekin 1-darsdagi ikki og'riq qoldi. Har yangi savol uchun dasturchi yangi yo'l yozadi. Tuzilish o'zgarsa (yangi to'plam, yangi bog'lanish), yo'llar ham, dasturlar ham o'zgaradi. Ma'lumot fayldan ajraldi, lekin dastur hamon ma'lumot qanday joylashganini bilishga majbur edi. Bu murakkablik IBM'da ishlagan matematik Edgar Koddni bezovta qildi."}]}], "REL": [{"t": "x", "steps": [{"t": "Hammasi jadval", "g": [[20, 20, 330, 170, "MIJOZLAR"], [380, 20, 400, 170, "HISOBLAR"], [810, 20, 410, 170, "O'TKAZMALAR"]], "c": [[36, 70, ["ID  ISM", "7   Aliyev A.", "8   Karimova D."], "mono"], [396, 70, ["RAQAM  MIJOZ_ID  BALANS", "...01  7         1 500 000", "...02  7           320 000", "...03  8           100 000"], "mono"], [826, 70, ["ID  DEBET  KREDIT  SUMMA", "1   ...01  ...03     500 000", "2   ...02  ...01   2 000 000"], "mono"]], "x": [[20, 240, "Ko'rsatkich yo'q, ota-bola yo'q, zanjir yo'q. Faqat jadvallar: qatorlar va ustunlar.", "sub", "start"], [20, 266, "Har bir qatorni uning kaliti aniqlaydi: mijoz ID si, hisob raqami, o'tkazma ID si.", "sub", "start"], [20, 292, "Qatorlarning tartibi ham, diskda qayerda yotgani ham ma'nosiz: ular «to'plam» elementlari.", "sub", "start"]], "s": "1970-yil iyunida Kodd «Katta umumiy ma'lumot banklari uchun relyatsion model» degan maqolasini chiqardi. G'oya juda oddiy: hamma narsa jadval. Mijozlar jadvali, hisoblar jadvali, o'tkazmalar jadvali. Jadvallarda ko'rsatkich ham, disk manzili ham yo'q: dastur ma'lumot diskda qanday joylashganini bilmaydi va bilishi shart emas."}, {"t": "Bog'lanish qiymat orqali", "g": [[20, 20, 330, 170, "MIJOZLAR"], [380, 20, 400, 170, "HISOBLAR"], [810, 20, 410, 170, "O'TKAZMALAR"]], "c": [[36, 70, ["ID  ISM", "7   Aliyev A.", "8   Karimova D."], "mono"], [396, 70, ["RAQAM  MIJOZ_ID  BALANS", "...01  7         1 500 000", "...02  7           320 000", "...03  8           100 000"], "mono"], [826, 70, ["ID  DEBET  KREDIT  SUMMA", "1   ...01  ...03     500 000", "2   ...02  ...01   2 000 000"], "mono"]], "a": [["M480 190V215H185V192", "MIJOZ_ID = 7  →  ID = 7", 330, 207], ["M900 190V240H640V192", "DEBET = ...01  →  RAQAM", 800, 232], ["M1000 190V265H700V192", "KREDIT = ...03  →  RAQAM", 850, 257]], "x": [[20, 330, "Hisob o'z mijozini «7» degan qiymat bilan biladi, disk manzili bilan emas. Bu qiymat tashqi kalit (foreign key) deyiladi.", "sub", "start"], [20, 356, "O'tkazma ikki hisobga ikki ustun orqali bog'langan: daraxtdagi «ikki ota» muammosi o'z-o'zidan yo'qoldi.", "sub", "start"]], "s": "Jadvallar qiymatlar orqali bog'lanadi. Hisobning MIJOZ_ID ustunida 7 yozilgan: bu «7-mijozniki» degani. O'tkazmaning DEBET va KREDIT ustunlarida ikki hisob raqami. Bog'lanish ma'lumotning o'zida, oddiy qiymat ko'rinishida. Uni ko'rish uchun ko'rsatkichdan yurish emas, ikki jadvalning mos qiymatlarini solishtirish kerak (bu JOIN, 6-dars)."}, {"t": "Savol: nima kerak, qanday emas", "g": [[20, 20, 560, 400, "Dasturchi yozadi (SQL)"], [620, 20, 600, 400, "Natija: yana jadval"]], "c": [[36, 70, ["SELECT m.ism, o.summa", "FROM   otkazmalar o", "JOIN   hisoblar   h ON h.raqam = o.debet", "JOIN   mijozlar   m ON m.id    = h.mijoz_id", "WHERE  o.summa > 1000000;"], "mono"], [636, 70, ["ISM          SUMMA", "Aliyev A.    2 000 000"], "mono"]], "x": [[36, 230, "Yo'l yo'q: qaysi jadvaldan boshlash, indeks bormi,", "sub", "start"], [36, 254, "qaysi tartibda o'qish, hech biri yozilmagan.", "sub", "start"], [36, 278, "Faqat: qaysi ma'lumot va qanday shart.", "sub", "start"], [636, 160, "Har qanday savolning javobi yana jadval.", "sub", "start"], [636, 184, "Shuning uchun natijadan yana savol", "sub", "start"], [636, 208, "so'rash mumkin (subquery, 7-dars).", "sub", "start"]], "s": "Kodd modelida savol «yo'l» bilan emas, «shart» bilan beriladi: «summasi 1 mln dan katta o'tkazmalar va ularni yuborgan mijozlarning ismi». Qaysi jadvaldan boshlash, qaysi indeksni ishlatish, hammasini DBMS o'zi hal qiladi. Bunday til deklarativ deyiladi: nima kerakligini aytasiz, qanday qilishni emas. Kodd buni matematik amallar bilan asosladi (relyatsion algebra), IBM'da esa uning ustiga SQL tili yaratildi."}, {"t": "Yo'lni DBMS tanlaydi", "g": [[20, 20, 1200, 400, "Oracle ichida"]], "b": [[40, 60, 360, 70, "SQL so'rov", "faqat «nima kerak»", "live"], [440, 60, 360, 70, "Optimizator", "yo'llarni solishtirib eng arzonini tanlaydi", "on"], [840, 40, 360, 70, "1-yo'l: indeks bo'yicha", "summa ustunida indeks bor bo'lsa", ""], [840, 130, 360, 70, "2-yo'l: butun jadvalni o'qish", "katta o'tkazmalar ko'p bo'lsa arzonroq", ""], [440, 250, 760, 80, "Bajarish rejasi", "tanlangan yo'l: dasturchi yozmagan, DBMS o'zi topgan", "live"]], "a": [["M400 95H438", null, 0, 0], ["M800 85H838", null, 0, 0], ["M800 105H820V165H838", null, 0, 0], ["M620 130V248", null, 0, 0]], "s": "Navigatsiyada yo'lni dasturchi yozardi. Relyatsion bazada yo'lni DBMS ichidagi optimizator tanlaydi: indeks bormi, jadval qancha katta, shartga nechta qator tushadi, shularga qarab. Bugun indeks qo'shilsa, ertaga bir xil SQL tezroq ishlaydi, dastur esa o'zgarmaydi. 1970-yillarda ko'pchilik buni «sekin bo'ladi, mashina odamdan yaxshi yo'l topa olmaydi» deb tanqid qilgan; optimizatorlar yaxshilangach, bu e'tiroz yo'qoldi (17-dars)."}, {"t": "Tuzilish o'zgarsa", "g": [[20, 20, 1200, 400, "Yangi talab: hisob valyutasi"]], "c": [[40, 70, ["ALTER TABLE hisoblar ADD (valyuta CHAR(3) DEFAULT 'UZS');", "", "-- eski so'rov o'zgarishsiz ishlaydi:", "SELECT raqam, balans FROM hisoblar WHERE mijoz_id = 7;"], "mono"]], "b": [[40, 230, 560, 90, "Fayllar davrida (1-dars)", "hamma dastur buzilardi, fayl qayta yozilardi", "bad"], [640, 230, 560, 90, "Relyatsion bazada", "ustunni nomi bilan so'ragan dastur hech narsani sezmaydi", "on"]], "s": "1-darsdagi «valyuta maydoni» og'rig'i: relyatsion bazada bir buyruq bilan ustun qo'shiladi va eski so'rovlar ishlashda davom etadi, chunki ular ustunni baytlar tartibi bilan emas, nomi bilan so'raydi. Kodd buni ma'lumotdan mustaqillik (data independence) deb atagan va maqolasining asosiy maqsadi aynan shu edi."}]}], "TX": [{"t": "x", "steps": [{"t": "Navigatsion (IMS, CODASYL)", "g": [[20, 20, 560, 400, "Siz haydovchiga aytasiz"], [620, 20, 600, 400, "Natija"]], "c": [[36, 70, ["1. Amir Temur ko'chasidan to'g'riga", "2. Ikkinchi svetoforda chapga", "3. 300 metrdan keyin o'ngga", "4. Ko'prikdan o'tib, to'xta"], "mono"]], "x": [[636, 70, "Yo'lni siz bilishingiz shart.", "sub", "start"], [636, 104, "Ko'cha yopilsa (tuzilish o'zgarsa),", "sub", "start"], [636, 126, "ko'rsatmalaringiz endi ishlamaydi.", "sub", "start"], [636, 160, "Har yangi manzil uchun yangi", "sub", "start"], [636, 182, "ko'rsatmalar ro'yxati (yangi dastur).", "sub", "start"]], "s": "Navigatsion bazada dasturchi taksiga o'tirgan, lekin har bir burilishni o'zi aytayotgan yo'lovchi. Yo'lni yaxshi bilsa, tez yetadi. Lekin yo'l o'zgarsa yoki yangi joyga borish kerak bo'lsa, hammasini qaytadan o'ylashi kerak."}, {"t": "Deklarativ (SQL)", "g": [[20, 20, 560, 400, "Siz haydovchiga aytasiz"], [620, 20, 600, 400, "Natija"]], "c": [[36, 70, ["«Yunusobod, 12-uy»"], "mono"]], "x": [[636, 70, "Yo'lni haydovchi (optimizator) tanlaydi:", "sub", "start"], [636, 92, "tirbandlik, yopiq ko'cha, masofa.", "sub", "start"], [636, 126, "Yangi yo'l ochilsa (indeks qo'shilsa),", "sub", "start"], [636, 148, "u o'zi undan foydalanadi.", "sub", "start"], [636, 182, "Siz faqat manzilni bilasiz.", "sub", "start"]], "s": "Relyatsion bazada dasturchi faqat manzilni aytadi. Yo'lni haydovchi, ya'ni DBMS optimizatori tanlaydi va sharoit o'zgarsa o'zi moslashadi. Haydovchi ba'zan yomon yo'l tanlashi mumkin: shunda dasturchi «rejani ko'rib» (EXPLAIN PLAN, 17-dars) unga yordam beradi, lekin manzilni o'zgartirmaydi."}]}]};
+  steps('im', null, 'imT', 'imSay', D.IMS, 'immk');
+  steps('nt', null, 'ntT', 'ntSay', D.NET, 'ntmk');
+  steps('rl', null, 'rlT', 'rlSay', D.REL, 'rlmk');
+  steps('tx', null, 'txT', 'txSay', D.TX, 'txmk');
+
+  window.evoStepper('evoM', [
+    { name: `IDS`, years: `1963-yilga kelib, General Electric`,
+      art: `<rect x="20" y="30" width="30" height="20" rx="3"/><rect x="70" y="30" width="30" height="20" rx="3"/><rect x="45" y="66" width="30" height="20" rx="3" class="acc"/><path d="M35 50l20 16M85 50L65 66"/>`,
+      how: `Charlz Bakman yaratgan Integrated Data Store: yozuvlar disk manzillari (ko'rsatkichlar) bilan zanjir bo'lib bog'langan, dastur zanjir bo'ylab yuradi. Birinchi DBMS'lardan biri.`,
+      better: `Ma'lumot dasturlardan ajraldi; bog'lanishlar bir marta quriladi va hamma dastur ulardan foydalanadi.`,
+      pain: `Yo'lni dasturchi biladi va yozadi; tuzilish o'zgarsa dasturlar ham o'zgaradi.`,
+      ex: `GE kompyuter biznesi Honeywell'ga o'tgach, g'oya IDMS mahsulotida davom etdi.` },
+    { name: `IMS`, years: `1963 – 1968, IBM, Rokvell, Katerpillar`,
+      art: `<rect x="45" y="14" width="30" height="18" rx="3" class="acc"/><rect x="15" y="50" width="30" height="18" rx="3"/><rect x="75" y="50" width="30" height="18" rx="3"/><path d="M60 32v8H30v10M60 40h30v10"/><rect x="15" y="80" width="30" height="12" rx="3"/><path d="M30 68v12"/>`,
+      how: `Apollon dasturi uchun detallar ro'yxatini boshqarish tizimi sifatida boshlangan. Birinchi o'rnatish 1968-yil 14-avgustda Rokvell'ning NASA bo'linmasida; o'sha yili IBM uni tijorat mahsuloti qilib e'lon qildi. Ma'lumot daraxt shaklida, murojaat DL/I chaqiruvlari bilan.`,
+      better: `Daraxt bo'ylab tepadan pastga juda tez; tranzaksiyalarni boshqarish tizimi (IMS TM) bilan birga onlayn bank ilovalari uchun ishlatilgan.`,
+      pain: `Hamma narsa daraxt emas: «ikki otali» ma'lumot (o'tkazma) va kutilmagan savollar qiyin.`,
+      ex: `IMS hamon IBM mainframe'larida, jumladan yirik banklarda ishlaydi.` },
+    { name: `CODASYL tarmoq standarti`, years: `1969 – 1971`,
+      art: `<circle cx="30" cy="30" r="10"/><circle cx="90" cy="30" r="10"/><circle cx="30" cy="76" r="10"/><circle cx="90" cy="76" r="10" class="acc"/><path d="M40 30h40M30 40v26M90 40v26M38 36l44 34"/>`,
+      how: `CODASYL qo'mitasining ma'lumotlar bazasi guruhi (DBTG) IDS g'oyalariga asoslangan standart yozdi: record va set, ularni tasvirlash tili va COBOL'dan chaqiriladigan FIND, GET, STORE, MODIFY buyruqlari.`,
+      better: `Bir yozuv bir nechta to'plamga kira oladi: daraxtdagi «bitta ota» cheklovi yo'q. Standart bo'lgani uchun bir nechta kompaniya mahsulot chiqardi.`,
+      pain: `Navigatsiya murakkab, dasturlar ma'lumot tuzilishiga qattiq bog'liq. Bakman 1973-yilda Tyuring mukofotini oldi va ma'ruzasini «Dasturchi navigator sifatida» deb atadi.`,
+      ex: `IDMS, keyinchalik CA IDMS, shu standart asosidagi eng mashhur mahsulot.` },
+    { name: `Kodd maqolasi`, years: `1970-yil iyun`,
+      art: `<rect x="16" y="24" width="88" height="56" rx="3"/><path d="M16 42h88M16 60h88M46 24v56M76 24v56" class="acc"/>`,
+      how: `IBM tadqiqotchisi Edgar Kodd «A Relational Model of Data for Large Shared Data Banks» maqolasini chiqardi: ma'lumot jadvallar ko'rinishida, bog'lanish qiymatlar orqali, savollar matematik amallar bilan.`,
+      better: `Dastur ma'lumot qanday saqlanganini bilmaydi: tuzilish o'zgarsa ham ishlaydi; har qanday savolni dastur yozmasdan berish mumkin.`,
+      pain: `Faqat g'oya edi. Ko'pchilik «bunday tizim amalda sekin bo'ladi» deb hisoblagan; IBM ham IMS bozorini himoya qilib, shoshilmagan.`,
+      ex: `Kodd 1981-yilda Tyuring mukofotini oldi.` },
+    { name: `System R, SEQUEL va Ingres`, years: `1973 – 1979`,
+      art: `<rect x="20" y="30" width="80" height="44" rx="4"/><path d="M30 46h40M30 58h56" class="acc"/>`,
+      how: `IBM San-Xose laboratoriyasida System R loyihasi relyatsion g'oyani amalda qurdi. Don Chemberlin va Rey Boys uning uchun SEQUEL tilini yaratdi (1974); nom boshqa kompaniyaning savdo belgisi bo'lgani uchun SQL ga qisqartirildi. Shu vaqtda Berkli universitetida Stounbreyker va Vong Ingres tizimini (QUEL tili bilan) qurdi.`,
+      better: `Relyatsion baza tez ishlay olishi isbotlandi: so'rov optimizatori, indekslar, tranzaksiyalar, qulflar.`,
+      pain: `IBM tijorat mahsulotini kech chiqardi; g'oyalar ochiq maqolalarda chop etilgan edi.`,
+      ex: `System R maqolalarini o'qigan kichik kompaniya 1979-yilda birinchi tijorat SQL bazasini sotuvga chiqardi: bu keyingi dars.` },
+    { name: `SQL standarti`, years: `1986 – bugun`,
+      art: `<path d="M20 30h80M20 50h80M20 70h50" class="acc"/><circle cx="92" cy="72" r="10"/>`,
+      how: `ANSI 1986-yilda, ISO 1987-yilda SQL standartini qabul qildi. Keyin SQL-92, SQL:1999 (rekursiv so'rovlar), SQL:2003 (analitik funksiyalar), SQL:2016 (JSON), SQL:2023 kabi versiyalar chiqdi.`,
+      better: `Bir bazadan ikkinchisiga bilim va kod ko'chadi (to'liq emas, lekin asosiy qismi).`,
+      pain: `Har bir baza o'z kengaytmalarini qo'shgan: Oracle'ning CONNECT BY, (+) bilan tashqi join, PL/SQL.`,
+      ex: `Bu kursdagi SQL standartga yaqin, Oracle'ning o'z sintaksisi alohida ko'rsatiladi.` }
+  ]);
+
+})();
+</script>
+</body>
+</html>
