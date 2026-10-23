@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P1 xulosa va test. Assembler</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">1. Poydevor</a> / P1 Assembler</p>
+<h1>P1 xulosa va test. Assembler</h1>
+<p class="lead">Bo'limning hamma narsasi bitta sahifada, oddiy tilda: har bir dars o'xshatish bilan, keyin asosiy fikr, bilish kerak bo'lgan narsalar va dasturchiga tuzoqlar. Keyin o'quv protsessorining to'liq buyruqlar jadvali, hamma g'oyani birlashtirgan yakuniy dastur, atamalar, suhbat savollari va test.</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p>P1 bo'limining yakuniy sahifasi. Yangi mavzu yo'q: 8, 9 va 10-darslarda chizmalar va o'quv protsessori bilan o'tilgan narsa ixcham yig'ilgan.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Bo'limni tugatganda:</strong> test va yakuniy dastur bilan tekshirish.</li>
+      <li><strong>Suhbatdan oldin:</strong> «stack va heap», «funksiya chaqirilganda nima bo'ladi», «StackOverflowError», «branch prediction» savollari.</li>
+      <li><strong>Ishda:</strong> stek izi va ORA-06512 ni o'qish qoidalari bir joyda.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Maqsad</h3>
+    <p>Testda har bir darsdan kamida 70%. Yakuniy dasturni «Bitta buyruq» bilan bajarib, har qatorda qaysi darsdagi g'oya ishlayotganini ayta olish.</p>
+  </div>
+</div>
+
+<nav class="toc" aria-label="Sahifa mundarijasi">
+  <h2>Sahifada</h2>
+  <ol>
+    <li><a href="#xarita">Bo'lim bitta chizmada</a></li>
+    <li><a href="#darslar">Darslar bo'yicha xulosa</a></li>
+    <li><a href="#buyruqlar">O'quv protsessori: hamma buyruqlar</a></li>
+    <li><a href="#yakuniy">Yakuniy dastur</a></li>
+    <li><a href="#atamalar">Barcha atamalar (46 ta)</a></li>
+    <li><a href="#savollar">Suhbat savollari (13 ta)</a></li>
+    <li><a href="#test">Mustahkamlash testi (47 ta savol)</a></li>
+    <li><a href="#ogzaki">Og'zaki tekshiruv savollari</a></li>
+  </ol>
+</nav>
+
+<h2 id="xarita">Bo'lim bitta chizmada</h2>
+<p>Uch dars bitta zanjir: baytlarni qo'lda yozish og'rig'i nomlarni tug'dirdi, to'g'ri chiziqli dastur sakrashni, takrorlanadigan kod esa funksiya va stekni. Java, Kotlin va PL/SQL dagi o'zgaruvchi, if, while, metod va stek izi shu uch g'oyaning yuqori qavatdagi ko'rinishi.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="mpT" role="group" aria-label="Qadamni tanlang"></div>
+  <div class="scrollx"><svg class="dg" id="mpV" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="P1 bo'limi: assembler, sakrash va stek zanjiri"></svg></div>
+  <p class="say" id="mpSay" aria-live="polite"></p>
+</figure>
+
+<h2 id="darslar">Darslar bo'yicha xulosa</h2>
+<section class="sum" id="d8">
+<h3><span class="part">8-dars</span>Songa va katakka nom berish</h3>
+<div class="rule"><b>Oddiy qilib aytganda</b><p>Telefon kitobchasini eslang: siz «Onam» ni bosasiz, raqamni telefon o'zi topadi. Assemblerda ham shunday: dasturchi «balans» deb yozadi, uning xotiradagi adresini assembler o'zi topadi va baytlarga qo'yadi. Raqam o'zgarsa (yangi qator qo'shilsa), kitobcha o'zi yangilanadi.</p></div>
+<p class="sum-core">Assembler tili mashina kodining matn ko'rinishi: buyruqlar qisqa so'zlar (mnemonikalar), xotiradagi joylar nomlar (yorliqlar) bilan yoziladi. Assembler degan dastur matnni ikki o'tishda baytlarga aylantiradi. Asosiy foydasi: adreslarni qo'lda hisoblash shart emas va xatolarning bir qismi oldindan ushlanadi.</p>
+<div class="sum-cols">
+  <div><h4>Bilish kerak</h4><ul><li><strong>Og'riq.</strong> Baytlarda yozilgan dasturga o'rtaga bitta buyruq qo'shilsa, undan keyingi hamma narsa siljiydi, lekin buyruqlar ichidagi eski adreslar o'zgarmaydi: dastur xato bermasdan noto'g'ri sonlarni o'qiydi.</li><li><strong>Mnemonika.</strong> Buyruq raqamining so'z ko'rinishi: <span class="num">LOAD</span> (1), <span class="num">STORE</span> (2), <span class="num">ADD</span> (3), <span class="num">SUB</span> (4), <span class="num">HALT</span> (F). Haqiqiy protsessorlarda: mov, add, ldr, str.</li><li><strong>Yorliq.</strong> Joyning nomi: <span class="num">balans:</span>. <strong>Direktiva:</strong> assemblerga ko'rsatma, protsessor uchun emas: <span class="num">DB 50</span>. <strong>Izoh:</strong> <span class="num">;</span> dan keyin, faqat odam uchun.</li><li><strong>Ikki o'tish.</strong> 1-o'tish: adres sanagichi bilan har qatorning adresini sanab, nomlarni belgilar jadvaliga yozadi. 2-o'tish: har qatorni baytga aylantiradi, nomlarni jadvaldan almashtiradi. Ikki o'tish oldinga murojaat (nom e'lon qilinishidan oldin ishlatilishi) uchun kerak.</li><li><strong>Disassembler</strong> teskari ish qiladi: baytlardan matn, lekin nomlar va izohlar tiklanmaydi.</li><li><strong>Assembler va kompilyator.</strong> Assembler: bir qator ≈ bir buyruq, protsessorga bog'liq, registrlarni dasturchi tanlaydi. Kompilyator: bir qator ko'p buyruqqa, tilga bog'liq, registr va adreslarni o'zi tanlaydi, ko'proq narsani tekshiradi.</li><li><strong>Haqiqiy dunyoda.</strong> x86-64 (NASM: <span class="num">mov eax, [balans]</span>), ARM64 (<span class="num">ldr</span>, <span class="num">str</span>: faqat registrlarda hisoblaydi, bizning o'quv protsessorimiz kabi), JVM (<span class="num">javap -c</span>: iload, iadd).</li><li><strong>Tarix.</strong> Booth «Coding for A.R.C.» (1947), EDSAC Initial Orders (1949, birinchi ishlagan assembler), SAP (Roy Natt, IBM 704, 1956: nom, belgilar jadvali, ikki o'tish), makro-assemblerlar (1960-yillar), bugun GNU as, NASM, LLVM.</li></ul></div>
+  <div><h4>Dasturchiga: tuzoqlar va qoidalar</h4><ul><li>O'zgaruvchi nomi xotiradagi joyning nomi: Java'dagi long balans va PL/SQL'dagi v_balans yorliqning avlodi.</li><li>«Sehrli sonlar» o'rniga nomlangan doimiylar: <span class="num">Status.REJECTED</span>, <span class="num">c_status_rejected CONSTANT NUMBER := 3</span>.</li><li><span class="num">javap -c -p</span> bilan baytkodni o'qish kod aslida nima qilishini ko'rsatadi.</li><li>Compiler Explorer (godbolt.org) kod va uning assemblerini yonma-yon ko'rsatadi; JVM uchun -XX:+PrintAssembly (hsdis kerak).</li></ul></div>
+</div>
+<p><a href="08-assembler-nomlar.html">8-darsni to'liq ochish</a></p>
+</section><section class="sum" id="d9">
+<h3><span class="part">9-dars</span>Sakrash: if va while pastda nima</h3>
+<div class="rule"><b>Oddiy qilib aytganda</b><p>Sarguzasht kitobini eslang: «eshikni ochsangiz 45-betga, ochmasangiz 12-betga o'ting». O'quvchi sahifalarni ketma-ket emas, ko'rsatma bo'yicha o'qiydi. Protsessor ham shunday: sakrash buyrug'i unga «endi falon adresdan o'qi» deydi. Shart bo'yicha sakrash qaror, orqaga sakrash sikl.</p></div>
+<p class="sum-core">Sakrash buyruq hisoblagichiga yangi adres yozadi. if teskari shartli sakrash (else ga) va else ni aylanib o'tadigan JMP dan iborat; while boshidagi chiqish sharti va oxiridagi orqaga JMP dan. Solishtirish ayirish orqali. Zamonaviy protsessor sakrash natijasini taxmin qiladi: to'g'ri taxmin tekin, xatosi qimmat.</p>
+<div class="sum-cols">
+  <div><h4>Bilish kerak</h4><ul><li><strong>Buyruqlar.</strong> <span class="num">JMP joy</span> doim sakraydi; <span class="num">JZ Rn, joy</span> Rn nol bo'lsa; <span class="num">JN Rn, joy</span> Rn manfiy (eng chap bit yoqiq) bo'lsa; <span class="num">SET Rn, son</span> registrga sonni to'g'ridan-to'g'ri yozadi.</li><li><strong>Solishtirish.</strong> balans ≥ summa ni bilish uchun balans − summa hisoblanadi: ishorasi javob. Haqiqiy protsessorlarda cmp ayiradi va faqat bayroqlarni (nol, manfiy, ko'chirish, toshish) qo'yadi, keyingi sakrash ularga qaraydi.</li><li><strong>if/else.</strong> Shart teskari yoziladi: «yetmasa rad'ga sakra», chunki sakramasa protsessor pastga tushadi. else ni aylanib o'tish uchun JMP shart: unutilsa ikkala qism ham bajariladi.</li><li><strong>while.</strong> Boshida «chiqish sharti bajarilsa tamom'ga sakra», oxirida «boshiga qayt» (orqaga JMP). for, do-while, break, continue shu ikki sakrashning variantlari; switch ko'p qiymatda sakrash jadvaliga aylanadi (JVM: tableswitch, lookupswitch).</li><li><strong>Cheksiz sikl.</strong> Chiqish sharti hech qachon bajarilmaydi: protsessor yadrosi 100% band, xato chiqmaydi.</li><li><strong>Konveyer.</strong> Buyruqlar ustma-ust bajariladi (olish, tushunish, bajarish). Shartli sakrash javobi kech ma'lum bo'ladi, shuning uchun protsessor taxmin qiladi (branch prediction). Noto'g'ri taxmin taxminan 15–20 takt.</li><li><strong>Oqibat.</strong> Oldindan aytsa bo'ladigan shartlar tez, tasodifiylari sekin (saralangan massiv misoli). Spectre (2018): spekulyativ bajarishning keshdagi izi orqali maxfiy ma'lumotni o'qish.</li><li><strong>Haqiqiy dunyoda.</strong> x86: cmp + jl/jge/je (ishorali), jb/ja (ishorasiz). ARM64: cmp + b.lt, cbz. JVM: ifeq, if_icmpge, goto.</li><li><strong>Tarix.</strong> EDSAC'ning E va G buyruqlari (1949), indeks registrlar (Manchester Mark 1), FORTRAN IF va DO (1957), Deykstra «GOTO zararli» (1968) va strukturaviy dasturlash, Pentium Pro (1995) va spekulyativ bajarish.</li></ul></div>
+  <div><h4>Dasturchiga: tuzoqlar va qoidalar</h4><ul><li>Sikl ichidagi har bir amal aylanishlar soniga ko'payadi: sikl ichida bazaga so'rov yoki qatorma-qator UPDATE qimmat.</li><li>Har bir qayta urinish siklida maksimal urinishlar soni bo'lsin. CPU 100% bo'lsa: <span class="num">jstack</span> yoki <span class="num">jcmd PID Thread.print</span>, Oracle'da <span class="num">v$session</span>, <span class="num">v$session_longops</span>.</li><li>Chegaralar: <span class="num">&lt;</span> va <span class="num">&lt;=</span> bir aylanish farq qiladi; bo'sh, bitta elementli va aynan limitga teng holatlarni test qiling.</li><li>Sakrashlarni qo'lda «optimallashtirmang»: avval o'lchang, JIT ko'p narsani o'zi qiladi.</li></ul></div>
+</div>
+<p><a href="09-sakrash-if-while.html">9-darsni to'liq ochish</a></p>
+</section><section class="sum" id="d10">
+<h3><span class="part">10-dars</span>Funksiya chaqiruvi va stek</h3>
+<div class="rule"><b>Oddiy qilib aytganda</b><p>Likopchalar ustunini eslang: yangisi faqat ustiga qo'yiladi va faqat ustidan olinadi. Funksiya chaqiruvlari ham shunday tugaydi: oxirgi boshlangani birinchi tugaydi. Har chaqiruvda protsessor «qayerga qaytishim kerak» degan qog'ozni ustunga qo'yadi, qaytganda eng ustidagisini oladi.</p></div>
+<p class="sum-core">CALL qaytish adresini stekka qo'yib sakraydi, RET uni olib qaytadi. Stek LIFO bo'lgani uchun ichma-ich chaqiruv va rekursiya ishlaydi. Har chaqiruvning kadri bor: qaytish adresi, saqlangan registrlar, mahalliy o'zgaruvchilar. Stek kichik: to'lsa StackOverflowError. Stek izi va ORA-06512 kadrlar ro'yxati.</p>
+<div class="sum-cols">
+  <div><h4>Bilish kerak</h4><ul><li><strong>Og'riq.</strong> Oddiy JMP faqat bitta oldindan yozilgan joyga qaytadi. Uiler sakrashi (EDSAC, 1949) qaytish adresini qism dastur oxiriga yozgan: ishlaydi, lekin ichma-ich chaqiruv va rekursiyada adres o'chib ketadi.</li><li><strong>Stek va SP.</strong> Xotiraning bir qismi va stek ko'rsatkichi registri. <span class="num">PUSH Rn</span>: SP − 1 va yozish; <span class="num">POP Rn</span>: o'qish va SP + 1; <span class="num">CALL joy</span>: qaytish adresini PUSH qilib sakrash; <span class="num">RET</span>: adresni POP qilib qaytish. Stek xotira oxiridan pastga o'sadi.</li><li><strong>Stek kadri.</strong> Bitta chaqiruvning bo'lagi: qaytish adresi, saqlangan registrlar, mahalliy o'zgaruvchilar, ba'zan argumentlar. Qaytishda butunlay tashlanadi: shuning uchun mahalliy o'zgaruvchilar yo'qoladi.</li><li><strong>Rekursiya.</strong> Funksiya o'zini chaqiradi; har chaqiruvning o'z kadri va o'z mahalliylari bor. Asos holat (to'xtash sharti) shart, aks holda stek to'ladi.</li><li><strong>Chaqiruv kelishuvi.</strong> x86-64 System V (Linux, macOS): argumentlar rdi, rsi, rdx, rcx, r8, r9, natija rax. Windows x64: rcx, rdx, r8, r9. ARM64: x0–x7, natija x0, qaytish adresi x30 (LR) registrida.</li><li><strong>JVM.</strong> Har oqimning o'z steki; kadrda mahalliy o'zgaruvchilar massivi va operand steki. Obyektlar heap'da, stekda faqat havola. -Xss (64 bitli Linux'da odatda 1 MB). Java 21 virtual oqimlari kutishda kadrlarni heap'ga ko'chiradi.</li><li><strong>Stek izi.</strong> Har «at ...» qatori va har «ORA-06512: at ...» qatori bitta kadr, ichkaridan tashqariga. Birinchi qator xato joyi.</li><li><strong>Bufer to'lishi.</strong> C kabi tillarda massiv kadrda qaytish adresi yonida: ortiqcha yozish uni o'zgartiradi (Morris qurti, 1988). Himoyalar: kanareyka, bajarilmaydigan stek (NX), ASLR, soya stek (Intel CET, 2020). Java va PL/SQL chegarani doim tekshiradi.</li><li><strong>Tarix.</strong> Uiler sakrashi, qaytish registri, stek va ALGOL 60 rekursiyasi, Burroughs B5000 (1961), chaqiruv kelishuvlari, himoyalar, virtual oqimlar (2023).</li></ul></div>
+  <div><h4>Dasturchiga: tuzoqlar va qoidalar</h4><ul><li>Java stek izida birinchi o'z paketingizdagi qatorni toping; <span class="num">Caused by:</span> bo'lsa eng pastdagisi asl sabab.</li><li>PL/SQL: <span class="num">DBMS_UTILITY.FORMAT_ERROR_BACKTRACE</span> (xato qatori), <span class="num">FORMAT_CALL_STACK</span> (hozirgi stek), 12c dan <span class="num">UTL_CALL_STACK</span>.</li><li><span class="num">WHEN OTHERS</span> da yangi xato tashlash asl stekni yo'qotadi: backtrace ni logga yozing yoki shunchaki <span class="num">RAISE;</span>. Java'da asl xatoni sabab qilib bering.</li><li>Chuqurligi noma'lum daraxtga rekursiya o'rniga sikl yoki SQL (<span class="num">CONNECT BY</span>); bir-birini chaqiruvchi toString/equals dan ehtiyot bo'ling; <span class="num">-Xss</span> ni oshirish vaqtinchalik.</li></ul></div>
+</div>
+<p><a href="10-funksiya-va-stek.html">10-darsni to'liq ochish</a></p>
+</section>
+
+<h2 id="buyruqlar">O'quv protsessori: hamma buyruqlar</h2>
+<p>7-darsdagi protsessor, P1 bo'limida kengaytirilgan. Har buyruq 2 bayt: birinchi baytning chap yarmi kod, o'ng yarmi registr; ikkinchi bayt adres, ikkinchi registr yoki son. To'rtta registr (R0–R3), buyruq hisoblagichi (PC) va stek ko'rsatkichi (SP).</p>
+<div class="scroll"><table><thead><tr><th>Yozuv</th><th>Kod</th><th>Ma'nosi</th><th>Dars</th></tr></thead><tbody><tr><td class="num">LOAD Rn, joy</td><td class="num">1</td><td>yukla: joydagi sonni Rn ga</td><td>8</td></tr><tr><td class="num">STORE joy, Rn</td><td class="num">2</td><td>saqla: Rn ni joyga</td><td>8</td></tr><tr><td class="num">ADD Rn, Rm</td><td class="num">3</td><td>qo'sh: Rn = Rn + Rm</td><td>8</td></tr><tr><td class="num">SUB Rn, Rm</td><td class="num">4</td><td>ayir: Rn = Rn − Rm</td><td>8</td></tr><tr><td class="num">JMP joy</td><td class="num">5</td><td>doim sakra</td><td>9</td></tr><tr><td class="num">JZ Rn, joy</td><td class="num">6</td><td>Rn nol bo'lsa sakra</td><td>9</td></tr><tr><td class="num">JN Rn, joy</td><td class="num">7</td><td>Rn manfiy bo'lsa sakra</td><td>9</td></tr><tr><td class="num">PUSH Rn</td><td class="num">8</td><td>stekka qo'y</td><td>10</td></tr><tr><td class="num">POP Rn</td><td class="num">9</td><td>stekdan ol</td><td>10</td></tr><tr><td class="num">CALL joy</td><td class="num">A</td><td>qaytish adresini stekka qo'yib sakra</td><td>10</td></tr><tr><td class="num">RET</td><td class="num">B</td><td>stekdagi adresga qayt</td><td>10</td></tr><tr><td class="num">SET Rn, son</td><td class="num">C</td><td>Rn ga sonni to'g'ridan-to'g'ri yoz</td><td>9</td></tr><tr><td class="num">HALT</td><td class="num">F</td><td>to'xta</td><td>8</td></tr><tr><td class="num">DB son</td><td class="num">–</td><td>direktiva: shu joyga bayt qo'y</td><td>8</td></tr></tbody></table></div>
+
+<h2 id="yakuniy">Yakuniy dastur</h2>
+<p>Bitta dasturda hammasi: nomlar va direktivalar (8), sikl va shart (9), funksiya chaqiruvi, PUSH va POP (10). Uchta o'tkazma, har biriga komissiya; balans yetmasa o'tkazma rad etiladi va eski balans tiklanadi. Matnni o'zgartirib tajriba qiling: summani yoki sonini o'zgartiring.</p>
+<figure class="fig">
+  <div class="evo-tabs" id="mcT" role="group" aria-label="Namunani tanlang"></div>
+  <textarea id="mcSrc" rows="24" spellcheck="false" aria-label="Assembler matni" style="width:100%;box-sizing:border-box;font-family:var(--mono);font-size:0.9375rem;line-height:1.45;padding:0.7rem 0.9rem;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink)"></textarea>
+  <div class="evo-nav" style="margin:0.6rem 0 0.9rem"><button type="button" id="mcB">Yig'ish</button> <button type="button" id="mcS">Bitta buyruq</button> <button type="button" id="mcR">Oxirigacha</button></div>
+  <div class="scrollx"><svg class="dg" id="mcV" style="width:1240px;height:580px" viewBox="0 0 1240 580" role="img" aria-label="Yakuniy dastur: sikl, shart, funksiya chaqiruvi va stek"></svg></div>
+  <p class="say" id="mcSay" aria-live="polite"></p>
+</figure>
+
+<h2 id="atamalar">Barcha atamalar</h2>
+<p>Har bir darsning atamalari o'sha darsdagi ta'rifi bilan.</p>
+<details><summary>8-dars. Songa va katakka nom berish</summary><dl class="terms"><dt>Assembler tili (assembly language)</dt><dd>Mashina kodining odam o'qiy oladigan matn ko'rinishi: buyruqlar qisqa so'zlar, adreslar nomlar bilan yoziladi. Har bir protsessor oilasining o'z assembler tili bor.</dd>
+  <dt>Assembler (dastur)</dt><dd>Assembler matnini mashina kodi baytlariga aylantiradigan dastur. Inglizchada til ham, dastur ham ko'pincha bitta so'z bilan ataladi.</dd>
+  <dt>Mnemonika (mnemonic)</dt><dd>Buyruq kodining eslab qolish oson so'z ko'rinishi: LOAD, ADD, mov, ldr.</dd>
+  <dt>Operand</dt><dd>Buyruq nima bilan ishlashini ko'rsatadigan qism: registr, adres yoki son. <span class="num">ADD R1, R2</span> da operandlar R1 va R2.</dd>
+  <dt>Yorliq (label)</dt><dd>Xotiradagi joyga berilgan nom. Qator boshida ikki nuqta bilan yoziladi: <span class="num">balans:</span>.</dd>
+  <dt>Belgilar jadvali (symbol table)</dt><dd>Assembler ichidagi ro'yxat: har bir nom va uning adresi. Birinchi o'tishda to'ldiriladi, ikkinchisida ishlatiladi.</dd>
+  <dt>Adres sanagichi (location counter)</dt><dd>Assembler ichidagi hisoblagich: joriy qator xotiraning qaysi adresiga tushishini ko'rsatadi.</dd>
+  <dt>Direktiva (directive)</dt><dd>Protsessor uchun emas, assembler uchun ko'rsatma: DB, dd, section, align.</dd>
+  <dt>Izoh (comment)</dt><dd>Faqat odam uchun yozilgan matn; assembler uni tashlab yuboradi. Bu darsda <span class="num">;</span> dan keyin.</dd>
+  <dt>Ikki o'tishli assembler (two-pass)</dt><dd>Matnni ikki marta o'qiydigan assembler: avval adreslarni sanaydi va nomlarni yig'adi, keyin baytlarni chiqaradi.</dd>
+  <dt>Oldinga murojaat (forward reference)</dt><dd>Nomni u e'lon qilinishidan oldin ishlatish. Ikki o'tish aynan shuning uchun kerak.</dd>
+  <dt>Listing</dt><dd>Assembler chiqaradigan hisobot: har qatorning adresi, baytlari va matni yonma-yon.</dd>
+  <dt>Disassembler</dt><dd>Teskari dastur: baytlardan assembler matnini tiklaydi. Nomlar va izohlar tiklanmaydi.</dd>
+  <dt>Makros (macro)</dt><dd>Bir nechta buyruqqa berilgan nom: yozilgan joyda assembler uni o'sha buyruqlar bilan almashtiradi.</dd>
+  <dt>Kompilyator</dt><dd>Yuqori darajadagi tildagi bir qatorni ko'p buyruqqa aylantiradigan dastur. Assemblerdan farqi: bir qator ≠ bir buyruq, registr va adreslarni o'zi tanlaydi.</dd></dl></details><details><summary>9-dars. Sakrash: if va while pastda nima</summary><dl class="terms"><dt>Sakrash (jump, branch)</dt><dd>Buyruq hisoblagichiga yangi adres yozib, dasturni boshqa joydan davom ettiradigan buyruq.</dd>
+  <dt>Shartsiz sakrash</dt><dd>Doim sakraydi: JMP, x86 da jmp, ARM da b, JVM da goto.</dd>
+  <dt>Shartli sakrash</dt><dd>Faqat shart bajarilganda sakraydi, aks holda keyingi qatorga o'tadi: JZ, JN, jl, b.lt, ifeq.</dd>
+  <dt>Bayroqlar (flags)</dt><dd>Hisoblash natijasi haqidagi bir bitli belgilar: nol, manfiy, ko'chirish, toshish. Shartli sakrashlar ularga qaraydi.</dd>
+  <dt>cmp (compare)</dt><dd>Ikki sonni ayirib, natijani tashlab, faqat bayroqlarni qo'yadigan buyruq.</dd>
+  <dt>Teskari shart</dt><dd>Kompilyatorlarning odati: «shart bajarilsa pastga tush, bajarilmasa else ga sakra», shuning uchun pastda shart teskari yoziladi.</dd>
+  <dt>Sikl (loop)</dt><dd>Orqaga sakrash bilan bir xil buyruqlarni qayta bajarish.</dd>
+  <dt>Cheksiz sikl</dt><dd>Chiqish sharti hech qachon bajarilmaydigan sikl; protsessor yadrosini 100% band qiladi.</dd>
+  <dt>Sakrash jadvali (jump table)</dt><dd>Qiymat bo'yicha sakrash adresini topadigan jadval; switch shu bilan tez ishlaydi. JVM'da tableswitch, lookupswitch.</dd>
+  <dt>Konveyer (pipeline)</dt><dd>Buyruqlarni bosqichlarga bo'lib, ustma-ust bajarish: biri bajarilayotganda keyingisi olinadi.</dd>
+  <dt>Sakrashni taxmin qilish (branch prediction)</dt><dd>Protsessor shartli sakrash natijasini oldindan taxmin qilib, konveyerni to'xtatmasdan davom etishi.</dd>
+  <dt>Noto'g'ri taxmin (misprediction)</dt><dd>Taxmin xato chiqqanda boshlangan ishni tashlab, qaytadan boshlash; bugungi protsessorlarda taxminan 15–20 takt.</dd>
+  <dt>Spekulyativ bajarish (speculative execution)</dt><dd>Natijasi hali aniq bo'lmagan yo'ldagi buyruqlarni oldindan bajarish; to'g'ri bo'lsa natija qabul qilinadi, xato bo'lsa tashlanadi.</dd>
+  <dt>Spectre</dt><dd>2018-yilda e'lon qilingan zaifliklar oilasi: spekulyativ bajarishning keshdagi izlari orqali maxfiy ma'lumotni o'qish.</dd>
+  <dt>Strukturaviy dasturlash</dt><dd>Dasturni faqat ketma-ketlik, if va sikllardan qurish, GOTO siz. 1968-yildagi Deykstra maktubidan keyin keng tarqalgan.</dd></dl></details><details><summary>10-dars. Funksiya chaqiruvi va stek</summary><dl class="terms"><dt>Funksiya, qism dastur (subroutine)</dt><dd>Nomi bor, bir joyda yozilgan va ko'p joydan chaqiriladigan kod bo'lagi. Java'da metod, PL/SQL'da protsedura va funksiya.</dd>
+  <dt>Qaytish adresi (return address)</dt><dd>Chaqiruv tugagach protsessor davom etishi kerak bo'lgan adres: CALL dan keyingi buyruq.</dd>
+  <dt>Stek (stack)</dt><dd>Oxirgi qo'yilgani birinchi olinadigan (LIFO) tuzilma. Protsessorda: xotiraning bir qismi va SP registri.</dd>
+  <dt>Stek ko'rsatkichi (SP, stack pointer)</dt><dd>Stekning eng ustidagi yozuv adresini saqlaydigan registr.</dd>
+  <dt>PUSH va POP</dt><dd>Stekka qiymat qo'yish va stekdan qiymat olish.</dd>
+  <dt>CALL va RET</dt><dd>Qaytish adresini stekka qo'yib sakrash va stekdagi adresga qaytish. x86 da call/ret, ARM'da bl/ret, JVM'da invoke*/return.</dd>
+  <dt>Stek kadri (stack frame)</dt><dd>Bitta chaqiruvning stekdagi bo'lagi: qaytish adresi, saqlangan registrlar, mahalliy o'zgaruvchilar, ba'zan argumentlar.</dd>
+  <dt>Mahalliy o'zgaruvchi</dt><dd>Faqat bitta chaqiruv davomida yashaydigan o'zgaruvchi; uning kadrida turadi va qaytishda yo'qoladi.</dd>
+  <dt>Rekursiya</dt><dd>Funksiya o'zini chaqirishi. Har chaqiruvning o'z kadri bor; asos holat (to'xtash sharti) shart.</dd>
+  <dt>Stek to'lishi (stack overflow)</dt><dd>Kadrlar stekka ajratilgan joydan oshib ketishi. Java'da StackOverflowError.</dd>
+  <dt>Chaqiruv kelishuvi (calling convention)</dt><dd>Argumentlar, natija va registrlarni saqlash bo'yicha qoida: System V (Linux), Windows x64, ARM64.</dd>
+  <dt>Link register (LR)</dt><dd>ARM'da qaytish adresi yoziladigan registr (x30).</dd>
+  <dt>Stek izi (stack trace)</dt><dd>Xato paytidagi kadrlar ro'yxati: eng ichki chaqiruvdan tashqarigacha. Oracle'da ORA-06512 qatorlari.</dd>
+  <dt>Operand steki (JVM)</dt><dd>JVM kadridagi hisob-kitob uchun kichik stek: iadd ikki sonni shu yerdan oladi.</dd>
+  <dt>Bufer to'lishi (buffer overflow)</dt><dd>Massivga uning hajmidan ko'p yozish; stekda bu qaytish adresini buzishi mumkin.</dd>
+  <dt>Kanareyka, NX, ASLR, soya stek</dt><dd>Bufer to'lishiga qarshi himoyalar: qaytish adresi oldidagi nazorat soni; stekni bajarishni taqiqlash; adreslarni tasodifiylashtirish; qaytish adreslarining himoyalangan nusxasi.</dd></dl></details>
+
+<h2 id="savollar">Suhbat savollari va namunaviy javoblar</h2>
+<p>Savolni o'qing, javobni ovoz chiqarib ayting, keyin namunaviy javobni ochib solishtiring.</p>
+<details class="grp"><summary>8-dars. Songa va katakka nom berish (4 ta savol)</summary><div class="grp-in"><details><summary>Assembler va mashina kodi farqi nima?</summary>
+<p>Mashina kodi protsessor bajaradigan baytlar. Assembler tili shu baytlarning matn ko'rinishi: buyruqlar so'zlar bilan, adreslar nomlar bilan. Bir qator odatda bitta buyruqqa mos keladi. Assembler degan dastur matnni baytlarga aylantiradi: nomlarni belgilar jadvali orqali adreslarga almashtiradi.</p></details>
+<details><summary>Kompilyator, interpretator va assembler farqi?</summary>
+<p>Assembler: bir qator, bir buyruq, protsessorga bog'liq. Kompilyator: yuqori darajadagi tilni oldindan boshqa ko'rinishga (mashina kodi yoki baytkod) to'liq tarjima qiladi. Interpretator: dasturni oldindan tarjima qilmasdan, ishlash paytida bajaradi. Java ikkalasini qo'shadi: javac baytkodga kompilyatsiya qiladi, JVM uni avval interpretatsiya qiladi, keyin issiq joylarini JIT bilan mashina kodiga kompilyatsiya qiladi.</p></details>
+<details><summary>javap -c nima ko'rsatadi va qachon kerak bo'ladi?</summary>
+<p>.class faylning baytkodini mnemonikalar bilan: iload, iadd, invokevirtual va hokazo. Kerak bo'ladi: kod aslida nima qilishini tekshirishda (satrlarni qo'shish, autoboxing, lambda qanday tuzilgani), kutubxona versiyalari farqini tushunishda, tezlik muammosini tahlil qilishda.</p></details>
+<details><summary>Nega bugun assemblerda kam yoziladi, lekin uni bilish foydali?</summary>
+<p>Kompilyatorlar ko'p hollarda odamdan yaxshi kod chiqaradi va kod protsessorga bog'lanib qolmaydi. Bilish foydali, chunki u xotira, registr, stek, sakrash kabi tushunchalarni beradi: ular stek izi (stack trace), StackOverflowError, tezlik va xavfsizlik zaifliklarini tushunishda kerak.</p></details></div></details><details class="grp"><summary>9-dars. Sakrash: if va while pastda nima (4 ta savol)</summary><div class="grp-in"><details><summary>if va while protsessor darajasida qanday bajariladi?</summary>
+<p>Protsessorda faqat sakrash buyruqlari bor: shartli (bayroqlar yoki registrga qarab) va shartsiz. if teskari shartli sakrashga (else ga) va else ni aylanib o'tadigan shartsiz sakrashga aylanadi. while boshida chiqish uchun shartli sakrash, oxirida orqaga shartsiz sakrash. Java'da ham xuddi shunday: baytkodda ifeq, if_icmpge, goto ko'rinadi.</p></details>
+<details><summary>Branch prediction nima va dasturchiga qanday ta'sir qiladi?</summary>
+<p>Protsessor konveyeri to'xtamasligi uchun shartli sakrash natijasini oldindan taxmin qiladi va o'sha yo'lni oldindan bajaradi. To'g'ri bo'lsa yutuq, xato bo'lsa boshlangan ish tashlanadi (taxminan 15–20 takt). Oqibati: oldindan aytsa bo'ladigan shartlar tez, tasodifiylari sekin; mashhur misol saralangan massiv ustidagi sikl. Amalda avval o'lchash kerak, chunki JIT ko'p narsani o'zi optimallashtiradi.</p></details>
+<details><summary>Spectre nima? Qisqacha.</summary>
+<p>2018-yilda e'lon qilingan protsessor zaifliklari oilasi. Spekulyativ bajarilgan, keyin tashlab yuborilgan buyruqlar keshda iz qoldiradi. Hujumchi taxminchini adashtirib, protsessorni ruxsat etilmagan ma'lumotni spekulyativ o'qishga majbur qiladi va keyin keshga murojaat vaqtini o'lchab, uni tiklaydi. Himoya operatsion tizim, kompilyator, brauzer va mikrokod darajasida qilingan.</p></details>
+<details><summary>Ishlab chiqarishda CPU 100% bo'lib qoldi. Qanday tekshirasiz?</summary>
+<p>Avval qaysi jarayon (top), keyin qaysi oqim (top -H, oqim ID sini o'n oltilikka o'tkazish). Java'da jstack yoki jcmd Thread.print bilan stek izini olib, shu oqimni topaman: ko'pincha cheksiz yoki juda uzun sikl, yoki GC. Bir necha marta olib, bir joyda turgan bo'lsa, o'sha sikl. Oracle tomonida uzoq ishlayotgan sessiya va uning SQL i v$session orqali.</p></details></div></details><details class="grp"><summary>10-dars. Funksiya chaqiruvi va stek (5 ta savol)</summary><div class="grp-in"><details><summary>Stack va heap farqi nima?</summary>
+<p>Stek har bir oqimga tegishli va chaqiruvlar bilan birga o'sadi va qisqaradi: unda kadrlar, ya'ni mahalliy o'zgaruvchilar, argumentlar va qaytish adreslari. Ajratish va bo'shatish juda arzon (SP ni surish). Heap umumiy xotira: Java'da hamma obyektlar shu yerda, ularni axlat yig'uvchi tozalaydi. Mahalliy o'zgaruvchi obyekt bo'lsa, stekda faqat havola, obyektning o'zi heap'da. Stek kichik (odatda 1 MB), to'lsa StackOverflowError; heap to'lsa OutOfMemoryError.</p></details>
+<details><summary>Funksiya chaqirilganda pastda nima bo'ladi?</summary>
+<p>Argumentlar kelishuv bo'yicha registrlarga yoki stekka qo'yiladi, call buyrug'i qaytish adresini stekka (ARM'da link registerga) yozib sakraydi. Chaqirilgan funksiya o'z kadrini ochadi: kerakli registrlarni saqlaydi, mahalliy o'zgaruvchilar uchun joy ajratadi. Tugaganda natijani kelishilgan registrga qo'yadi, kadrni yopadi va ret bilan qaytish adresiga qaytadi.</p></details>
+<details><summary>StackOverflowError ni qanday tuzatasiz?</summary>
+<p>Stek izidan takrorlanayotgan kadrlarni topaman: o'sha rekursiya yoki bir-birini chaqiruvchi metodlar (ko'pincha toString/equals). Asos holat bormi va to'g'rimi, tekshiraman. Chuqurligi ma'lumotga bog'liq bo'lsa, rekursiyani sikl va o'z steki bilan almashtiraman yoki ishni bazaga beraman (CONNECT BY). -Xss ni oshirish faqat vaqtinchalik yechim.</p></details>
+<details><summary>PL/SQL'da xato qayerda chiqqanini qanday bilasiz?</summary>
+<p>Xato steki: asl ORA- kodi va ORA-06512 qatorlari, har biri paket nomi va qator raqami bilan, ichkaridan tashqariga. Exception handler ichida DBMS_UTILITY.FORMAT_ERROR_BACKTRACE xato chiqqan qatorni beradi; uni SQLERRM bilan birga logga yozaman. 12c dan UTL_CALL_STACK bilan stekni dasturiy o'qish mumkin. WHEN OTHERS da yangi xato tashlasam, backtrace ni oldin saqlayman, aks holda u yo'qoladi.</p></details>
+<details><summary>Rekursiya va sikl: qachon qaysi biri?</summary>
+<p>Rekursiya daraxtsimon masalalarda (daraxt bo'ylab yurish, bo'lib-tashla algoritmlari) kodni sodda qiladi. Lekin har chaqiruv kadr oladi: chuqurlik katta yoki oldindan noma'lum bo'lsa stek to'lishi mumkin, va chaqiruvlar sikldan biroz qimmat. Java tail call optimization qilmaydi. Shuning uchun ishlab chiqarish kodida chuqur ma'lumotga sikl yoki SQL afzal.</p></details></div></details>
+
+<h2 id="test">Mustahkamlash testi</h2>
+<p>47 ta savol, har bir darsdan 15 tadan. Har javobdan keyin izoh va darsga havola. Savollar va variantlar aralashtiriladi; bitta dars bo'yicha alohida ham ishlash mumkin.</p>
+<div class="bench" id="quiz"></div>
+
+<h2 id="ogzaki">Og'zaki tekshiruv savollari</h2>
+<p>Javobni o'z so'zingiz bilan ayting yoki chatga yozing, tekshirib beraman.</p>
+<details><summary>8-dars. Songa va katakka nom berish</summary><ol class="check"><li>Baytlarni qo'lda yozganda o'rtaga bitta buyruq qo'shilsa nima bo'ladi va nega xato darhol ko'rinmaydi?</li>
+  <li>Mnemonika, yorliq va direktiva nima? Har biriga misol keltiring.</li>
+  <li>Assembler nega matnni ikki marta o'qiydi? Oldinga murojaat nima?</li>
+  <li>Assembler va kompilyator farqi nimada?</li>
+  <li>Disassembler nima qiladi va nega u nomlarni tiklay olmaydi?</li></ol></details><details><summary>9-dars. Sakrash: if va while pastda nima</summary><ol class="check"><li>Shartli va shartsiz sakrash nima? Ular buyruq hisoblagichi bilan qanday ishlaydi?</li>
+  <li>Protsessor ikki sonni qanday solishtiradi? Bayroqlar nima?</li>
+  <li>if/else assemblerda qaysi ikki sakrashga aylanadi? Nega shart teskari yoziladi va JMP unutilsa nima bo'ladi?</li>
+  <li>while sikli pastda qanday ko'rinadi? Cheksiz siklning sababi va belgilari nima?</li>
+  <li>Sakrashni taxmin qilish nima, noto'g'ri taxmin nimaga olib keladi, va Spectre bunga qanday bog'liq?</li></ol></details><details><summary>10-dars. Funksiya chaqiruvi va stek</summary><ol class="check"><li>Nega funksiya uchun oddiy JMP yetmaydi? Uiler sakrashining cheklovi nima edi?</li>
+  <li>CALL va RET nima qiladi? Nega qaytish adreslari uchun aynan stek (LIFO) kerak?</li>
+  <li>Stek kadrida nimalar bo'ladi? Mahalliy o'zgaruvchilar nega metod tugagach yo'qoladi?</li>
+  <li>StackOverflowError qachon chiqadi? Ikki odatiy sababini ayting.</li>
+  <li>ORA-06512 qatorlari nimani bildiradi va xatoni loglaganda nimani yo'qotmaslik kerak?</li></ol></details>
+
+<div class="next">
+  <p><strong>Bu bo'limdan olib ketadigan narsa.</strong> Assembler mashina kodiga nomlar berdi va adreslarni hisoblashni mashinaga topshirdi. Sakrash buyruq hisoblagichiga yangi adres yozish orqali qaror (if) va takrorlash (while) ni yaratdi; zamonaviy protsessor esa sakrashni taxmin qiladi. CALL, RET va stek funksiyalarni, rekursiyani va stek izini berdi. Yuqori darajadagi tillarning hamma asosiy g'oyalari shu yerda tug'ilgan.</p>
+  <p><strong>Poydevor yo'nalishi tugadi.</strong> Kalitdan funksiya chaqiruvigacha. Hozirgi navbat: 4. Ma'lumotlar bazasi, D1 bo'limi.</p>
+</div>
+
+<nav class="pager" aria-label="Darslar orasida"><a href="10-funksiya-va-stek.html">Oldingi: 10. Funksiya va stek</a><a href="../4-baza/">Keyingi: 4. Ma'lumotlar bazasi</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function code(svg, x, y, lines, cls) { lines.forEach(function (l, i) { S(svg, 'text', { x: x, y: y + i * 24, 'class': cls || 'mono', style: 'white-space:pre' }, l); }); }
+  // Sahna: { g: [[x,y,w,h,nom]], b: [[x,y,w,h,nom,izoh,cls]], a: [[d,yorliq,lx,ly]], c: [[x,y,[qatorlar],cls]], x: [[x,y,matn,cls,anchor]] }
+  function scene(svg, mk, st) {
+    svg.textContent = ''; marker(svg, mk);
+    (st.g || []).forEach(function (g) { group(svg, g[0], g[1], g[2], g[3], g[4]); });
+    (st.b || []).forEach(function (b) { box(svg, b[0], b[1], b[2], b[3], b[4], b[5], b[6]); });
+    (st.a || []).forEach(function (a) { arrow(svg, mk, a[0], a[1], a[2], a[3]); });
+    (st.c || []).forEach(function (c) { code(svg, c[0], c[1], c[2], c[3]); });
+    (st.x || []).forEach(function (t) { S(svg, 'text', { x: t[0], y: t[1], 'class': t[3] || 'sub', 'text-anchor': t[4] || 'start' }, t[2]); });
+  }
+  // Qadamli chizma: bir nechta stsenariy, har birida qadamlar
+  function steps(svgId, scId, stId, sayId, list, mk) {
+    var svg = $(svgId), say = $(sayId), sc = 0, st = 0, setSc = null;
+    if (scId) setSc = tabs(scId, list.map(function (x) { return x.t; }), function (i) { sc = i; st = 0; draw(); });
+    function draw() {
+      if (setSc) setSc(sc);
+      var L = list[sc].steps;
+      var setSt = tabs(stId, L.map(function (x, i) { return (i + 1) + '. ' + x.t; }), function (i) { st = i; draw(); });
+      setSt(st); scene(svg, mk, L[st]); say.textContent = L[st].s;
+      say.className = 'say' + (L[st].bad ? ' bad' : '');
+    }
+    draw();
+  }
+
+  function hex2(n) { return ('0' + (n & 255).toString(16).toUpperCase()).slice(-2); }
+  function pad(n, w) { var s = String(n); while (s.length < w) s = ' ' + s; return s; }
+  function sgn(b) { b &= 255; return b > 127 ? b - 256 : b; }
+  // Buyruqlar: kod, operandlar turi, o'zbekcha nomi
+  var OPC = {
+    LOAD: { c: 1, k: 'ra', u: 'yukla' }, STORE: { c: 2, k: 'ar', u: 'saqla' }, ADD: { c: 3, k: 'rr', u: 'qo\'sh' }, SUB: { c: 4, k: 'rr', u: 'ayir' },
+    JMP: { c: 5, k: 'a', u: 'sakra' }, JZ: { c: 6, k: 'ra', u: 'nol bo\'lsa sakra' }, JN: { c: 7, k: 'ra', u: 'manfiy bo\'lsa sakra' },
+    PUSH: { c: 8, k: 'r', u: 'stekka qo\'y' }, POP: { c: 9, k: 'r', u: 'stekdan ol' }, CALL: { c: 10, k: 'a', u: 'chaqir' }, RET: { c: 11, k: '', u: 'qayt' },
+    SET: { c: 12, k: 'rn', u: 'son yoz' }, HALT: { c: 15, k: '', u: 'to\'xta' }
+  };
+  var BYC = {}; Object.keys(OPC).forEach(function (k) { BYC[OPC[k].c] = k; });
+  function asm(src, size) {
+    var lines = src.split('\n'), sym = {}, pc = 0, items = [], errs = [];
+    lines.forEach(function (raw, i) {
+      var t = raw.replace(/;.*$/, '').trim(); if (!t) return;
+      var lab = null, m = t.match(/^([A-Za-z_][A-Za-z0-9_]*)\s*:\s*(.*)$/);
+      if (m) { lab = m[1].toLowerCase(); t = m[2].trim(); if (sym[lab] !== undefined) errs.push((i + 1) + '-qator: «' + m[1] + '» nomi ikki marta e\'lon qilingan'); sym[lab] = pc; }
+      if (!t) { items.push({ i: i, lab: lab, addr: pc, size: 0, src: raw.trim() }); return; }
+      var mn = t.split(/\s+/)[0], up = mn.toUpperCase(), args = t.slice(mn.length).split(',').map(function (s) { return s.trim(); }).filter(Boolean);
+      if (up === 'DB') { items.push({ i: i, lab: lab, mn: 'DB', args: args, addr: pc, size: 1, src: raw.trim() }); pc += 1; return; }
+      if (!OPC[up]) { errs.push((i + 1) + '-qator: «' + mn + '» degan buyruq yo\'q'); return; }
+      items.push({ i: i, lab: lab, mn: up, args: args, addr: pc, size: 2, src: raw.trim() }); pc += 2;
+    });
+    if (pc > size) errs.push('Dastur va ma\'lumot ' + pc + ' bayt, xotira esa ' + size + ' bayt: sig\'madi');
+    function reg(s, i) { var m = /^R([0-3])$/i.exec(s || ''); if (!m) { errs.push((i + 1) + '-qator: «' + (s || '') + '» registr emas (R0, R1, R2 yoki R3 kerak)'); return 0; } return +m[1]; }
+    function adr(s, i) {
+      if (s === undefined) { errs.push((i + 1) + '-qator: adres yoki nom yetishmayapti'); return 0; }
+      if (/^\d+$/.test(s)) return +s;
+      var k = s.toLowerCase(); if (sym[k] === undefined) { errs.push((i + 1) + '-qator: «' + s + '» degan nom e\'lon qilinmagan'); return 0; } return sym[k];
+    }
+    function num(s, i) { var v = parseInt(s, 10); if (isNaN(v) || v < -128 || v > 255) { errs.push((i + 1) + '-qator: son −128 dan 255 gacha bo\'lishi kerak'); return 0; } return v & 255; }
+    var bytes = []; for (var z = 0; z < size; z++) bytes.push(0);
+    items.forEach(function (it) {
+      if (!it.size) return;
+      var b1 = 0, b2 = 0, o = OPC[it.mn], a = it.args;
+      if (it.mn === 'DB') { it.b = [num(a[0], it.i)]; if (it.addr < size) bytes[it.addr] = it.b[0]; return; }
+      var need = { ra: 2, ar: 2, rr: 2, rn: 2, a: 1, r: 1, '': 0 }[o.k];
+      if (a.length !== need) errs.push((it.i + 1) + '-qator: ' + it.mn + ' ' + need + ' ta operand oladi, ' + a.length + ' ta berilgan');
+      if (o.k === 'ra') { b1 = (o.c << 4) | reg(a[0], it.i); b2 = adr(a[1], it.i); }
+      else if (o.k === 'ar') { b1 = (o.c << 4) | reg(a[1], it.i); b2 = adr(a[0], it.i); }
+      else if (o.k === 'rr') { b1 = (o.c << 4) | reg(a[0], it.i); b2 = reg(a[1], it.i); }
+      else if (o.k === 'rn') { b1 = (o.c << 4) | reg(a[0], it.i); b2 = num(a[1], it.i); }
+      else if (o.k === 'a') { b1 = o.c << 4; b2 = adr(a[0], it.i); }
+      else if (o.k === 'r') { b1 = (o.c << 4) | reg(a[0], it.i); }
+      else { b1 = o.c << 4; }
+      it.b = [b1 & 255, b2 & 255];
+      if (it.addr + 1 < size) { bytes[it.addr] = it.b[0]; bytes[it.addr + 1] = it.b[1]; }
+    });
+    var end = 0; items.forEach(function (it) { if (it.size) end = it.addr + it.size; });
+    return { sym: sym, items: items, bytes: bytes, errs: errs, end: end };
+  }
+  function dis(b1, b2) {
+    var mn = BYC[b1 >> 4], r = b1 & 15; if (!mn) return null; var o = OPC[mn];
+    if (o.k === 'ra') return mn + ' R' + r + ', ' + b2; if (o.k === 'ar') return mn + ' ' + b2 + ', R' + r;
+    if (o.k === 'rr') return mn + ' R' + r + ', R' + (b2 & 15); if (o.k === 'rn') return mn + ' R' + r + ', ' + sgn(b2);
+    if (o.k === 'a') return mn + ' ' + b2; if (o.k === 'r') return mn + ' R' + r; return mn;
+  }
+  // Bitta buyruqni bajarish. Qaytaradi: tushuntirish matni
+  function exec(st) {
+    var size = st.mem.length;
+    if (st.pc > size - 2) { st.halted = true; st.err = 'Buyruq hisoblagichi ' + st.pc + ' ni ko\'rsatyapti: xotira chegarasidan tashqari.'; return st.err; }
+    var at = st.pc, b1 = st.mem[at], b2 = st.mem[at + 1], mn = BYC[b1 >> 4], r = b1 & 15, o = OPC[mn];
+    st.last = at; st.ch = -1; st.rch = -1; st.n++; st.pc = at + 2;
+    if (!o) { st.halted = true; st.err = at + '-adresdagi ' + hex2(b1) + ' bayti buyruq emas. Protsessor to\'xtadi: «noma\'lum buyruq».'; return st.err; }
+    if (r > 3 && o.k !== 'a' && o.k !== '') { st.halted = true; st.err = 'R' + r + ' registri yo\'q.'; return st.err; }
+    var t = '«' + dis(b1, b2) + '» (' + o.u + '): ', R = st.R;
+    function chkA(a) { if (a >= size) { st.halted = true; st.err = a + '-adres xotiradan tashqarida.'; return false; } return true; }
+    function chkSP() { if (st.sp <= st.end) { st.halted = true; st.err = 'Stek pastga o\'sib, ' + st.sp + '-adresda dastur yoki ma\'lumot ustiga chiqdi: stek to\'lib ketdi (stack overflow).'; return false; } return true; }
+    switch (b1 >> 4) {
+      case 1: if (!chkA(b2)) return st.err; R[r] = st.mem[b2]; st.rch = r; return t + b2 + '-adresdagi ' + sgn(st.mem[b2]) + ' soni R' + r + ' ga olindi.';
+      case 2: if (!chkA(b2)) return st.err; st.mem[b2] = R[r] & 255; st.ch = b2; return t + 'R' + r + ' dagi ' + sgn(R[r]) + ' soni ' + b2 + '-adresga yozildi.';
+      case 3: R[r] = (R[r] + R[b2 & 3]) & 255; st.rch = r; return t + 'R' + r + ' endi ' + sgn(R[r]) + '.';
+      case 4: R[r] = (R[r] - R[b2 & 3]) & 255; st.rch = r; return t + 'R' + r + ' endi ' + sgn(R[r]) + (sgn(R[r]) < 0 ? ' (manfiy: eng chap bit yoqildi).' : '.');
+      case 5: st.pc = b2; return t + 'buyruq hisoblagichiga ' + b2 + ' yozildi: protsessor sakradi.';
+      case 6: if (R[r] === 0) { st.pc = b2; return t + 'R' + r + ' nol, shuning uchun ' + b2 + '-adresga sakradi.'; } return t + 'R' + r + ' = ' + sgn(R[r]) + ', nol emas: sakrash yo\'q, keyingi buyruqqa o\'tildi.';
+      case 7: if (R[r] > 127) { st.pc = b2; return t + 'R' + r + ' = ' + sgn(R[r]) + ' manfiy, shuning uchun ' + b2 + '-adresga sakradi.'; } return t + 'R' + r + ' = ' + sgn(R[r]) + ', manfiy emas: sakrash yo\'q.';
+      case 8: st.sp--; if (!chkSP()) return st.err; st.mem[st.sp] = R[r]; st.ch = st.sp; return t + 'SP bittaga kamaydi (' + st.sp + '), u yerga R' + r + ' = ' + sgn(R[r]) + ' yozildi.';
+      case 9: if (st.sp >= size) { st.halted = true; st.err = 'Stek bo\'sh, olinadigan narsa yo\'q.'; return st.err; } R[r] = st.mem[st.sp]; st.rch = r; st.sp++; return t + 'stek tepasidagi ' + sgn(R[r]) + ' R' + r + ' ga olindi, SP ' + st.sp + ' ga oshdi.';
+      case 10: st.sp--; if (!chkSP()) return st.err; st.mem[st.sp] = st.pc; st.ch = st.sp; var back = st.pc; st.pc = b2; st.depth++; return t + 'qaytish adresi ' + back + ' stekka (' + st.sp + '-adresga) yozildi, keyin ' + b2 + '-adresga sakradi.';
+      case 11: if (st.sp >= size) { st.halted = true; st.err = 'RET bajarildi, lekin stek bo\'sh: qayerga qaytishni bilmaydi.'; return st.err; } st.pc = st.mem[st.sp]; st.sp++; st.depth--; return t + 'stek tepasidan qaytish adresi ' + st.pc + ' olindi, protsessor u yerga qaytdi.';
+      case 12: R[r] = b2; st.rch = r; return t + 'R' + r + ' ga to\'g\'ridan-to\'g\'ri ' + sgn(b2) + ' yozildi.';
+      case 15: st.halted = true; return t + 'dastur tugadi. Bajarilgan buyruqlar: ' + st.n + '.';
+    }
+    st.halted = true; st.err = 'Noma\'lum buyruq.'; return st.err;
+  }
+  // Interaktiv mashina: matn maydoni, namunalar, yig'ish, qadam, oxirigacha
+  function machine(o) {
+    var svg = $(o.svg), say = $(o.say), ta = $(o.ta), size = o.size || 32, useSP = !!o.sp, res = null, st = null, cur = 0, H = 580;
+    var setS = tabs(o.tabs, o.samples.map(function (s) { return s.n; }), function (i) { cur = i; ta.value = o.samples[i].src; build(o.samples[i].note); });
+    function fresh() { st = { mem: res.bytes.slice(), pc: 0, sp: size, R: [0, 0, 0, 0], last: -1, ch: -1, rch: -1, n: 0, halted: false, err: '', end: res.end, depth: 0 }; }
+    function build(msg) {
+      setS(cur); res = asm(ta.value, size);
+      if (res.errs.length) { st = null; draw(); say.className = 'say bad'; say.textContent = 'Yig\'ishda xato: ' + res.errs.join('; ') + '.'; return; }
+      fresh(); draw(); say.className = 'say';
+      say.textContent = msg || ('Yig\'ildi: ' + res.end + ' bayt. Belgilar jadvalida ' + Object.keys(res.sym).length + ' ta nom. «Bitta buyruq» ni bosing.');
+    }
+    function draw() {
+      svg.textContent = ''; marker(svg, o.svg + 'mk');
+      group(svg, 20, 20, 300, useSP ? 330 : 300, 'Protsessor');
+      box(svg, 40, 56, useSP ? 125 : 260, 64, 'PC: ' + (st ? st.pc : '-'), useSP ? 'keyingi buyruq' : 'keyingi buyruq adresi', 'live');
+      if (useSP) box(svg, 175, 56, 125, 64, 'SP: ' + (st ? st.sp : '-'), 'stek tepasi', 'live');
+      [0, 1, 2, 3].forEach(function (i) { var x = 40 + (i % 2) * 135, y = 132 + Math.floor(i / 2) * 74; box(svg, x, y, 125, 64, 'R' + i + ' = ' + (st ? sgn(st.R[i]) : '-'), st ? 'bayt: ' + hex2(st.R[i]) : '', st && st.rch === i ? 'on' : ''); });
+      S(svg, 'text', { x: 40, y: 302, 'class': 'sub' }, st ? ('Bajarildi: ' + st.n + ' buyruq' + (st.halted ? (st.err ? ', xato' : ', to\'xtadi') : '')) : 'yig\'ilmagan');
+      if (useSP) S(svg, 'text', { x: 40, y: 326, 'class': 'sub' }, st ? ('Chaqiruv chuqurligi: ' + st.depth) : '');
+      var gy = useSP ? 370 : 340;
+      group(svg, 20, gy, 300, H - gy - 20, 'Belgilar jadvali');
+      var ks = res ? Object.keys(res.sym) : [];
+      ks.slice(0, 9).forEach(function (k, i) { S(svg, 'text', { x: 40, y: gy + 50 + i * 22, 'class': 'mono', style: 'white-space:pre' }, (k + '          ').slice(0, 10) + ' → ' + res.sym[k]); });
+      if (ks.length > 9) S(svg, 'text', { x: 40, y: gy + 50 + 9 * 22, 'class': 'sub' }, '... yana ' + (ks.length - 9));
+      group(svg, 340, 20, 500, H - 40, 'Listing: adres, baytlar, matn');
+      var rows = res ? res.items : [], nowAt = st && !st.halted ? st.pc : -1;
+      rows.slice(0, 21).forEach(function (it, i) {
+        var y = 64 + i * 23, bs = it.b ? it.b.map(hex2).join(' ') : '';
+        if (it.size && it.addr === nowAt) S(svg, 'rect', { x: 350, y: y - 16, width: 480, height: 22, rx: 3, 'class': 'box on' });
+        S(svg, 'text', { x: 358, y: y, 'class': 'mono', style: 'white-space:pre;font-size:13px' }, (it.size ? pad(it.addr, 2) : '  ') + '  ' + (bs + '      ').slice(0, 6) + ' ' + it.src.replace(/\s+/g, ' ').slice(0, 44));
+      });
+      if (rows.length > 21) S(svg, 'text', { x: 358, y: 64 + 21 * 23, 'class': 'sub' }, '... yana ' + (rows.length - 21) + ' qator');
+      var cols = size > 32 ? 6 : 4, cw = 360 / cols, ch = 62;
+      group(svg, 860, 20, 360, H - 40, 'Xotira: ' + size + ' bayt' + (useSP ? ' (stek pastdan yuqoriga o\'sadi)' : ''));
+      var names = {}; if (res) Object.keys(res.sym).forEach(function (k) { names[res.sym[k]] = k; });
+      for (var a = 0; a < size; a++) {
+        var x = 870 + (a % cols) * cw, y = 52 + Math.floor(a / cols) * ch, v = st ? st.mem[a] : (res ? res.bytes[a] : 0);
+        var cls = st && st.last >= 0 && (a === st.last || a === st.last + 1) ? 'on' : (st && a === st.ch ? 'live' : (useSP && st && a >= st.sp ? 'live' : (res && a >= res.end ? 'freed' : '')));
+        S(svg, 'rect', { x: x, y: y, width: cw - 8, height: ch - 8, rx: 4, 'class': 'box ' + cls });
+        S(svg, 'text', { x: x + 6, y: y + 15, 'class': 'sub', style: 'font-size:11px' }, a + (names[a] && a >= (res ? res.end - 99 : 0) ? ' ' + names[a].slice(0, cols > 4 ? 6 : 9) : ''));
+        S(svg, 'text', { x: x + 6, y: y + 42, 'class': 'val' }, hex2(v));
+      }
+    }
+    $(o.build).addEventListener('click', function () { build(); });
+    $(o.step).addEventListener('click', function () { if (!st) { build(); if (!st) return; } if (st.halted) { say.className = 'say'; say.textContent = 'Dastur tugagan. «Yig\'ish» ni bosib qaytadan boshlang.'; return; } var m = exec(st); draw(); say.className = st.err ? 'say bad' : 'say'; say.textContent = m; });
+    $(o.run).addEventListener('click', function () { if (!st) { build(); if (!st) return; } var k = 0, m = ''; while (!st.halted && k < 400) { m = exec(st); k++; } draw(); if (!st.halted) { say.className = 'say bad'; say.textContent = '400 ta buyruq bajarildi va dastur hali tugamadi: cheksiz sikl. Haqiqiy protsessor to\'xtamasdan aylanaveradi.'; } else { say.className = st.err ? 'say bad' : 'say'; say.textContent = m; } });
+    ta.value = o.samples[0].src; build(o.samples[0].note);
+  }
+
+  steps('mpV', null, 'mpT', 'mpSay', [{"t": "x", "steps": [{"t": "8-dars", "b": [[20, 60, 280, 70, "Baytlar qo'lda", "7-dars: 11 0C 12 0D", "on"], [320, 60, 280, 70, "Mnemonika va nomlar", "LOAD R1, balans", "on"], [620, 60, 280, 70, "Ikki o'tishli assembler", "belgilar jadvali", "on"], [920, 60, 280, 70, "Bugungi assemblerlar", "x86, ARM, javap -c", "on"], [920, 200, 280, 70, "Sakrash", "PC ga yangi adres", ""], [620, 200, 280, 70, "if: teskari shart + JMP", "JN R1, rad", ""], [320, 200, 280, 70, "while: orqaga JMP", "JZ ... JMP takror", ""], [20, 200, 280, 70, "Konveyer va taxmin", "15–20 takt, Spectre", ""], [20, 340, 280, 70, "CALL va RET", "qaytish adresi", ""], [320, 340, 280, 70, "Stek va kadr", "SP, PUSH, POP", ""], [620, 340, 280, 70, "Rekursiya, stack overflow", "asos holat", ""], [920, 340, 280, 70, "Stek izi, ORA-06512", "kadrlar ro'yxati", ""]], "a": [["M300 95H318", null, 0, 0], ["M600 95H618", null, 0, 0], ["M900 95H918", null, 0, 0], ["M1060 130V198", null, 0, 0], ["M920 235H902", null, 0, 0], ["M620 235H602", null, 0, 0], ["M320 235H302", null, 0, 0], ["M160 270V338", null, 0, 0], ["M300 375H318", null, 0, 0], ["M600 375H618", null, 0, 0], ["M900 375H918", null, 0, 0]], "s": "8-dars: baytlarni qo'lda yozish og'rig'idan mnemonika va nomlarga. Assembler ikki o'tishda adreslarni o'zi hisoblaydi. Bugun ham x86, ARM va JVM (javap -c) uchun shu g'oya."}, {"t": "9-dars", "b": [[20, 60, 280, 70, "Baytlar qo'lda", "7-dars: 11 0C 12 0D", "live"], [320, 60, 280, 70, "Mnemonika va nomlar", "LOAD R1, balans", "live"], [620, 60, 280, 70, "Ikki o'tishli assembler", "belgilar jadvali", "live"], [920, 60, 280, 70, "Bugungi assemblerlar", "x86, ARM, javap -c", "live"], [920, 200, 280, 70, "Sakrash", "PC ga yangi adres", "on"], [620, 200, 280, 70, "if: teskari shart + JMP", "JN R1, rad", "on"], [320, 200, 280, 70, "while: orqaga JMP", "JZ ... JMP takror", "on"], [20, 200, 280, 70, "Konveyer va taxmin", "15–20 takt, Spectre", "on"], [20, 340, 280, 70, "CALL va RET", "qaytish adresi", ""], [320, 340, 280, 70, "Stek va kadr", "SP, PUSH, POP", ""], [620, 340, 280, 70, "Rekursiya, stack overflow", "asos holat", ""], [920, 340, 280, 70, "Stek izi, ORA-06512", "kadrlar ro'yxati", ""]], "a": [["M300 95H318", null, 0, 0], ["M600 95H618", null, 0, 0], ["M900 95H918", null, 0, 0], ["M1060 130V198", null, 0, 0], ["M920 235H902", null, 0, 0], ["M620 235H602", null, 0, 0], ["M320 235H302", null, 0, 0], ["M160 270V338", null, 0, 0], ["M300 375H318", null, 0, 0], ["M600 375H618", null, 0, 0], ["M900 375H918", null, 0, 0]], "s": "9-dars: sakrash buyruq hisoblagichiga yangi adres yozadi. if teskari shartli sakrash va JMP dan, while orqaga sakrashdan yasaladi. Protsessor sakrashni taxmin qiladi: xato taxmin qimmat, Spectre shu yerdan."}, {"t": "10-dars", "b": [[20, 60, 280, 70, "Baytlar qo'lda", "7-dars: 11 0C 12 0D", "live"], [320, 60, 280, 70, "Mnemonika va nomlar", "LOAD R1, balans", "live"], [620, 60, 280, 70, "Ikki o'tishli assembler", "belgilar jadvali", "live"], [920, 60, 280, 70, "Bugungi assemblerlar", "x86, ARM, javap -c", "live"], [920, 200, 280, 70, "Sakrash", "PC ga yangi adres", "live"], [620, 200, 280, 70, "if: teskari shart + JMP", "JN R1, rad", "live"], [320, 200, 280, 70, "while: orqaga JMP", "JZ ... JMP takror", "live"], [20, 200, 280, 70, "Konveyer va taxmin", "15–20 takt, Spectre", "live"], [20, 340, 280, 70, "CALL va RET", "qaytish adresi", "on"], [320, 340, 280, 70, "Stek va kadr", "SP, PUSH, POP", "on"], [620, 340, 280, 70, "Rekursiya, stack overflow", "asos holat", "on"], [920, 340, 280, 70, "Stek izi, ORA-06512", "kadrlar ro'yxati", "on"]], "a": [["M300 95H318", null, 0, 0], ["M600 95H618", null, 0, 0], ["M900 95H918", null, 0, 0], ["M1060 130V198", null, 0, 0], ["M920 235H902", null, 0, 0], ["M620 235H602", null, 0, 0], ["M320 235H302", null, 0, 0], ["M160 270V338", null, 0, 0], ["M300 375H318", null, 0, 0], ["M600 375H618", null, 0, 0], ["M900 375H918", null, 0, 0]], "s": "10-dars: CALL qaytish adresini stekka qo'yadi, RET uni oladi. Stek LIFO: ichma-ich chaqiruv va rekursiya ishlaydi. Har chaqiruvning kadri; stek to'lsa StackOverflowError; stek izi va ORA-06512 kadrlar ro'yxati."}]}], 'mpmk');
+
+  machine({ svg: 'mcV', say: 'mcSay', ta: 'mcSrc', tabs: 'mcT', build: 'mcB', step: 'mcS', run: 'mcR', size: 48, sp: true, samples: [{"n": "Yakuniy dastur", "src": "; Yakuniy dastur: uchta o'tkazma, har biriga komissiya, balans yetmasa rad\n; Hammasi bir joyda: nomlar (8), if va while (9), CALL, RET, PUSH, POP (10)\n        LOAD  R1, balans\n        LOAD  R0, soni\n        SET   R3, 1\ntakror: JZ    R0, tamom       ; while (soni != 0)\n        LOAD  R2, summa\n        CALL  otkazma         ; R1 = otkazma(R1, R2)\n        SUB   R0, R3          ; soni--\n        JMP   takror\ntamom:  STORE balans, R1\n        HALT\notkazma:                      ; if (R1 - R2 - 1 >= 0) R1 = R1 - R2 - 1\n        PUSH  R1              ; eski balansni saqla\n        SUB   R1, R2\n        SUB   R1, R3          ; komissiya 1\n        JN    R1, rad\n        POP   R2              ; eski balans kerak emas: tashlab yubor\n        RET\nrad:    POP   R1              ; yetmadi: eski balansni qaytar\n        RET\nbalans: DB 50\nsumma:  DB 20\nsoni:   DB 3", "note": "Balans 50, uchta 20 lik o'tkazma, har biriga 1 komissiya. Ikkitasi o'tadi (50 → 29 → 8), uchinchisida 8 − 21 manfiy: rad, balans 8 qoladi. «Bitta buyruq» bilan boring va har darsdagi g'oyani toping."}] });
+
+})();
+</script>
+<script src="../assets/quiz.js"></script>
+<script>
+window.quiz('quiz', [{"l": 8, "q": "Assembler tili nima?", "a": ["Mashina kodining matn ko'rinishi: buyruqlar so'zlar, adreslar nomlar bilan", "Yuqori darajadagi dasturlash tili, Java kabi", "Protsessor ichidagi maxsus xotira", "Mashina kodini siqish usuli"], "c": 0, "w": "Bir qator odatda bitta buyruqqa mos keladi. Har bir protsessor oilasining o'z assembler tili bor."}, {"l": 8, "q": "Baytlarda yozilgan dasturning o'rtasiga bitta buyruq qo'shilsa, asosiy muammo nima?", "a": ["Keyingi hamma narsa siljiydi, lekin buyruqlar ichidagi eski adreslar o'zgarmaydi", "Protsessor yangi buyruqni tanimaydi", "Dastur hajmi xotiraga sig'maydi", "Hech qanday muammo yo'q"], "c": 0, "w": "Dastur xato bermaydi, faqat noto'g'ri joydan o'qiydi. Assembler esa adreslarni qayta hisoblaydi."}, {"l": 8, "q": "Mnemonika nima?", "a": ["Buyruq raqamining eslab qolish oson so'z ko'rinishi: LOAD, ADD", "Xotiradagi joyning nomi", "Assemblerga ko'rsatma", "Izoh"], "c": 0, "w": "Yunoncha «eslashga yordam». Haqiqiy protsessorlarda mov, add, ldr, str."}, {"l": 8, "q": "«balans: DB 50» qatorida «balans:» nima?", "a": ["Yorliq: shu bayt joylashgan adresning nomi", "Buyruq", "Registr", "Izoh"], "c": 0, "w": "Keyin dasturda adres o'rniga «balans» yoziladi va assembler uni adres bilan almashtiradi."}, {"l": 8, "q": "DB nima?", "a": ["Direktiva: assemblerga «shu joyga shu baytni qo'y» degan ko'rsatma", "Protsessor buyrug'i", "Registr nomi", "Sakrash turi"], "c": 0, "w": "Protsessor DB ni bilmaydi, xotiraga faqat natija bayti tushadi."}, {"l": 8, "q": "Assembler nega matnni ikki marta o'qiydi?", "a": ["Nom e'lon qilinishidan oldin ishlatilishi mumkin (oldinga murojaat): avval hamma adreslarni bilish kerak", "Xatolarni ikki marta tekshirish uchun", "Birinchisi tezlik uchun, ikkinchisi xavfsizlik uchun", "Har bir buyruq ikki baytdan iborat bo'lgani uchun"], "c": 0, "w": "1-o'tish adreslarni sanab belgilar jadvalini to'ldiradi, 2-o'tish baytlarni chiqaradi."}, {"l": 8, "q": "Belgilar jadvali (symbol table) nimani saqlaydi?", "a": ["Har bir nom va uning adresini", "Har bir buyruqning kodini", "Registrlar qiymatini", "Xatolar ro'yxatini"], "c": 0, "w": "Masalan balans → 10, summa → 11."}, {"l": 8, "q": "Adres sanagichi (location counter) nima qiladi?", "a": ["Joriy qator xotiraning qaysi adresiga tushishini sanaydi", "Buyruq hisoblagichining boshqa nomi", "Necha marta sikl aylanganini sanaydi", "Xotiradagi bo'sh joyni sanaydi"], "c": 0, "w": "Bizning assemblerda har buyruqdan keyin 2 ga, har DB dan keyin 1 ga oshadi."}, {"l": 8, "q": "LOAD R1, balans (balans = 10, LOAD kodi 1) qaysi baytlarga aylanadi?", "a": ["11 0A", "1A 01", "10 11", "01 10"], "c": 0, "w": "Birinchi bayt: kod 1 va registr 1. Ikkinchi bayt: adres 10, o'n oltilikda 0A."}, {"l": 8, "q": "Disassembler nega nomlarni tiklay olmaydi?", "a": ["Nomlar va izohlar xotiraga tushmagan: faqat baytlar qolgan", "Disassembler nomlarni bilishga ruxsat bermaydi", "Nomlar shifrlangan", "Tiklay oladi, faqat sekin"], "c": 0, "w": "Shuning uchun disassembler natijasida «balans» o'rniga «10» ko'rinadi."}, {"l": 8, "q": "Assembler va kompilyatorning asosiy farqi?", "a": ["Assemblerda bir qator ≈ bir buyruq va protsessorga bog'liq; kompilyatorda bir qator ko'p buyruqqa aylanadi", "Kompilyator faqat Java uchun", "Assembler tezroq kod chiqaradi", "Farqi yo'q"], "c": 0, "w": "Kompilyator registr va adreslarni o'zi tanlaydi va ko'proq narsani (turlarni) tekshiradi."}, {"l": 8, "q": "Birinchi assembler tili ko'pincha kimga nisbat beriladi?", "a": ["Kathleen Booth, 1947, ARC kompyuteri uchun", "Alan Tyuring, 1936", "Jon fon Neyman, 1945", "Deniz Richi, 1972"], "c": 0, "w": "«Coding for A.R.C.» hujjati, Birkbek kolleji, London."}, {"l": 8, "q": "SAP (1956) nimasi bilan muhim?", "a": ["Nom, buyruq va operand ustunlari, belgilar jadvali va ikki o'tish: keyingi assemblerlarning namunasi", "Birinchi yuqori darajadagi til", "Birinchi kompyuter", "Birinchi operatsion tizim"], "c": 0, "w": "Roy Natt IBM 704 uchun yozgan, SHARE foydalanuvchilar guruhi orqali tarqalgan."}, {"l": 8, "q": "ARM64 assemblerida ldr va str nima?", "a": ["Xotiradan registrga yuklash va registrdan xotiraga saqlash", "Qo'shish va ayirish", "Sakrash va qaytish", "Izoh belgilari"], "c": 0, "w": "ARM'da hisoblash faqat registrlarda: avval ldr, keyin add, keyin str. Bizning o'quv protsessorimiz ham shunday."}, {"l": 8, "q": "javap -c nima ko'rsatadi?", "a": [".class faylning baytkodini mnemonikalar bilan (iload, iadd...)", "Java manba kodini", "Protsessorning mashina kodini", "Xotira hajmini"], "c": 0, "w": "Bu JVM ning assembleri: xayoliy protsessor uchun."}, {"l": 9, "q": "Sakrash buyrug'i aslida nima qiladi?", "a": ["Buyruq hisoblagichiga yangi adres yozadi", "Registrni nolga tenglaydi", "Xotiradagi baytni o'chiradi", "Protsessorni qayta ishga tushiradi"], "c": 0, "w": "Protsessor keyingi qatorga emas, yozilgan adresga o'tadi."}, {"l": 9, "q": "JZ R1, tamom qachon sakraydi?", "a": ["R1 nol bo'lsa", "R1 manfiy bo'lsa", "Har doim", "R1 musbat bo'lsa"], "c": 0, "w": "Aks holda keyingi qatorga o'tadi. ARM'dagi cbz ham shunday."}, {"l": 9, "q": "Protsessor balans ≥ summa ni qanday aniqlaydi?", "a": ["balans − summa ni hisoblab, natija manfiymi yo'qmi qaraydi (bayroqlar yoki registr ishorasi)", "Maxsus «solishtir» sxemasi bilan, ayirmasdan", "Ikkala sonni matnga aylantirib", "Buni faqat Java qila oladi"], "c": 0, "w": "x86 da cmp ayiradi, natijani tashlaydi va faqat bayroqlarni qo'yadi."}, {"l": 9, "q": "Java'da if (balans >= summa), assemblerda esa JN R1, rad. Nega shart teskari?", "a": ["Sakramasa protsessor pastga tushadi, shuning uchun to'g'ri yo'l pastda, sakrash esa else ga", "Bu xato, kompilyator buni tuzatadi", "Protsessor faqat manfiy sonlarni tushunadi", "Tasodif"], "c": 0, "w": "Kompilyatorlar ham deyarli doim shunday qiladi: baytkodda if_icmplt else ga."}, {"l": 9, "q": "if/else da else qismidan oldingi JMP unutilsa nima bo'ladi?", "a": ["Shart bajarilganda ham else qismi bajariladi", "Dastur ishlamaydi", "else qismi hech qachon bajarilmaydi", "Hech narsa o'zgarmaydi"], "c": 0, "w": "«O'tdi» dan keyin protsessor pastga tushib, «rad» ni ham bajaradi va natijani buzadi."}, {"l": 9, "q": "while sikli assemblerda qaysi ikki sakrashdan iborat?", "a": ["Boshida chiqish uchun shartli sakrash, oxirida orqaga shartsiz JMP", "Faqat bitta JMP", "Ikkita shartli sakrash oxirida", "CALL va RET"], "c": 0, "w": "Orqaga sakrash sikl degani: bir xil buyruqlar qayta bajariladi."}, {"l": 9, "q": "Cheksiz siklning ishlab chiqarishdagi odatiy belgisi?", "a": ["Protsessor yuklanishi 100% ga yaqin, javob yo'q, xato xabari yo'q", "Darhol OutOfMemoryError", "Disk to'lishi", "Tarmoq uzilishi"], "c": 0, "w": "Topish: jstack bilan RUNNABLE oqimning stek izi, bir necha marta."}, {"l": 9, "q": "switch ko'p qiymatli bo'lsa kompilyator ko'pincha nima yasaydi?", "a": ["Sakrash jadvali: qiymat bo'yicha sakrash adresini topadigan jadval", "Ko'p ichma-ich funksiyalar", "Rekursiya", "Alohida oqim"], "c": 0, "w": "JVM'da tableswitch (ketma-ket qiymatlar) va lookupswitch (siyrak)."}, {"l": 9, "q": "Konveyer (pipeline) nima?", "a": ["Buyruqlarni bosqichlarga bo'lib ustma-ust bajarish: biri bajarilayotganda keyingisi olinadi", "Bir nechta protsessor yadrosi", "Xotira va disk orasidagi kesh", "Sikl turi"], "c": 0, "w": "Zavod konveyeri kabi; bugungi protsessorlarda 10–20 bosqich."}, {"l": 9, "q": "Nega protsessor shartli sakrash natijasini taxmin qiladi?", "a": ["Javob kech ma'lum bo'ladi; kutsa konveyer bo'sh turadi", "Xavfsizlik uchun", "Xotirani tejash uchun", "Taxmin qilmaydi"], "c": 0, "w": "To'g'ri taxmin tekin, xato taxmin boshlangan ishni tashlashga olib keladi."}, {"l": 9, "q": "Noto'g'ri taxminning taxminiy narxi bugungi protsessorlarda?", "a": ["Taxminan 15–20 takt", "1 takt", "Bir soniya", "Bir million takt"], "c": 0, "w": "Chuqur konveyer qaytadan to'ldiriladi."}, {"l": 9, "q": "Nega saralangan massiv ustidagi if li sikl tezroq ishlashi mumkin?", "a": ["Shart natijasi ketma-ket bir xil, taxminchi deyarli xato qilmaydi", "Saralangan massiv kamroq xotira oladi", "Java saralangan massivni boshqacha saqlaydi", "Bu afsona"], "c": 0, "w": "Aralash ma'lumotda taxminlarning yarmi xato bo'lishi mumkin."}, {"l": 9, "q": "Spectre nimaga asoslangan?", "a": ["Spekulyativ bajarilgan, keyin tashlangan buyruqlar keshda qoldirgan izga", "Parolni taxmin qilishga", "Tarmoq paketlarini o'g'irlashga", "Bufer to'lishiga"], "c": 0, "w": "2018-yilda e'lon qilingan; himoyalar OT, brauzer va mikrokod darajasida."}, {"l": 9, "q": "x86 da ishorali va ishorasiz solishtirish uchun nega alohida sakrashlar bor (jl va jb)?", "a": ["Bir xil bitlar ikki xil son bo'lishi mumkin (200 va −56)", "Tezlik uchun", "Tarixiy xato", "Alohida emas"], "c": 0, "w": "P0, 2-dars: bitlarning o'zida ma'no yo'q; qanday solishtirishni dastur aytadi."}, {"l": 9, "q": "javap -c dagi «ifeq 16» nimani bildiradi?", "a": ["Stek ustidagi qiymat nol bo'lsa 16-baytdagi buyruqqa sakra", "16 ta sikl aylan", "16 ga teng bo'lsa", "16-qatorni o'chir"], "c": 0, "w": "while ning teskari sharti; oxirida goto orqaga."}, {"l": 9, "q": "«GOTO zararli» maktubini kim yozgan?", "a": ["Edsger Deykstra, 1968", "Donald Knut, 1974", "Alan Tyuring, 1945", "Jeyms Gosling, 1995"], "c": 0, "w": "Shundan strukturaviy dasturlash tarqaldi: ketma-ketlik, if, sikl."}, {"l": 10, "q": "Nega funksiyadan qaytish uchun oddiy JMP yetmaydi?", "a": ["JMP adresi buyruqqa qotirilgan: turli joylardan chaqirilganda qaytish adresi har xil", "JMP juda sekin", "JMP faqat oldinga sakraydi", "Yetadi"], "c": 0, "w": "Qaytish adresi chaqiruv paytida eslanishi kerak."}, {"l": 10, "q": "Uiler sakrashining cheklovi nima edi?", "a": ["Har qism dasturda bitta qaytish joyi: ichma-ich chaqiruv va rekursiyada adres o'chib ketadi", "Faqat 10 ta qism dastur bo'lishi mumkin edi", "Juda ko'p xotira olardi", "Cheklovi yo'q edi"], "c": 0, "w": "Qaytish adresi qism dasturning oxirgi buyrug'iga yozilgan."}, {"l": 10, "q": "CALL buyrug'i nima qiladi?", "a": ["Keyingi buyruq adresini stekka qo'yadi va ko'rsatilgan joyga sakraydi", "Faqat sakraydi", "Registrni stekka qo'yadi", "Dasturni tugatadi"], "c": 0, "w": "RET esa shu adresni stekdan olib, unga qaytadi."}, {"l": 10, "q": "Nega qaytish adreslari uchun aynan stek (LIFO) kerak?", "a": ["Chaqiruvlar teskari tartibda tugaydi: oxirgi boshlangani birinchi", "Stek eng tez xotira", "Stek eng katta xotira", "Tasodif"], "c": 0, "w": "Likopchalar ustuni kabi."}, {"l": 10, "q": "PUSH R2 nima qiladi (bizning protsessorda)?", "a": ["SP ni bittaga kamaytirib, o'sha adresga R2 ni yozadi", "R2 ni nolga tenglaydi", "R2 ni stekdan oladi", "SP ni oshiradi"], "c": 0, "w": "Stek xotira oxiridan pastga o'sadi."}, {"l": 10, "q": "Stek kadrida odatda nima bo'ladi?", "a": ["Qaytish adresi, saqlangan registrlar, mahalliy o'zgaruvchilar", "Butun dastur kodi", "Barcha obyektlar", "Faqat argumentlar"], "c": 0, "w": "Qaytishda butunlay tashlanadi."}, {"l": 10, "q": "Metod tugagach mahalliy o'zgaruvchilar nega yo'qoladi?", "a": ["Ular kadrda edi, kadr esa qaytishda tashlanadi", "Axlat yig'uvchi ularni darhol o'chiradi", "Ular registrda edi", "Yo'qolmaydi"], "c": 0, "w": "Obyektning o'zi esa heap'da va unga boshqa havola bo'lsa yashaydi."}, {"l": 10, "q": "Rekursiv funksiyada asos holat (to'xtash sharti) unutilsa?", "a": ["Kadrlar stek tugaguncha qo'shiladi: StackOverflowError", "OutOfMemoryError", "Cheksiz sikl, lekin xatosiz", "Kompilyatsiya xatosi"], "c": 0, "w": "Bizning o'quv protsessorimizda stek pastdan o'sib dastur ustiga chiqadi."}, {"l": 10, "q": "StackOverflowError ning ikki odatiy sababi?", "a": ["Asos holatsiz rekursiya; bir-birini chaqiruvchi metodlar (masalan ikki obyektning toString/equals i)", "Katta massiv va ko'p oqim", "Sekin disk va tarmoq", "Ko'p import"], "c": 0, "w": "Hibernate entity'larida ikki tomonlama bog'lanish va toString klassik misol."}, {"l": 10, "q": "x86-64 Linux'da birinchi argument qaysi registrda uzatiladi?", "a": ["rdi", "rax", "rsp", "rbp"], "c": 0, "w": "System V: rdi, rsi, rdx, rcx, r8, r9; natija rax."}, {"l": 10, "q": "ARM64 da qaytish adresi chaqiruvda qayerga yoziladi?", "a": ["x30 registriga (link register)", "Har doim stekka", "x0 ga", "Hech qayerga"], "c": 0, "w": "Funksiya boshqa funksiyani chaqirsa, x30 ni o'zi stekka saqlaydi."}, {"l": 10, "q": "JVM kadri nimalardan iborat?", "a": ["Mahalliy o'zgaruvchilar massivi va operand steki", "Faqat obyektlardan", "Heap'dan", "Klass fayldan"], "c": 0, "w": "iload_1 mahalliylar massividagi 1-o'rin; iadd operand stekidagi ikki sonni qo'shadi."}, {"l": 10, "q": "ORA-06512 qatorlari nimani bildiradi?", "a": ["Xato paytidagi chaqiruvlar steki: har qator bitta kadr (paket va qator raqami)", "Xato kodining o'zi", "Qulf kutish", "Disk to'lishi"], "c": 0, "w": "Birinchi qator asl xato, keyin ichkaridan tashqariga kadrlar."}, {"l": 10, "q": "WHEN OTHERS ichida RAISE_APPLICATION_ERROR bilan yangi xato tashlasangiz nima yo'qoladi?", "a": ["Asl xato joyi va stek (backtrace)", "Tranzaksiya", "Jadval", "Hech narsa"], "c": 0, "w": "Avval DBMS_UTILITY.FORMAT_ERROR_BACKTRACE ni logga yozing yoki shunchaki RAISE."}, {"l": 10, "q": "Bufer to'lishi hujumida nima o'zgartiriladi?", "a": ["Stek kadridagi qaytish adresi", "Protsessor chastotasi", "Disk fayllari", "Parol"], "c": 0, "w": "RET hujumchi yozgan adresga sakraydi. Java va PL/SQL massiv chegarasini tekshirgani uchun ularda bu yo'q."}, {"l": 10, "q": "Java 21 virtual oqimlari stek bilan nima qiladi?", "a": ["Kutish paytida kadrlarni heap'ga ko'chirib, OT oqimini bo'shatadi", "Stekni butunlay olib tashlaydi", "Stekni 1 GB ga oshiradi", "Hech narsa"], "c": 0, "w": "Shuning uchun millionlab virtual oqim mumkin."}], {"8": {"t": "Songa va katakka nom berish", "h": "08-assembler-nomlar.html"}, "9": {"t": "Sakrash: if va while pastda nima", "h": "09-sakrash-if-while.html"}, "10": {"t": "Funksiya chaqiruvi va stek", "h": "10-funksiya-va-stek.html"}}, 'p1-test');
+</script>
+</body>
+</html>
