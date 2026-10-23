@@ -371,7 +371,7 @@
     function draw() {
       svg.textContent = ''; marker(svg, o.svg + 'mk');
       group(svg, 20, 20, 300, useSP ? 330 : 300, 'Protsessor');
-      box(svg, 40, 56, useSP ? 125 : 260, 64, 'PC: ' + (st ? st.pc : '-'), 'keyingi buyruq adresi', 'live');
+      box(svg, 40, 56, useSP ? 125 : 260, 64, 'PC: ' + (st ? st.pc : '-'), useSP ? 'keyingi buyruq' : 'keyingi buyruq adresi', 'live');
       if (useSP) box(svg, 175, 56, 125, 64, 'SP: ' + (st ? st.sp : '-'), 'stek tepasi', 'live');
       [0, 1, 2, 3].forEach(function (i) { var x = 40 + (i % 2) * 135, y = 132 + Math.floor(i / 2) * 74; box(svg, x, y, 125, 64, 'R' + i + ' = ' + (st ? sgn(st.R[i]) : '-'), st ? 'bayt: ' + hex2(st.R[i]) : '', st && st.rch === i ? 'on' : ''); });
       S(svg, 'text', { x: 40, y: 302, 'class': 'sub' }, st ? ('Bajarildi: ' + st.n + ' buyruq' + (st.halted ? (st.err ? ', xato' : ', to\'xtadi') : '')) : 'yig\'ilmagan');
