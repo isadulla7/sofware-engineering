@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P6. Oracle ichkaridan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P6. Oracle ichkaridan: SGA va PGA, fon jarayonlari, so'rov qanday bajariladi, parse va bind</h1>
+<p class="lead">Savol: siz <span class="num">SELECT</span> yoki <span class="num">COMMIT</span> yuborgan paytdan javob kelguncha Oracle ichida nima bo'ladi? Ma'lumot qayerda turadi, kim uni diskka yozadi, elektr o'chsa nima yo'qoladi, va nega bitta so'rovni literal bilan yozish butun serverni sekinlashtiradi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Instance</strong> bu ishlab turgan Oracle: xotira (<strong>SGA</strong>, hamma sessiyalar uchun umumiy) va fon jarayonlari. <strong>Database</strong> (baza) esa diskdagi fayllar: ma'lumot fayllari, redo log, control file. Instance o'chsa, baza qoladi; baza fayllari bo'lmasa, instance ishga tusha olmaydi.</p>
+    <p>O'xshatish: restoran. Baza bu ombor: hamma mahsulot shu yerda, lekin olib kelish sekin. SGA bu oshxona stoli: tez-tez kerak bo'ladigan mahsulot (buffer cache) va tayyor retseptlar kitobi (shared pool) shu yerda. Oshpazlar (server jarayonlari) har biri o'z kichik stoli (PGA) bilan ishlaydi. Yordamchilar (fon jarayonlari) idishlarni omborga qaytaradi, buyurtma daftarini yuritadi, tartibni saqlaydi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Tezlik muammolari:</strong> «tizim sekin» degan shikoyatni tahlil qilish doim shu yerdan boshlanadi: qattiq parse ko'pmi, diskdan o'qish ko'pmi, sessiyalar nimani kutyapti.</li>
+      <li><strong>Ilova kodi:</strong> Java'da <span class="num">PreparedStatement</span> va bind, ulanishlar puli (connection pool), kursorni yopish: bularning hammasi shared pool va jarayonlar bilan bog'liq.</li>
+      <li><strong>Ishonchlilik:</strong> COMMIT nega kafolat beradi, server yiqilsa nima tiklanadi: bank uchun eng muhim savol.</li>
+      <li><strong>Suhbatda:</strong> «SGA va PGA farqi», «qattiq va yumshoq parse», «bind o'zgaruvchi nima uchun» deyarli har Oracle suhbatida so'raladi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>instance va baza, SGA va PGA tarkibini chizib bera olish;</li>
+      <li>asosiy fon jarayonlari (DBWn, LGWR, CKPT, SMON, PMON, ARCn) nima qilishini aytish;</li>
+      <li>SELECT, UPDATE va COMMIT ning ichkaridagi yo'lini qadam-baqadam tushuntirish;</li>
+      <li>parse bosqichlari, qattiq va yumshoq parse, bind o'zgaruvchilar va bind peeking;</li>
+      <li>logical va physical read, PGA dagi saralash va TEMP ga tushish.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, optimizator va xotira qavati ajratilgan"></svg></div>
+  <figcaption>Bu dars SQL va disk orasidagi qavat haqida: so'rov qanday rejaga aylanadi va ma'lumot xotira bilan disk orasida qanday yuradi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Instance va database, dedicated va shared server</li>
+      <li>SGA: buffer cache, shared pool (library cache, dictionary cache), redo log buffer, large pool, Java pool</li>
+      <li>PGA: sessiya xotirasi, sort va hash work area, TEMP</li>
+      <li>Fon jarayonlari: DBWn, LGWR, CKPT, SMON, PMON, ARCn, MMON</li>
+      <li>SELECT, UPDATE, COMMIT, checkpoint va tiklanish yo'li</li>
+      <li>Parse, optimize, execute, fetch; qattiq, yumshoq va «parse siz»</li>
+      <li>Bind o'zgaruvchilar, <span class="num">CURSOR_SHARING</span>, bind peeking, adaptive cursor sharing</li>
+      <li>Logical va physical read, <span class="num">V$</span> ko'rinishlari, AWR</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Bajarilish rejasini o'qish, indekslar: P7-darsda</li>
+      <li>Undo, redo, qulflar va izolyatsiya batafsil: P8-darsda</li>
+      <li>Jadval, segment, partitsiya tuzilishi: P9-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Disk sekin, foydalanuvchi ko'p, SQL qimmat</h3>
+<p>Ma'lumotlar bazasi uch qarama-qarshi talabni bir vaqtda bajarishi kerak, va Oracle'ning ichki tuzilishi aynan shu ziddiyatdan kelib chiqqan.</p>
+<ul>
+  <li><strong>Disk xotiradan ming baravar sekin.</strong> Xotiradan blok o'qish mikrosekundning bir qismi, aylanuvchi diskdan o'qish millisekundlar. Agar har so'rov diskka borsa, mingta kassa operatsiyasi navbatga turadi. Demak tez-tez kerak bo'ladigan bloklar xotirada turishi kerak: <strong>buffer cache</strong>.</li>
+  <li><strong>Xotira esa ishonchsiz.</strong> Elektr o'chsa, xotiradagi hamma narsa yo'qoladi. Lekin bank «pul o'tkazildi» degan bo'lsa, bu yo'qolmasligi kerak. Har o'zgarishni darhol diskdagi ma'lumot fayliga yozish esa sekin (tasodifiy joylarga yozish). Yechim: o'zgarishning qisqa yozuvini (<strong>redo</strong>) ketma-ket faylga tez yozish, bloklarni esa keyinroq, to'plab.</li>
+  <li><strong>SQL ni tushunish qimmat.</strong> So'rov matnini tekshirish, jadval va huquqlarni topish, minglab mumkin bo'lgan rejadan eng yaxshisini tanlash: bu CPU vaqti, ba'zan millisekundlar. Bir xil so'rov sekundiga minglab marta kelsa, har safar qaytadan o'ylash isrof. Yechim: tayyor rejalarni hamma sessiya uchun umumiy xotirada saqlash: <strong>shared pool</strong>.</li>
+</ul>
+<p>Shu uch yechim, va ularni boshqaradigan fon jarayonlari, Oracle arxitekturasining asosi. 1980-yillarda Oracle 6 dan boshlab shakllangan va hozirgacha mohiyati o'zgarmagan.</p>
+
+<h3><span class="part">2. Ichkarida</span>Instance, baza va so'rovning yo'li</h3>
+
+<p class="beat">Instance va baza: kim qayerda</p>
+<p>Ilova (masalan Java servisi) Oracle'ga ulanganda, server tomonida unga <strong>server jarayoni</strong> ajratiladi (dedicated server rejimi, eng ko'p tarqalgan). Ilova faqat SQL matni va qiymatlarni yuboradi, haqiqiy ishni server jarayoni qiladi. Har server jarayonining o'z xususiy xotirasi bor: <strong>PGA</strong>. Hamma server jarayonlari bitta umumiy xotira bilan ishlaydi: <strong>SGA</strong>. Fon jarayonlari esa hech bir sessiyaga tegishli emas, ular butun instance uchun ishlaydi.</p>
+<ul>
+  <li><strong>Buffer cache</strong>: ma'lumot bloklarining nusxalari (odatda 8 KB). Jadval, indeks va undo bloklari. Kamdan-kam ishlatilgan bloklar yangilariga joy bo'shatadi (LRU ga o'xshash algoritm). Keshda o'zgartirilgan, lekin hali diskka yozilmagan blok <strong>dirty</strong> (kir) blok deyiladi.</li>
+  <li><strong>Shared pool</strong>: <em>library cache</em> (SQL va PL/SQL matnlari, ularning rejalari, kompilyatsiya qilingan paketlar) va <em>dictionary cache</em> (jadval, ustun, huquqlar haqidagi ma'lumotlar, «row cache» ham deyiladi). 11g dan bu yerda result cache ham bor.</li>
+  <li><strong>Redo log buffer</strong>: o'zgarishlar yozuvlari (redo), diskka yozilishini kutib turadi. Kichik (megabaytlar), lekin juda tez-tez bo'shatiladi.</li>
+  <li><strong>Large pool, Java pool, streams pool</strong>: RMAN zaxira nusxasi, parallel so'rovlar va shared server uchun; bazadagi Java uchun; replikatsiya uchun.</li>
+  <li><strong>PGA</strong>: sessiya o'zgaruvchilari, PL/SQL paket holati (P4 dagi paket o'zgaruvchilari shu yerda), kolleksiyalar (P5 dagi BULK COLLECT shu yerda), saralash va hash join uchun ish maydoni.</li>
+</ul>
+<p>Pastdagi chizmada to'rt holat. Holatni tanlang, keyin qadamlarni birma-bir bosing: har qadamda qaysi qism ishlayotgani va ma'lumot qayerga ketayotgani ko'rinadi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="arch" style="width:1240px;height:620px" viewBox="0 0 1240 620" role="img" aria-label="Oracle arxitekturasi: ilova, server jarayoni va PGA, SGA, fon jarayonlari, diskdagi fayllar; SELECT, UPDATE va COMMIT, checkpoint, tiklanish yo'llari"></svg></div>
+  <figcaption>Chapda ilova va unga ajratilgan server jarayoni (PGA bilan). O'rtada instance: tepada SGA, pastda fon jarayonlari. Eng pastda baza: diskdagi fayllar. Joriy qadam qalin strelka, oldingi qadamlar uzuq chiziq.</figcaption>
+  <div class="evo-tabs" id="archT" style="margin-top:0.9rem"></div>
+  <div class="evo-tabs" id="archS" style="margin-top:0.5rem"></div>
+  <p class="say" id="archSay" aria-live="polite"></p>
+</figure>
+<p>Bu chizmadan uchta muhim xulosa. Birinchisi: <strong>COMMIT tez, chunki u faqat redo ni yozishni kutadi</strong>, o'zgargan bloklarni emas. Redo ketma-ket faylga yoziladi, bu diskning eng tez rejimi. Ikkinchisi: <strong>commit qilingan ma'lumot yo'qolmaydi</strong>, chunki uning redo si diskda, va instance yiqilsa SMON redo ni qayta qo'llab, bloklarni tiklaydi. Bu «write-ahead logging» tamoyili. Uchinchisi: <strong>DBWn ning yozishi COMMIT bilan bog'liq emas</strong>: u commit qilinmagan bloklarni ham diskka yozishi mumkin, chunki tiklanishda undo ular ni bekor qiladi.</p>
+
+<p class="beat">Logical read va physical read</p>
+<p>Server jarayoni blokni har doim buffer cache orqali o'qiydi. Blok keshda bo'lsa, bu <strong>logical read</strong> (statistikada <span class="num">consistent gets</span> va <span class="num">db block gets</span>). Bo'lmasa, avval diskdan keshga o'qiladi: <strong>physical read</strong>. Shuning uchun so'rovning narxini baholashda logical read soni asosiy o'lchov: physical read kesh holatiga bog'liq va tasodifiy o'zgaradi, logical read esa so'rov va reja o'zgarmasa barqaror. Sekin so'rovni tezlashtirish deyarli doim logical read sonini kamaytirish demak: yaxshiroq indeks, yaxshiroq reja (P7). «Buffer cache hit ratio 99%» yaxshi ko'rinsa ham, keraksiz millionlab logical read baribir CPU ni yeydi.</p>
+
+<p class="beat">So'rov qanday bajariladi: parse, execute, fetch</p>
+<p>Har SQL to'rt bosqichdan o'tadi. <strong>Parse</strong>: matnni tekshirish va reja tayyorlash. <strong>Bind</strong>: o'zgaruvchilarga qiymat berish. <strong>Execute</strong>: rejani bajarish (DML da shu yerda qatorlar o'zgaradi). <strong>Fetch</strong>: SELECT natijasini qatorma-qator yoki to'plab qaytarish. Parse ning ichi:</p>
+<ol>
+  <li><strong>Sintaksis tekshiruvi</strong>: SQL grammatikasi to'g'rimi (<span class="num">SELEC</span> xato).</li>
+  <li><strong>Semantik tekshiruv</strong>: jadval va ustunlar bormi, foydalanuvchining huquqi bormi. Dictionary cache dan.</li>
+  <li><strong>Shared pool tekshiruvi</strong>: SQL matnidan hash hisoblanadi va library cache da xuddi shu matn va mos muhit bilan tayyor kursor qidiriladi. Topilsa: <strong>yumshoq parse</strong> (soft parse), keyingi ikki qadam o'tkazib yuboriladi.</li>
+  <li><strong>Optimizatsiya</strong>: optimizator statistikaga qarab mumkin bo'lgan rejalarni baholaydi va eng arzonini tanlaydi. Eng qimmat qism.</li>
+  <li><strong>Row source generation</strong>: tanlangan rejadan bajariladigan tuzilma yasaladi va shared pool ga saqlanadi.</li>
+</ol>
+<p>3-qadamda topilmasa, 4 va 5 bajariladi: bu <strong>qattiq parse</strong> (hard parse). U nafaqat CPU, balki shared pool ichidagi umumiy tuzilmalarga qulf (latch va mutex) talab qiladi: bir vaqtda ko'p sessiya qattiq parse qilsa, ular bir-birini kutadi va tizim yadrolar soniga qaramay sekinlashadi. Uchinchi daraja ham bor: ilova kursorni yopmasdan qayta bajarsa (yoki PL/SQL o'z kursor keshida saqlasa), parse umuman bo'lmaydi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="parse" style="width:1240px;height:440px" viewBox="0 0 1240 440" role="img" aria-label="Parse bosqichlari: qattiq parse, yumshoq parse va parse siz bajarish; library cache dagi parent va child kursor"></svg></div>
+  <figcaption>Tepada SQL ning yo'li chapdan o'ngga. Bajariladigan qadamlar rangli, o'tkazib yuboriladiganlari uzuq chiziqli. Pastda library cache dagi kursor tuzilmasi va narx.</figcaption>
+  <div class="evo-tabs" id="parseT" style="margin-top:0.9rem"></div>
+  <p class="say" id="parseSay" aria-live="polite"></p>
+</figure>
+<p>Library cache dagi kursor ikki qavatli. <strong>Parent cursor</strong> SQL matni bilan aniqlanadi (<span class="num">SQL_ID</span> shu matndan hisoblanadi; <span class="num">V$SQLAREA</span>). Uning ostida bir yoki bir nechta <strong>child cursor</strong> (<span class="num">V$SQL</span>): har biri o'z rejasi bilan. Matn bir xil bo'lsa ham child har xil bo'lishi mumkin: boshqa sxemadagi bir xil nomli jadval, boshqa optimizator sozlamalari, bind tipi yoki uzunligi juda farq qilsa, adaptive cursor sharing. Nega yangi child yaratilganini <span class="num">V$SQL_SHARED_CURSOR</span> ko'rsatadi.</p>
+
+<p class="beat">Bind o'zgaruvchilar: nega bu tezlik va xavfsizlik</p>
+<p>Shared pool tekshiruvi matnni <em>harfma-harf</em> solishtiradi. <span class="num">WHERE id = 101</span> va <span class="num">WHERE id = 102</span> Oracle uchun ikki xil so'rov, ikki qattiq parse, ikki kursor. Ilova sekundiga mingta to'lovni shunday yuborsa, sekundiga ming qattiq parse va shared pool bir martalik kursorlarga to'ladi. <span class="num">WHERE id = :id</span> esa bitta matn: bitta qattiq parse, keyin hammasi yumshoq. Java'da <span class="num">Statement</span> bilan satr ulash o'rniga <span class="num">PreparedStatement</span> va <span class="num">?</span>. PL/SQL da statik SQL dagi o'zgaruvchilar avtomatik bind bo'ladi, faqat dinamik SQL da <span class="num">USING</span> kerak (P5).</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="bind" style="width:1240px;height:420px" viewBox="0 0 1240 420" role="img" aria-label="Literal, bind va CURSOR_SHARING FORCE: shared pool dagi kursorlar soni va parse narxi"></svg></div>
+  <figcaption>Chapda ilova yuboradigan SQL matni. O'rtada shared pool: har katak bitta kursor. O'ngda hisob: qattiq va yumshoq parse soni, taxminiy parse vaqti.</figcaption>
+  <div class="evo-tabs" id="bindT" style="margin-top:0.9rem"></div>
+  <div class="slider">
+    <label for="bindN">Bajarishlar soni:</label>
+    <input class="numin" id="bindN" type="number" value="10000" min="1" max="10000000" style="width:9rem">
+    <button type="button" data-bn="10">10</button>
+    <button type="button" data-bn="1000">1000</button>
+    <button type="button" data-bn="10000">10 000</button>
+    <button type="button" data-bn="1000000">1 000 000</button>
+  </div>
+  <p class="say" id="bindSay" aria-live="polite"></p>
+</figure>
+<p>Bindning bitta nozik joyi bor: <strong>bind peeking</strong>. 9i dan optimizator qattiq parse paytida bind ning birinchi qiymatiga «mo'ralab», rejani shu qiymat uchun tanlaydi. Agar ma'lumot notekis bo'lsa (99% to'lovlar <span class="num">holat = 'BAJARILDI'</span>, 1% <span class="num">'XATO'</span>) va birinchi kelgan qiymat kamyob bo'lsa, indeks bo'yicha reja tanlanadi va keyin ko'p sonli qiymat uchun ham o'sha reja ishlatiladi: so'rov to'satdan sekinlashadi. 11g dagi <strong>adaptive cursor sharing</strong> buni qisman hal qiladi: bind ga sezgir kursor uchun har xil qiymat diapazonlariga alohida child yaratadi. Shuning uchun bind ishlatilmaydigan yagona holat: kam bajariladigan, uzoq ishlaydigan hisobot so'rovlari, ularda parse narxi ahamiyatsiz va aniq reja muhimroq.</p>
+
+<p class="beat">PGA: saralash xotirada sig'masa</p>
+<p><span class="num">ORDER BY</span>, <span class="num">GROUP BY</span>, <span class="num">DISTINCT</span>, hash join, analitik funksiyalar (P2) ish maydoni (work area) talab qiladi, u PGA da. 9i dan Oracle uni avtomatik boshqaradi: <span class="num">PGA_AGGREGATE_TARGET</span> hamma sessiyalar uchun umumiy maqsad, har operatsiya shundan ulush oladi. Ma'lumot sig'masa, uning bir qismi <strong>TEMP</strong> tablespace ga (diskka) yoziladi. Uch rejim: <strong>optimal</strong> (hammasi xotirada), <strong>one-pass</strong> (bir marta diskka yozib, bir marta o'qish), <strong>multi-pass</strong> (bir necha marta, juda sekin). Sinab ko'ring:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="pga" style="width:1240px;height:320px" viewBox="0 0 1240 320" role="img" aria-label="Saralash hajmi va PGA ish maydoni: optimal, one-pass, multi-pass"></svg></div>
+  <figcaption>Chapda saralanadigan ma'lumot, o'rtada PGA dagi ish maydoni, o'ngda TEMP tablespace. Hajmni o'zgartiring.</figcaption>
+  <div class="slider">
+    <label for="pgaV">Saralanadigan hajm, MB:</label>
+    <input class="numin" id="pgaV" type="number" value="40" min="1" max="100000" style="width:9rem">
+    <button type="button" data-pv="40">40</button>
+    <button type="button" data-pv="500">500</button>
+    <button type="button" data-pv="5000">5000</button>
+    <button type="button" data-pv="60000">60 000</button>
+  </div>
+  <p class="say" id="pgaSay" aria-live="polite"></p>
+</figure>
+<p>TEMP ga tushgan saralash <span class="num">V$SQL_WORKAREA</span> va rejadagi <span class="num">TempSpc</span> ustunida ko'rinadi. TEMP tugasa: <span class="num">ORA-01652: unable to extend temp segment</span>. 12c dan <span class="num">PGA_AGGREGATE_LIMIT</span> PGA ga qat'iy chegara qo'yadi: undan oshgan sessiyalar to'xtatiladi (<span class="num">ORA-04036</span>). LIMIT siz BULK COLLECT (P5) aynan shu chegaraga uriladi.</p>
+
+<p class="beat">Ichkariga qanday qaraladi</p>
+<ul>
+  <li><span class="num">V$SESSION</span>: kim ulangan, hozir nima qilyapti, nimani kutyapti (<span class="num">EVENT</span>, <span class="num">SQL_ID</span>, <span class="num">BLOCKING_SESSION</span>).</li>
+  <li><span class="num">V$SQL</span>, <span class="num">V$SQLAREA</span>: shared pool dagi so'rovlar, <span class="num">EXECUTIONS</span>, <span class="num">PARSE_CALLS</span>, <span class="num">BUFFER_GETS</span>, <span class="num">DISK_READS</span>, <span class="num">ELAPSED_TIME</span>. «Eng qimmat so'rovlar» shu yerdan topiladi.</li>
+  <li><span class="num">V$SYSSTAT</span>, <span class="num">V$SESSTAT</span>: <span class="num">parse count (hard)</span>, <span class="num">physical reads</span>, <span class="num">redo size</span> kabi hisoblagichlar.</li>
+  <li><span class="num">V$SGA</span>, <span class="num">V$SGASTAT</span>, <span class="num">V$PGASTAT</span>: xotira taqsimoti.</li>
+  <li><strong>AWR</strong> va <strong>ASH</strong> (10g dan, Diagnostics Pack litsenziyasi bilan): MMON jarayoni har soatda statistikani saqlaydi; AWR hisoboti ikki vaqt orasidagi farqni ko'rsatadi: eng ko'p kutilgan hodisalar (top wait events), eng qimmat SQL lar. ASH har sekund faol sessiyalarning surati.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Xotira va parse qanday rivojlangan</h3>
+<div class="bench" id="evoIn"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Instance</dt><dd>Ishlab turgan Oracle: SGA va fon jarayonlari. Xotirada yashaydi.</dd>
+  <dt>Database (baza)</dt><dd>Diskdagi fayllar: datafile, online redo log, control file. RAC da bitta bazaga bir nechta instance.</dd>
+  <dt>Server jarayoni (dedicated / shared server)</dt><dd>Sessiya uchun SQL ni bajaradigan jarayon. Dedicated: har sessiyaga bittadan; shared: bir nechta jarayon ko'p sessiyaga navbat bilan.</dd>
+  <dt>SGA (System Global Area)</dt><dd>Hamma jarayonlar uchun umumiy xotira: buffer cache, shared pool, redo log buffer, large pool, Java pool.</dd>
+  <dt>PGA (Program Global Area)</dt><dd>Har server jarayonining xususiy xotirasi: sessiya holati, paket o'zgaruvchilari, kolleksiyalar, sort va hash ish maydoni.</dd>
+  <dt>Buffer cache, dirty blok</dt><dd>Ma'lumot bloklari nusxalari. Keshda o'zgargan, hali diskka yozilmagan blok dirty.</dd>
+  <dt>Shared pool: library cache, dictionary cache</dt><dd>SQL va PL/SQL kursorlari va rejalari; obyekt va huquqlar haqidagi metama'lumot.</dd>
+  <dt>Redo, redo log buffer, online redo log</dt><dd>O'zgarishlar yozuvi; uning xotiradagi buferi; LGWR yozadigan aylanma fayllar guruhi.</dd>
+  <dt>Archived redo log, ARCHIVELOG</dt><dd>To'lgan online redo log nusxasi. Bu rejimda istalgan vaqtga tiklash va Data Guard mumkin.</dd>
+  <dt>Control file</dt><dd>Baza tuzilmasi: fayllar ro'yxati, oxirgi checkpoint, redo ketma-ketligi.</dd>
+  <dt>DBWn, LGWR, CKPT, SMON, PMON, ARCn, MMON</dt><dd>Dirty bloklarni yozuvchi; redo yozuvchi; checkpoint belgilovchi; instance tiklovchi va tozalovchi; uzilgan sessiyalarni tozalovchi; arxivlovchi; AWR statistikasini yig'uvchi.</dd>
+  <dt>Checkpoint</dt><dd>Ma'lum SCN gacha bo'lgan dirty bloklar diskka yozilganini belgilash. Tiklanish shu nuqtadan boshlanadi.</dd>
+  <dt>SCN (System Change Number)</dt><dd>Bazadagi har o'zgarishning tartib raqami, ichki «soat». COMMIT ham SCN oladi.</dd>
+  <dt>Write-ahead logging</dt><dd>Blok diskka yozilishidan oldin uning redo si diskda bo'lishi qoidasi.</dd>
+  <dt>Instance recovery: roll forward, rollback</dt><dd>Yiqilishdan keyin redo ni qayta qo'llash, keyin commit qilinmaganlarni undo bilan bekor qilish.</dd>
+  <dt>Logical read, physical read</dt><dd>Blokni keshdan o'qish; diskdan keshga o'qish.</dd>
+  <dt>Parse, execute, fetch</dt><dd>Tekshirish va reja; bajarish; natijani qaytarish.</dd>
+  <dt>Hard parse, soft parse</dt><dd>Rejani yangidan tuzish; shared pool dan tayyor kursorni olish.</dd>
+  <dt>Parent va child cursor, SQL_ID</dt><dd>SQL matni darajasidagi va reja darajasidagi kursor; matndan hisoblangan identifikator.</dd>
+  <dt>Bind o'zgaruvchi</dt><dd>SQL dagi qiymat o'rni (<span class="num">:id</span>, <span class="num">?</span>), qiymat alohida beriladi.</dd>
+  <dt>CURSOR_SHARING</dt><dd>EXACT (sukut) yoki FORCE: literallarni avtomatik bind ga almashtirish.</dd>
+  <dt>Bind peeking, adaptive cursor sharing</dt><dd>Qattiq parse da bind qiymatiga qarab reja tanlash; bind diapazonlariga qarab har xil child kursor.</dd>
+  <dt>Latch, mutex</dt><dd>SGA ichidagi umumiy tuzilmalarni himoya qiladigan qisqa ichki qulflar.</dd>
+  <dt>Work area: optimal, one-pass, multi-pass</dt><dd>PGA dagi sort va hash xotirasi; to'liq xotirada; bir marta TEMP ga; bir necha marta.</dd>
+  <dt>PGA_AGGREGATE_TARGET, PGA_AGGREGATE_LIMIT, SGA_TARGET, MEMORY_TARGET</dt><dd>Avtomatik xotira boshqaruvi parametrlari.</dd>
+  <dt>V$ ko'rinishlari, AWR, ASH</dt><dd>Ichki holat va statistika; soatlik suratlar va hisobot; har sekundlik faol sessiyalar tarixi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: Java'da satr ulab yozilgan so'rov</b>
+  <p><span class="num">stmt.executeQuery("SELECT ... WHERE hisob = '" + raqam + "'")</span>. Testda bir foydalanuvchi, hammasi tez. Prodda sekundiga minglab chaqiruv: har biri qattiq parse, shared pool dagi latch va mutex uchun navbat (<span class="num">library cache: mutex X</span>, <span class="num">latch: shared pool</span>), CPU 100%, oxiri <span class="num">ORA-04031: unable to allocate shared memory</span>. Ustiga SQL injection (P5).</p>
+  <p class="why">To'g'risi: <span class="num">PreparedStatement</span> va <span class="num">?</span>. Vaqtinchalik yechim sifatida <span class="num">CURSOR_SHARING = FORCE</span>, lekin kodni tuzatish shart.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: siklda COMMIT</b>
+  <p>Har qator uchun <span class="num">COMMIT</span>: har COMMIT da sessiya LGWR ning diskka yozishini kutadi (<span class="num">log file sync</span> kutish hodisasi). Million qatorda million marta disk yozuvini kutish. Ustiga, yarim yo'lda xato bo'lsa, qayta ishga tushirish murakkab.</p>
+  <p class="why">To'g'risi: mantiqiy birlik oxirida COMMIT; uzoq jarayonda bo'lak (masalan har 10 000 qator) oxirida, qayerdan davom etishni saqlab (P8).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: «hit ratio yaxshi, demak muammo yo'q»</b>
+  <p>Buffer cache hit ratio 99,9%, lekin tizim sekin. Sababi: bitta so'rov noto'g'ri reja bilan har chaqiruvda 2 million logical read qiladi. Hammasi keshda, shuning uchun nisbat a'lo, lekin CPU shunga ketyapti.</p>
+  <p class="why">To'g'risi: nisbatlarga emas, kutish hodisalariga (AWR top events) va eng qimmat SQL larga (<span class="num">BUFFER_GETS</span>, <span class="num">ELAPSED_TIME</span>) qarash.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: har so'rovga yangi ulanish</b>
+  <p>Servis har HTTP so'rovda <span class="num">DriverManager.getConnection</span> qiladi. Har ulanishda Oracle yangi server jarayoni yaratadi, autentifikatsiya, sessiya xotirasi: o'nlab millisekund va server resurslari. Yuklama oshganda «ulanish bo'roni» listener va serverni bosib qo'yadi.</p>
+  <p class="why">To'g'risi: ulanishlar puli (HikariCP, UCP), cheklangan o'lcham bilan; bazada esa <span class="num">PROCESSES</span> va <span class="num">SESSIONS</span> chegarasini hisobga olish (P11).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: prodda «tezlashtirish uchun» ALTER SYSTEM FLUSH SHARED_POOL</b>
+  <p>Bitta so'rovning yomon rejasini tozalash uchun butun shared pool tozalandi. Keyingi daqiqalarda hamma sessiyaning hamma so'rovi qattiq parse qilinadi va paketlar qayta yuklanadi: tizim butunlay sekinlashadi.</p>
+  <p class="why">To'g'risi: faqat bitta kursorni chiqarish (<span class="num">DBMS_SHARED_POOL.PURGE</span>), yoki rejani barqarorlashtirish (SQL plan baseline, P7).</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda chizib tushuntirish (qog'ozda yoki doskada SGA, PGA va jarayonlar) juda kuchli taassurot qoldiradi.</p>
+<details><summary>Instance va database farqi nima?</summary>
+<p>Database bu diskdagi fayllar: datafile'lar (ma'lumot), online redo log'lar (o'zgarishlar jurnali), control file (tuzilma). Instance bu ularni ishlatadigan xotira (SGA) va fon jarayonlari. Instance ishga tushadi, control file ni o'qib bazani «mount» qiladi, keyin datafile'larni ochadi. Odatda bitta instance bitta bazani ochadi, RAC da bir nechta instance bitta bazani birgalikda ochadi. 12c dan multitenant: bitta CDB ichida bir nechta PDB.</p></details>
+<details><summary>SGA va PGA farqi? Har birida nima bor?</summary>
+<p>SGA hamma server va fon jarayonlari uchun umumiy xotira: buffer cache (ma'lumot bloklari), shared pool (SQL va PL/SQL kursorlari, rejalar, dictionary cache), redo log buffer, large pool, Java pool. PGA har server jarayonining xususiy xotirasi: sessiya ma'lumotlari, PL/SQL paket o'zgaruvchilari va kolleksiyalar, saralash va hash join uchun ish maydoni. SGA ni hamma ko'radi, PGA ni faqat o'z jarayoni. Shared server rejimida sessiya ma'lumotining bir qismi (UGA) SGA ga (large pool) ko'chadi.</p></details>
+<details><summary>Asosiy fon jarayonlari va ularning vazifasi?</summary>
+<p>DBWn: buffer cache dagi dirty bloklarni datafile'larga yozadi, to'plab va asinxron. LGWR: redo log buffer ni online redo log ga yozadi; COMMIT da, buffer uchdan bir to'lganda, har uch sekundda, DBWn yozishidan oldin. CKPT: checkpoint ni control file va datafile sarlavhalariga yozadi. SMON: instance ishga tushganda tiklashni bajaradi, vaqtinchalik segmentlarni tozalaydi. PMON: uzilgan sessiyaning tranzaksiyasini qaytaradi, qulflarini bo'shatadi. ARCn: ARCHIVELOG rejimida to'lgan redo log'larni arxivga ko'chiradi. MMON: AWR statistikasini yig'adi.</p></details>
+<details><summary>COMMIT bajarilganda ichkarida nima bo'ladi? Nega COMMIT tez?</summary>
+<p>Tranzaksiya davomida har o'zgarish uchun redo yozuvi redo log buffer ga tushadi, bloklar esa buffer cache da o'zgaradi. COMMIT da tranzaksiyaga SCN beriladi, commit yozuvi redo ga qo'shiladi va LGWR redo buffer ni online redo log fayliga yozadi. Sessiya faqat shu yozuvni kutadi (log file sync), keyin «commit complete». O'zgargan bloklar esa diskka hali yozilmagan bo'lishi mumkin, DBWn ularni keyinroq yozadi. COMMIT tez, chunki redo kichik va ketma-ket yoziladi, va COMMIT ning narxi tranzaksiya hajmiga deyarli bog'liq emas. Ishonchli, chunki redo diskda: yiqilishda undan bloklar tiklanadi.</p></details>
+<details><summary>Server yiqilsa commit qilingan ma'lumot qanday tiklanadi?</summary>
+<p>Instance recovery. Qayta ishga tushganda SMON control file dan oxirgi checkpoint ni topadi va online redo log ni shu joydan oxirigacha o'qib, hamma o'zgarishni bloklarga qayta qo'llaydi (roll forward): commit qilinganlar ham, qilinmaganlar ham, chunki undo o'zgarishlari ham redo da. Shundan keyin baza ochiladi va commit qilinmagan tranzaksiyalar undo bilan bekor qilinadi (rollback), bu fonda ham bajarilishi mumkin. Natija: hamma commit qilingan ma'lumot bor, commit qilinmaganlar yo'q. Checkpoint qanchalik yaqin bo'lsa, tiklanish shuncha tez (FAST_START_MTTR_TARGET).</p></details>
+<details><summary>Hard parse va soft parse farqi? Qattiq parse nega yomon?</summary>
+<p>Har SQL parse qilinadi: sintaksis, semantika (obyektlar, huquqlar), keyin SQL matnining hash i bo'yicha shared pool dagi tayyor kursor qidiriladi. Topilsa, soft parse: tayyor reja ishlatiladi. Topilmasa, hard parse: optimizator rejalarni baholab eng arzonini tanlaydi va yangi kursor yaratadi. Hard parse CPU ni ko'p sarflaydi va shared pool tuzilmalariga latch va mutex oladi, shuning uchun bir vaqtda ko'p sessiyada u parallel ishlamaydi va masshtablanmaydi; shared pool ni ham bir martalik kursorlar bilan to'ldiradi. Eng yaxshisi umuman parse qilmaslik: kursorni ochiq saqlab qayta bajarish; PL/SQL statik SQL buni o'zi qiladi.</p></details>
+<details><summary>Bind o'zgaruvchilar nima va nega muhim?</summary>
+<p>SQL matnidagi qiymat o'rniga belgi (:id yoki Java'da ?), qiymat esa alohida beriladi. Uch foydasi: SQL matni o'zgarmaydi, shuning uchun bitta hard parse va keyin soft parse, shared pool toza; SQL injection imkonsiz, chunki qiymat hech qachon kod bo'lib o'qilmaydi; ilova kodi soddaroq (qo'shtirnoq, sana formatlari muammosi yo'q). Kamchiligi: bind peeking tufayli notekis ma'lumotda bitta reja hamma qiymatga mos kelmasligi mumkin; 11g dan adaptive cursor sharing yordam beradi. Kam bajariladigan og'ir hisobot so'rovlarida literal ham qabul qilinadi.</p></details>
+<details><summary>Bind peeking va adaptive cursor sharing nima?</summary>
+<p>Bind peeking (9i): hard parse paytida optimizator bind ning haqiqiy qiymatiga qaraydi va shu qiymatga mos rejani tanlaydi, keyin shu reja hamma qiymat uchun ishlatiladi. Ma'lumot notekis bo'lsa (gistogramma bor), birinchi qiymatga qarab tanlangan reja boshqalar uchun yomon bo'lishi mumkin: so'rov ertalab tez, tushdan keyin sekin, chunki kursor shared pool dan chiqib qayta parse qilingan. Adaptive cursor sharing (11g): kursor bind ga sezgir deb belgilanadi, bajarilishlar kuzatiladi, va boshqa selektivlikdagi qiymat uchun yangi child kursor va reja yaratiladi. To'liq barqarorlik uchun SQL plan baseline.</p></details>
+<details><summary>CURSOR_SHARING=FORCE nima, qachon ishlatiladi?</summary>
+<p>Oracle o'zi SQL dagi literallarni tizim bind'lariga (:SYS_B_0) almashtiradi, shunda literal bilan yozilgan ilova ham kursorlarni bo'lishadi. Bu kodini tez o'zgartirib bo'lmaydigan ilova uchun vaqtinchalik dori. Kamchiliklari: hamma literal bind bo'ladi, hatto ataylab yozilgan (masalan holat = 'XATO' uchun maxsus reja kerak bo'lgan joyda), rejalar yomonlashishi mumkin; almashtirishning ham narxi bor. Sukut EXACT. Haqiqiy yechim ilovada bind.</p></details>
+<details><summary>Logical read va physical read farqi? Qaysi biri muhimroq?</summary>
+<p>Oracle blokni doim buffer cache orqali o'qiydi. Keshda bo'lsa logical read (consistent gets, db block gets), bo'lmasa diskdan keshga o'qiladi: physical read, keyin baribir logical read. Physical read sekinroq, lekin uning soni kesh holatiga bog'liq va o'zgaruvchan. Logical read so'rovning haqiqiy ishi: CPU va latch sarflaydi, va reja o'zgarmasa barqaror. Shuning uchun so'rovni tezlashtirishda logical read ni kamaytirishga harakat qilinadi; physical read o'z-o'zidan kamayadi.</p></details>
+<details><summary>Tizim sekin deyishdi. Qayerdan boshlaysiz?</summary>
+<p>Avval aniqlik: hammasi sekinmi yoki bitta ekran, qachondan, nima o'zgardi (reliz, ma'lumot hajmi, statistika). Keyin bazada: V$SESSION da faol sessiyalar nimani kutyapti (EVENT, SQL_ID, BLOCKING_SESSION); AWR yoki ASH hisobotida shu vaqt oralig'idagi top wait events va eng qimmat SQL lar. Kutish turi yo'nalishni beradi: db file sequential read (indeks orqali ko'p o'qish), log file sync (ko'p COMMIT), enq: TX - row lock contention (qulf, P8), library cache mutex (qattiq parse). Keyin aniq SQL ning rejasi va statistikasi (P7). Bitta o'zgarish, o'lchash, keyingisi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>Doskaga Oracle arxitekturasini chizing: ilova, server jarayoni, PGA, SGA ning uch asosiy qismi, beshta fon jarayoni va uch xil fayl. Har strelkaga nima o'tishini yozing.</li>
+  <li>Mijoz 1 million so'm o'tkazdi, «bajarildi» xabarini oldi, va bir sekunddan keyin server elektrdan o'chdi. Pul qayerda? O'zgargan bloklar diskka yozilmagan edi. Qadam-baqadam tushuntiring.</li>
+  <li><span class="num">V$SQLAREA</span> da 40 000 ta SQL, matnlari faqat oxiridagi raqam bilan farq qiladi, har birida <span class="num">EXECUTIONS = 1</span>. Nima bo'lyapti, qanday oqibat, kim nimani tuzatishi kerak?</li>
+  <li>Hisobot so'rovi ertalab 2 sekund, tushdan keyin 3 daqiqa ishlaydi. So'rov bind bilan yozilgan, ma'lumot o'zgarmagan. Qanday gipoteza, qanday tekshirasiz?</li>
+  <li>Kun yopishdagi katta <span class="num">GROUP BY</span> so'rovi <span class="num">ORA-01652</span> bilan yiqildi. Bu nima degani va qanday yo'llar bor?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Consistent read: SELECT nega yozuvchini kutmaydi</summary>
+<p>SELECT boshlanganda SCN belgilanadi. Blok shundan keyin o'zgargan bo'lsa (yoki commit qilinmagan o'zgarish bo'lsa), server jarayoni undo dagi eski qiymatlardan blokning o'sha SCN dagi nusxasini keshda yasaydi va shuni o'qiydi. Shuning uchun o'quvchilar yozuvchilarni, yozuvchilar o'quvchilarni bloklamaydi. Undo yetmasa: <span class="num">ORA-01555: snapshot too old</span>. Batafsil P8 da.</p></details>
+<details><summary>Session cursor cache va open_cursors</summary>
+<p>Ilova bir xil SQL ni yopib-ochib turaversa, har safar soft parse. <span class="num">SESSION_CACHED_CURSORS</span> sessiya darajasida tez-tez ishlatilgan kursorlarga ko'rsatkichni saqlaydi, va soft parse yanada arzonlashadi («softer soft parse»). PL/SQL statik SQL kursorlarini o'zi ochiq saqlaydi (<span class="num">OPEN_CURSORS</span> chegarasigacha). Java'da JDBC statement cache (<span class="num">setImplicitCachingEnabled</span>, pul darajasida <span class="num">PreparedStatement</span> keshi) xuddi shu vazifani bajaradi. <span class="num">ORA-01000: maximum open cursors exceeded</span> odatda ilovada <span class="num">ResultSet</span> yoki <span class="num">Statement</span> yopilmaganidan.</p></details>
+<details><summary>Latch, mutex va kutish hodisalari</summary>
+<p>SGA dagi umumiy tuzilmalar (kesh zanjirlari, library cache) bir vaqtda bir necha jarayon tomonidan o'zgartirilmasligi uchun latch va 10g dan mutex bilan himoyalanadi. Ular juda qisqa ushlanadi, lekin talab juda ko'p bo'lsa navbat paydo bo'ladi: <span class="num">latch: cache buffers chains</span> (bitta «issiq» blokni hamma o'qiyapti, odatda yomon reja yoki kichik jadvalga ko'p murojaat), <span class="num">library cache: mutex X</span> (qattiq parse yoki bitta kursorga juda ko'p bajarish). Kutish hodisalari Oracle'da tahlilning asosiy tili: sessiya vaqti = CPU + kutishlar.</p></details>
+<details><summary>Multitenant, RAC va Data Guard bir jumlada</summary>
+<p>Multitenant (12c dan, 21c dan yagona arxitektura): bitta konteyner baza (CDB) ichida bir nechta ulanadigan baza (PDB), bitta instance va SGA ularning hammasiga. RAC: bir nechta server (instance) bitta umumiy diskdagi bazani birga ochadi, bloklar ular orasida tarmoq orqali (cache fusion) almashadi. Data Guard: asosiy bazaning redo si boshqa joydagi zaxira bazaga yuboriladi va qo'llanadi. Bank tizimlarida odatda Data Guard bor, ba'zan RAC.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database Concepts: Oracle Database Instance, Memory Architecture, Process Architecture, SQL Processing (bob «SQL Parsing», «Shared Pool Check»). Oracle Database Performance Tuning Guide: Tuning the Shared Pool, Tuning the Program Global Area, Automatic Workload Repository. Oracle Database SQL Tuning Guide: Adaptive Cursor Sharing. Tom Kyte, «Expert Oracle Database Architecture», 2–4-boblar.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Instance (SGA va fon jarayonlari) va baza (fayllar) alohida. Buffer cache diskni, shared pool parse ni, redo log buffer COMMIT ni tezlashtiradi. COMMIT faqat LGWR ning redo yozishini kutadi, bloklarni DBWn keyinroq yozadi, yiqilishda SMON redo dan tiklaydi. Parse: sintaksis, semantika, shared pool tekshiruvi, kerak bo'lsa optimizatsiya. Bind o'zgaruvchilar qattiq parse ni yo'qotadi va injection dan himoya qiladi; bind peeking notekis ma'lumotda xavfli. Tezlikni logical read va kutish hodisalari bilan o'lchang.</p>
+  <p><strong>Keyingi dars.</strong> P7. Indekslar va EXPLAIN PLAN: B-tree qanday tuzilgan, bitmap, composite va function-based indekslar, qachon indeks ishlatilmaydi, rejani o'qish, statistika va hintlar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p5-katta-hajm-bulk.html">Oldingi: P5. Katta hajmdagi ma'lumot</a><span>Keyingi: P7. Indekslar va EXPLAIN PLAN (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'PreparedStatement, ?', link: 'SQL matni va bind qiymatlar' },
+    { title: 'PL/SQL', sub: 'Blok, protsedura, paket: P3–P5', ex: 'statik SQL: avtomatik bind', link: 'SQL ni chaqiradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'SELECT ... WHERE id = :id', link: 'parse qilinadi' },
+    { title: 'Optimizator va xotira', sub: 'Parse, bind, SGA, PGA: P6–P7', ex: 'shared pool, buffer cache', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'LGWR, log file sync', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'datafile, blok 8 KB', link: '' }
+  ], [3], 'Xotira va parse');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
+  function boxL(svg, x, y, w, h, title, lines, cls) {
+    S(svg, 'rect', { x: x, y: y, width: w, height: h, rx: 5, 'class': 'box' + (cls ? ' ' + cls : '') });
+    S(svg, 'text', { x: x + 14, y: y + 26, 'class': 'ttl' }, title);
+    (lines || []).forEach(function (l, i) { S(svg, 'text', { x: x + 14, y: y + 46 + i * 18, 'class': 'sub' }, l); });
+  }
+
+  // ---------- Arxitektura ----------
+  (function () {
+    var svg = $('arch'), say = $('archSay'), sc = 0, st = 0;
+    var B = {
+      app: [20, 60, 200, 110, 'Ilova (Java)', ['JDBC ulanish', 'SQL matni va qiymatlar']],
+      srv: [20, 210, 200, 190, 'Server jarayoni', ['sessiya uchun SQL ni', 'bajaradi', 'PGA: sessiya holati,', 'paket o\'zgaruvchilari,', 'kolleksiya, sort']],
+      sp: [290, 90, 290, 170, 'Shared pool', ['library cache:', 'SQL matni, reja, PL/SQL', 'dictionary cache:', 'jadval, ustun, huquq']],
+      bc: [600, 90, 290, 170, 'Buffer cache', ['ma\'lumot bloklari (8 KB)', 'jadval, indeks, undo', 'dirty: o\'zgargan, hali', 'diskka yozilmagan']],
+      rb: [910, 90, 270, 170, 'Redo log buffer', ['o\'zgarishlar yozuvi', '(redo), diskka yozilishini', 'kutib turadi']],
+      dbw: [270, 310, 145, 90, 'DBWn', ['bloklarni', 'diskka yozadi']],
+      lgw: [427, 310, 145, 90, 'LGWR', ['redo ni', 'diskka yozadi']],
+      ckp: [584, 310, 145, 90, 'CKPT', ['checkpoint', 'belgilaydi']],
+      smo: [741, 310, 145, 90, 'SMON', ['instance', 'tiklanishi']],
+      pmo: [898, 310, 145, 90, 'PMON', ['uzilgan sessiya', 'tozalash']],
+      arc: [1055, 310, 145, 90, 'ARCn', ['redo log', 'arxivlash']],
+      df: [270, 500, 225, 80, 'Datafile\'lar', ['jadval, indeks, undo']],
+      orl: [507, 500, 225, 80, 'Online redo log', ['aylanma, 2+ guruh']],
+      cf: [744, 500, 225, 80, 'Control file', ['tuzilma, checkpoint SCN']],
+      arl: [981, 500, 225, 80, 'Archived redo log', ['to\'lgan log nusxalari']]
+    };
+    var SC = [
+      { t: 'SELECT: o\'qish', steps: [
+        { hl: ['app', 'srv'], p: 'M120 170V208', n: [134, 194], s: `Ilova SQL matnini va bind qiymatini yuboradi: SELECT qoldiq FROM hisoblar WHERE id = :id. Ilova o'zi bazaga tegmaydi, uning nomidan hamma ishni server jarayoni qiladi.` },
+        { hl: ['srv', 'sp'], p: 'M220 240H288', n: [252, 230], s: `Server jarayoni parse qiladi: sintaksis, keyin dictionary cache dan jadval va huquqlar, keyin library cache da shu matnli tayyor kursor qidiriladi. Topildi: yumshoq parse, tayyor reja olinadi. Topilmasa: optimizator yangi reja tuzadi (qattiq parse).` },
+        { hl: ['srv', 'bc'], p: 'M220 295H745V262', n: [480, 288], s: `Reja bo'yicha kerakli bloklar buffer cache da qidiriladi. Topilsa: logical read, mikrosekundlar. Bu eng ko'p uchraydigan holat: faol jadvallar va indekslarning yuqori qismlari doim keshda.` },
+        { hl: ['srv', 'df', 'bc'], p: 'M270 540H120V402', n: [196, 530], s: `Blok keshda yo'q bo'lsa: server jarayoni o'zi uni datafile dan o'qib (physical read, millisekundlar), buffer cache ga qo'yadi va keyin keshdan o'qiydi. Keyingi so'rovlar uchun blok endi keshda.` },
+        { hl: ['srv', 'app'], p: 'M80 208V172', n: [94, 194], s: `Natija qatorlari FETCH bilan ilovaga qaytariladi, odatda to'plab (JDBC fetchSize, sukut 10). Saralash yoki guruhlash kerak bo'lsa, u PGA da bajarilgan. O'qishda redo yozilmaydi va fon jarayonlari qatnashmaydi.` }
+      ] },
+      { t: 'UPDATE va COMMIT', steps: [
+        { hl: ['app', 'srv'], p: 'M120 170V208', n: [134, 194], s: `Ilova UPDATE hisoblar SET qoldiq = qoldiq - :s WHERE id = :id yuboradi. Parse SELECT dagidek.` },
+        { hl: ['srv', 'bc'], p: 'M220 295H745V262', n: [480, 288], s: `Server jarayoni qator joylashgan blokni (kerak bo'lsa diskdan) va undo segmentidagi blokni buffer cache ga oladi. Qatorga qulf qo'yiladi (P8).` },
+        { hl: ['srv', 'rb', 'bc'], p: 'M220 225H258V38H1045V88', n: [650, 38], s: `Avval o'zgarishning redo yozuvi (blok qayerda, nima o'zgardi, va undo ga nima yozildi) redo log buffer ga tushadi. Keyin eski qiymat undo blokiga yoziladi va jadval bloki keshda o'zgaradi. Blok endi dirty: keshdagi nusxa diskdagidan farq qiladi.` },
+        { hl: ['rb', 'lgw', 'orl'], p: 'M1045 262V300H500V308M500 402V450H619V498', n: [800, 300], s: `Ilova COMMIT yubordi. Tranzaksiyaga SCN beriladi, commit yozuvi redo ga qo'shiladi va LGWR redo buffer ni online redo log fayliga yozadi. Ketma-ket yozuv, kichik hajm: odatda millisekunddan kam yoki bir necha millisekund. Sessiya shuni kutadi (log file sync).` },
+        { hl: ['srv', 'app', 'bc'], p: 'M80 208V172', n: [94, 194], s: `Redo diskda: ilovaga «commit complete». O'zgargan blok esa hali faqat keshda! Bu normal: agar hozir elektr o'chsa, blok redo dan tiklanadi. Shuning uchun COMMIT tez va tranzaksiya hajmiga deyarli bog'liq emas.` }
+      ] },
+      { t: 'Checkpoint va yozish', steps: [
+        { hl: ['ckp', 'cf'], p: 'M656 402V450H856V498', n: [740, 444], s: `Checkpoint: online redo log almashganda, yoki tiklanish vaqti maqsadi (FAST_START_MTTR_TARGET) talab qilganda. CKPT DBWn ga «shu SCN gacha bo'lgan dirty bloklarni yoz» deydi va oxirida checkpoint SCN ni control file va datafile sarlavhalariga yozadi.` },
+        { hl: ['bc', 'dbw', 'df'], p: 'M700 262V290H342V308M342 402V498', n: [520, 284], s: `DBWn dirty bloklarni datafile'larga yozadi: ko'p blokni birga, asinxron, hech bir sessiyani kuttirmasdan. Bu commit qilinmagan bloklar ham bo'lishi mumkin: muammo emas, chunki tiklanishda undo ularni bekor qiladi. Lekin qoida bor: blok diskka yozilishidan oldin uning redo si diskda bo'lishi shart (write-ahead logging), kerak bo'lsa DBWn LGWR ni chaqiradi.` },
+        { hl: ['orl', 'arc', 'arl'], p: 'M720 498V478H1100V404M1140 402V498', n: [900, 478], s: `Online redo log aylanma: guruh to'lsa, LGWR keyingisiga o'tadi (log switch). ARCHIVELOG rejimida ARCn to'lgan guruhni arxivga ko'chiradi; u arxivlanmaguncha qayta yozilmaydi. Arxivlar zaxira nusxa bilan birga istalgan vaqtga tiklashni va Data Guard ni ta'minlaydi. Bankda baza doim ARCHIVELOG rejimida.` }
+      ] },
+      { t: 'Yiqilish va tiklanish', steps: [
+        { hl: [], dead: ['sp', 'bc', 'rb', 'srv'], p: '', n: null, s: `Elektr o'chdi: instance yo'q, SGA va PGA dagi hamma narsa yo'qoldi. Keshdagi dirty bloklar diskka yozilmagan (commit qilingan o'zgarishlar ham), diskda esa commit qilinmagan o'zgarishlar ham bo'lishi mumkin. Diskda qolgani: datafile'lar, online redo log, control file.` },
+        { hl: ['smo', 'cf', 'orl'], p: 'M856 498V450H813V404', n: [826, 466], s: `Qayta ishga tushganda SMON control file dan oxirgi checkpoint SCN ni oladi: undan oldingi hamma narsa datafile'larda bor. Undan keyingi o'zgarishlar faqat online redo log da.` },
+        { hl: ['smo', 'orl', 'df', 'bc'], p: 'M619 498V470H780V404M760 402V420H382V498', n: [700, 464], s: `Roll forward: redo checkpoint dan oxirigacha o'qilib, hamma o'zgarish bloklarga qayta qo'llanadi: commit qilinganlar ham, qilinmaganlar ham, undo o'zgarishlari ham. Endi bloklar yiqilish paytidagi holatda.` },
+        { hl: ['smo', 'df'], p: '', n: null, s: `Rollback: baza ochiladi, foydalanuvchilar ishlay boshlaydi, commit qilinmagan tranzaksiyalar esa undo yordamida fonda bekor qilinadi. Natija: har bir «commit complete» olgan tranzaksiya bor, qolganlari yo'q. Elektr o'chishi yo'qotgan narsa faqat commit qilinmagan ish.` },
+        { hl: ['pmo', 'srv'], p: '', n: null, s: `Kichikroq holat: instance emas, faqat bitta sessiya uzildi (ilova yiqildi, tarmoq uzildi). Bunda PMON shu sessiyaning commit qilinmagan tranzaksiyasini qaytaradi, qulflarini bo'shatadi va resurslarini tozalaydi. Boshqa sessiyalar ishlashda davom etadi.` }
+      ] }
+    ];
+    var setT = tabs('archT', SC.map(function (s) { return s.t; }), function (i) { sc = i; st = 0; buildSteps(); draw(); });
+    var setS;
+    function buildSteps() { setS = tabs('archS', SC[sc].steps.map(function (s, i) { return 'Qadam ' + (i + 1); }), function (i) { st = i; draw(); }); }
+    function draw() {
+      var s = SC[sc], cs = s.steps[st]; setT(sc); setS(st); svg.textContent = ''; marker(svg, 'armk');
+      var dmk = S(svg, 'defs', {}), m2 = S(svg, 'marker', { id: 'armk2', viewBox: '0 0 10 10', refX: 9, refY: 5, markerWidth: 8, markerHeight: 8, orient: 'auto' }, null, dmk); S(svg, 'path', { d: 'M0 0L10 5L0 10z', 'class': 'mk gray' }, null, m2);
+      group(svg, 250, 20, 970, 410, 'Instance');
+      S(svg, 'rect', { x: 270, y: 50, width: 930, height: 230, rx: 4, 'class': 'grp' });
+      S(svg, 'text', { x: 1186, y: 72, 'text-anchor': 'end', 'class': 'lbl' }, 'SGA: umumiy xotira');
+      group(svg, 250, 460, 970, 140, 'Baza: diskdagi fayllar');
+      Object.keys(B).forEach(function (k) {
+        var b = B[k], cls = (cs.dead || []).indexOf(k) >= 0 ? 'dead' : (cs.hl.indexOf(k) >= 0 ? 'on' : '');
+        boxL(svg, b[0], b[1], b[2], b[3], b[4], b[5], cls);
+      });
+      for (var i = 0; i <= st; i++) {
+        var p = s.steps[i];
+        if (!p.p) continue;
+        S(svg, 'path', { d: p.p, 'class': 'arr' + (i < st ? ' dash' : ''), 'marker-end': 'url(#' + (i < st ? 'armk2' : 'armk') + ')', style: i === st ? 'stroke-width:2.4' : '' });
+        if (p.n) {
+          S(svg, 'circle', { cx: p.n[0], cy: p.n[1], r: 10, 'class': i === st ? 'box on' : 'box' });
+          S(svg, 'text', { x: p.n[0], y: p.n[1] + 4, 'text-anchor': 'middle', 'class': 'lbl' }, String(i + 1));
+        }
+      }
+      say.textContent = (st + 1) + '/' + s.steps.length + '. ' + cs.s;
+      say.className = 'say' + (cs.dead ? ' bad' : '');
+    }
+    buildSteps(); draw();
+  })();
+
+  // ---------- Parse ----------
+  (function () {
+    var svg = $('parse'), say = $('parseSay'), cur = 0;
+    var P = [['Sintaksis', 'grammatika to\'g\'rimi'], ['Semantika', 'obyekt, ustun, huquq'], ['Shared pool', 'hash bo\'yicha qidirish'], ['Optimizatsiya', 'rejalarni baholash'], ['Row source', 'bajariladigan reja'], ['Execute', 'rejani bajarish'], ['Fetch', 'natijani qaytarish']];
+    var V = [
+      { t: 'Qattiq parse', run: [1, 1, 1, 1, 1, 1, 1], miss: true, cost: 'yuqori: CPU, latch va mutex, yangi xotira', parse: 'PARSE_CALLS +1, hard parse +1', s: `Shared pool da bunday matn yo'q (yoki bor, lekin mos child yo'q). Optimizator statistikaga qarab o'nlab yoki minglab reja variantini baholaydi, eng arzonini tanlaydi, yangi parent va child kursor shared pool ga yoziladi. Murakkab so'rovda bu millisekundlar va shared pool tuzilmalariga qulf: bir vaqtda ko'p sessiyada navbat.` },
+      { t: 'Yumshoq parse', run: [1, 1, 1, 0, 0, 1, 1], miss: false, cost: 'past: matn tekshiruvi va kesh qidiruvi', parse: 'PARSE_CALLS +1, hard parse 0', s: `Bir xil matnli kursor topildi, muhit ham mos: optimizatsiya va row source generation o'tkazib yuboriladi, tayyor reja ishlatiladi. Bind o'zgaruvchilar bilan yozilgan so'rovlarning deyarli hammasi shunday ishlaydi. Lekin sintaksis, semantika va kesh qidiruvi baribir har chaqiruvda.` },
+      { t: 'Parse siz (kursor ochiq)', run: [0, 0, 0, 0, 0, 1, 1], miss: false, cost: 'eng past: faqat bajarish', parse: 'PARSE_CALLS o\'zgarmaydi, EXECUTIONS +1', s: `Ilova kursorni yopmasdan qayta bajaradi (Java'da bir PreparedStatement ni qayta ishlatish yoki statement cache), PL/SQL esa statik SQL kursorlarini o'zi ochiq saqlaydi. Parse umuman bo'lmaydi: yangi bind qiymatlari beriladi va darhol execute. Ideal: «bir marta parse, ko'p marta bajar».` }
+    ];
+    var setT = tabs('parseT', V.map(function (v) { return v.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var v = V[cur]; setT(cur); svg.textContent = ''; marker(svg, 'pmk');
+      S(svg, 'text', { x: 20, y: 28, 'class': 'mono' }, 'SELECT qoldiq FROM hisoblar WHERE id = :id');
+      group(svg, 14, 46, 518, 130, 'Parse');
+      for (var i = 0; i < 7; i++) {
+        var x = 20 + i * 173, cls = v.run[i] ? ((i === 3 || i === 4) && cur === 0 ? 'bad' : (i === 2 && cur === 1 ? 'live' : 'on')) : 'freed';
+        if (i === 2 && cur === 0) cls = 'bad';
+        box(svg, x + 6, 80, 158, 80, (i + 1) + '. ' + P[i][0], P[i][1], cls);
+        if (i < 6) S(svg, 'path', { d: 'M' + (x + 164) + ' 120H' + (x + 177), 'class': 'arr', 'marker-end': 'url(#pmk)' });
+      }
+      S(svg, 'rect', { x: 538, y: 46, width: 340, height: 130, rx: 4, 'class': 'grp' });
+      S(svg, 'text', { x: 868, y: 64, 'text-anchor': 'end', 'class': 'lbl' }, 'faqat qattiq parse da');
+      S(svg, 'text', { x: 1220, y: 192, 'text-anchor': 'end', 'class': 'lbl' }, cur === 0 ? '3-qadamda topilmadi: 4 va 5 bajariladi' : (cur === 1 ? '3-qadamda topildi: 4 va 5 o\'tkazildi' : 'ochiq kursor: to\'g\'ridan-to\'g\'ri execute'));
+      group(svg, 20, 210, 760, 210, 'Library cache');
+      boxL(svg, 40, 250, 330, 150, 'Parent cursor', ['SQL matni, uning hash i', 'SQL_ID: 7h35uxf5uhmm1', 'V$SQLAREA', cur === 0 ? 'yangi yaratildi' : 'avvaldan bor'], cur === 0 ? 'bad' : 'on');
+      boxL(svg, 430, 250, 330, 150, 'Child cursor 0', ['reja: INDEX UNIQUE SCAN', 'bind tipi, optimizator muhiti', 'V$SQL: EXECUTIONS, PARSE_CALLS', cur === 0 ? 'yangi reja tuzildi' : 'tayyor reja ishlatildi'], cur === 0 ? 'bad' : 'on');
+      S(svg, 'path', { d: 'M370 325H428', 'class': 'arr', 'marker-end': 'url(#pmk)' });
+      boxL(svg, 820, 230, 400, 80, 'Narx: ' + v.cost.split(':')[0], [v.cost.split(': ')[1]], cur === 0 ? 'bad' : (cur === 1 ? 'live' : 'on'));
+      boxL(svg, 820, 330, 400, 80, 'Statistikada', [v.parse], '');
+      say.textContent = v.s; say.className = 'say' + (cur === 0 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Bind ----------
+  (function () {
+    var svg = $('bind'), say = $('bindSay'), cur = 0;
+    var V = ['Literal (satr ulash)', 'Bind o\'zgaruvchi', 'CURSOR_SHARING = FORCE'];
+    var setT = tabs('bindT', V, function (i) { cur = i; draw(); });
+    function draw() {
+      var N = parseInt($('bindN').value, 10); if (isNaN(N) || N < 1) N = 1; if (N > 10000000) N = 10000000;
+      setT(cur); svg.textContent = ''; marker(svg, 'bmk');
+      group(svg, 20, 20, 400, 380, 'Ilova yuboradi');
+      var code = cur === 1 ? ['ps = con.prepareStatement(', '  "SELECT qoldiq FROM hisoblar', '   WHERE id = ?");', 'ps.setLong(1, id);'] : ['st.executeQuery(', '  "SELECT qoldiq FROM hisoblar', '   WHERE id = " + id);', ''];
+      code.forEach(function (l, i) { S(svg, 'text', { x: 36, y: 70 + i * 22, 'class': 'code' }, l); });
+      S(svg, 'text', { x: 36, y: 180, 'class': 'sub' }, 'Oracle ko\'radigan matnlar:');
+      var ex = [101, 102, 103];
+      ex.forEach(function (n, i) {
+        var t = cur === 0 ? '... WHERE id = ' + n : (cur === 1 ? '... WHERE id = :1' : '... WHERE id = :"SYS_B_0"');
+        S(svg, 'text', { x: 36, y: 210 + i * 24, 'class': 'mono' }, t);
+      });
+      S(svg, 'text', { x: 36, y: 290, 'class': 'sub' }, cur === 0 ? 'har qiymat: yangi matn' : (cur === 1 ? 'har safar bir xil matn' : 'Oracle literalni o\'zi almashtirdi'));
+      S(svg, 'path', { d: 'M420 210H458', 'class': 'arr', 'marker-end': 'url(#bmk)' });
+      group(svg, 460, 20, 380, 380, 'Shared pool: kursorlar');
+      var distinct = cur === 0 ? N : 1, cells = 48, filled = Math.min(cells, distinct);
+      for (var i = 0; i < cells; i++) {
+        var cx = 480 + (i % 8) * 43, cy = 60 + Math.floor(i / 8) * 43;
+        S(svg, 'rect', { x: cx, y: cy, width: 36, height: 36, rx: 3, 'class': 'box' + (i < filled ? (cur === 0 ? ' bad' : ' on') : ' freed') });
+      }
+      var over = distinct - cells;
+      S(svg, 'text', { x: 480, y: 340, 'class': 'sub' }, cur === 0 ? (over > 0 ? 'joy tugadi: yana ' + fmt(over) + ' ta kursor' : fmt(distinct) + ' ta alohida kursor') : '1 ta kursor, ' + fmt(N) + ' marta ishlatildi');
+      S(svg, 'text', { x: 480, y: 362, 'class': 'sub' }, cur === 0 ? (over > 0 ? 'eskilarini siqib chiqaradi, ORA-04031 xavfi' : 'har biri bir marta ishlatiladi') : 'xotira deyarli band emas');
+      var hard = cur === 0 ? N : 1, soft = N - hard, tms = hard * 2 + soft * 0.05;
+      box(svg, 880, 30, 340, 80, 'Qattiq parse: ' + fmt(hard), cur === 0 ? 'har chaqiruvda' : 'faqat birinchi chaqiruvda', hard > 1000 ? 'bad' : 'on');
+      box(svg, 880, 130, 340, 80, 'Yumshoq parse: ' + fmt(soft), 'tayyor kursor topildi', 'on');
+      box(svg, 880, 230, 340, 80, 'Parse vaqti: ~' + (tms >= 1000 ? fmt(tms / 1000) + ' s' : fmt(tms) + ' ms'), 'qattiq ~2 ms, yumshoq ~0,05 ms deb', tms > 10000 ? 'bad' : (tms > 1000 ? 'live' : 'on'));
+      S(svg, 'text', { x: 880, y: 340, 'class': 'sub' }, 'Raqamlar taxminiy: tartibni ko\'rsatadi.');
+      S(svg, 'text', { x: 880, y: 362, 'class': 'sub' }, 'Qattiq parse latch va mutex ham oladi:');
+      S(svg, 'text', { x: 880, y: 382, 'class': 'sub' }, 'ko\'p sessiyada bir-birini kutadi.');
+      var txt;
+      if (cur === 0) txt = `${fmt(N)} ta chaqiruv, ${fmt(N)} ta har xil matn: hammasi qattiq parse. Parse ning o'zi taxminan ${tms >= 1000 ? fmt(tms / 1000) + ' sekund' : fmt(tms) + ' millisekund'} CPU, ustiga shared pool latch va mutex uchun kutish. Har kursor bir marta ishlatiladi va boshqalarni keshdan siqib chiqaradi: foydali paketlar va so'rovlar ham qayta parse qilina boshlaydi. Ustiga SQL injection teshigi.`;
+      else if (cur === 1) txt = `Bitta matn: birinchi chaqiruvda qattiq parse, qolgan ${fmt(N - 1)} tasi yumshoq yoki, statement ochiq saqlansa, umuman parse siz. Shared pool da bitta kursor. Qiymat SQL kodidan ajralgan: injection imkonsiz. Kamchilik: bind peeking, notekis ma'lumotda reja hamma qiymatga mos kelmasligi mumkin.`;
+      else txt = `Oracle o'zi literallarni :"SYS_B_0" kabi tizim bind'lariga almashtiradi: kursorlar bo'lishiladi, kodni o'zgartirmasdan. Lekin hamma literal almashtiriladi, ataylab yozilganlari ham (holat = 'XATO' uchun alohida reja kerak bo'lgan joyda), almashtirishning o'zi ham CPU, va injection muammosi qoladi. Vaqtinchalik dori, haqiqiy yechim ilovada bind.`;
+      say.textContent = txt; say.className = 'say' + (cur === 0 && N > 100 ? ' bad' : '');
+    }
+    $('bindN').addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-bn]'), function (b) { b.addEventListener('click', function () { $('bindN').value = b.getAttribute('data-bn'); draw(); }); });
+    draw();
+  })();
+
+  // ---------- PGA ----------
+  (function () {
+    var svg = $('pga'), say = $('pgaSay'), WA = 50;
+    function draw() {
+      var v = parseFloat($('pgaV').value); if (isNaN(v) || v < 1) v = 1; if (v > 100000) v = 100000;
+      svg.textContent = ''; marker(svg, 'gmk');
+      var mode = v <= WA ? 0 : (v <= 2500 ? 1 : 2);
+      var passes = mode === 0 ? 0 : (mode === 1 ? 1 : Math.ceil(Math.log(v / WA) / Math.log(WA)) + 1);
+      boxL(svg, 20, 40, 300, 130, 'Saralanadigan ma\'lumot', [fmt(v) + ' MB', 'ORDER BY, GROUP BY,', 'hash join, analitik funksiya'], 'on');
+      S(svg, 'path', { d: 'M320 105H398', 'class': 'arr', 'marker-end': 'url(#gmk)' });
+      group(svg, 400, 20, 400, 200, 'PGA: ish maydoni ~' + WA + ' MB');
+      var fill = Math.min(1, v / WA);
+      S(svg, 'rect', { x: 420, y: 60, width: 360, height: 60, rx: 4, 'class': 'box freed' });
+      S(svg, 'rect', { x: 420, y: 60, width: Math.max(4, 360 * fill), height: 60, rx: 4, 'class': 'box ' + (mode ? 'live' : 'on') });
+      S(svg, 'text', { x: 420, y: 150, 'class': 'sub' }, mode === 0 ? 'hammasi xotiraga sig\'di' : 'sig\'madi: bo\'laklab saralanadi');
+      S(svg, 'text', { x: 420, y: 172, 'class': 'sub' }, mode === 0 ? 'diskka hech narsa yozilmaydi' : 'har bo\'lak TEMP ga yoziladi, keyin birlashtiriladi');
+      S(svg, 'path', { d: 'M800 105H878', 'class': mode ? 'arr' : 'arr dash', 'marker-end': 'url(#gmk)' });
+      boxL(svg, 880, 40, 340, 130, 'TEMP tablespace (disk)', [mode === 0 ? 'ishlatilmadi' : 'yozildi: ~' + fmt(v) + ' MB', mode === 0 ? '' : 'o\'qish-yozish o\'tishlari: ' + passes, mode === 2 ? 'juda ko\'p disk ishi' : ''], mode === 2 ? 'bad' : (mode ? 'live' : 'freed'));
+      var names = ['Optimal', 'One-pass', 'Multi-pass'];
+      box(svg, 20, 240, 1200, 64, 'Rejim: ' + names[mode], mode === 0 ? 'eng tez: faqat xotira' : (mode === 1 ? 'bir marta diskka yozib, bir marta o\'qish: qabul qilinadigan' : 'bir necha marta diskka: sekin, sozlash yoki so\'rovni o\'zgartirish kerak'), mode === 2 ? 'bad' : (mode ? 'live' : 'on'));
+      say.textContent = mode === 0 ? `${fmt(v)} MB ish maydoniga sig'di: saralash to'liq xotirada. OLTP so'rovlarining deyarli hammasi shunday bo'lishi kerak.` : mode === 1 ? `${fmt(v)} MB sig'madi. Oracle ma'lumotni ish maydoni hajmidagi bo'laklarga bo'lib saralaydi, har birini TEMP ga yozadi, keyin bir o'tishda birlashtiradi. Disk ishi bor, lekin bir marta. Katta hisobot va kun yopish so'rovlari uchun odatiy holat.` : `${fmt(v)} MB: bo'laklar shunchalik ko'pki, ularni bir o'tishda birlashtirib bo'lmaydi, oraliq natijalar qayta-qayta TEMP ga yoziladi. Yechimlar: so'rovni o'zgartirish (keraksiz ustunlar va qatorlarni oldinroq kesish, saralashni yo'qotadigan indeks), PGA_AGGREGATE_TARGET ni oshirish, parallel bajarish. TEMP tugasa ORA-01652.`;
+      say.className = 'say' + (mode === 2 ? ' bad' : '');
+    }
+    $('pgaV').addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-pv]'), function (b) { b.addEventListener('click', function () { $('pgaV').value = b.getAttribute('data-pv'); draw(); }); });
+    draw();
+  })();
+
+  window.evoStepper('evoIn', [
+    { name: `Oracle 2–6: SGA va redo`, years: `1979–1988`, art: `<rect x="16" y="26" width="88" height="22" class="acc"/><rect x="16" y="56" width="88" height="22"/>`,
+      how: `Birinchi tijoriy SQL bazasi. Oracle 5 (1985) mijoz-server, Oracle 6 (1988) qator darajasidagi qulf, undo bilan bir vaqtda o'qish (consistent read), redo bilan tiklanish, PL/SQL ning birinchi versiyasi. SGA, buffer cache, DBWR va LGWR shu davrda shakllandi.`,
+      better: `Ko'p foydalanuvchi bir vaqtda, o'quvchilar yozuvchilarni kutmaydi, elektr o'chishidan keyin tiklanish.`,
+      pain: `Har sessiya har SQL ni o'zi parse qiladi: bir xil so'rov ming marta, ming marta optimizatsiya.`,
+      ex: `Write-ahead logging tamoyili o'shandan beri o'zgarmagan.` },
+    { name: `Oracle 7: shared pool`, years: `1992`, art: `<circle cx="60" cy="50" r="26" class="acc"/><path d="M34 50h52M60 24v52"/>`,
+      how: `Shared SQL area va shared pool: tayyor kursorlar hamma sessiyalar uchun umumiy. Saqlanadigan protsedura, paket va triggerlar ham shu yerda. Cost-based optimizer (CBO) paydo bo'ldi.`,
+      better: `Bir xil so'rov bir marta parse qilinadi; bind o'zgaruvchilar ma'no kasb etdi.`,
+      pain: `Literal bilan yozilgan ilovalar shared pool ni to'ldirib, latch uchun navbat tug'diradi.`,
+      ex: `«Use bind variables» Oracle maslahatlarining birinchi qatoriga chiqdi.` },
+    { name: `8i–9i: kursor bo'lishish va avtomatik PGA`, years: `1999–2001`, art: `<rect x="20" y="30" width="34" height="40" class="acc"/><rect x="66" y="30" width="34" height="40"/>`,
+      how: `8.1.6: CURSOR_SHARING = FORCE. 9i: bind peeking, PGA_AGGREGATE_TARGET (sort va hash xotirasi avtomatik), dinamik SGA (o'lchamni qayta ishga tushirmasdan o'zgartirish), V$SQL_PLAN.`,
+      better: `Literal ilovalarga vaqtinchalik yechim; PGA ni har sessiyaga qo'lda sozlash kerak emas.`,
+      pain: `Bind peeking notekis ma'lumotda «ertalab tez, kechqurun sekin» so'rovlar beradi.`,
+      ex: `SORT_AREA_SIZE ni qo'lda sozlash davri tugadi.` },
+    { name: `10g–11g: avtomatik boshqaruv va diagnostika`, years: `2003–2007`, art: `<path d="M20 70L45 40L70 55L100 25" class="acc"/>`,
+      how: `10g: SGA_TARGET (ASMM), AWR, ASH, ADDM, MMON, mutex'lar. 11g: MEMORY_TARGET (SGA va PGA birga), adaptive cursor sharing, result cache, SQL plan management (baseline).`,
+      better: `Xotirani bitta parametr bilan boshqarish; sekinlikni AWR hisobotida ko'rish; bind peeking muammosi yumshadi.`,
+      pain: `Konsolidatsiya: bitta serverda o'nlab baza, har birida o'z SGA va jarayonlari.`,
+      ex: `AWR hisoboti DBA va dasturchining umumiy tiliga aylandi.` },
+    { name: `12c–23ai: multitenant va chegaralar`, years: `2013–2024`, art: `<rect x="16" y="24" width="88" height="56"/><rect x="26" y="34" width="30" height="36" class="acc"/><rect x="64" y="34" width="30" height="36" class="acc"/>`,
+      how: `12c: multitenant (CDB va PDB), PGA_AGGREGATE_LIMIT, In-Memory column store (12.1.0.2), LREG jarayoni. 19c: uzoq qo'llab-quvvatlanadigan versiya, avtomatik indekslash (Exadata). 21c dan faqat multitenant. 23ai: vektor qidiruv, SQL domenlari.`,
+      better: `Ko'p bazani bitta instance da; bitta sessiya butun server xotirasini yeya olmaydi.`,
+      pain: `Ko'p bank tizimlari hali 12c yoki 19c da, va eski literal kod hamon bor.`,
+      ex: `Bankda odatda 19c va Data Guard bilan zaxira.` }
+  ]);
+})();
+</script>
+</body>
+</html>
