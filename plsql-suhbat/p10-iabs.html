@@ -1,0 +1,465 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P10. iABS yadro tizimi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P10. iABS: bank yadro tizimi tuzilishi, hisoblar, provodkalar, operatsion kun</h1>
+<p class="lead">Savol: bank yadro tizimi ichkaridan qanday tuzilgan? Kassada qabul qilingan to'lov, karta tranzaksiyasi yoki kredit foizi qanday qilib bitta buxgalteriya yozuviga aylanadi, qoldiq qayerda turadi, va bank kuni qanday ochilib yopiladi? Va bularning hammasi P1–P9 dagi mavzularga qanday bog'lanadi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Yadro bank tizimi</strong> (core banking system, ABS: avtomatlashtirilgan bank tizimi) bankning asosiy buxgalteriyasi va mahsulotlari yuradigan tizim: mijozlar, hisoblar, provodkalar, kreditlar, omonatlar, kartalar, kassa, valyuta, to'lovlar. <strong>iABS</strong> O'zbekiston banklarida keng tarqalgan shunday tizimlardan biri: Oracle bazasi va veb-ilova, biznes mantiqning asosiy qismi PL/SQL paketlarida.</p>
+    <p>O'xshatish: katta shaharning markaziy bozori. Har rasta (modul: kredit, karta, omonat) o'z mahsulotini sotadi, lekin pul hammasi bitta markaziy kassadan (provodka dvigateli) o'tadi va bitta daftarga (buxgalteriya) yoziladi. Bozor har ertalab ochiladi va kechqurun yopiladi (operatsion kun), yopilishda kassa sanaladi va kunlik hisobot tuziladi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Har kungi ish:</strong> operatorlar ekranlari, kassalar, filiallar; mobil ilova va internet-bank orqasidagi to'lovlar.</li>
+      <li><strong>Integratsiya:</strong> karta protsessing markazlari, Markaziy bank to'lov tizimi, soliq va boshqa davlat tizimlari, RegTech hisobotlari, antifrod.</li>
+      <li><strong>Hisobotlar:</strong> balans, aylanma qaydnomalar, Markaziy bankka majburiy hisobotlar.</li>
+      <li><strong>Suhbatda:</strong> «yadro tizimida nima qilgansiz», «provodka qanday yuradi», «kun yopishda nima bo'ladi»: bank PL/SQL vakansiyasida sizning eng kuchli kozirlaringiz.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>tizim qavatlarini va «qalin baza» g'oyasini nega shunday ekani bilan tushuntirish;</li>
+      <li>hisob, hisob raqami tuzilishi, joriy qoldiq va kunlik qoldiq tarixi;</li>
+      <li>provodkaning moduldan buxgalteriyagacha yo'lini qadam-baqadam aytish;</li>
+      <li>har modulning umumiy skeleti: lug'at, shartnoma, hisoblar, parametrlar, tarix, provodkalar;</li>
+      <li>operatsion kun va kun yopish; har qismni P1–P9 mavzulariga bog'lash.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, hammasi yadro bank tizimida ishlatiladi"></svg></div>
+  <figcaption>Bu dars hamma qavatni birlashtiradi: yadro bank tizimi P1–P9 dagi har bir mavzuning amaldagi ko'rinishi.</figcaption>
+</figure>
+<p class="note">Bu dars loyihadagi o'qish materiallari asosida umumiy arxitektura darajasida yozilgan. Aniq jadval, paket va sozlama nomlari ataylab berilmagan: ular o'rniga vazifasi bo'yicha nom ishlatilgan («joriy kun provodkalari jadvali», «provodka paketi»). Suhbatda o'zingiz ishlagan aniq obyektlar haqida gapira olasiz.</p>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Qavatlar: brauzer, ilova serveri, API paketlari, servis va kernel paketlari, jadvallar, yadro paketlari</li>
+      <li>«Qalin baza»: nega biznes mantiq PL/SQL da</li>
+      <li>Hisoblar: balans hisobi, 20 xonali raqam, aktiv va passiv, qoldiq va aylanmalar</li>
+      <li>Provodka: hujjat va ikki tomonlama yozuv, holatlar mashinasi, shablon va hisob turi</li>
+      <li>Mahsulot, bitim, operatsiya qatlami</li>
+      <li>Modul skeleti va modullar: kredit, depozit, karta, aholi omonatlari, kartoteka, valyuta, o'tkazmalar, internet-bank</li>
+      <li>Operatsion kun va kun yopish; filial bo'yicha partitsiya; foreign key va API</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Aniq jadval va paket nomlari, sozlamalar, bank ichki ma'lumotlari</li>
+      <li>Buxgalteriya standartlari batafsil (balans hisoblari rejasi ro'yxati)</li>
+      <li>Java ilova qavati batafsil: P11-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Nega bank uchun alohida «yadro» kerak</h3>
+<p>Bank har kuni yuz minglab operatsiya bajaradi, va har biri buxgalteriya qoidasiga bo'ysunadi: har pul harakati kamida bitta debet va bitta kredit yozuvi, debet yig'indisi kredit yig'indisiga teng, har yozuv Markaziy bank tasdiqlagan balans hisoblari rejasidagi hisobga tushadi. Mahsulotlar esa har xil: kredit grafigi, omonat foizi, karta tranzaksiyasi, valyuta konvertatsiyasi. Agar har mahsulot o'z buxgalteriyasini o'zi yuritsa:</p>
+<ul>
+  <li>bitta mijozning bitta hisobi bo'yicha qoldiq har tizimda har xil chiqadi;</li>
+  <li>kun oxirida balansni yig'ish uchun o'nlab tizimdan ma'lumot qo'lda birlashtiriladi;</li>
+  <li>bitta tizim yiqilib, ikkinchisi ishlab qolsa, pul «yo'lda» qoladi: bir joyda yechilgan, boshqa joyda yozilmagan.</li>
+</ul>
+<p>O'zbekiston banklarida tarixan ham shunday bo'lgan: 1990-yillarda har filialda o'z lokal dasturi va bazasi, kun oxirida filial bosh bankka fayl yuborardi, bosh bank esa ularni yig'ardi. Yechim: <strong>markazlashgan yadro</strong>: bitta baza, bitta buxgalteriya dvigateli, har modul unga yozadi, va hamma narsa bitta tranzaksiyada. Keyingi bosqichlarda bu yadro atrofida veb-interfeys, online kanallar (mobil, internet-bank), protsessing va davlat tizimlari bilan integratsiyalar paydo bo'ldi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Qavatlar, hisoblar, provodkalar</h3>
+
+<p class="beat">Qavatlar va «qalin baza»</p>
+<p>So'rov yo'li: brauzer ilova serveriga (veb-ilova, JSP sahifalar) boradi. Ilova qavatida biznes mantiq deyarli yo'q: u parametrlarni yig'ib, bazadagi <strong>API paketini</strong> chaqiradi (ko'pincha natija JSON ko'rinishida qaytadi). API paketi ekran uchun kirish nuqtasi: parametrlarni tekshiradi va ishni modulning <strong>servis va kernel paketlariga</strong> beradi. Ular jadvallarga yozadi va pul harakati kerak bo'lsa <strong>yadro paketlarini</strong> chaqiradi: provodka dvigateli, mahsulot va bitim qatlami, umumiy sozlamalar (joriy filial, operatsion kun). Ro'yxat ekranlari esa ko'pincha view lardan umumiy grid orqali chiziladi.</p>
+<p>Nega mantiq bazada? Uchta sabab, va ularning hammasi oldingi darslardan:</p>
+<ul>
+  <li><strong>Bitta tranzaksiya</strong> (P8): modul jadvali, provodka va qoldiq bitta COMMIT da yoziladi. Ilova serveri va baza orasida bo'lingan mantiqda bu qiyinroq.</li>
+  <li><strong>Bir xil mantiq hamma kanalda</strong>: ekran, mobil ilova shlyuzi, tungi job, fayl yuklash: hammasi bitta paket protsedurasini chaqiradi. Qoida bir joyda o'zgaradi.</li>
+  <li><strong>Ma'lumotga yaqinlik</strong> (P5, P6): million hisob bo'yicha foiz hisoblash ma'lumotni tarmoq orqali tashimasdan, bazaning ichida, BULK va SQL bilan.</li>
+</ul>
+<p>Narxi ham bor: PL/SQL kodi juda ko'p (minglab paket), paket holati va qayta kompilyatsiya muammolari (P4, ORA-04068), versiyalash va test qilish qiyinroq (P11), va ilova serverini gorizontal kengaytirish bazani yengillashtirmaydi. Pastdagi chizmada so'rov qaysi kanal orqali kelsa ham bir xil qavatlarga tushishini ko'ring:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="lay" style="width:1240px;height:520px" viewBox="0 0 1240 520" role="img" aria-label="Yadro bank tizimi qavatlari: kanallar, ilova serveri, API paketlari, modul paketlari, yadro paketlari, jadvallar, tashqi tizimlar"></svg></div>
+  <figcaption>Chapda kirish kanallari, o'rtada Oracle ichidagi qavatlar, o'ngda tashqi tizimlar. Kanalni tanlang: uning yo'li ajratiladi.</figcaption>
+  <div class="evo-tabs" id="layT" style="margin-top:0.9rem"></div>
+  <p class="say" id="laySay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Hisoblar va qoldiqlar</p>
+<p>Markaziy obyekt: <strong>hisob</strong>. Hisob raqami 20 xonali va ma'noli. O'zbekistonda odatiy tuzilish:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">20208  000  5  12345678  001
+│      │    │  │         └─ tartib raqami (bir mijozning bir xil turdagi bir nechta hisobi)
+│      │    │  └─────────── mijozning noyob kodi
+│      │    └────────────── nazorat raqami (kalit): raqam to'g'ri kiritilganini tekshirish
+│      └─────────────────── valyuta kodi (000 so'm, 840 AQSh dollari, 978 yevro)
+└────────────────────────── balans hisobi (balans hisoblari rejasidagi 5 xonali kod)</pre>
+<p>Balans hisobi hisobning buxgalteriyadagi o'rnini belgilaydi: masalan 20208 jismoniy shaxslarning talab qilib olinguncha depozitlari, 12xxx kreditlar, 5xxxx xarajatlar. Hisob <strong>aktiv</strong> (bankka qarzdorlik: kreditlar, kassa) yoki <strong>passiv</strong> (bankning majburiyati: mijoz depozitlari) bo'ladi, va bu debet yoki kredit qoldiqni ko'paytirishini belgilaydi. Bundan tashqari <strong>balansdan tashqari</strong> hisoblar: garovlar, kartotekadagi to'lanmagan hujjatlar kabi hisobga olinadigan, lekin balansga kirmaydigan narsalar.</p>
+<p>Hisoblar jadvalida hisobning <strong>joriy holati</strong>: kun boshidagi qoldiq, hozirgi qoldiq, so'mdagi ekvivalentlar, kunlik va yillik debet va kredit aylanmalar, holat (ochiq, yopiq, bloklangan), egasi, filiali, valyutasi, mahsuloti. Alohida <strong>kunlik qoldiqlar</strong> jadvalida har hisob va har kun uchun: kirish qoldig'i, debet aylanma, kredit aylanma, chiqish qoldig'i. Birinchisi «hozir», ikkinchisi «istalgan kun bo'yicha» savoliga javob beradi. Bu P9 dagi ongli denormallashtirish: qoldiqlar provodkalardan hisoblanadi, lekin tezlik uchun alohida saqlanadi va har provodka bilan birga yangilanadi. Katta jadvallar filial bo'yicha (list) yoki sana bo'yicha (range) partitsiyalangan (P9).</p>
+
+<p class="beat">Provodka: moduldan buxgalteriyagacha</p>
+<p>Hamma modul oxir-oqibat bitta joyga yozadi: umumiy provodka jadvallariga. Ular ikki qavatli:</p>
+<ul>
+  <li><strong>Hujjat</strong> (joriy kun provodkalari jadvali): bitta qator bitta to'lov hujjati. Ikki tomon: <strong>mijoz tomoni</strong> (to'lovchi yoki hisob egasi: bank kodi, hisob, INN, nomi) va <strong>korrespondent tomoni</strong> (oluvchi). Summa va so'm ekvivalenti, valyuta, hujjat turi, provodka turi, to'lov maqsadi, holat va oxirgi amal, qaysi modul va qaysi xodim yaratgani, bog'langan hujjatlar.</li>
+  <li><strong>Ikki tomonlama yozuvlar</strong>: har hujjat uchun ikki qator: debet hisobga va kredit hisobga, har birida summa va yozuvdan keyingi qoldiq, va qaysi mahsulot, bitim va operatsiyaga tegishliligi.</li>
+</ul>
+<p>Kun yopilganda joriy kun jadvallari tarix jadvallariga ko'chadi (sana bo'yicha partitsiyalangan). Shuning uchun joriy jadval kichik va tez, tarix katta bo'lsa ham kun bo'yicha qidiruv pruning bilan tez (P9).</p>
+<p>Provodkani <strong>provodka paketi</strong> (dvigatel) yaratadi va bajaradi: yaratish, tekshirish (hisoblar mavjud va ochiqmi, mijoz va korrespondent hisoblari mosmi, qoldiq yetadimi, kun ochiqmi), bajarish va <strong>holatlar mashinasi</strong>: hujjat amal (action) orqali bir holatdan boshqasiga o'tadi, va qaysi holatda qaysi qoldiq o'zgarishi shu yerda aniqlanadi. Modullar uni odatda to'g'ridan-to'g'ri emas, o'zining «hujjat yaratish» qatlami orqali chaqiradi. Qadamlarni bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="post" style="width:1240px;height:470px" viewBox="0 0 1240 470" role="img" aria-label="Kredit foizi hisoblanishidan buxgalteriya provodkasi va qoldiqqacha bo'lgan yo'l, kun yopishda tarixga ko'chish"></svg></div>
+  <figcaption>Misol: kredit bo'yicha kunlik foiz hisoblanishi. Yuqorida modul qismi, o'rtada yadro, pastda buxgalteriya jadvallari. Har qadamda qaysi darsdagi mavzu ishlayotgani o'ngda.</figcaption>
+  <div class="evo-tabs" id="postT" style="margin-top:0.9rem"></div>
+  <p class="say" id="postSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Shablon va hisob turi: bitta qoida minglab shartnomaga</p>
+<p>Modul provodkalarida ko'pincha aniq hisob raqami emas, <strong>hisob turi</strong> saqlanadi: «shartnomaning asosiy qarz hisobi», «foiz daromadi hisobi». Aniq hisob shartnomaning hisoblar jadvalidan olinadi. Provodka shabloni esa «qaysi operatsiyada qaysi turdagi hisobdan qaysi turdagi hisobga» degan qoida. Natijada bitta shablon minglab shartnomaga ishlaydi, va yangi mahsulot ko'pincha kod yozmasdan, lug'at va shablonlarni sozlash bilan qo'shiladi. Aholi omonatlari kabi modullarda bu yanada chuqur: har omonat turi va operatsiya uchun qaysi balans hisoblari, summani hisoblash metodi va tekshiruvlar ketma-ketligi sozlama jadvalida.</p>
+
+<p class="beat">Mahsulot, bitim, operatsiya</p>
+<p>Yangiroq arxitektura qatlami har modul obyektini umumiy ko'rinishda ro'yxatga oladi: <strong>mahsulot</strong> (masalan «iste'mol krediti 24 oy») → <strong>bitim</strong> (bitta aniq kredit yoki karta shartnomasi) → <strong>operatsiya</strong> (masalan shu kunning foiz hisoblanishi) → hujjat → provodka. Ikki tomonlama yozuvlarda bitim, operatsiya va mahsulot identifikatorlari bor. Foydasi: istalgan provodkadan «bu qaysi mahsulot, qaysi shartnoma, qaysi operatsiya» savoliga modul jadvallariga kirmasdan javob olish. Bu RegTech kabi umumiy hisobotlar uchun juda muhim. Har modulda bu qatlamga adapter bor, va ularning funksiyalari bir xil: bitim yaratish, operatsiya yaratish va yopish, hujjat yaratish.</p>
+
+<p class="beat">Har modulning umumiy skeleti</p>
+<p>Minglab jadvalga qaramay, deyarli har modul bir xil andozada qurilgan. Bittasini tushunsangiz, qolganlari shu skeletning varianti bo'lib ko'rinadi. Modulni tanlang:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="skel" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Modul skeleti: lug'atlar, asosiy obyekt, hisoblar, parametrlar, tarix, modul provodkalari va yadro; turli modullarda"></svg></div>
+  <figcaption>Chapda lug'atlar, markazda asosiy obyekt (shartnoma), uning atrofida hisoblar, parametrlar, tarix va modul provodkalari, o'ngda yadro. Har modul uchun bloklar mazmuni o'zgaradi, tuzilish o'zgarmaydi.</figcaption>
+  <div class="evo-tabs" id="skelT" style="margin-top:0.9rem"></div>
+  <p class="say" id="skelSay" aria-live="polite"></p>
+</figure>
+<p>Deyarli har jadvalda uchraydigan ustunlar: filial (bank kodi, partitsiya kaliti ko'pincha shu), bank xizmatlari markazi va operatsion nuqta, operatsion kun, holat, kim va qachon o'zgartirgan, qaysi modul, provodkaga havola, mijoz identifikatori. Modullar bir-biriga asosan <strong>mantiqiy ustunlar</strong> orqali bog'lanadi (mijoz, hisob, provodka, kredit, bitim identifikatorlari), bazadagi foreign key lar esa jadvallar soniga nisbatan kam. Sababi: katta partitsiyalangan jadvallarda FK tekshiruvining narxi va modullarning turli vaqtda, turli jamoalar tomonidan qo'shilgani; butunlikni API paketlari tekshiradi (P9 dagi ikki tomonlama savol).</p>
+
+<p class="beat">Operatsion kun</p>
+<p>Bankda kalendar sana va <strong>operatsion kun</strong> alohida. Operatsion kun ochiq bo'lganda hujjatlar shu kunga yoziladi; deyarli har modul jadvalida operatsion kun ustuni bor. Kun yopish bir necha bosqichli jarayon, odatda filiallar bo'yicha:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="day" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Operatsion kun: ochish, kunduzgi ish, kun yopish bosqichlari va keyingi kun"></svg></div>
+  <figcaption>Operatsion kunning hayoti chapdan o'ngga. Bosqichni tanlang: nima bo'ladi va qaysi Oracle mavzulari ishlaydi.</figcaption>
+  <div class="evo-tabs" id="dayT" style="margin-top:0.9rem"></div>
+  <p class="say" id="daySay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Modullar xaritasi qisqacha</p>
+<ul>
+  <li><strong>Kredit</strong>: kredit kartochkasi (shartnoma), hisoblar (hisob turlari bilan), asosiy qarz va foiz grafiklari, stavkalar, modul provodkalari. Muammoli kreditlar uchun alohida modullar: yurist ishi, undirilgan garov mulki, baholash, auksion.</li>
+  <li><strong>Depozit</strong> (yuridik shaxslar): hisob maketlari (qaysi turdagi shartnomaga qaysi hisoblar), shartnoma shablonlari, ariza va tasdiqlash darajalari, shartnoma, stavkalar, avtomatik amallar rejimi, prognoz grafigi. Depozit kredit garovi bo'lishi mumkin.</li>
+  <li><strong>Aholi omonatlari</strong>: ommaviy chakana mahsulot, kassa operatsiyalari ko'p; provodka qoidalari sozlama jadvalida.</li>
+  <li><strong>Kartalar</strong>: har tashqi protsessing markazi uchun alohida modul, lekin bir xil tuzilish: mijoz → shartnoma (bosh va qo'shimcha) → karta va karta egasi → hisoblar (bankdagi hisob va protsessingdagi hisob juftligi) → tranzaksiyalar → modul provodkalari → yadro. Teskari yo'nalish: qoldiq o'zgarishi reestri (masalan ish haqi) protsessingga fayl yoki online orqali.</li>
+  <li><strong>Kartoteka</strong>: pul yetmagan yoki tasdiq kutayotgan hujjatlar navbati, balansdan tashqari hisobda; hisobga pul tushganda avtoto'lov jobi ularni navbat bo'yicha to'laydi (P8 dagi navbat va qulf masalasi).</li>
+  <li><strong>Valyuta</strong>: konversiya orderlari; bitta konversiya bir nechta provodka (so'm yechish, valyuta berish, komissiya): avval reja sifatida, tasdiqlangach haqiqiy provodka.</li>
+  <li><strong>Pul o'tkazmalari</strong> (xalqaro o'tkazma tizimlari): har tizim uchun alohida integratsiya, lekin bitta bitimlar jadvali va bir xil ketma-ketlik: yaratish, tasdiqlash, bekor qilish.</li>
+  <li><strong>Korporativ internet-bank</strong>: mijoz kiritgan to'lov o'z holatlar mashinasidan o'tadi (kiritildi, imzolar, bankka yuborildi), keyin yadroda provodka yaratiladi.</li>
+</ul>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Bank tizimlari qanday rivojlangan</h3>
+<div class="bench" id="evoAbs"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>ABS, core banking</dt><dd>Avtomatlashtirilgan bank tizimi: bankning asosiy buxgalteriyasi va mahsulotlari.</dd>
+  <dt>Balans hisobi, balans hisoblari rejasi</dt><dd>5 xonali buxgalteriya kodi; Markaziy bank tasdiqlagan kodlar ro'yxati.</dd>
+  <dt>Hisob raqami (20 xona)</dt><dd>Balans hisobi, valyuta, nazorat raqami, mijoz kodi, tartib raqami.</dd>
+  <dt>Aktiv, passiv, balansdan tashqari hisob</dt><dd>Bankka qarzdorlik; bankning majburiyati; balansga kirmaydigan hisobga olish.</dd>
+  <dt>Provodka, debet, kredit</dt><dd>Buxgalteriya yozuvi; hisobning chap va o'ng tomoni, har provodka ikkalasini teng o'zgartiradi.</dd>
+  <dt>Mijoz tomoni va korrespondent tomoni</dt><dd>Hujjatda to'lovchi yoki hisob egasi va qarshi tomon.</dd>
+  <dt>Aylanma, kirish va chiqish qoldig'i</dt><dd>Kun yoki davr bo'yicha debet va kredit yig'indilari; kun boshi va oxiri qoldig'i.</dd>
+  <dt>Operatsion kun, kun yopish</dt><dd>Bank ish kuni (kalendar sanadan alohida); kunni yakunlash jarayoni.</dd>
+  <dt>Provodka shabloni, hisob turi</dt><dd>Operatsiya uchun qaysi turdagi hisoblardan qaysiga yozish qoidasi; shartnomadagi hisobning roli.</dd>
+  <dt>Hisob maketi</dt><dd>Shartnoma turiga qarab qaysi hisoblar ochilishini belgilovchi sozlama.</dd>
+  <dt>Mahsulot, bitim, operatsiya</dt><dd>Mahsulot turi; aniq shartnoma; shartnoma bo'yicha bitta amal (foiz hisoblash, to'lov).</dd>
+  <dt>Holatlar mashinasi</dt><dd>Hujjat yoki shartnoma holatlari va ularni o'zgartiradigan amallar.</dd>
+  <dt>Storno</dt><dd>Xato provodkani o'chirish o'rniga teskari provodka bilan bekor qilish.</dd>
+  <dt>Kartoteka</dt><dd>Pul yetmagan yoki tasdiq kutayotgan to'lov hujjatlari navbati.</dd>
+  <dt>Reestr</dt><dd>Ko'p qatorli hujjatlar ro'yxati: ish haqi, kommunal to'lovlar.</dd>
+  <dt>Protsessing markazi, emissiya, ekvayring</dt><dd>Karta tranzaksiyalarini avtorizatsiya qiluvchi tizim; karta chiqarish; terminal tomoni.</dd>
+  <dt>Bank kodi (MFO), filial, BXM</dt><dd>Bank yoki filialning identifikatori; filial; bank xizmatlari markazi.</dd>
+  <dt>«Qalin baza» (thick database)</dt><dd>Biznes mantiq bazada, ilova faqat chaqiradi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: qoldiqni to'g'ridan-to'g'ri UPDATE qilish</b>
+  <p>«Tezroq bo'lsin» deb skriptda hisoblar jadvalidagi qoldiq to'g'irlandi. Provodka yo'q: kunlik qoldiq va provodkalar yig'indisi mos kelmaydi, kun yopishdagi solishtiruv to'xtaydi, auditda tushuntirib bo'lmaydigan farq.</p>
+  <p class="why">To'g'risi: har qanday pul harakati faqat provodka dvigateli orqali; xato bo'lsa storno yoki tuzatuvchi provodka (qo'lda kiritilgan va tuzatuvchi belgilari bilan).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: API ichida COMMIT</b>
+  <p>Yangi modul protsedurasi oxirida COMMIT qiladi. Uni boshqa modul o'z tranzaksiyasi ichida chaqirganda, chaqiruvchining yarim ishi ham saqlanib qoladi: masalan, kredit berildi, lekin hisobga o'tkazish xato berdi va qaytarilmadi.</p>
+  <p class="why">To'g'risi: ichki API lar COMMIT qilmaydi; tranzaksiya chegarasini eng tashqi chaqiruvchi (ekran, job, shlyuz) belgilaydi (P8).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: filialsiz so'rov katta jadvalda</b>
+  <p>Hisobot so'rovi provodkalar tarixidan mijoz bo'yicha qidiradi, lekin filial va sanani bermaydi. Jadval filial va sana bo'yicha partitsiyalangan: pruning yo'q, har partitsiya o'qiladi, so'rov daqiqalab ishlaydi va kunduzgi ishni sekinlashtiradi.</p>
+  <p class="why">To'g'risi: shartda partitsiya kalitlari (filial, operatsion kun oralig'i); rejada PARTITION ... SINGLE yoki ITERATOR ni tekshirish (P7, P9).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: kun yopilayotganda kiritish</b>
+  <p>Kun yopish boshlangan, lekin bitta kanal (masalan tashqi shlyuz) hujjat kiritishda davom etdi. Hujjat qaysi kunga tegishli ekani noaniq: qoldiqlar yopilgan kun bilan mos kelmaydi.</p>
+  <p class="why">To'g'risi: har kiritish nuqtasida «kun ochiqmi, kiritish mumkinmi» tekshiruvi (yadroda bunday funksiya bor), yopish bosqichlarida tegishli qulflar va navbat.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: provodkada aniq hisob raqamini qattiq yozish</b>
+  <p>Yangi operatsiya uchun kodda aniq tranzit hisob raqami yozildi. Boshqa filialda yoki boshqa bankda (tizim bir necha bankda ishlaydi) bu hisob yo'q yoki boshqa ma'noda.</p>
+  <p class="why">To'g'risi: hisob turi va maska yoki sozlama orqali, filial va bank bo'yicha aniqlash.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu bo'limda javoblarni «men» shaklida, o'z tajribangizdan gapirishga tayyorlang: suhbatdosh aniq misolni eshitmoqchi. Ichki nomlarni aytishdan oldin ular maxfiy emasligini o'ylab ko'ring.</p>
+<details><summary>Yadro bank tizimi qanday tuzilgan? Qisqacha tushuntiring.</summary>
+<p>Oracle bazasi va veb-ilova. Ilova qavati asosan ekranlar va kanallar: parametrlarni yig'ib, bazadagi API paketlarini chaqiradi. Biznes mantiq PL/SQL da: har modulning API, servis va kernel paketlari, va hamma modullar foydalanadigan yadro: provodka dvigateli, mahsulot va bitim qatlami, sozlamalar, mijozlar. Har modul bir xil skeletda: lug'atlar, asosiy obyekt (shartnoma), hisoblar, parametrlar (stavka, grafik), tarix va modul provodkalari. Pul harakati har doim yadrodagi provodka orqali: hujjat va ikki tomonlama yozuv, hisob qoldig'i bitta tranzaksiyada yangilanadi. Bank ishi operatsion kunlar bilan: kun ochiladi, kun yopilganda joriy ma'lumot tarixga o'tadi.</p></details>
+<details><summary>Nega biznes mantiq bazada? Bu to'g'ri yondashuvmi?</summary>
+<p>Bank uchun asosiy talab: pul harakati, modul jadvali va qoldiq bitta tranzaksiyada. Mantiq bazada bo'lsa bu tabiiy. Ikkinchidan, bitta protsedurani ekran, mobil shlyuz, job va fayl yuklash bir xil chaqiradi, qoida bir joyda. Uchinchidan, katta hajmli hisoblar (foiz, kun yopish) ma'lumotning yonida, tarmoqsiz. Kamchiliklari: PL/SQL kodi juda katta, paket bog'liqliklari va qayta kompilyatsiya (ORA-04068), versiyalash va avtomatik test qiyinroq, ilova serverini kengaytirish bazani yengillashtirmaydi. Shuning uchun yangi kanallar ko'pincha alohida servis sifatida quriladi, lekin pul harakati baribir yadro API si orqali.</p></details>
+<details><summary>To'lov kiritilgandan qoldiq o'zgarguncha nima bo'ladi?</summary>
+<p>Modul (masalan kassa yoki karta) o'z jadvaliga operatsiyani yozadi va modul provodkasini tayyorlaydi: shablon va hisob turlari bo'yicha aniq hisoblarni topadi. Keyin «hujjat yaratish» qatlami orqali provodka paketi chaqiriladi: hujjat yaratiladi (mijoz va korrespondent tomoni, summa, valyuta, hujjat turi), tekshiruvlar (hisoblar ochiqmi, qoldiq yetadimi, kun ochiqmi), holat mashinasi bo'yicha bajarish. Bajarishda ikki tomonlama yozuvlar (debet va kredit) yoziladi va hisoblar jadvalidagi qoldiq va aylanmalar yangilanadi. Modul jadvaliga provodka identifikatori yoziladi. Hammasi bitta tranzaksiyada, COMMIT ni tashqi chaqiruvchi qiladi.</p></details>
+<details><summary>Qoldiq qayerda saqlanadi va nega alohida?</summary>
+<p>Ikki joyda: hisoblar jadvalida joriy holat (kun boshi va hozirgi qoldiq, aylanmalar) va kunlik qoldiqlar jadvalida har kun bo'yicha tarix. Nazariy jihatdan qoldiq provodkalar yig'indisi, lekin har so'rovda yillik provodkalarni qo'shish mumkin emas, shuning uchun bu ongli denormallashtirish: qoldiq provodka bilan bitta tranzaksiyada, faqat provodka dvigateli orqali yangilanadi, va kun yopishda solishtiriladi. Katta jadvallar sana yoki filial bo'yicha partitsiyalangan.</p></details>
+<details><summary>Kun yopishda nima bo'ladi?</summary>
+<p>Avval yangi hujjat kiritish cheklanadi. Keyin kun yakuni jarayonlari: foiz hisoblash va to'lash, muddati kelgan to'lovlar, kartoteka avtoto'lovi, komissiyalar, rezervlar. Keyin tekshiruvlar va solishtiruv: debet va kredit teng, qoldiqlar provodkalarga mos. Keyin kunlik qoldiqlar yoziladi, joriy kun provodkalari tarix jadvallariga ko'chadi, operatsion kun holati yopiq bo'ladi va keyingi kun ochiladi. Odatda filiallar bo'yicha parallel. Oracle tomondan: BULK va bitta SQL bilan katta hajm (P5), partitsiyalar (P9), qulflar va navbatlar (P8), undo va uzoq so'rovlar (ORA-01555).</p></details>
+<details><summary>Yangi mahsulot (masalan yangi omonat turi) qanday qo'shiladi?</summary>
+<p>Ko'p hollarda kod yozmasdan: mahsulot va lug'atlarda yangi tur, hisob maketi (qaysi hisoblar ochiladi, qaysi balans hisoblarida), stavkalar, operatsiyalar sozlamasi va provodka shablonlari. Kod faqat yangi turdagi hisoblash yoki yangi integratsiya kerak bo'lganda o'zgaradi. Bu shablon va hisob turi g'oyasining foydasi: bitta qoida minglab shartnomaga ishlaydi.</p></details>
+<details><summary>Tizimda foreign key kam. Bu yaxshimi?</summary>
+<p>Ikki tomoni bor. Sababi tushunarli: eng katta jadvallar partitsiyalangan va juda qizg'in, FK har yozuvda tekshiruv va ota o'chirilganda bola tekshiruvini qo'shadi; modullar turli vaqtda qo'shilgan va mantiqiy ustunlar orqali bog'langan; butunlik API paketlarida tekshiriladi. Kamchiligi: API ni chetlab o'tgan skript yoki xato yetim qatorlar qoldirishi mumkin, optimizator ham FK dan foydalana olmaydi. Shuning uchun muntazam butunlik tekshiruvlari kerak, va yangi modul jadvallarida, ayniqsa modul ichida, FK qo'yish odatda to'g'ri.</p></details>
+<details><summary>Karta tranzaksiyasi buxgalteriyaga qanday tushadi?</summary>
+<p>Karta tranzaksiyasini protsessing markazi avtorizatsiya qiladi, bank emas. Tranzaksiyalar bankka fayl yoki online shlyuz orqali keladi va modulning tranzaksiyalar jadvaliga yoziladi: karta, summa, debet yoki kredit, MCC, terminal, protsessingdagi hisob. Protsessing hisobi bankdagi hisobga shartnoma hisoblari jadvali orqali moslanadi. Keyin tranzaksiyalar guruhlanib, modul provodkalari yasaladi va hujjat yaratish qatlami orqali yadroga tushadi. Teskari yo'nalishda bank hisobidagi harakat (ish haqi) qoldiq o'zgarishi reestri sifatida protsessingga yuboriladi va javob kutiladi. Karta raqami ekranlarda va loglarda maskalangan, bazada shifrlangan nusxa bilan.</p></details>
+<details><summary>Yadro tizimida sekin ishlaydigan so'rov yoki jarayonni qanday tahlil qilgansiz?</summary>
+<p>Bu yerda o'z misolingizni aytasiz. Tuzilma: qaysi ekran yoki job sekin edi va qanday bilindi; qanday o'lchadingiz (AWR yoki V$SQL dan SQL_ID, DISPLAY_CURSOR bilan haqiqiy reja, E-Rows va A-Rows); sabab (masalan partitsiya kaliti yo'q, sanaga TRUNC, satr ulangan dinamik SQL, qatorma-qator sikl); nima qildingiz (shartni o'zgartirish, indeks, BULK, bind); natija raqam bilan (40 daqiqadan 3 daqiqaga). Bitta yaxshi gapirilgan haqiqiy holat o'nta nazariy javobdan kuchli.</p></details>
+<details><summary>Yangi tashqi tizim bilan integratsiyani qanday loyihalaysiz?</summary>
+<p>Kirish nuqtasi: alohida API paketi (yoki servis) va o'z jadvallari: kelgan so'rovlar jurnali, holatlar, xatolar. Idempotentlik: tashqi so'rov identifikatoriga unique cheklov, qayta kelgan so'rov ikkinchi marta bajarilmaydi. Pul harakati faqat yadro provodkasi orqali, bitta tranzaksiyada. Tashqi tizim kutishi kerak bo'lgan qism (HTTP chaqiruv) tranzaksiya va qulflardan tashqarida, timeout bilan. Holatlar va qayta urinish jobi, solishtiruv (reconciliation) hisoboti. Loglarda shaxsiy va karta ma'lumotlari maskalangan.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>Doskaga chizing: kassada naqd pul bilan omonat hisobini to'ldirish. Qaysi modul, qaysi qavatlar, qaysi jadvallar (vazifasi bo'yicha), qaysi provodka (debet qaysi balans hisobi turi, kredit qaysi), qachon COMMIT.</li>
+  <li>Hisob raqami: <span class="num">20208 840 ? 00012345 001</span>. Har qismini ayting. Bu qanday hisob?</li>
+  <li>Kreditning kunlik foizini hisoblaydigan jobni yozish kerak: 300 ming faol kredit. Oracle tomondan qanday yozasiz (P5, P8, P9 ni qo'llang) va yadroga qanday bog'laysiz?</li>
+  <li>Auditor: «bu hisobning 15 sentyabrdagi qoldig'i va shu kundagi barcha harakatlarni ko'rsating, har harakat qaysi shartnoma va operatsiyadan». Qaysi jadvallardan (vazifasi bo'yicha) va qanday so'rov bilan?</li>
+  <li>Karta modulida «bankdagi holat» va «protsessingdagi holat» farq qilib qoldi. Bu qanday bo'lishi mumkin va qanday solishtiruv jarayonini taklif qilasiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Ikki tomonlama yozuv va balans tengligi</summary>
+<p>Har provodka bir hisobni debetlaydi va boshqasini kreditlaydi bir xil summaga (yoki valyuta konvertatsiyasida ekvivalentda). Shuning uchun istalgan davr uchun barcha debet aylanmalar yig'indisi barcha kredit aylanmalar yig'indisiga teng, va aktivlar passivlarga teng. Kun yopishdagi eng asosiy tekshiruv aynan shu: <span class="num">SUM(debet) = SUM(kredit)</span> filial va valyuta bo'yicha. Teng bo'lmasa, qayerdadir provodkasiz qoldiq o'zgarishi bor.</p></details>
+<details><summary>Ko'p tillilik, filiallar va bir necha bank</summary>
+<p>Bitta tizim bir nechta bankda o'rnatiladi, har bankda o'nlab filial. Shuning uchun deyarli hamma narsa bank va filial bo'yicha sozlanadi: hisob maskalari, tranzit hisoblar, ruxsatlar, operatsion kun. Matnlar va xabarlar ko'p tilli lug'atdan olinadi. Kod hech qachon aniq filial yoki bank kodini qattiq yozmasligi kerak.</p></details>
+<details><summary>Hujjat holatlari va imzolar</summary>
+<p>Hujjatlar holatlar mashinasi orqali yuradi: har amal «oldingi holat → keyingi holat», kerak bo'lsa elektron imzo bilan, va kim bajara olishini rol va marshrut belgilaydi. Internet-bankda: kiritildi → direktor imzosi → bosh hisobchi imzosi → bankka yuborildi → bankda provodka → bajarildi yoki rad etildi. Holatlar va amallar lug'at jadvallarida, shuning uchun yangi qadam (masalan antifrod tekshiruvi) kodni kam o'zgartirib qo'shiladi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Loyihadagi iABS o'qish materiallari (modullar arxitekturasi, buxgalteriya yadrosi, modul skeleti). O'zbekiston Respublikasi Markaziy bankining banklarda buxgalteriya hisobi va balans hisoblari rejasi to'g'risidagi me'yoriy hujjatlari. Oracle Database Development Guide: Using PL/SQL for application logic («SmartDB» yoki «thick database» yondashuvi).</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Yadro tizimi: veb-ilova va Oracle, mantiq PL/SQL da, chunki pul harakati, modul jadvali va qoldiq bitta tranzaksiyada. Hisob raqami 20 xonali va ma'noli. Hisoblarda joriy holat, alohida kunlik qoldiqlar: ongli denormallashtirish. Har pul harakati yadro provodkasi orqali: hujjat va ikki tomonlama yozuv, holat mashinasi, shablon va hisob turi. Mahsulot → bitim → operatsiya. Har modul bir xil skelet. Operatsion kun va kun yopish: joriydan tarixga, solishtiruv. P1–P9 ning hammasi shu tizimda ishlaydi.</p>
+  <p><strong>Keyingi dars.</strong> P11. Git, hujjatlashtirish va ilova bilan integratsiya: PL/SQL kodini versiyalash, migratsiya skriptlari, kod sharhi, Java tomondan JDBC, CallableStatement, ulanishlar puli, tranzaksiyalar va xatolar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p9-bazani-loyihalash.html">Oldingi: P9. Bazani loyihalash</a><span>Keyingi: P11. Git, hujjat, integratsiya (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekranlar, shlyuzlar: P11', ex: 'API paketini chaqiradi', link: 'parametrlar va natija' },
+    { title: 'PL/SQL', sub: 'API, servis, yadro paketlari: P3–P5', ex: 'provodka dvigateli', link: 'SQL ni chaqiradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'aylanma qaydnoma, hisobotlar', link: 'reja tanlanadi' },
+    { title: 'Optimizator va reja', sub: 'Statistika, reja, pruning: P6–P7', ex: 'filial va kun bo\'yicha pruning', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'provodka va qoldiq bitta COMMIT da', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'joriy va tarix jadvallari', link: '' }
+  ], [0, 1, 2, 3, 4, 5], 'Hammasi birga');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function boxL(svg, x, y, w, h, title, lines, cls) {
+    S(svg, 'rect', { x: x, y: y, width: w, height: h, rx: 5, 'class': 'box' + (cls ? ' ' + cls : '') });
+    S(svg, 'text', { x: x + 14, y: y + 26, 'class': 'ttl' }, title);
+    (lines || []).forEach(function (l, i) { S(svg, 'text', { x: x + 14, y: y + 46 + i * 18, 'class': 'sub' }, l); });
+  }
+
+  // ---------- Qavatlar ----------
+  (function () {
+    var svg = $('lay'), say = $('laySay'), cur = 0;
+    var B = {
+      ui: [20, 40, 230, 70, 'Operator ekrani', ['brauzer, filial xodimi']],
+      mob: [20, 130, 230, 70, 'Mobil va internet-bank', ['mijoz, online']],
+      job: [20, 220, 230, 70, 'Joblar', ['kun yopish, avtoto\'lov']],
+      fil: [20, 310, 230, 70, 'Fayl almashinuvi', ['protsessing, reestrlar']],
+      app: [290, 40, 220, 160, 'Ilova serveri', ['veb-ilova, JSP', 'sessiya, menyu, huquq', 'mantiq yo\'q:', 'faqat chaqiradi']],
+      gw: [290, 220, 220, 160, 'Shlyuz va servislar', ['online so\'rovlar,', 'integratsiya shinasi,', 'fayl yuklash']],
+      api: [580, 40, 300, 80, 'Modul API paketlari', ['ekran va kanal uchun kirish nuqtasi']],
+      srv: [580, 140, 300, 80, 'Servis va kernel paketlari', ['modul biznes mantiqi']],
+      tab: [580, 240, 300, 70, 'Modul jadvallari', ['shartnoma, hisoblar, grafik, tarix']],
+      core: [580, 330, 300, 90, 'Yadro paketlari', ['provodka dvigateli, mahsulot va', 'bitim, sozlamalar, mijozlar']],
+      buh: [580, 440, 300, 64, 'Buxgalteriya jadvallari', ['provodkalar, hisoblar, qoldiqlar']],
+      pc: [960, 40, 260, 80, 'Protsessing markazlari', ['kartalar, tranzaksiyalar']],
+      cb: [960, 140, 260, 80, 'Markaziy bank', ['to\'lov tizimi, hisobotlar']],
+      gov: [960, 240, 260, 80, 'Davlat va boshqa tizimlar', ['soliq, kredit byurosi, antifrod']],
+      rep: [960, 340, 260, 80, 'Hisobot va DWH', ['RegTech, tahlil']]
+    };
+    var V = [
+      { t: 'Operator ekrani', hl: ['ui', 'app', 'api', 'srv', 'tab', 'core', 'buh'], p: ['M250 75H288', 'M510 80H578', 'M730 120V138', 'M730 220V238', 'M730 310V328', 'M730 420V438'], s: `Operator kredit shartnomasini saqlaydi. Ekran parametrlarni yig'ib, modul API paketini chaqiradi (natija ko'pincha JSON). API tekshiradi va servis paketiga beradi, u modul jadvallariga yozadi va pul harakati kerak bo'lsa yadroning provodka dvigatelini chaqiradi. Hammasi bitta tranzaksiya, COMMIT ni eng tashqi qavat qiladi.` },
+      { t: 'Mobil ilova va internet-bank', hl: ['mob', 'gw', 'api', 'srv', 'tab', 'core', 'buh', 'gov'], p: ['M250 165H288', 'M510 260H545V80H578', 'M730 120V138', 'M730 220V238', 'M730 310V328', 'M730 420V438', 'M880 280H958'], s: `Mijoz mobil ilovada to'lov qiladi. So'rov shlyuz orqali keladi va xuddi shu API va yadroga tushadi: mantiq ekran bilan bir xil. Yo'lda tashqi tekshiruvlar bo'lishi mumkin (antifrod, limitlar). Tashqi HTTP chaqiruv tranzaksiya va qulflardan tashqarida, timeout bilan bo'lishi kerak.` },
+      { t: 'Tungi job', hl: ['job', 'srv', 'tab', 'core', 'buh'], p: ['M250 255H545V180H578', 'M730 220V238', 'M730 310V328', 'M730 420V438'], s: `Kun yopish yoki foiz hisoblash jobi to'g'ridan-to'g'ri servis paketlarini chaqiradi, ko'pincha filiallar bo'yicha parallel. Bu yerda P5 (BULK, bitta SQL, bo'laklar), P8 (qisqa tranzaksiyalar, qulf tartibi) va P9 (partitsiyalar) eng muhim.` },
+      { t: 'Protsessingdan fayl', hl: ['fil', 'gw', 'srv', 'tab', 'core', 'buh', 'pc'], p: ['M958 80H935V6H530V300H512', 'M250 345H288', 'M510 340H545V180H578', 'M730 220V238', 'M730 310V328', 'M730 420V438'], s: `Protsessing markazi kunlik tranzaksiyalar faylini yuboradi. Fayl yuklanib, modulning tranzaksiyalar jadvaliga yoziladi, guruhlanadi va modul provodkalari orqali yadroga tushadi. Xato qatorlar alohida (P5 dagi SAVE EXCEPTIONS yoki LOG ERRORS g'oyasi), qayta yuklashda takror yo'q (unique cheklov).` },
+      { t: 'Hisobotlar', hl: ['rep', 'buh', 'tab', 'cb'], p: ['M880 470H930V380H958', 'M880 275H920V180H958'], s: `Markaziy bank hisobotlari, RegTech va DWH buxgalteriya va modul jadvallaridan o'qiydi. Bu P1–P2 (analitik so'rovlar), P7 (rejalar), P8 (bitta lahzani o'qish, ORA-01555) va P9 (pruning) mavzulari. Og'ir hisobotlarni kunduzgi ishga xalaqit bermasligi uchun zaxira bazada yoki alohida oynada yurgizish.` }
+    ];
+    var setT = tabs('layT', V.map(function (v) { return v.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var v = V[cur]; setT(cur); svg.textContent = ''; marker(svg, 'lymk');
+      group(svg, 560, 14, 340, 500, 'Oracle bazasi');
+      Object.keys(B).forEach(function (k) { var b = B[k]; boxL(svg, b[0], b[1], b[2], b[3], b[4], b[5], v.hl.indexOf(k) >= 0 ? 'on' : ''); });
+      v.p.forEach(function (d) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#lymk)', style: 'stroke-width:2.2' }); });
+      say.textContent = v.s;
+    }
+    draw();
+  })();
+
+  // ---------- Provodka yo'li ----------
+  (function () {
+    var svg = $('post'), say = $('postSay'), st = 0;
+    var B = {
+      op: [20, 40, 280, 90, 'Modul operatsiyasi', ['kunlik foiz hisoblash:', 'qoldiq × stavka / kunlar']],
+      ml: [330, 40, 290, 90, 'Modul provodkasi', ['shablon: hisob turlari bilan', 'aniq hisob: shartnoma hisoblaridan']],
+      doc: [650, 40, 270, 90, 'Hujjat yaratish qatlami', ['modulning yadroga kirishi']],
+      eng: [330, 184, 590, 88, 'Provodka dvigateli', ['yaratish → tekshirish (hisob ochiqmi, kun ochiqmi, qoldiq) →', 'holatlar mashinasi → bajarish']],
+      doc2: [20, 320, 280, 110, 'Joriy kun hujjatlari', ['bitta qator: hujjat', 'mijoz va korrespondent tomoni', 'summa, turi, holati']],
+      tr: [330, 320, 290, 110, 'Ikki tomonlama yozuvlar', ['debet: foiz talabi hisobi', 'kredit: foiz daromadi hisobi', 'keyingi qoldiq, bitim, operatsiya']],
+      acc: [650, 320, 270, 110, 'Hisoblar: joriy qoldiq', ['qoldiq va aylanmalar', 'yangilandi']],
+      his: [950, 320, 270, 110, 'Tarix va kunlik qoldiq', ['kun yopishda ko\'chadi,', 'sana bo\'yicha partitsiya']],
+      tp: [950, 40, 270, 230, 'Qaysi dars', []]
+    };
+    var STP = [
+      { hl: ['op'], p: [], topic: ['P5: 300 ming kreditni BULK yoki', 'bitta SQL bilan hisoblash', 'P9: NUMBER, yaxlitlash qoidasi'], s: `Tungi job har faol kredit uchun kunlik foizni hisoblaydi. Bu modul ichidagi operatsiya: modul jadvaliga «bugungi hisoblangan foiz» yoziladi va mahsulot-bitim qatlamida operatsiya ochiladi.` },
+      { hl: ['op', 'ml'], p: ['M300 85H328'], topic: ['P9: hisob turi va shablon:', 'bitta qoida minglab shartnomaga', 'P4: paket konstantalari'], s: `Modul provodkasi tayyorlanadi: shablon «foiz hisoblashda: debet = hisoblangan foiz talabi turi, kredit = foiz daromadi turi» deydi. Aniq hisoblar shartnomaning hisoblar jadvalidan olinadi.` },
+      { hl: ['ml', 'doc'], p: ['M620 85H648'], topic: ['P4: modul paketidan yadro', 'paketiga chaqiruv, bitta API', 'P8: COMMIT yo\'q'], s: `Modul o'zining «hujjat yaratish» qatlamini chaqiradi: u yadro uchun hujjat parametrlarini yig'adi (hujjat turi, mijoz va korrespondent tomoni, summa, valyuta, to'lov maqsadi). Hech kim COMMIT qilmaydi: tranzaksiya hali davom etadi.` },
+      { hl: ['doc', 'eng'], p: ['M785 130V182'], topic: ['P3: tekshiruvlar va', 'foydalanuvchi exception lari', 'P8: FOR UPDATE, qulf tartibi'], s: `Provodka dvigateli hujjatni yaratadi va tekshiradi: hisoblar mavjud va ochiqmi, mijoz va korrespondent hisoblari mosmi, operatsion kun ochiqmi va kiritish mumkinmi, debet hisobida yetarli mablag'. Xato bo'lsa exception, va chaqiruvchi butun tranzaksiyani qaytaradi.` },
+      { hl: ['eng', 'doc2', 'tr'], p: ['M450 272V318', 'M330 228H280V318'], topic: ['P9: hujjat va yozuvlar:', 'normallashtirilgan ikki qavat', 'P7: indekslar, P6: bind'], s: `Holatlar mashinasi bo'yicha bajarish: joriy kun hujjatlari jadvaliga bitta qator (hujjat), ikki tomonlama yozuvlar jadvaliga ikki qator (debet va kredit, har birida keyingi qoldiq va bitim, operatsiya, mahsulot identifikatorlari).` },
+      { hl: ['tr', 'acc'], p: ['M620 375H648'], topic: ['P9: ongli denormallashtirish:', 'qoldiq provodka bilan birga', 'P8: qator qulfi, lost update yo\'q'], s: `Ikkala hisobning joriy qoldig'i va kunlik aylanmalari yangilanadi: qoldiq = qoldiq ± summa, bitta SQL ichida (P8 dagi lost update yo'q). Modul jadvaliga provodka identifikatori yoziladi. Endi tashqi chaqiruvchi (job) COMMIT qiladi: hammasi birga saqlanadi yoki hech biri.` },
+      { hl: ['acc', 'his', 'doc2', 'tr'], p: ['M920 375H948'], topic: ['P9: sana bo\'yicha partitsiya,', 'joriy va tarix jadvallari', 'P5: katta hajmda ko\'chirish'], s: `Kun yopilganda joriy kun hujjatlari va yozuvlar tarix jadvallariga ko'chadi (sana bo'yicha partitsiyalangan), har hisob uchun kunlik qoldiq yoziladi (kirish, debet, kredit, chiqish). Ertaga joriy jadval yana kichik va tez, kechagi kun esa tarixda bitta partitsiyadan tez o'qiladi.` }
+    ];
+    var setT = tabs('postT', STP.map(function (s, i) { return 'Qadam ' + (i + 1); }), function (i) { st = i; draw(); });
+    function draw() {
+      var c = STP[st]; setT(st); svg.textContent = ''; marker(svg, 'psmk');
+      group(svg, 10, 14, 920, 130, 'Modul (masalan kredit)');
+      group(svg, 310, 152, 620, 134, 'Yadro');
+      group(svg, 10, 296, 1220, 150, 'Buxgalteriya jadvallari');
+      Object.keys(B).forEach(function (k) { var b = B[k]; boxL(svg, b[0], b[1], b[2], b[3], b[4], k === 'tp' ? c.topic : b[5], k === 'tp' ? 'live' : (c.hl.indexOf(k) >= 0 ? 'on' : '')); });
+      for (var i = 0; i <= st; i++) STP[i].p.forEach(function (d) { S(svg, 'path', { d: d, 'class': 'arr' + (i < st ? ' dash' : ''), 'marker-end': 'url(#psmk)', style: i === st ? 'stroke-width:2.4' : '' }); });
+      say.textContent = (st + 1) + '/' + STP.length + '. ' + c.s;
+    }
+    draw();
+  })();
+
+  // ---------- Modul skeleti ----------
+  (function () {
+    var svg = $('skel'), say = $('skelSay'), cur = 0;
+    var M = [
+      { t: 'Kredit', dict: ['kredit turlari', 'hisob turlari', 'operatsiyalar, shablonlar'], obj: ['kredit kartochkasi:', 'mijoz, summa, muddat,', 'qo\'mita qarori, holat'], acc: ['asosiy qarz, muddati o\'tgan,', 'foiz, rezerv hisoblari'], par: ['asosiy qarz grafigi,', 'foiz grafigi, stavkalar'], hist: ['holat va parametrlar', 'o\'zgarishi'], lead: ['operatsiya, amal, shablon,', 'hisob turlari → yadro'], s: `Kredit: kartochka (shartnoma) atrofida hisoblar (har biri o'z turi bilan), asosiy qarz va foiz grafiklari, stavkalar va modul provodkalari. Har kunlik ish: foiz hisoblash, grafik bo'yicha to'lovni yechish, muddati o'tganga o'tkazish. Muammoli kreditlar alohida modullarga o'tadi: yurist ishi, garov mulki.` },
+      { t: 'Depozit', dict: ['omonat turlari, mijoz turi', 'hisob maketlari', 'shartnoma shablonlari'], obj: ['ariza → shartnoma:', 'summa, muddat, stavka,', 'kapitalizatsiya, holat'], acc: ['maket bo\'yicha ochiladi:', 'depozit, foiz, xarajat'], par: ['stavkalar tarixi,', 'avtomatik amallar rejimi'], hist: ['shartnoma tarixi,', 'prognoz grafigi'], lead: ['kredit bilan bir xil', 'tuzilish → yadro'], s: `Depozit: maket shartnoma turiga qarab qaysi hisoblar ochilishini oldindan belgilaydi, shablon shartnoma parametrlarini. Ariza tasdiqlash darajalaridan o'tadi. Modul provodkalari kredit moduli bilan deyarli bir xil tuzilishda: ikkala modul bitta «operatsiya → amal → shablon» andozasida.` },
+      { t: 'Karta', dict: ['karta mahsulotlari', 'shartnoma turlari', 'hisob maskalari'], obj: ['shartnoma (bosh va qo\'shimcha)', '→ karta → karta egasi', 'bankdagi va PC dagi holat'], acc: ['bank hisobi ↔', 'protsessing hisobi juftligi'], par: ['limitlar, komissiyalar,', 'SMS xizmati'], hist: ['tranzaksiyalar tarixi,', 'holatlar tarixi'], lead: ['tranzaksiyalar guruhlanib', '→ modul provodkasi → yadro'], s: `Karta: har tashqi protsessing uchun alohida modul, lekin bir xil skelet. Karta egasi va shartnoma egasi har doim bir odam emas (korporativ yoki oila kartasi), shuning uchun alohida. Ikki xil holat: bankdagi va protsessingdagi. Tranzaksiyalar protsessingdan keladi, guruhlanib provodkaga aylanadi.` },
+      { t: 'Aholi omonatlari', dict: ['omonat turlari: balans hisoblari', 'operatsiyalar sozlamasi:', 'metodlar va tekshiruvlar'], obj: ['omonatchi, shaxsiy hisob', 'va omonat bitta qatorda'], acc: ['omonat, foiz, xarajat', 'hisoblari'], par: ['stavkalar, daftarchalar,', 'kunlik foiz rezervi'], hist: ['operatsiyalar tarixi:', 'kirim, chiqim, keyingi qoldiq'], lead: ['kassa hujjati qatlami', '→ yadro'], s: `Aholi omonatlari: ommaviy chakana mahsulot. Provodka qattiq kodlanmagan: har omonat turi va operatsiya uchun qaysi balans hisoblaridan qaysiga yozish, summani qaysi metod bilan hisoblash va qanday tekshirish sozlama jadvalida. Yangi omonat turi kod o'zgartirmasdan qo'shiladi.` },
+      { t: 'Kartoteka', dict: ['kartoteka turlari', 'avtoto\'lov usullari'], obj: ['to\'lanmagan hujjat:', 'summa, to\'langan, qolgan,', 'penya, holat'], acc: ['balansdan tashqari', 'aktiv va passiv hisoblar'], par: ['bron, arestlar,', 'avtoto\'lov darajasi'], hist: ['arxiv, avtoto\'lov', 'protokoli'], lead: ['ro\'yxatga olish, to\'lash,', 'qaytarish → yadro'], s: `Kartoteka: pul yetmagan yoki tasdiq kutayotgan hujjat navbatga tushadi va balansdan tashqari hisobda hisobga olinadi. Hisobga pul tushgach avtoto'lov jobi hujjatlarni navbat bo'yicha, kerak bo'lsa qisman, to'laydi: bu yerda P8 dagi navbat, qulf va SKIP LOCKED masalalari.` },
+      { t: 'Valyuta', dict: ['konversiya turlari', 'kurslar'], obj: ['konversiya orderi:', 'ikki hisob, ikki valyuta,', 'kurs, ekvivalent, holat'], acc: ['mijozning so\'m va', 'valyuta hisoblari'], par: ['kurslar, kurs farqi,', 'komissiya'], hist: ['orderlar tarixi'], lead: ['rejalashtirilgan provodkalar', '→ tasdiqdan keyin yadro'], s: `Valyuta: bitta konversiya bir nechta provodka beradi: mijozdan so'm yechish, valyuta berish, komissiya. Ular avval reja sifatida yig'iladi, tasdiqlangach haqiqiy provodkaga aylanadi. Hammasi bitta tranzaksiyada, aks holda mijoz so'mni berib, valyutani olmay qolishi mumkin.` }
+    ];
+    var setT = tabs('skelT', M.map(function (m) { return m.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var m = M[cur]; setT(cur); svg.textContent = ''; marker(svg, 'skmk');
+      boxL(svg, 20, 150, 250, 120, 'Lug\'atlar', m.dict, '');
+      S(svg, 'path', { d: 'M270 210H408', 'class': 'arr', 'marker-end': 'url(#skmk)' });
+      boxL(svg, 410, 150, 300, 120, 'Asosiy obyekt', m.obj, 'on');
+      boxL(svg, 410, 20, 300, 100, 'Hisoblar', m.acc, 'live');
+      boxL(svg, 410, 300, 300, 100, 'Parametrlar', m.par, '');
+      boxL(svg, 20, 300, 250, 100, 'Tarix', m.hist, '');
+      boxL(svg, 760, 150, 230, 120, 'Modul provodkalari', m.lead, 'live');
+      boxL(svg, 1030, 150, 190, 120, 'Yadro', ['provodka dvigateli,', 'mahsulot va bitim'], 'on');
+      S(svg, 'path', { d: 'M560 150V122', 'class': 'arr', 'marker-end': 'url(#skmk)' });
+      S(svg, 'path', { d: 'M560 270V298', 'class': 'arr', 'marker-end': 'url(#skmk)' });
+      S(svg, 'path', { d: 'M410 260H340V350H272', 'class': 'arr', 'marker-end': 'url(#skmk)' });
+      S(svg, 'path', { d: 'M710 210H758', 'class': 'arr', 'marker-end': 'url(#skmk)' });
+      S(svg, 'path', { d: 'M990 210H1028', 'class': 'arr', 'marker-end': 'url(#skmk)' });
+      S(svg, 'path', { d: 'M710 70H875V148', 'class': 'arr dash', 'marker-end': 'url(#skmk)' });
+      S(svg, 'text', { x: 724, y: 62, 'class': 'lbl' }, 'hisob turi → aniq hisob');
+      say.textContent = m.s;
+    }
+    draw();
+  })();
+
+  // ---------- Operatsion kun ----------
+  (function () {
+    var svg = $('day'), say = $('daySay'), cur = 0;
+    var D = [
+      { t: 'Kun ochish', topic: 'sozlamalar, qulflar', s: `Yangi operatsion kun ochiladi (filial bo'yicha). Kun boshidagi qoldiqlar kechagi chiqish qoldig'iga teng bo'ladi, kunlik aylanmalar nolga tushadi. Shundan keyin hujjatlar yangi kunga yoziladi.` },
+      { t: 'Kunduzgi ish', topic: 'P6, P7, P8: OLTP', s: `Ekranlar, kassalar, mobil kanal, protsessing: minglab qisqa tranzaksiya. Bu OLTP: bind o'zgaruvchilar va yumshoq parse (P6), indeks bo'yicha qidiruvlar (P7), qisqa tranzaksiyalar va qator qulflari, deadlock dan qochish (P8).` },
+      { t: 'Kiritishni to\'xtatish', topic: 'P8: qulf va tekshiruv', s: `Kun yopish boshlanadi: yangi hujjat kiritish cheklanadi, har kiritish nuqtasi «kun ochiqmi, kiritish mumkinmi» deb tekshiradi. Yarim yo'lda qolgan hujjatlar tugatiladi yoki keyingi kunga o'tkaziladi.` },
+      { t: 'Kun yakuni jarayonlari', topic: 'P5: BULK, parallel', s: `Foiz hisoblash va kapitalizatsiya, muddati kelgan to'lovlar, muddati o'tganga o'tkazish, kartoteka avtoto'lovi, komissiyalar, rezervlar. Yuz minglab shartnoma: BULK va bitta SQL, filiallar bo'yicha parallel, qayta ishga tushirish mumkin bo'lgan bo'laklar (P5).` },
+      { t: 'Solishtiruv', topic: 'P1, P2: yig\'ma so\'rovlar', s: `Tekshiruvlar: filial va valyuta bo'yicha debet = kredit, hisoblar qoldig'i = kecha qoldiq + aylanmalar, modul qoldiqlari buxgalteriya bilan mos. Bular GROUP BY va analitik so'rovlar (P1, P2), va farq chiqsa kun yopilmaydi.` },
+      { t: 'Tarixga ko\'chirish', topic: 'P9: partitsiya, P8: undo', s: `Kunlik qoldiqlar yoziladi, joriy kun hujjatlari va yozuvlar tarix jadvallariga ko'chadi (sana bo'yicha partitsiyalangan). Katta hajmli ko'chirish: direct-path, partitsiya amallari, undo va redo hajmi (P5, P8, P9).` },
+      { t: 'Kun yopildi', topic: 'keyingi kun', s: `Operatsion kun holati «yopiq», hisobotlar shu kun bo'yicha tayyorlanadi (Markaziy bank, RegTech, balans). Keyin keyingi kun ochiladi. Kun yopilmasa yoki xato bilan yopilsa, ertalab filial ishlay olmaydi: shuning uchun kun yopish eng nazoratdagi jarayon.` }
+    ];
+    var setT = tabs('dayT', D.map(function (d, i) { return (i + 1) + '. ' + d.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var d = D[cur]; setT(cur); svg.textContent = ''; marker(svg, 'dymk');
+      var W = 160, G = 13;
+      group(svg, 14, 20, 1212, 150, 'Operatsion kun');
+      D.forEach(function (x, i) {
+        var bx = 22 + i * (W + G), cls = i === cur ? 'on' : (i < cur ? 'live' : '');
+        var tt = x.t.length > 16 ? [x.t.slice(0, x.t.lastIndexOf(' ', 16)), x.t.slice(x.t.lastIndexOf(' ', 16) + 1)] : [x.t, ''];
+        S(svg, 'rect', { x: bx, y: 60, width: W, height: 90, rx: 5, 'class': 'box ' + cls });
+        S(svg, 'text', { x: bx + 12, y: 86, 'class': 'ttl' }, (i + 1) + '. ' + tt[0]);
+        if (tt[1]) S(svg, 'text', { x: bx + 12, y: 106, 'class': 'ttl' }, tt[1]);
+        S(svg, 'text', { x: bx + 12, y: 134, 'class': 'sub' }, x.topic);
+        if (i < D.length - 1) S(svg, 'path', { d: 'M' + (bx + W) + ' 105H' + (bx + W + G - 1), 'class': 'arr', 'marker-end': 'url(#dymk)' });
+      });
+      S(svg, 'rect', { x: 22 + 2 * (W + G) - 6, y: 34, width: 5 * (W + G) - G + 12, height: 20, rx: 3, 'class': 'box live' });
+      S(svg, 'text', { x: 22 + 2 * (W + G) + 6, y: 49, 'class': 'lbl' }, 'kun yopish jarayoni: odatda filiallar bo\'yicha, qisman parallel');
+      boxL(svg, 14, 200, 1212, 110, (cur + 1) + '. ' + d.t + ': ' + d.topic, [], 'on');
+      var words = d.s.split(' '), lines = [], line = '';
+      words.forEach(function (w) { if ((line + ' ' + w).length > 150) { lines.push(line); line = w; } else line = line ? line + ' ' + w : w; });
+      lines.push(line);
+      lines.slice(0, 3).forEach(function (l, i) { S(svg, 'text', { x: 30, y: 250 + i * 20, 'class': 'sub' }, l); });
+      say.textContent = d.s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoAbs', [
+    { name: `Lokal filial dasturlari`, years: `1990-yillar`, art: `<rect x="16" y="30" width="24" height="40"/><rect x="48" y="30" width="24" height="40"/><rect x="80" y="30" width="24" height="40"/>`,
+      how: `Har filialda o'z kompyuterlari va lokal bazasi (DOS davri dasturlari, keyin mijoz-server). Kun oxirida filial bosh bankka fayl yuboradi, bosh bank ularni yig'ib balans tuzadi.`,
+      better: `Qo'lda yuritiladigan daftarlardan avtomatlashtirishga o'tish.`,
+      pain: `Mijoz faqat o'z filialida xizmat oladi; konsolidatsiya kechikadi; har filialda o'z versiya va xatolar.`,
+      ex: `Filiallararo to'lov ertasi kunigacha «yo'lda».` },
+    { name: `Markazlashgan Oracle yadrosi`, years: `2000-yillar`, art: `<circle cx="60" cy="50" r="24" class="acc"/><path d="M20 20l20 15M100 20L80 35M20 80l20-15M100 80L80 65"/>`,
+      how: `Bitta markaziy Oracle bazasi hamma filial uchun, filial bo'yicha partitsiyalar. Biznes mantiq PL/SQL paketlarida, provodka dvigateli hamma modul uchun bitta.`,
+      better: `Real vaqtda qoldiq va balans; mijoz istalgan filialda; bitta tranzaksiyada modul va buxgalteriya.`,
+      pain: `Bitta katta baza: yuklama, kun yopish oynasi, kod hajmi tez o'sadi.`,
+      ex: `«Qalin baza» arxitekturasi shu davrdan.` },
+    { name: `Veb-interfeys va modullar`, years: `2010-yillar`, art: `<rect x="16" y="20" width="88" height="60"/><path d="M16 34h88" class="acc"/>`,
+      how: `Desktop mijoz o'rniga veb-ilova (JSP, ilova serveri). Yangi modullar: kartalar (bir nechta protsessing), muammoli kreditlar, valyuta, o'tkazmalar. Mahsulot va shablonlar orqali sozlanadigan mahsulotlar.`,
+      better: `O'rnatish va yangilash markazda; yangi mahsulot sozlama bilan.`,
+      pain: `Online kanallar soni oshdi: mobil, internet-bank, to'lov agregatorlari; 24/7 talab.`,
+      ex: `Bitta skelet bo'yicha yozilgan o'nlab modul.` },
+    { name: `Online kanallar va integratsiya`, years: `2015–hozir`, art: `<path d="M20 50h80M60 20v60" class="acc"/><circle cx="60" cy="50" r="10"/>`,
+      how: `Mobil banking, korporativ internet-bank, online shlyuzlar, integratsiya shinasi, mahsulot-bitim-operatsiya qatlami, antifrod, RegTech hisobotlari, API lar orqali boshqa tizimlar bilan.`,
+      better: `Mijoz bankka kelmasdan; davlat tizimlari bilan avtomatik almashinuv.`,
+      pain: `24/7 va kun yopish ziddiyati, yuklama cho'qqilari, xavfsizlik va shaxsiy ma'lumotlar talablari.`,
+      ex: `Yangi kanallar alohida servis, pul harakati baribir yadro orqali.` }
+  ]);
+})();
+</script>
+</body>
+</html>
