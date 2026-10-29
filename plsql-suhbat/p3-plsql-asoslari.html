@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P3. PL/SQL asoslari</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P3. PL/SQL asoslari: blok, o'zgaruvchilar, %TYPE va %ROWTYPE, kursorlar, exceptionlar</h1>
+<p class="lead">Savol: SQL bor ekan, nega Oracle'ga yana bir til kerak bo'ldi? PL/SQL bloki qanday tuzilgan, kursor ichkarida nima, va xato yuz berganda boshqaruv qayerga ketadi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>PL/SQL</strong> (Procedural Language extensions to SQL) Oracle'ning ichiga o'rnatilgan dasturlash tili. Unda o'zgaruvchi, shart, sikl, xatolarni ushlash bor, va SQL buyruqlari kodning ichida to'g'ridan-to'g'ri yoziladi.</p>
+    <p>O'xshatish: SQL bu omborchiga beriladigan bitta buyurtma («shu tovarlarni olib kel»). PL/SQL esa omborning ichida ishlaydigan menejer: u ko'p buyurtmani ketma-ket beradi, natijaga qarab qaror qiladi va xato bo'lsa nima qilishni biladi. Va eng muhimi: u ombor ichida, telefon orqali emas.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Bank yadro tizimlarida asosiy til:</strong> to'lov o'tkazish, foiz hisoblash, kun yopish, hisobotlar. iABS kabi tizimlarda biznes mantiqning katta qismi PL/SQL paketlarida.</li>
+      <li><strong>Integratsiya:</strong> Java ilova bitta protsedurani chaqiradi, ichida o'nlab SQL bajariladi.</li>
+      <li><strong>Suhbatda:</strong> «kursor turlari», «NO_DATA_FOUND qachon chiqadi», «RAISE_APPLICATION_ERROR», «WHEN OTHERS THEN NULL nega yomon» deyarli har doim so'raladi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>PL/SQL qaysi muammo uchun yaratilgan: tarmoq va ikki dvigatel;</li>
+      <li>blok tuzilishi, o'zgaruvchilar, tiplar, <span class="num">%TYPE</span>, <span class="num">%ROWTYPE</span>, yozuvlar;</li>
+      <li><span class="num">SELECT INTO</span> va uning ikki xatosi;</li>
+      <li>yashirin va oshkor kursorlar, atributlar, kursorli FOR sikl, <span class="num">SYS_REFCURSOR</span>;</li>
+      <li>exception turlari, tarqalishi, <span class="num">RAISE_APPLICATION_ERROR</span>, <span class="num">PRAGMA EXCEPTION_INIT</span>, xatoni loglash.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, PL/SQL qavati ajratilgan"></svg></div>
+  <figcaption>Bu darsdan PL/SQL qavati boshlanadi: SQL dan bir qavat yuqori, ilovaga yaqin.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Nega PL/SQL kerak: tarmoq aylanishlari va SQL ning protsedur imkoniyati yo'qligi</li>
+      <li>PL/SQL dvigateli va SQL dvigateli, kontekst almashinuvi</li>
+      <li>Blok: <span class="num">DECLARE</span>, <span class="num">BEGIN</span>, <span class="num">EXCEPTION</span>, <span class="num">END</span>; anonim va nomlangan blok</li>
+      <li>Tiplar, <span class="num">%TYPE</span>, <span class="num">%ROWTYPE</span>, <span class="num">RECORD</span>, <span class="num">SUBTYPE</span>, <span class="num">PLS_INTEGER</span>, <span class="num">BOOLEAN</span></li>
+      <li>Shart va sikllar: <span class="num">IF</span>, <span class="num">CASE</span>, <span class="num">LOOP</span>, <span class="num">WHILE</span>, <span class="num">FOR</span>, <span class="num">EXIT WHEN</span>, <span class="num">CONTINUE</span></li>
+      <li>Kursorlar: yashirin, oshkor, parametrli, FOR sikl, REF CURSOR, <span class="num">FOR UPDATE</span> va <span class="num">WHERE CURRENT OF</span></li>
+      <li>Exceptionlar: oldindan aniqlangan, o'zingizniki, tarqalish, loglash</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Protsedura, funksiya, paket, trigger: P4-darsda</li>
+      <li>Kolleksiyalar, <span class="num">BULK COLLECT</span>, <span class="num">FORALL</span>, dinamik SQL: P5-darsda</li>
+      <li>Avtonom tranzaksiya va qulflar ichkaridan: P8-darsda (bu yerda faqat loglash uchun eslatiladi)</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Har bir SQL alohida safar</h3>
+<p>1980-yillarda dastur (masalan, C yoki COBOL'da yozilgan bank operatori ekrani) bazaga har bir SQL buyrug'ini tarmoq orqali alohida yuborardi. Bitta to'lov o'tkazish uchun: to'lovchi hisobini o'qish, qoldiqni tekshirish, debet qilish, kreditlash, provodka yozish, jurnalga yozish. Olti buyruq, olti marta tarmoq orqali borib-kelish.</p>
+<ul>
+  <li><strong>Tarmoq sekin.</strong> Har bir borib-kelish millisekundlar oladi, va buyruqning o'zi esa mikrosekundlar. Kun yopishda millionlab buyruq: soatlar faqat kutishga ketadi.</li>
+  <li><strong>SQL da «agar» yo'q.</strong> SQL bitta buyruq: «qoldiq yetarli bo'lsa debet qil, aks holda xato qaytar» degan mantiqni SQL ning o'zi yozolmaydi. Bu mantiq har bir ilovada (ekran, batch, shlyuz) qayta yozilardi va bir-biridan farq qilib qolardi.</li>
+  <li><strong>Xavfsizlik.</strong> Ilova jadvalga to'g'ridan-to'g'ri yozish huquqiga ega bo'lishi kerak edi. «Faqat to'lov qoidasiga mos yozishga ruxsat ber» deb bo'lmasdi.</li>
+</ul>
+<p>Kerak bo'lgan narsa: mantiqni ma'lumotning yoniga, bazaning ichiga ko'chirish. Bitta chaqiruv bilan butun ishni bajaradigan, SQL bilan bir xil tiplarda gapiradigan til. Oracle 1988-yilda PL/SQL ni chiqardi. Uning sintaksisi Ada tilidan olingan: bloklar, kuchli tiplar, exceptionlar, paketlar. Ada AQSh Mudofaa vazirligi uchun ishonchli tizimlar tili sifatida yaratilgan edi.</p>
+
+<h3><span class="part">2. Ichkarida</span>PL/SQL qanday ishlaydi</h3>
+
+<p class="beat">Ikki dvigatel va tarmoq</p>
+<p>Oracle serverining ichida ikkita alohida «dvigatel» bor. <strong>PL/SQL dvigateli</strong> protsedur kodni bajaradi: o'zgaruvchi, <span class="num">IF</span>, sikl. <strong>SQL dvigateli</strong> SQL buyruqlarini bajaradi: jadvaldan o'qish, yozish. PL/SQL kodida SQL uchrasa, PL/SQL dvigateli uni SQL dvigateliga uzatadi va natijani qaytarib oladi. Bu uzatish <strong>kontekst almashinuvi</strong> (context switch) deyiladi: arzon, lekin bepul emas. Pastdagi chizmada bitta to'lovni o'tkazishning uch usuli. Variantni tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="eng" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Ilova, tarmoq, PL/SQL dvigateli va SQL dvigateli: borib-kelishlar soni"></svg></div>
+  <figcaption>Chapda ilova, o'rtada tarmoq, o'ngda Oracle server va uning ikki dvigateli. Pastda hisob: tarmoq aylanishlari va kontekst almashinuvlari.</figcaption>
+  <div class="evo-tabs" id="engT" style="margin-top:0.9rem"></div>
+  <p class="say" id="engSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Blok: PL/SQL ning g'ishti</p>
+<p>Har qanday PL/SQL kod blokdan iborat. Blok to'rt qismli, ikkitasi ixtiyoriy:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">DECLARE                                   -- ixtiyoriy: o'zgaruvchilar, kursorlar, tiplar
+  v_qoldiq   hisoblar.qoldiq%TYPE;        -- tip jadval ustunidan olinadi
+  v_hisob    hisoblar%ROWTYPE;            -- butun qator tuzilishi
+  c_limit    CONSTANT NUMBER := 1000000;  -- o'zgarmas
+BEGIN                                     -- majburiy: bajariladigan kod
+  SELECT * INTO v_hisob FROM hisoblar WHERE raqam = '20208000100000000001';
+  IF v_hisob.qoldiq &gt; c_limit THEN
+    DBMS_OUTPUT.PUT_LINE('Katta qoldiq: ' || v_hisob.qoldiq);
+  END IF;
+EXCEPTION                                 -- ixtiyoriy: xatolarni ushlash
+  WHEN NO_DATA_FOUND THEN
+    DBMS_OUTPUT.PUT_LINE('Hisob topilmadi');
+END;                                      -- majburiy
+/</pre>
+<ul>
+  <li><strong>Anonim blok</strong>: nomsiz, bazada saqlanmaydi, yuborilganda kompilyatsiya qilinib bajariladi. Skriptlar, bir martalik tuzatishlar, Java'dan yuboriladigan qisqa bloklar.</li>
+  <li><strong>Nomlangan blok</strong>: protsedura, funksiya, paket, trigger. Bazada kompilyatsiya qilingan holda saqlanadi (P4).</li>
+  <li>Bloklar ichma-ich yozilishi mumkin. Ichki blokda e'lon qilingan o'zgaruvchi faqat shu blokda ko'rinadi. Ichki blokning o'z <span class="num">EXCEPTION</span> qismi bo'lishi mumkin: xatoni joyida ushlab, tashqi kod davom etadi.</li>
+  <li>SQL*Plus va SQL Developer'dagi <span class="num">/</span> belgisi PL/SQL emas: u «blok tugadi, yubor» degan mijoz buyrug'i.</li>
+</ul>
+
+<p class="beat">O'zgaruvchilar va tiplar</p>
+<p>PL/SQL kuchli tiplangan: har o'zgaruvchining turi e'lon qilinadi. Ko'p tiplar SQL bilan bir xil (<span class="num">NUMBER</span>, <span class="num">VARCHAR2</span>, <span class="num">DATE</span>, <span class="num">TIMESTAMP</span>, <span class="num">CLOB</span>), bir nechtasi faqat PL/SQL da:</p>
+<ul>
+  <li><span class="num">BOOLEAN</span>: <span class="num">TRUE</span>, <span class="num">FALSE</span>, <span class="num">NULL</span>. 23ai gacha SQL da bunday tur yo'q edi, shuning uchun BOOLEAN qaytaradigan funksiyani <span class="num">SELECT</span> da ishlatib bo'lmasdi.</li>
+  <li><span class="num">PLS_INTEGER</span> (va uning eski nomi <span class="num">BINARY_INTEGER</span>): 32 bitli butun son, protsessorning o'z arifmetikasi bilan ishlaydi, shuning uchun <span class="num">NUMBER</span> dan tez. Sikl hisoblagichlari va indekslar uchun. Oshib ketsa xato beradi. <span class="num">SIMPLE_INTEGER</span> (11g) null bo'la olmaydi va oshib ketishni tekshirmaydi: yanada tez.</li>
+  <li><span class="num">NUMBER</span> o'nlik son: 38 xonagacha aniq. Pul hisobida <span class="num">BINARY_DOUBLE</span> emas, doim <span class="num">NUMBER</span>: 0.1 + 0.2 aniq 0.3 bo'lishi kerak (Poydevor P0 ning 3-darsi).</li>
+  <li><span class="num">VARCHAR2(n)</span>: PL/SQL o'zgaruvchisida 32767 baytgacha, jadval ustunida 4000 (yoki <span class="num">EXTENDED</span> rejimda 32767). Jadvaldan 4000 dan uzun matn kelsa <span class="num">CLOB</span>.</li>
+</ul>
+<p>E'lon qilingan, lekin qiymat berilmagan o'zgaruvchi <span class="num">NULL</span>. <span class="num">NOT NULL</span> bilan e'lon qilinsa, boshlang'ich qiymat majburiy. P1 dagi uch qiymatli mantiq PL/SQL da ham ishlaydi: <span class="num">IF v_x = NULL</span> hech qachon bajarilmaydi, <span class="num">IF NOT (v_x &gt; 0)</span> esa <span class="num">v_x</span> NULL bo'lsa ham bajarilmaydi.</p>
+<p><strong><span class="num">%TYPE</span> va <span class="num">%ROWTYPE</span></strong> eng foydali «yorliq»lardan. <span class="num">v_qoldiq hisoblar.qoldiq%TYPE</span> «hisoblar jadvalining qoldiq ustuni qanday tipda bo'lsa, shunday» degani. Ertaga ustun <span class="num">NUMBER(18,2)</span> dan <span class="num">NUMBER(20,2)</span> ga kengaytirilsa, kod o'zgarmaydi: qayta kompilyatsiya yetarli, Oracle buni o'zi qiladi. <span class="num">%ROWTYPE</span> butun qator tuzilishini oladi: jadval, view yoki kursor qatori. Uning maydonlariga nuqta bilan murojaat: <span class="num">v_hisob.qoldiq</span>.</p>
+<p>O'z tuzilishingiz kerak bo'lsa: <span class="num">TYPE t_natija IS RECORD (summa NUMBER, holat VARCHAR2(10))</span>. Mavjud tipga cheklov qo'shib yangi nom: <span class="num">SUBTYPE t_summa IS NUMBER(20,2)</span>.</p>
+
+<p class="beat">Shart va sikllar</p>
+<pre class="code" style="margin:0.5rem 0 1rem">IF v_qoldiq &lt; v_summa THEN ... ELSIF v_holat = 'BLOK' THEN ... ELSE ... END IF;   -- ELSIF, ELSEIF emas
+
+CASE v_valyuta WHEN 'UZS' THEN v_k := 1; WHEN 'USD' THEN v_k := v_kurs; ELSE RAISE e_valyuta; END CASE;
+
+LOOP  v_i := v_i + 1;  EXIT WHEN v_i &gt; 10;  END LOOP;       -- oddiy sikl
+WHILE v_qoldiq &gt; 0 LOOP ... END LOOP;                       -- shartli
+FOR i IN 1 .. 10 LOOP ... END LOOP;                         -- i e'lon qilinmaydi, PLS_INTEGER
+FOR i IN REVERSE 1 .. 10 LOOP  CONTINUE WHEN MOD(i, 2) = 0; ... END LOOP;   -- CONTINUE: 11g dan</pre>
+<p>PL/SQL dagi <span class="num">CASE</span> buyrug'ida hech bir <span class="num">WHEN</span> mos kelmasa va <span class="num">ELSE</span> yo'q bo'lsa, <span class="num">CASE_NOT_FOUND</span> xatosi chiqadi. SQL dagi <span class="num">CASE</span> ifodasi esa shunday holatda jimgina <span class="num">NULL</span> qaytaradi.</p>
+
+<p class="beat">SELECT INTO va uning ikki xatosi</p>
+<p>PL/SQL da natijani o'zgaruvchiga olishning eng oddiy yo'li: <span class="num">SELECT qoldiq INTO v_qoldiq FROM hisoblar WHERE raqam = :r</span>. U <strong>aynan bitta</strong> qator kutadi:</p>
+<ul>
+  <li>Bitta ham qator yo'q: <span class="num">NO_DATA_FOUND</span> (<span class="num">ORA-01403</span>).</li>
+  <li>Bittadan ko'p: <span class="num">TOO_MANY_ROWS</span> (<span class="num">ORA-01422</span>).</li>
+</ul>
+<p>Agregat bilan <span class="num">SELECT COUNT(*) INTO</span> yoki <span class="num">SELECT MAX(...) INTO</span> hech qachon <span class="num">NO_DATA_FOUND</span> bermaydi: agregat doim bitta qator qaytaradi (P1). Bu ba'zan ataylab ishlatiladi, lekin <span class="num">MAX</span> NULL qaytarishini unutmaslik kerak. Mavjudligini tekshirish uchun <span class="num">COUNT(*)</span> qilib butun jadvalni sanash yomon odat: <span class="num">WHERE ... AND ROWNUM = 1</span> yoki <span class="num">EXISTS</span> bilan birinchi qatorda to'xtash kerak.</p>
+
+<p class="beat">Kursor: natija ustidagi ko'rsatkich</p>
+<p><strong>Kursor</strong> bu Oracle xotirasidagi bajarilgan so'rov va uning natijasi ustida turgan ko'rsatkich. O'xshatish: kitobxonadagi uzun ro'yxat va barmog'ingiz. Ro'yxatni ochasiz (<span class="num">OPEN</span>), barmoq bilan qatorma-qator yurasiz (<span class="num">FETCH</span>), oxiriga yetganingizni bilasiz (<span class="num">%NOTFOUND</span>) va yopasiz (<span class="num">CLOSE</span>). Har qanday SQL, hatto oddiy <span class="num">UPDATE</span> ham, ichkarida kursor orqali bajariladi.</p>
+<ul>
+  <li><strong>Yashirin kursor</strong> (implicit): <span class="num">SELECT INTO</span>, <span class="num">INSERT</span>, <span class="num">UPDATE</span>, <span class="num">DELETE</span>, <span class="num">MERGE</span> uchun Oracle o'zi ochadi va yopadi. Natijasini oxirgi buyruqdan keyin <span class="num">SQL%ROWCOUNT</span>, <span class="num">SQL%FOUND</span>, <span class="num">SQL%NOTFOUND</span> bilan bilasiz: «UPDATE nechta qatorni o'zgartirdi?»</li>
+  <li><strong>Oshkor kursor</strong> (explicit): <span class="num">CURSOR c IS SELECT ...</span> deb e'lon qilasiz va o'zingiz boshqarasiz. Ko'p qatorli natijani qatorma-qator qayta ishlash uchun.</li>
+  <li><strong>Kursorli FOR sikl</strong>: <span class="num">FOR r IN c LOOP ... END LOOP</span> yoki <span class="num">FOR r IN (SELECT ...) LOOP</span>. Ochish, o'qish, oxirni tekshirish va yopishni Oracle o'zi qiladi, xato bo'lsa ham yopadi. 10g dan ichkarida 100 qatordan to'plab o'qiydi (P5), shuning uchun eng ko'p tavsiya qilinadigan shakl.</li>
+  <li><strong>Parametrli kursor</strong>: <span class="num">CURSOR c (p_filial VARCHAR2) IS SELECT ... WHERE filial = p_filial</span>, ochishda <span class="num">OPEN c('00450')</span>.</li>
+  <li><strong>REF CURSOR</strong> va <span class="num">SYS_REFCURSOR</span>: kursorga «havola» o'zgaruvchisi. So'rov ish paytida tanlanadi va eng muhimi, uni protseduradan Java'ga qaytarib, natijani ilovada o'qish mumkin (P11).</li>
+</ul>
+<p>Pastdagi chizmada oshkor kursorning hayoti. Tugmalarni ketma-ket bosing va atributlar qanday o'zgarishini kuzating.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="cur" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="Oshkor kursor: holatlar, natija to'plami va ko'rsatkich, atributlar qiymati"></svg></div>
+  <figcaption>Chapda kursor holatlari. O'rtada OPEN paytida «suratga olingan» natija to'plami va ko'rsatkich. O'ngda kursor atributlarining joriy qiymati.</figcaption>
+  <div class="evo-tabs" id="curT" style="margin-top:0.9rem"></div>
+  <p class="say" id="curSay" aria-live="polite"></p>
+</figure>
+<p>Ikki muhim fakt. Birinchisi: natija <span class="num">OPEN</span> paytida aniqlanadi. <span class="num">OPEN</span> dan keyin boshqa sessiya jadvalni o'zgartirib <span class="num">COMMIT</span> qilsa ham, kursor eski holatni ko'radi: Oracle undo ma'lumotidan o'sha paytdagi holatni tiklab beradi (o'qish izchilligi, P8). Ikkinchisi: oshkor kursorni yopmaslik sessiyadagi ochiq kursorlar sonini oshiradi va oxiri <span class="num">ORA-01000: maximum open cursors exceeded</span>. FOR sikl bu xavfdan xoli.</p>
+<p><strong><span class="num">FOR UPDATE</span> va <span class="num">WHERE CURRENT OF</span>.</strong> <span class="num">CURSOR c IS SELECT ... FOR UPDATE</span> ochilganda tanlangan hamma qatorlarni qulflaydi, shuning uchun ularni o'qib, keyin yangilash orasida hech kim o'zgartira olmaydi. Sikl ichida <span class="num">UPDATE hisoblar SET ... WHERE CURRENT OF c</span> joriy qatorni ROWID bo'yicha yangilaydi. Qulflar <span class="num">COMMIT</span> da bo'shaydi, va <span class="num">COMMIT</span> dan keyin bunday kursordan o'qish <span class="num">ORA-01002: fetch out of sequence</span> beradi.</p>
+
+<p class="beat">Exception: xato bo'lganda boshqaruv qayerga ketadi</p>
+<p><strong>Exception</strong> bu bajarilish paytida yuz bergan xato yoki ataylab ko'tarilgan holat. Xato chiqqan zahoti joriy blokning qolgan kodi bajarilmaydi, va boshqaruv shu blokning <span class="num">EXCEPTION</span> qismiga o'tadi. U yerda mos <span class="num">WHEN</span> bo'lsa, ushlanadi va blokdan keyingi kod davom etadi. Bo'lmasa, xato tashqi blokka «ko'tariladi» (propagation), va hech kim ushlamasa, chaqirgan ilovaga <span class="num">ORA-xxxxx</span> bo'lib qaytadi. Pastda ichma-ich bloklar. Holatni tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="exc" style="width:1240px;height:420px" viewBox="0 0 1240 420" role="img" aria-label="Ichma-ich bloklarda exception qayerda ushlanadi va qayerga tarqaladi"></svg></div>
+  <figcaption>Tashqi blok ichida ichki blok, ichida xato. Ko'k: xato yuz bergan joy. Sariq: boshqaruv o'tgan yo'l. Qizil: xato ilovaga yetib bordi yoki yashirildi.</figcaption>
+  <div class="evo-tabs" id="excT" style="margin-top:0.9rem"></div>
+  <p class="say" id="excSay" aria-live="polite"></p>
+</figure>
+
+<p>Exception turlari:</p>
+<ul>
+  <li><strong>Oldindan nomlangan</strong>: <span class="num">NO_DATA_FOUND</span>, <span class="num">TOO_MANY_ROWS</span>, <span class="num">DUP_VAL_ON_INDEX</span> (UNIQUE buzildi), <span class="num">ZERO_DIVIDE</span>, <span class="num">VALUE_ERROR</span> (satr sig'madi yoki tip almashmadi), <span class="num">INVALID_NUMBER</span> (SQL ichida satr songa aylanmadi), <span class="num">CURSOR_ALREADY_OPEN</span>, <span class="num">INVALID_CURSOR</span>.</li>
+  <li><strong>Nomsiz Oracle xatolari</strong>: minglab <span class="num">ORA-</span> kodlarning ko'pchiligining nomi yo'q. Ularga nom berish: <span class="num">e_band EXCEPTION; PRAGMA EXCEPTION_INIT(e_band, -54);</span> (<span class="num">ORA-00054: resource busy</span>, <span class="num">NOWAIT</span> qulfda).</li>
+  <li><strong>O'zingizniki</strong>: <span class="num">e_mablag_yetarli_emas EXCEPTION;</span> va <span class="num">RAISE e_mablag_yetarli_emas;</span>. Faqat PL/SQL ichida ma'noga ega, ilovaga «User-Defined Exception» bo'lib boradi.</li>
+  <li><strong><span class="num">RAISE_APPLICATION_ERROR(-20001, 'Mablag'' yetarli emas')</span></strong>: ilovaga o'z kod va matningiz bilan xato qaytarish. Kodlar −20000 dan −20999 gacha. Java'da <span class="num">SQLException.getErrorCode()</span> 20001 ni beradi. Uchinchi parametr <span class="num">TRUE</span> bo'lsa, oldingi xatolar steki saqlanadi.</li>
+</ul>
+<p>Ushlash ichida foydali vositalar: <span class="num">SQLCODE</span> (xato raqami), <span class="num">SQLERRM</span> (matni), <span class="num">DBMS_UTILITY.FORMAT_ERROR_STACK</span> (to'liq stek), va eng muhimi <span class="num">DBMS_UTILITY.FORMAT_ERROR_BACKTRACE</span> (10g): xato qaysi paketning qaysi qatorida chiqqanini ko'rsatadi. Usiz «qayerdadir NO_DATA_FOUND» degan logdan foyda kam. <span class="num">RAISE;</span> (argumentsiz) ushlangan xatoni qayta ko'taradi: logga yozib, keyin yuqoriga uzatish uchun.</p>
+<p><strong>Xato va tranzaksiya.</strong> Bitta SQL buyrug'i xato bersa, Oracle faqat shu buyruqning o'zgarishlarini bekor qiladi (statement-level rollback); oldingi muvaffaqiyatli buyruqlar tranzaksiyada qoladi. Anonim blok yoki protsedura ushlanmagan xato bilan tugasa, Oracle chaqiruvdan oldingi holatga qaytaradi (blok darajasida, yashirin savepoint bilan). Xatoni ushlab, hech narsa qilmasangiz, blokning yarim bajarilgan o'zgarishlari tranzaksiyada qoladi va keyingi <span class="num">COMMIT</span> ularni saqlaydi. Bu P8 darsida chuqurroq.</p>
+<p><strong>Loglash.</strong> Xatoni jadvalga yozib, keyin xatoni qaytarsangiz, ilova <span class="num">ROLLBACK</span> qiladi va log yozuvi ham yo'qoladi. Shuning uchun log protsedurasi <span class="num">PRAGMA AUTONOMOUS_TRANSACTION</span> bilan yoziladi: u o'z alohida tranzaksiyasida <span class="num">COMMIT</span> qiladi va asosiy tranzaksiyaga ta'sir qilmaydi (P8).</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>PL/SQL tarixi</h3>
+<div class="bench" id="evoPl"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>PL/SQL</dt><dd>Oracle'ning SQL ga protsedur qo'shimchasi: blok, o'zgaruvchi, shart, sikl, exception, paket. Ada tili asosida.</dd>
+  <dt>PL/SQL dvigateli, SQL dvigateli</dt><dd>Serverdagi ikki bajaruvchi: protsedur kodni va SQL buyruqlarini bajaradi.</dd>
+  <dt>Kontekst almashinuvi</dt><dd>PL/SQL dan SQL ga va qaytib o'tish. Siklda har qator uchun bo'lsa, sezilarli narx. Yechimi P5 da: BULK.</dd>
+  <dt>Tarmoq aylanishi (round trip)</dt><dd>Ilovadan bazaga so'rov yuborib, javob olish. Ko'pincha buyruqning o'zidan qimmat.</dd>
+  <dt>Blok: DECLARE, BEGIN, EXCEPTION, END</dt><dd>E'lonlar, kod, xatolarni ushlash, tugash. Anonim blok saqlanmaydi, nomlangani bazada saqlanadi.</dd>
+  <dt>%TYPE, %ROWTYPE</dt><dd>Ustun tipi va qator tuzilishini jadval, view yoki kursordan olish. Jadval o'zgarsa kod moslashadi.</dd>
+  <dt>RECORD, SUBTYPE</dt><dd>O'z maydonlari bo'lgan tuzilma; mavjud tipga yangi nom va cheklov.</dd>
+  <dt>PLS_INTEGER, SIMPLE_INTEGER</dt><dd>Tez 32 bitli butun sonlar. Ikkinchisi null bo'lmaydi va oshib ketishni tekshirmaydi.</dd>
+  <dt>SELECT INTO</dt><dd>Aynan bitta qatorni o'zgaruvchiga olish. 0 qator: NO_DATA_FOUND, ko'p qator: TOO_MANY_ROWS.</dd>
+  <dt>Kursor</dt><dd>Bajarilgan so'rov natijasi ustidagi ko'rsatkich va unga ajratilgan xotira.</dd>
+  <dt>Yashirin va oshkor kursor</dt><dd>Oracle o'zi boshqaradigan (DML, SELECT INTO); dasturchi e'lon qilib OPEN, FETCH, CLOSE qiladigan.</dd>
+  <dt>%FOUND, %NOTFOUND, %ROWCOUNT, %ISOPEN</dt><dd>Oxirgi FETCH qator berdimi; bermadimi; shu paytgacha nechta qator olindi; kursor ochiqmi. Yashirin kursor uchun SQL%... ko'rinishida.</dd>
+  <dt>Kursorli FOR sikl</dt><dd>OPEN, FETCH, EXIT va CLOSE ni avtomatik qiladigan sikl. 10g dan ichkarida 100 talab o'qiydi.</dd>
+  <dt>REF CURSOR, SYS_REFCURSOR</dt><dd>Kursorga havola o'zgaruvchisi. So'rov ish paytida tanlanadi, ilovaga qaytariladi.</dd>
+  <dt>FOR UPDATE, WHERE CURRENT OF</dt><dd>Kursor qatorlarini ochishda qulflash; joriy kursor qatorini yangilash.</dd>
+  <dt>Exception</dt><dd>Bajarilishni to'xtatib, EXCEPTION qismiga o'tkazadigan xato yoki holat.</dd>
+  <dt>Tarqalish (propagation)</dt><dd>Ushlanmagan exception tashqi blokka, keyin chaqiruvchiga ko'tarilishi.</dd>
+  <dt>RAISE, RAISE_APPLICATION_ERROR</dt><dd>Exception ko'tarish; ilovaga −20000...−20999 kodli o'z xatoingizni qaytarish.</dd>
+  <dt>PRAGMA EXCEPTION_INIT</dt><dd>Nomsiz ORA- xatosiga nom berish, uni WHEN da ushlash uchun.</dd>
+  <dt>SQLCODE, SQLERRM, FORMAT_ERROR_BACKTRACE</dt><dd>Xato raqami, matni, va xato chiqqan qator raqamlari bilan stek.</dd>
+  <dt>Statement-level rollback</dt><dd>Xato bergan SQL buyrug'ining faqat o'z o'zgarishlari bekor qilinadi, tranzaksiya davom etadi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: WHEN OTHERS THEN NULL</b>
+  <p>Xato yutib yuboriladi: na log, na xabar. To'lov protsedurasining yarmi bajarilgan, yarmi yo'q, chaqiruvchi esa «muvaffaqiyat» deb o'ylaydi. Keyin «pul yechildi, lekin kelmadi» degan shikoyat va hech qanday iz yo'q. Oracle 11g dan bunday kod uchun kompilyator ogohlantirishi bor: <span class="num">PLW-06009</span>.</p>
+  <p class="why">To'g'risi: faqat kutilgan aniq xatolarni ushlash (<span class="num">WHEN NO_DATA_FOUND</span>). <span class="num">WHEN OTHERS</span> faqat eng tashqi darajada, logga yozish va <span class="num">RAISE;</span> bilan qayta ko'tarish uchun.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: mavjudligini COUNT(*) bilan tekshirish</b>
+  <p><span class="num">SELECT COUNT(*) INTO v_n FROM tolovlar WHERE mijoz_id = :id; IF v_n &gt; 0 THEN ...</span>. Mijozning 2 million to'lovi bo'lsa, hammasi sanaladi, javob esa «bor» yoki «yo'q» xolos. Va tekshiruv bilan keyingi amal orasida boshqa sessiya ma'lumotni o'zgartirishi mumkin.</p>
+  <p class="why">To'g'risi: <span class="num">SELECT COUNT(*) INTO v_n FROM dual WHERE EXISTS (SELECT 1 FROM tolovlar WHERE ...)</span> yoki <span class="num">... AND ROWNUM = 1</span>. Undan ham yaxshisi: tekshirmasdan amalni bajarib, natijani <span class="num">SQL%ROWCOUNT</span> yoki exception bilan bilish.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: SQL%ROWCOUNT ni kech o'qish</b>
+  <p><span class="num">UPDATE ...; log_yoz(...); IF SQL%ROWCOUNT = 0 THEN</span>. <span class="num">SQL%</span> atributlari oxirgi bajarilgan SQL ga tegishli. <span class="num">log_yoz</span> ichida <span class="num">INSERT</span> bor edi, shuning uchun <span class="num">SQL%ROWCOUNT</span> endi uning natijasi: 1.</p>
+  <p class="why">To'g'risi: <span class="num">SQL%ROWCOUNT</span> ni DML dan darhol keyin o'zgaruvchiga saqlash.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: siklda qatorma-qator ishlash (row by row, «slow by slow»)</b>
+  <p><span class="num">FOR r IN (SELECT ... 1 million qator) LOOP UPDATE ... WHERE id = r.id; END LOOP;</span>. Har qator uchun ikki kontekst almashinuvi va alohida UPDATE. Bitta <span class="num">UPDATE ... WHERE ...</span> buni bir necha marta tezroq qiladi.</p>
+  <p class="why">To'g'risi, Tom Kyte qoidasi: iloji bo'lsa bitta SQL; bo'lmasa PL/SQL da to'plam bilan (BULK COLLECT va FORALL, P5); faqat undan keyin qatorma-qator.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: COMMIT ni sikl ichida qilish</b>
+  <p>«Undo to'lib qolmasin» deb har 1000 qatorda <span class="num">COMMIT</span>. Bu sekinlashtiradi (har COMMIT redo'ni diskka yozishni kutadi), yarim yo'lda yiqilsa ma'lumot yarim yangilangan holda qoladi va qayta ishga tushirish murakkab. O'qiyotgan kursorning o'zi esa <span class="num">ORA-01555: snapshot too old</span> olishi mumkin.</p>
+  <p class="why">To'g'risi: tranzaksiya chegarasi biznes ma'nosi bo'yicha (bitta to'lov, bitta hujjat paketi), va jarayon qayta ishga tushirilsa davom eta oladigan qilib yozish. P8 da batafsil.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: tipni qattiq yozish</b>
+  <p><span class="num">v_raqam VARCHAR2(20)</span>. Bir yil o'tib hisob raqami ustuni 27 belgiga kengaytirildi va kod <span class="num">ORA-06502: numeric or value error: character string buffer too small</span> bilan yiqila boshladi.</p>
+  <p class="why">To'g'risi: <span class="num">v_raqam hisoblar.raqam%TYPE</span>. Paket spetsifikatsiyasida esa umumiy <span class="num">SUBTYPE</span> lar.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. iABS tajribangizdan misol qo'shsangiz, javob kuchliroq eshitiladi.</p>
+<details><summary>PL/SQL nima uchun kerak, SQL dan farqi nima?</summary>
+<p>SQL deklarativ va bitta buyruq: shart, sikl, o'zgaruvchi, xatolarni ushlash yo'q. PL/SQL Oracle ichidagi protsedur til: SQL ni o'z ichiga oladi va unga mantiq qo'shadi. Asosiy foydalari: biznes mantiq ma'lumot yonida, bitta chaqiruv bilan ko'p SQL bajariladi, ya'ni tarmoq aylanishlari kam; hamma ilova bir xil qoidani chaqiradi; huquq jadvalga emas, protseduraga beriladi; kod kompilyatsiya qilingan holda saqlanadi va bog'liqliklar kuzatiladi. Narxi: kod bazaga bog'lanadi, va PL/SQL bilan SQL orasida kontekst almashinuvi bor.</p></details>
+<details><summary>PL/SQL bloki qanday tuzilgan? Anonim blok va protsedura farqi?</summary>
+<p>DECLARE (ixtiyoriy), BEGIN (majburiy), EXCEPTION (ixtiyoriy), END. Anonim blok nomsiz, saqlanmaydi, har yuborilganda kompilyatsiya qilinadi (shared pool'da keshlanishi mumkin). Protsedura nomlangan, bazada kompilyatsiya qilingan holda saqlanadi, parametr oladi, huquq beriladi, boshqa koddan chaqiriladi, va unga bog'liq obyektlar kuzatiladi. Bloklar ichma-ich bo'ladi, ichki blokning o'z exception qismi bo'lishi mumkin.</p></details>
+<details><summary>%TYPE va %ROWTYPE nima va nega ularni ishlatish kerak?</summary>
+<p>%TYPE o'zgaruvchi tipini jadval ustuni yoki boshqa o'zgaruvchidan oladi, %ROWTYPE esa butun qator tuzilishini jadval, view yoki kursordan. Foydasi: ustun tipi yoki uzunligi o'zgarsa, kod qo'lda o'zgartirilmaydi, Oracle bog'liq obyektni qayta kompilyatsiya qiladi. Xatolar kamayadi (masalan, buffer too small). %ROWTYPE bilan butun qatorni bitta SELECT INTO ga olish va INSERT da <span class="num">VALUES v_qator</span> yozish mumkin.</p></details>
+<details><summary>SELECT INTO qanday xatolar beradi va ularni qanday hal qilasiz?</summary>
+<p>Qator topilmasa NO_DATA_FOUND, bittadan ko'p bo'lsa TOO_MANY_ROWS. Hal qilish holatga bog'liq: topilmaslik normal bo'lsa, ichki blokda <span class="num">WHEN NO_DATA_FOUND</span> bilan sukut qiymat berish; kalit bo'yicha qidiruvda TOO_MANY_ROWS ma'lumot xatosi, uni yashirmaslik kerak. Agregat bilan SELECT INTO (COUNT, MAX) NO_DATA_FOUND bermaydi. NO_DATA_FOUND ning yana bir o'ziga xosligi: SQL ichidan chaqirilgan funksiyada u ushlanmasa, so'rov xato bermay, NULL qaytaradi.</p></details>
+<details><summary>Kursor nima? Yashirin va oshkor kursor farqi?</summary>
+<p>Kursor bajarilgan so'rov natijasi ustidagi ko'rsatkich va unga ajratilgan xotira (PGA dagi kontekst va shared pool'dagi umumiy qism). Yashirin kursorni Oracle har bir DML va SELECT INTO uchun o'zi ochadi va yopadi, natijasini SQL%ROWCOUNT, SQL%FOUND bilan bilamiz. Oshkor kursorni CURSOR c IS bilan e'lon qilib OPEN, FETCH, CLOSE qilamiz, ko'p qatorli natija uchun. Atributlari %FOUND, %NOTFOUND, %ROWCOUNT, %ISOPEN. Eng qulay shakli kursorli FOR sikl: ochish, yopish va oxirni tekshirish avtomatik, 10g dan ichkarida to'plab o'qiydi.</p></details>
+<details><summary>Kursor OPEN qilingandan keyin boshqa sessiya ma'lumotni o'zgartirsa, FETCH nimani ko'radi?</summary>
+<p>OPEN paytidagi holatni. Oracle o'qish izchilligini ta'minlaydi: so'rov boshlangan paytdagi SCN bo'yicha, kerak bo'lsa undo dan bloklarning eski versiyasini tiklaydi. Kursor ochiq turgan vaqtda undo ma'lumoti ustidan yozib yuborilsa, ORA-01555 snapshot too old chiqadi. Shuning uchun juda uzoq ochiq turadigan kursorlar va sikl ichida COMMIT xavfli.</p></details>
+<details><summary>REF CURSOR nima va qachon kerak?</summary>
+<p>Kursorga havola o'zgaruvchisi: so'rov e'londa emas, OPEN FOR paytida beriladi, shuning uchun dinamik bo'lishi mumkin. Asosiy ishlatilishi: protseduradan natija to'plamini ilovaga qaytarish. Java'da <span class="num">CallableStatement</span> da <span class="num">OracleTypes.CURSOR</span> chiqish parametri sifatida ro'yxatdan o'tkaziladi va <span class="num">ResultSet</span> bo'lib o'qiladi. Kuchli REF CURSOR qaytaradigan tuzilish bilan e'lon qilinadi, kuchsizi (SYS_REFCURSOR) har qanday so'rov uchun. Uni yopish chaqiruvchi tomonning vazifasi.</p></details>
+<details><summary>Exception qanday tarqaladi? Ichki blokda ushlansa nima bo'ladi?</summary>
+<p>Xato chiqqan zahoti blokning qolgan kodi o'tkazib yuboriladi va shu blokning EXCEPTION qismi tekshiriladi. Mos WHEN bo'lsa, xato ushlanadi va boshqaruv shu blokdan keyingi buyruqqa o'tadi, ya'ni tashqi kod davom etadi. Bo'lmasa, xato tashqi blokka, keyin chaqiruvchi protseduraga, oxiri ilovaga ko'tariladi. DECLARE qismidagi xato (masalan, boshlang'ich qiymat sig'madi) o'sha blokning emas, tashqi blokning EXCEPTION qismida ushlanadi. EXCEPTION qismining ichidagi xato ham tashqariga ketadi.</p></details>
+<details><summary>RAISE va RAISE_APPLICATION_ERROR farqi?</summary>
+<p>RAISE nomlangan exception ni ko'taradi (o'zingiznikini yoki oldindan aniqlanganini), argumentsiz RAISE esa EXCEPTION qismida ushlangan xatoni qayta ko'taradi. RAISE_APPLICATION_ERROR(-20000...-20999, matn) ilovaga tushunarli kod va xabar bilan xato qaytaradi; Java'da SQLException bo'lib keladi. Biznes xatolari (mablag' yetarli emas, hisob bloklangan) uchun shu ishlatiladi, va kodlar paket konstantalarida yoki jadvalda tartib bilan saqlanadi.</p></details>
+<details><summary>WHEN OTHERS THEN NULL nega yomon? WHEN OTHERS ni qachon ishlatish mumkin?</summary>
+<p>U har qanday xatoni, kutilmaganini ham, yashiradi: chaqiruvchi muvaffaqiyat deb o'ylaydi, tranzaksiyada yarim bajarilgan o'zgarishlar qoladi, va diagnostika uchun iz yo'q. WHEN OTHERS faqat logga yozish (SQLCODE, SQLERRM, FORMAT_ERROR_BACKTRACE, parametrlar) va keyin RAISE bilan qayta ko'tarish uchun, odatda eng tashqi darajada yoki tizim chegarasida (masalan, navbatdagi xabarni qayta ishlashda: xatoni belgilab, keyingisiga o'tish).</p></details>
+<details><summary>Xatoni loglash uchun nega avtonom tranzaksiya kerak?</summary>
+<p>Xato ushlanib, logga yozilib, keyin qayta ko'tarilsa, chaqiruvchi ROLLBACK qiladi va log INSERT i ham bekor bo'ladi. PRAGMA AUTONOMOUS_TRANSACTION bilan yozilgan log protsedurasi o'z mustaqil tranzaksiyasida ishlaydi va o'zi COMMIT qiladi: log saqlanadi, asosiy tranzaksiya esa bekor qilinadi. Avtonom tranzaksiyani faqat loglash va audit kabi mustaqil ishlarga ishlatish kerak, biznes ma'lumot uchun emas.</p></details>
+<details><summary>PRAGMA EXCEPTION_INIT nima?</summary>
+<p>Nomsiz Oracle xato kodiga nom beradi, shunda uni WHEN da aniq ushlash mumkin: <span class="num">e_qulf EXCEPTION; PRAGMA EXCEPTION_INIT(e_qulf, -54);</span> va <span class="num">WHEN e_qulf THEN</span> (SELECT FOR UPDATE NOWAIT band qatorga urilganda). Shuningdek o'z RAISE_APPLICATION_ERROR kodingizga nom berib, uni boshqa paketda ushlash uchun ham ishlatiladi.</p></details>
+<details><summary>PLS_INTEGER va NUMBER farqi?</summary>
+<p>NUMBER o'nlik, 38 xonagacha aniq, dasturiy arifmetika bilan hisoblanadi. PLS_INTEGER 32 bitli butun son, protsessor arifmetikasi bilan, shuning uchun hisoblagich va indekslarda ancha tez; chegaradan oshsa xato. SIMPLE_INTEGER undan ham tez: NOT NULL va oshib ketish tekshirilmaydi. Pul summalari doim NUMBER, chunki o'nlik aniqlik kerak.</p></details>
+<details><summary>Bitta UPDATE nechta qatorni o'zgartirganini qanday bilasiz?</summary>
+<p>UPDATE dan darhol keyin SQL%ROWCOUNT. U oxirgi bajarilgan SQL ga tegishli, shuning uchun boshqa SQL dan oldin o'zgaruvchiga saqlash kerak. SQL%NOTFOUND yoki SQL%ROWCOUNT = 0 bo'lsa, masalan, hisob topilmagan yoki holati mos emas: RAISE_APPLICATION_ERROR bilan biznes xatosi qaytariladi. UPDATE qator topmasa, xato bermaydi: buni dasturchi o'zi tekshiradi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing. Kod yozish savollarida sintaksis ikkinchi darajali, mantiq muhim.</p>
+<ol class="check">
+  <li>Hisob raqami beriladi. Qoldiqni o'qing; hisob topilmasa 0, hisob bloklangan bo'lsa <span class="num">-20010</span> kodli xato qaytaradigan anonim blok yozing.</li>
+  <li>Quyidagining natijasi nima va nega: <span class="num">DECLARE v NUMBER; BEGIN IF v &lt;&gt; 5 THEN DBMS_OUTPUT.PUT_LINE('farqli'); ELSE DBMS_OUTPUT.PUT_LINE('teng'); END IF; END;</span></li>
+  <li>Oshkor kursor bilan va kursorli FOR sikl bilan bir xil ishni yozing: filialning ochiq hisoblari bo'yicha qoldiq jami. Qaysi biri yaxshi va nega? Bu ishni PL/SQL siz qanday qilasiz?</li>
+  <li>Protsedura ichida: <span class="num">UPDATE</span> muvaffaqiyatli, keyin <span class="num">INSERT</span> <span class="num">DUP_VAL_ON_INDEX</span> berdi va ushlanmadi. Chaqirgan Java kodi <span class="num">COMMIT</span> qilsa, UPDATE saqlanadimi?</li>
+  <li>Ish joyingizdagi kodda <span class="num">WHEN OTHERS</span> qanday ishlatilganini eslang. Qayerda u to'g'ri, qayerda xatoni yashiradi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>PL/SQL kompilyatsiyasi: interpretatsiya va native</summary>
+<p>PL/SQL kodi kompilyatsiyada «m-code» degan oraliq kodga aylanadi va PL/SQL virtual mashinasida bajariladi (Java baytkodiga o'xshash, Poydevor P0 7-dars). 9i dan native kompilyatsiya bor: kod mashina kodiga aylanadi va hisob-kitobga boy kodni tezlashtiradi; SQL ko'p kodda farq sezilmaydi. 10g dan optimallashtiruvchi kompilyator (<span class="num">PLSQL_OPTIMIZE_LEVEL</span>, sukut 2): ba'zi sikllarni o'zi qayta yozadi, masalan kursorli FOR siklni to'plab o'qishga.</p></details>
+<details><summary>DBMS_OUTPUT nega «oxirida» chiqadi</summary>
+<p><span class="num">DBMS_OUTPUT.PUT_LINE</span> ekranga yozmaydi: u sessiya xotirasidagi buferga yozadi. SQL*Plus yoki SQL Developer blok tugagandan keyin buferni o'qib, ko'rsatadi. Shuning uchun uzun jarayonning borishini u bilan kuzatib bo'lmaydi: buning uchun <span class="num">DBMS_APPLICATION_INFO.SET_MODULE</span> va <span class="num">SET_ACTION</span> (V$SESSION da ko'rinadi), <span class="num">V$SESSION_LONGOPS</span> yoki avtonom tranzaksiyali log jadvali.</p></details>
+<details><summary>Kompilyator ogohlantirishlari va PL/Scope</summary>
+<p><span class="num">ALTER SESSION SET PLSQL_WARNINGS = 'ENABLE:ALL'</span> dan keyin kompilyatsiya ogohlantirishlari: ishlatilmagan o'zgaruvchi, yetib bo'lmaydigan kod, WHEN OTHERS siz RAISE (PLW-06009), yashirin tip almashinuvi. PL/Scope (11g) esa kod ichidagi barcha identifikatorlar va 12c R2 dan SQL buyruqlari haqida ma'lumot yig'adi: «bu ustunni qaysi paketlar o'zgartiradi» degan savolga javob.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database PL/SQL Language Reference (19c, 23ai): Blocks, Data Types, Static SQL, Cursors, Exception Handling. Steven Feuerstein, «Oracle PL/SQL Programming» (O'Reilly). Tom Kyte, «Expert Oracle Database Architecture». Oracle Live SQL va «Practically Perfect PL/SQL» darslari.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> PL/SQL mantiqni ma'lumot yoniga olib keladi va tarmoq aylanishlarini kamaytiradi; uning narxi PL/SQL va SQL dvigatellari orasidagi kontekst almashinuvi. Blok DECLARE, BEGIN, EXCEPTION, END. Tiplarni %TYPE va %ROWTYPE bilan oling. SELECT INTO aynan bitta qator kutadi. Kursor natija ustidagi ko'rsatkich, natija OPEN paytida qotadi, FOR sikl eng xavfsiz shakl, REF CURSOR natijani Java'ga qaytaradi. Exception blokdan blokka ko'tariladi; aniq xatolarni ushlang, WHEN OTHERS faqat loglab qayta ko'tarish uchun.</p>
+  <p><strong>Keyingi dars.</strong> P4. Protsedura, funksiya, paket va triggerlar: parametr rejimlari, NOCOPY, spetsifikatsiya va tana, paket holati va ORA-04068, huquqlar (definer va invoker), trigger turlari, mutating table va compound trigger.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p2-analitik-funksiyalar.html">Oldingi: P2. Analitik funksiyalar</a><span>Keyingi: P4. Protsedura, paket, trigger (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'CallableStatement, connection pool', link: 'PL/SQL blok yoki protsedura chaqiradi' },
+    { title: 'PL/SQL dasturlar', sub: 'Blok, kursor, exception: P3–P5', ex: 'BEGIN ... EXCEPTION ... END;', link: 'ichida SQL bajaradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'SELECT ... INTO, UPDATE, MERGE', link: 'optimizatorga beriladi' },
+    { title: 'Optimizator va reja', sub: 'Parse, bind, reja, indeks: P6–P7', ex: 'EXPLAIN PLAN, INDEX RANGE SCAN', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'SELECT ... FOR UPDATE', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'segment, blok, partitsiya', link: '' }
+  ], [1], 'PL/SQL: ma\'lumot yonidagi mantiq');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor, cls) { S(svg, 'path', { d: d, 'class': 'arr' + (cls ? ' ' + cls : ''), 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+
+  // ---------- Ikki dvigatel ----------
+  (function () {
+    var svg = $('eng'), say = $('engSay'), cur = 0;
+    var V = [
+      { t: 'Ilovadan 6 ta SQL', rt: 6, cs: 0, app: ['SELECT qoldiq ...', 'IF qoldiq >= summa', 'UPDATE ... debet', 'UPDATE ... kredit', 'INSERT provodka', 'INSERT jurnal'], s: `Har buyruq tarmoq orqali alohida boradi va javobini kutadi: 6 ta borib-kelish. Shart (IF) ilovada: ekran, tungi batch va tashqi shlyuz har biri o'zinikini yozadi. Tarmoqdagi kechikish 1 ms bo'lsa, bitta to'lov 6 ms faqat kutish, million to'lovda 1,7 soat.` },
+      { t: 'Bitta PL/SQL chaqiruv', rt: 1, cs: 5, app: ['BEGIN', '  tolov.otkazish(:d, :k, :s);', 'END;'], s: `Ilova bitta blok yuboradi: bitta borib-kelish. Shart va 5 ta SQL server ichida, PL/SQL dvigateli ularni SQL dvigateliga ketma-ket uzatadi: 5 ta kontekst almashinuvi, har biri mikrosekundlar. Qoida bitta joyda yozilgan, hamma ilova uni chaqiradi.` },
+      { t: 'Sikl: 10 000 qator', rt: 1, cs: 20000, app: ['BEGIN', '  FOR r IN (SELECT ...) LOOP', '    UPDATE ... WHERE id = r.id;', '  END LOOP;', 'END;'], s: `Tarmoq bir marta, lekin sikl har qator uchun SQL dvigateliga boradi: o'qish va UPDATE, 10 000 qatorda taxminan 20 000 almashinuv. Har biri arzon, lekin yig'ilib soniyalarga aylanadi. Yechim: bitta UPDATE, yoki P5 dagi BULK COLLECT va FORALL.` }
+    ];
+    var setT = tabs('engT', V.map(function (v) { return v.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var v = V[cur]; setT(cur); svg.textContent = ''; marker(svg, 'enmk');
+      group(svg, 20, 20, 330, 220, 'Ilova (Java)');
+      v.app.forEach(function (l, i) { S(svg, 'text', { x: 40, y: 70 + i * 26, 'class': 'mono', style: 'white-space:pre' }, l); });
+      group(svg, 640, 20, 580, 220, 'Oracle server');
+      box(svg, 660, 70, 250, 120, 'PL/SQL dvigateli', 'IF, LOOP, o\'zgaruvchilar', cur ? 'on' : 'freed');
+      box(svg, 950, 70, 250, 120, 'SQL dvigateli', 'jadvallarni o\'qish, yozish', 'on');
+      var n = Math.min(v.rt, 6);
+      for (var i = 0; i < n; i++) { var y = 60 + i * 26; arrow(svg, 'enmk', 'M350 ' + y + 'H' + (cur ? 658 : 948), null); }
+      S(svg, 'text', { x: 495, y: 50, 'text-anchor': 'middle', 'class': 'lbl' }, 'tarmoq');
+      if (cur) { arrow(svg, 'enmk', 'M910 110H948'); arrow(svg, 'enmk', 'M948 150H912'); S(svg, 'text', { x: 930, y: 215, 'text-anchor': 'middle', 'class': 'lbl' }, 'kontekst almashinuvi'); }
+      box(svg, 20, 260, 580, 56, 'Tarmoq aylanishlari: ' + v.rt, cur ? 'bitta chaqiruv' : 'har SQL uchun alohida', v.rt > 1 ? 'bad' : 'on');
+      box(svg, 640, 260, 580, 56, 'Kontekst almashinuvlari: ' + v.cs.toLocaleString('ru-RU'), cur === 2 ? 'har qator uchun ikki marta' : (cur ? 'har SQL uchun bir marta' : 'PL/SQL ishlatilmadi'), v.cs > 100 ? 'bad' : (cur ? 'live' : 'freed'));
+      say.textContent = v.s;
+    }
+    draw();
+  })();
+
+  // ---------- Kursor hayoti ----------
+  (function () {
+    var svg = $('cur'), say = $('curSay'), st = 0;
+    var R = [['20208...001', 500], ['20208...002', 0], ['20208...003', 1200]];
+    var steps = [
+      { t: 'DECLARE', open: false, pos: -1, found: null, s: `CURSOR c IS SELECT raqam, qoldiq FROM hisoblar WHERE filial = '00450'. Bu faqat e'lon: so'rov hali bajarilmagan, xotira ajratilmagan. %ISOPEN = FALSE. Ochilmagan kursordan FETCH qilsangiz INVALID_CURSOR.` },
+      { t: 'OPEN', open: true, pos: -1, found: null, s: `OPEN c: so'rov parse qilinadi, bind qiymatlar bog'lanadi va bajariladi. Natija shu paytdagi holat bo'yicha aniqlanadi (o'qish izchilligi). Ko'rsatkich birinchi qatordan oldin turadi. %FOUND va %NOTFOUND hali NULL: hech narsa o'qilmagan. %ROWCOUNT = 0.` },
+      { t: 'FETCH 1', open: true, pos: 0, found: true, s: `FETCH c INTO v_raqam, v_qoldiq: birinchi qator o'zgaruvchilarga ko'chdi. %FOUND = TRUE, %ROWCOUNT = 1. Endi shu qator ustida ishlash mumkin.` },
+      { t: 'FETCH 2', open: true, pos: 1, found: true, s: `Ikkinchi qator. %ROWCOUNT = 2. FETCH faqat oldinga yuradi: orqaga qaytish yoki qatorni qayta o'qish yo'q. Qayta kerak bo'lsa, kursor yopilib, qayta ochiladi (va natija o'zgargan bo'lishi mumkin).` },
+      { t: 'FETCH 3', open: true, pos: 2, found: true, s: `Uchinchi, oxirgi qator. %ROWCOUNT = 3. Kursor hali oxirga yetganini bilmaydi: buni faqat keyingi FETCH aytadi.` },
+      { t: 'FETCH 4', open: true, pos: 3, found: false, s: `Qator qolmadi: %NOTFOUND = TRUE. O'zgaruvchilarda oldingi qator qiymatlari qoladi, ular tozalanmaydi! Shuning uchun siklda EXIT WHEN c%NOTFOUND FETCH dan darhol keyin, qatorni ishlatishdan OLDIN yoziladi. Aks holda oxirgi qator ikki marta qayta ishlanadi.` },
+      { t: 'CLOSE', open: false, pos: 3, found: null, s: `CLOSE c: xotira bo'shatiladi, %ISOPEN = FALSE. Yopilgan kursorning %ROWCOUNT iga murojaat INVALID_CURSOR beradi. Yopilmagan kursorlar ORA-01000 ga olib keladi. Kursorli FOR sikl bularning hammasini o'zi qiladi, xato bo'lganda ham yopadi.` }
+    ];
+    var setT = tabs('curT', steps.map(function (s, i) { return (i + 1) + '. ' + s.t; }), function (i) { st = i; draw(); });
+    function b(v) { return v === null ? 'NULL' : (v ? 'TRUE' : 'FALSE'); }
+    function draw() {
+      var s = steps[st]; setT(st); svg.textContent = ''; marker(svg, 'cumk');
+      var names = ['DECLARE', 'OPEN', 'FETCH', 'CLOSE'], act = st === 0 ? 0 : st === 1 ? 1 : st === 6 ? 3 : 2;
+      names.forEach(function (n, i) { box(svg, 20, 20 + i * 82, 220, 60, n, ['e\'lon, so\'rov yo\'q', 'bajarish, natijani qotirish', 'bitta qator olish', 'xotirani bo\'shatish'][i], i === act ? 'on' : (i < act ? 'live' : '')); if (i < 3) arrow(svg, 'cumk', 'M130 ' + (80 + i * 82) + 'V' + (100 + i * 82)); });
+      S(svg, 'path', { d: 'M240 214h24v-40h-24', 'class': 'arr', 'marker-end': 'url(#cumk)' }); S(svg, 'text', { x: 272, y: 198, 'class': 'lbl' }, 'qayta');
+      group(svg, 330, 20, 450, 320, 'Natija to\'plami (OPEN paytidagi)');
+      if (st === 0) S(svg, 'text', { x: 350, y: 90, 'class': 'sub' }, 'Hali yo\'q: so\'rov bajarilmagan.');
+      else {
+        R.forEach(function (r, i) { S(svg, 'rect', { x: 380, y: 70 + i * 50, width: 380, height: 40, 'class': 'box' + (s.pos === i ? ' on' : (s.pos > i ? ' freed' : '')) }); S(svg, 'text', { x: 396, y: 96 + i * 50, 'class': 'mono' }, r[0] + '   ' + r[1]); });
+        S(svg, 'rect', { x: 380, y: 220, width: 380, height: 40, 'class': 'box ' + (s.pos === 3 ? 'live' : 'freed') }); S(svg, 'text', { x: 396, y: 246, 'class': 'sub' }, 'oxiri: qator yo\'q');
+        if (st < 6) { var py = s.pos < 0 ? 52 : 90 + s.pos * 50; S(svg, 'text', { x: 346, y: py + 4, 'class': 'val' }, '▶'); }
+        S(svg, 'text', { x: 350, y: 300, 'class': 'sub' }, st === 6 ? 'Kursor yopildi, xotira bo\'shatildi.' : 'Ko\'rsatkich faqat oldinga yuradi.');
+      }
+      group(svg, 820, 20, 400, 320, 'Atributlar');
+      var rc = s.pos < 0 ? 0 : Math.min(s.pos + 1, 3);
+      var at = [['c%ISOPEN', b(s.open)], ['c%FOUND', s.open || st === 6 ? (st === 6 ? 'xato' : b(s.found)) : 'xato'], ['c%NOTFOUND', s.open || st === 6 ? (st === 6 ? 'xato' : b(s.found === null ? null : !s.found)) : 'xato'], ['c%ROWCOUNT', s.open ? String(rc) : 'xato']];
+      if (st === 0) { at[1][1] = 'xato'; at[2][1] = 'xato'; at[3][1] = 'xato'; }
+      at.forEach(function (a, i) { S(svg, 'text', { x: 840, y: 80 + i * 56, 'class': 'mono' }, a[0]); S(svg, 'text', { x: 1020, y: 80 + i * 56, 'class': 'val' }, a[1]); });
+      S(svg, 'text', { x: 840, y: 310, 'class': 'sub' }, '«xato»: ochilmagan kursorda INVALID_CURSOR');
+      say.textContent = s.s;
+    }
+    draw();
+  })();
+
+  // ---------- Exception tarqalishi ----------
+  (function () {
+    var svg = $('exc'), say = $('excSay'), cur = 0;
+    var C = [
+      { t: 'Ichki blokda ushlandi', inner: 'WHEN NO_DATA_FOUND THEN v := 0;', outer: 'WHEN OTHERS THEN log; RAISE;', path: ['err', 'ih', 'after'], res: 'Tashqi kod davom etdi', bad: false, s: `Ichki blokdagi SELECT INTO qator topmadi. Ichki blokning qolgan kodi o'tkazildi, uning EXCEPTION qismida mos WHEN bor: v := 0. Ichki blok normal tugadi va tashqi blokdagi keyingi buyruq bajarildi. Tashqi blok xato haqida bilmaydi ham.` },
+      { t: 'Tashqi blokka ko\'tarildi', inner: 'WHEN TOO_MANY_ROWS THEN ...', outer: 'WHEN NO_DATA_FOUND THEN v := 0;', path: ['err', 'oh'], res: 'Tashqi blok ushladi', bad: false, s: `Ichki blokda NO_DATA_FOUND uchun WHEN yo'q. Xato tashqi blokka ko'tarildi: tashqi blokning ichki blokdan keyingi kodi ham o'tkazildi, tashqi EXCEPTION qismi uni ushladi. Butun blok normal tugadi, lekin «keyingi buyruq» bajarilmadi.` },
+      { t: 'Hech kim ushlamadi', inner: 'WHEN TOO_MANY_ROWS THEN ...', outer: 'WHEN ZERO_DIVIDE THEN ...', path: ['err', 'app'], res: 'ORA-01403 ilovaga', bad: true, s: `Hech bir darajada mos WHEN yo'q. Xato chaqirgan Java ilovaga SQLException bo'lib bordi: ORA-01403: no data found va ORA-06512 qatorlari (qaysi paket, qaysi qator). Oracle blok boshlanishidan oldingi holatga qaytardi: blok ichidagi o'zgarishlar bekor.` },
+      { t: 'WHEN OTHERS THEN NULL', inner: 'WHEN OTHERS THEN NULL;', outer: 'WHEN OTHERS THEN log; RAISE;', path: ['err', 'ih', 'after'], res: 'Xato yashirildi', bad: true, s: `Ichki blok har qanday xatoni yutib yubordi. Tashqi kod davom etdi, xuddi hech narsa bo'lmagandek. Ichki blokdagi xatodan oldingi o'zgarishlar tranzaksiyada qoldi va keyingi COMMIT ularni saqlaydi. Tashqi blokdagi to'g'ri yozilgan log hech qachon ishlamaydi.` },
+      { t: 'Log va RAISE', inner: 'WHEN TOO_MANY_ROWS THEN ...', outer: 'WHEN OTHERS THEN log_xato; RAISE;', path: ['err', 'oh', 'app'], res: 'Log yozildi, xato ilovaga', bad: false, s: `To'g'ri naqsh. Tashqi WHEN OTHERS xatoni ushladi, log_xato (avtonom tranzaksiya bilan) SQLCODE, SQLERRM va FORMAT_ERROR_BACKTRACE ni yozdi, keyin RAISE; uni o'zgartirmasdan qayta ko'tardi. Ilova xatoni oladi va ROLLBACK qiladi, log esa saqlanib qoladi.` }
+    ];
+    var setT = tabs('excT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur], p = c.path; setT(cur); svg.textContent = ''; marker(svg, 'exmk');
+      group(svg, 20, 20, 820, 380, 'Tashqi blok (protsedura)');
+      S(svg, 'text', { x: 40, y: 70, 'class': 'mono' }, 'BEGIN  update_1;');
+      group(svg, 40, 86, 560, 176, 'Ichki blok');
+      box(svg, 60, 118, 520, 58, 'SELECT ... INTO v ...', 'NO_DATA_FOUND shu yerda', 'on');
+      box(svg, 60, 186, 520, 58, 'EXCEPTION  ' + c.inner, p.indexOf('ih') >= 0 ? 'ushlandi' : 'mos WHEN yo\'q', p.indexOf('ih') >= 0 ? (cur === 3 ? 'bad' : 'live') : 'freed');
+      box(svg, 40, 272, 560, 42, 'keyingi_buyruq;', '', p.indexOf('after') >= 0 ? 'live' : 'freed');
+      box(svg, 40, 326, 780, 58, 'EXCEPTION  ' + c.outer, p.indexOf('oh') >= 0 ? 'ushlandi' : 'mos WHEN yo\'q yoki yetib kelmadi', p.indexOf('oh') >= 0 ? 'live' : 'freed');
+      box(svg, 900, 140, 320, 90, 'Java ilova', c.res, p.indexOf('app') >= 0 ? (c.bad ? 'bad' : 'live') : (c.bad ? 'bad' : 'on'));
+      if (p.indexOf('ih') >= 0) arrow(svg, 'exmk', 'M590 147H600V215H582');
+      if (p.indexOf('after') >= 0) arrow(svg, 'exmk', 'M320 262V270');
+      if (p.indexOf('oh') >= 0) arrow(svg, 'exmk', 'M600 160H620V324', 'ko\'tarildi', 664, 240);
+      if (p.indexOf('app') >= 0) arrow(svg, 'exmk', p.indexOf('oh') >= 0 ? 'M820 355H860V200H898' : 'M600 160H860V190H898', p.indexOf('oh') >= 0 ? 'RAISE;' : 'ushlanmadi', 870, p.indexOf('oh') >= 0 ? 260 : 150);
+      if (cur === 1) arrow(svg, 'exmk', 'M820 355H860V200H898', 'normal tugadi', 868, 120, 'middle');
+      say.textContent = c.s; say.className = 'say' + (c.bad ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoPl', [
+    { name: `PL/SQL 1.0`, years: `1988–1991`, art: `<rect x="20" y="24" width="80" height="52" rx="3"/><path d="M30 38h40M30 50h56M30 62h30" class="acc"/>`,
+      how: `Oracle 6 bilan birga chiqadi. Ada uslubidagi bloklar, o'zgaruvchilar, sikllar va exceptionlar. Asosan anonim bloklar va SQL*Forms ekranlari ichida ishlatiladi.`,
+      better: `Bir nechta SQL bitta blokda, bitta tarmoq aylanishida. Mantiq SQL bilan bir tiplarda.`,
+      pain: `Kodni bazada saqlab bo'lmaydi: har ilova blokni o'zi yuboradi.`,
+      ex: `Nomi: Procedural Language extensions to SQL.` },
+    { name: `Oracle 7: saqlanadigan kod`, years: `1992`, art: `<ellipse cx="60" cy="30" rx="36" ry="10"/><path d="M24 30v40c0 6 16 10 36 10s36-4 36-10V30"/><path d="M40 52h40" class="acc"/>`,
+      how: `PL/SQL 2.0: protsedura, funksiya, paket va triggerlar bazada kompilyatsiya qilingan holda saqlanadi. Bog'liqliklar lug'atda kuzatiladi.`,
+      better: `Biznes qoidasi bitta joyda, hamma ilova chaqiradi. Huquq jadvalga emas, paketga beriladi. Bank yadro tizimlari aynan shu imkoniyat ustiga qurila boshlaydi.`,
+      pain: `Katta hajmda qatorma-qator ishlash sekin, dinamik SQL faqat DBMS_SQL paketi bilan va noqulay.`,
+      ex: `Triggerlar bilan butunlikni ta'minlash va auditni bazaga ko'chirish.` },
+    { name: `8 va 8i: hajm va dinamika`, years: `1997–1999`, art: `<rect x="14" y="30" width="26" height="40"/><rect x="47" y="30" width="26" height="40"/><rect x="80" y="30" width="26" height="40"/><path d="M14 80h92" class="acc"/>`,
+      how: `Kolleksiyalar (nested table, VARRAY), obyekt tiplari. 8i: EXECUTE IMMEDIATE (native dinamik SQL), BULK COLLECT va FORALL, avtonom tranzaksiya, invoker huquqlari (AUTHID CURRENT_USER), Java bazaning ichida.`,
+      better: `Million qatorlar to'plam bilan qayta ishlanadi, kontekst almashinuvi keskin kamayadi. Log va audit asosiy tranzaksiyadan mustaqil.`,
+      pain: `Xatoning qaysi qatorda chiqqanini aniqlash qiyin.`,
+      ex: `P5 darsining hamma asosiy vositalari shu davrdan.` },
+    { name: `9i–10g: tezlik va diagnostika`, years: `2001–2005`, art: `<path d="M20 70l20-30 20 15 20-35 20 20" class="acc"/><path d="M14 80h92"/>`,
+      how: `9i: CASE, native kompilyatsiya. 10g: optimallashtiruvchi kompilyator, kompilyator ogohlantirishlari, FORMAT_ERROR_BACKTRACE, FORALL da INDICES OF va VALUES OF, kursorli FOR siklning avtomatik to'plab o'qishi.`,
+      better: `Xato qatorini log aniq ko'rsatadi, oddiy kod ham avtomatik tezlashadi.`,
+      pain: `Mutating table bilan kurashish uchun paket o'zgaruvchilari va uchta trigger kerak edi.`,
+      ex: `DBMS_SCHEDULER (10g) DBMS_JOB o'rniga.` },
+    { name: `11g–12c: qulayliklar`, years: `2007–2014`, art: `<circle cx="60" cy="50" r="30"/><path d="M45 50l10 10 20-22" class="acc"/>`,
+      how: `11g: CONTINUE, SIMPLE_INTEGER, compound trigger, funksiya natija keshi, PL/Scope, ketma-ketlikni to'g'ridan-to'g'ri ishlatish (v := seq.NEXTVAL). 12c: WITH ichida funksiya, ACCESSIBLE BY, UTL_CALL_STACK, BOOLEAN ni SQL ga bind qilish, PL/SQL tiplarini TABLE() da ishlatish.`,
+      better: `Kod qisqaradi, paketlar orasidagi kirish nazorat qilinadi, xato steki dasturdan o'qiladi.`,
+      pain: `Eski kod bazasi yangi imkoniyatlarni sekin qabul qiladi.`,
+      ex: `19c bugun bank tizimlarida eng ko'p uchraydigan versiya.` },
+    { name: `23ai va 26ai`, years: `2023–2025`, art: `<rect x="20" y="20" width="80" height="60" rx="3"/><path d="M34 40h52M34 54h30" class="acc"/><circle cx="84" cy="60" r="6" class="lit"/>`,
+      how: `SQL da BOOLEAN turi, SQL Domains, SQL Transpiler (oddiy PL/SQL funksiyalarni SQL ifodaga aylantirish), JSON bilan ishlash kengaygan, JavaScript ham baza ichida (MLE).`,
+      better: `SQL dan PL/SQL funksiya chaqirishning narxi kamayadi, tiplar SQL va PL/SQL da bir xillashadi.`,
+      pain: `Faqat yangi bazalarda.`,
+      ex: `Suhbatda versiyani so'rab oling: ko'p narsa 19c chegarasida qoladi.` }
+  ]);
+})();
+</script>
+</body>
+</html>
