@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P4. Protsedura, paket, trigger</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P4. Protsedura, funksiya, paket va triggerlar: spec va body, paket holati, mutating table, compound trigger</h1>
+<p class="lead">Savol: kodni bazada qanday saqlash, qayta ishlatish va himoya qilish mumkin? Nega Oracle paketni ikki qismga bo'ladi, sessiyada paket o'zgaruvchisi qayerda yashaydi, va trigger o'z jadvalini o'qiganda nega xato beradi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Saqlanadigan dasturlar</strong> (stored program units): bazada nom bilan, kompilyatsiya qilingan holda saqlanadigan PL/SQL bloklari. To'rt asosiy turi: <strong>protsedura</strong> (ish bajaradi), <strong>funksiya</strong> (qiymat qaytaradi), <strong>paket</strong> (ularning nomlangan to'plami, umumiy o'zgaruvchilar bilan) va <strong>trigger</strong> (hodisada o'zi ishga tushadigan blok).</p>
+    <p>O'xshatish: paket bu bank bo'limi. Spetsifikatsiya bu mijozlar zalidagi oyna: qaysi xizmatlar borligi va nima talab qilinishi yozilgan. Tana bu orqa ofis: xizmat qanday bajarilishi, ichki daftarlar, xodimlar. Orqa ofisdagi tartib o'zgarsa, mijoz buni sezmaydi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Bank yadro tizimida hamma narsa paketda:</strong> to'lov, kredit, depozit, karta modullarining har biri o'z paketlari (API, ichki mantiq, yordamchilar) bilan. Ekran yoki tashqi tizim faqat API paketini chaqiradi.</li>
+      <li><strong>Triggerlar:</strong> audit (kim, qachon o'zgartirdi), tarix jadvalini to'ldirish, kalit qiymatini berish, oddiy tekshiruvlar.</li>
+      <li><strong>Suhbatda:</strong> «protsedura va funksiya farqi», «nega paket», «mutating table nima va qanday hal qilinadi», «ORA-04068» klassik savollar.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>protsedura va funksiya, parametr rejimlari, <span class="num">NOCOPY</span>, SQL dan chaqiriladigan funksiya talablari;</li>
+      <li>paket spetsifikatsiyasi va tanasi, bog'liqliklar va <span class="num">INVALID</span>, paket holati, <span class="num">ORA-04068</span>;</li>
+      <li>definer va invoker huquqlari;</li>
+      <li>trigger turlari, bajarilish tartibi, <span class="num">:NEW</span> va <span class="num">:OLD</span>, mutating table, compound trigger.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, PL/SQL qavati ajratilgan"></svg></div>
+  <figcaption>Bu dars ham PL/SQL qavatida: endi bloklar nom oladi va bazada yashaydi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Nega anonim blok yetmadi: saqlash, qayta ishlatish, huquq</li>
+      <li>Protsedura, funksiya, parametrlar (<span class="num">IN</span>, <span class="num">OUT</span>, <span class="num">IN OUT</span>, sukut qiymat, nomli chaqiruv)</li>
+      <li>SQL da funksiya: <span class="num">DETERMINISTIC</span>, <span class="num">RESULT_CACHE</span>, <span class="num">PRAGMA UDF</span>, DML taqiqi</li>
+      <li>Paket: spec, body, private qism, ishga tushirish bloki, overloading, holat, <span class="num">SERIALLY_REUSABLE</span></li>
+      <li>Bog'liqliklar, <span class="num">INVALID</span>, qayta kompilyatsiya, <span class="num">ORA-04068</span></li>
+      <li><span class="num">AUTHID DEFINER</span> va <span class="num">CURRENT_USER</span>, <span class="num">ACCESSIBLE BY</span></li>
+      <li>Triggerlar: DML (BEFORE, AFTER, ROW, STATEMENT), <span class="num">INSTEAD OF</span>, DDL va tizim triggerlari, compound, <span class="num">FOLLOWS</span></li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Kolleksiya parametrlari va <span class="num">BULK</span>: P5-darsda</li>
+      <li>Paket xotirasi (UGA, PGA, shared pool) ichkaridan: P6-darsda</li>
+      <li>Triggerdagi avtonom tranzaksiya va qulflar: P8-darsda</li>
+      <li><span class="num">DBMS_SCHEDULER</span> va joblar: P11-darsda qisqacha</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Har ilova o'z nusxasini yuboradi</h3>
+<p>PL/SQL 1.0 da (P3) faqat anonim bloklar bor edi. Ular mantiqni bazaga yaqinlashtirdi, lekin uchta muammo qoldi.</p>
+<ul>
+  <li><strong>Kod ilovada yashaydi.</strong> To'lov o'tkazish bloki operator ekranida ham, tungi batch'da ham, filial dasturida ham alohida nusxa. Bittasida qoida o'zgarsa, qolganlari eski qoida bilan ishlaydi.</li>
+  <li><strong>Har safar kompilyatsiya.</strong> Blok har yuborilganda qayta tahlil qilinadi.</li>
+  <li><strong>Huquq jadvalga beriladi.</strong> Ilova blok ichidagi UPDATE ni bajarishi uchun foydalanuvchiga jadvalga to'g'ridan-to'g'ri yozish huquqi kerak. U endi istagan UPDATE ni ham yozishi mumkin.</li>
+</ul>
+<p>Oracle 7 (1992) javob berdi: nomlangan protsedura va funksiyalar bazada saqlanadi, huquq ularga beriladi (<span class="num">GRANT EXECUTE</span>), jadvalga emas. Lekin minglab protseduralar bitta tekis ro'yxatda yangi muammo tug'dirdi: qaysi biri ichki yordamchi, qaysi biri tashqi interfeys? Bittasining parametri o'zgarsa, nechta obyekt buziladi? Shuning uchun Ada'dan yana bir g'oya olindi: <strong>paket</strong>, interfeys va amalga oshirish ajratilgan modul. Va «har UPDATE dan keyin audit yozilsin» kabi qoidalarni hech bir ilova unutmasligi uchun <strong>trigger</strong>.</p>
+
+<h3><span class="part">2. Ichkarida</span>Saqlanadigan dasturlar qanday ishlaydi</h3>
+
+<p class="beat">Protsedura va funksiya</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE OR REPLACE PROCEDURE otkazish (
+  p_debet   IN  hisoblar.raqam%TYPE,
+  p_kredit  IN  hisoblar.raqam%TYPE,
+  p_summa   IN  NUMBER,
+  p_izoh    IN  VARCHAR2 DEFAULT NULL,      -- sukut qiymat: chaqiruvda tushirib qoldirish mumkin
+  p_lead_id OUT NUMBER                      -- natija chaqiruvchiga qaytadi
+) IS
+BEGIN
+  ...
+END otkazish;
+
+CREATE OR REPLACE FUNCTION komissiya (p_summa NUMBER, p_tarif NUMBER) RETURN NUMBER
+  DETERMINISTIC IS                          -- bir xil kirishga doim bir xil natija
+BEGIN
+  RETURN ROUND(p_summa * p_tarif / 100, 2);
+END;
+
+-- nomli chaqiruv: tartib muhim emas, o'qish oson
+otkazish(p_debet =&gt; v_d, p_kredit =&gt; v_k, p_summa =&gt; 1000, p_lead_id =&gt; v_id);</pre>
+<ul>
+  <li><strong>Protsedura</strong> amal bajaradi va natijani <span class="num">OUT</span> parametrlar orqali beradi. Mustaqil buyruq sifatida chaqiriladi.</li>
+  <li><strong>Funksiya</strong> doim bitta qiymat qaytaradi (<span class="num">RETURN</span>) va ifoda ichida ishlatiladi: PL/SQL da ham, SQL da ham (<span class="num">SELECT komissiya(summa, 0.5) FROM tolovlar</span>). <span class="num">RETURN</span> ga yetmasdan tugasa: <span class="num">ORA-06503: function returned without value</span>.</li>
+  <li><strong>SQL dan chaqiriladigan funksiya</strong> jadvalni o'zgartira olmaydi (<span class="num">ORA-14551: cannot perform a DML operation inside a query</span>), <span class="num">COMMIT</span> qila olmaydi, va parametr hamda qaytish tiplari SQL tiplari bo'lishi kerak (23ai gacha <span class="num">BOOLEAN</span> emas). Har qator uchun chaqiriladi, va har chaqiruv SQL dan PL/SQL ga kontekst almashinuvi.</li>
+  <li>SQL dagi funksiyani tezlashtirish: <span class="num">DETERMINISTIC</span> (bir so'rov ichida takror qiymatlar uchun natijani eslab qolishga ruxsat), <span class="num">RESULT_CACHE</span> (natija hamma sessiyalar uchun umumiy keshda, ma'lumot o'zgarsa tozalanadi), <span class="num">PRAGMA UDF</span> (12c: SQL dan chaqirishga moslab kompilyatsiya), skalyar subquery ichiga o'rash (<span class="num">(SELECT f(x) FROM dual)</span>: Oracle natijani keshlaydi), yoki funksiyani umuman olib tashlab, mantiqni JOIN ga aylantirish.</li>
+</ul>
+
+<p class="beat">Parametr rejimlari va NOCOPY</p>
+<p>Parametr <strong>rejimi</strong> qiymat qaysi tomonga oqishini belgilaydi. <span class="num">IN</span> (sukut): faqat ichkariga, protsedura uni o'zgartira olmaydi, havola bo'yicha uzatiladi, ya'ni tez. <span class="num">OUT</span>: faqat tashqariga, protsedura boshida <span class="num">NULL</span>. <span class="num">IN OUT</span>: ikkala tomonga. <span class="num">OUT</span> va <span class="num">IN OUT</span> sukut bo'yicha <strong>nusxa bilan</strong> uzatiladi: protsedura nusxa ustida ishlaydi, va faqat muvaffaqiyatli tugaganda nusxa chaqiruvchining o'zgaruvchisiga ko'chiriladi. Katta kolleksiya uchun bu nusxalash qimmat, shuning uchun <span class="num">NOCOPY</span> «havola bilan uzat» deb so'raydi. Tanlang:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="prm" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Chaqiruvchi o'zgaruvchisi va protsedura parametri orasida qiymat qanday uzatiladi"></svg></div>
+  <figcaption>Chapda chaqiruvchi blokdagi o'zgaruvchi, o'ngda protsedura ichidagi parametr. Strelkalar qiymat qachon va qaysi tomonga ko'chishini ko'rsatadi. Pastda protsedura xato bilan tugasa, chaqiruvchida nima qoladi.</figcaption>
+  <div class="evo-tabs" id="prmT" style="margin-top:0.9rem"></div>
+  <p class="say" id="prmSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Paket: spetsifikatsiya va tana</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE OR REPLACE PACKAGE tolov IS                 -- SPEC: tashqariga ko'rinadigan hamma narsa
+  e_mablag EXCEPTION;
+  PRAGMA EXCEPTION_INIT(e_mablag, -20010);
+  PROCEDURE otkazish (p_debet VARCHAR2, p_kredit VARCHAR2, p_summa NUMBER);
+  FUNCTION  qoldiq   (p_hisob VARCHAR2) RETURN NUMBER;
+END tolov;
+
+CREATE OR REPLACE PACKAGE BODY tolov IS            -- BODY: amalga oshirish
+  g_chaqiruvlar PLS_INTEGER := 0;                  -- private, sessiya bo'yi yashaydi
+  PROCEDURE tekshir (p_hisob VARCHAR2) IS ... END; -- private: specda yo'q, tashqaridan ko'rinmaydi
+  PROCEDURE otkazish (...) IS BEGIN tekshir(p_debet); ... g_chaqiruvlar := g_chaqiruvlar + 1; END;
+  FUNCTION  qoldiq (...) RETURN NUMBER IS ... END;
+BEGIN                                              -- ishga tushirish bloki: sessiyada birinchi murojaatda bir marta
+  g_chaqiruvlar := 0;
+END tolov;</pre>
+<p>Paket nima beradi:</p>
+<ul>
+  <li><strong>Interfeys va yashirish.</strong> Specda e'lon qilingan narsa public, faqat bodyda bo'lgani private. Ichki yordamchini hech kim tashqaridan chaqira olmaydi, shuning uchun uni bemalol o'zgartirish mumkin.</li>
+  <li><strong>Bog'liqliklarni uzish.</strong> Paketni chaqiradigan obyektlar faqat specga bog'liq. Body o'zgarsa (xato tuzatildi, mantiq o'zgardi), chaqiruvchilar <span class="num">VALID</span> qoladi. Spec o'zgarsa, ular <span class="num">INVALID</span> bo'ladi va keyingi chaqiruvda qayta kompilyatsiya qilinadi. Minglab paketli tizimda bu juda muhim.</li>
+  <li><strong>Sessiya holati.</strong> Paket darajasidagi o'zgaruvchilar (spec yoki body boshida) sessiya bo'yi yashaydi: har sessiyaning o'z nusxasi bor. Kesh, sozlamalar, hisoblagichlar uchun.</li>
+  <li><strong>Yuklash.</strong> Paketning birinchi chaqiruvida butun paket xotiraga yuklanadi, keyingi chaqiruvlar tez.</li>
+  <li><strong>Overloading.</strong> Bitta paketda bir xil nomli, lekin parametrlari har xil protseduralar: <span class="num">qoldiq(p_hisob VARCHAR2)</span> va <span class="num">qoldiq(p_hisob_id NUMBER)</span>.</li>
+</ul>
+<p>Pastdagi chizmada ikki sessiya bitta paketni ishlatadi. Holatni tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="pkg" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Paket spetsifikatsiyasi, tanasi, chaqiruvchi obyektlar va sessiyalardagi paket holati"></svg></div>
+  <figcaption>O'rtada paket: spec (tashqi oyna) va body (ichki qism). Chapda uni chaqiradigan obyektlar va ularning holati. O'ngda ikki sessiya va ulardagi paket o'zgaruvchisi.</figcaption>
+  <div class="evo-tabs" id="pkgT" style="margin-top:0.9rem"></div>
+  <p class="say" id="pkgSay" aria-live="polite"></p>
+</figure>
+<p><span class="num">ORA-04068: existing state of packages has been discarded</span> prodda o'rnatishdan keyin eng ko'p uchraydigan xato. Sabab: sessiya paket o'zgaruvchilarini xotirada ushlab turibdi, va shu paytda paket qayta kompilyatsiya qilindi. Oracle eski holatni yangi kod bilan birga ishlata olmaydi, holatni tashlaydi va sessiyaga xato beradi. Ikkinchi chaqiruv odatda ishlaydi (holat qaytadan yaratiladi), shuning uchun connection pool'li Java ilovalarda «bir marta xato, keyin ishlaydi» ko'rinadi. Yo'llari: o'rnatishni ish vaqtidan tashqari qilish; holatsiz paketlar (paket o'zgaruvchilari yo'q yoki faqat <span class="num">CONSTANT</span>: Oracle 11g R2 dan konstantali paketni holatsiz deb hisoblaydi); <span class="num">PRAGMA SERIALLY_REUSABLE</span> (holat faqat bitta chaqiruv davomida); Edition-Based Redefinition (11g R2): yangi kod alohida «nashr»da, eski sessiyalar eskisini ishlatib turadi.</p>
+
+<p class="beat">Huquqlar: kimning nomidan bajariladi</p>
+<ul>
+  <li><strong><span class="num">AUTHID DEFINER</span></strong> (sukut): dastur egasining huquqlari bilan bajariladi. Foydalanuvchiga faqat <span class="num">GRANT EXECUTE ON tolov TO operator</span> beriladi, jadvallarga emas. U jadvalga faqat paket ruxsat bergan yo'l bilan yoza oladi. Bank tizimlarining himoyasi shu modelga quriladi. Nozik joy: definer dasturida rollar orqali berilgan huquqlar ishlamaydi, egaga to'g'ridan-to'g'ri <span class="num">GRANT</span> kerak.</li>
+  <li><strong><span class="num">AUTHID CURRENT_USER</span></strong> (invoker): chaqirgan foydalanuvchining huquqlari va sxemasi bilan. Umumiy yordamchi kodlar uchun: bir xil kod har sxemada o'z jadvallari bilan ishlaydi.</li>
+  <li><strong><span class="num">ACCESSIBLE BY (paket_api)</span></strong> (12c): bu paketni faqat sanab o'tilgan dasturlar chaqira oladi. Ichki qatlamni tashqi chaqiruvlardan himoya qilish uchun.</li>
+</ul>
+
+<p class="beat">Trigger: hodisaga avtomatik javob</p>
+<p><strong>Trigger</strong> bu bazadagi hodisa yuz berganda Oracle o'zi ishga tushiradigan nomlangan blok. Uni chaqirib bo'lmaydi va u parametr olmaydi. Turlari:</p>
+<ul>
+  <li><strong>DML trigger</strong>: jadvalda <span class="num">INSERT</span>, <span class="num">UPDATE</span> (ma'lum ustunlar: <span class="num">UPDATE OF qoldiq</span>), <span class="num">DELETE</span> bo'lganda. Vaqti: <span class="num">BEFORE</span> yoki <span class="num">AFTER</span>. Darajasi: <strong>statement</strong> (buyruq uchun bir marta, nechta qator o'zgarishidan qat'i nazar, hatto nol bo'lsa ham) yoki <strong>row</strong> (<span class="num">FOR EACH ROW</span>, har qator uchun).</li>
+  <li>Row triggerda <span class="num">:OLD</span> va <span class="num">:NEW</span>: qatorning o'zgarishdan oldingi va keyingi qiymati. <span class="num">INSERT</span> da <span class="num">:OLD</span> bo'sh, <span class="num">DELETE</span> da <span class="num">:NEW</span> bo'sh. <span class="num">BEFORE</span> row triggerda <span class="num">:NEW</span> ni o'zgartirish mumkin (masalan, <span class="num">:NEW.yangilangan := SYSDATE</span>), <span class="num">AFTER</span> da yo'q. <span class="num">WHEN (NEW.summa &gt; 1000000)</span> sharti trigger tanasiga kirishdan oldin tekshiriladi va arzonroq. Bir nechta hodisaga bitta trigger: <span class="num">IF INSERTING ... ELSIF UPDATING('qoldiq') ...</span>.</li>
+  <li><strong><span class="num">INSTEAD OF</span></strong>: view ustida, view orqali yozishni asosiy jadvallarga «tarjima» qilish uchun.</li>
+  <li><strong>DDL va tizim triggerlari</strong> (8i): <span class="num">BEFORE DROP ON SCHEMA</span>, <span class="num">AFTER LOGON ON DATABASE</span>, <span class="num">AFTER SERVERERROR</span>. Masalan, kim jadvalni o'chirmoqchi bo'lganini yozish yoki sessiyaga kirishda kontekst o'rnatish.</li>
+</ul>
+<p>Bitta <span class="num">UPDATE</span> uch qatorni o'zgartirganda triggerlar qat'iy tartibda ishlaydi. Pastda shu tartib va ikki muhim holat. Tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="trg" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="UPDATE uch qator: triggerlarning bajarilish tartibi, mutating table xatosi va compound trigger yechimi"></svg></div>
+  <figcaption>Chapdan o'ngga vaqt: bitta UPDATE buyrug'i uch qatorni o'zgartiradi. Har quti bitta trigger qismi. Qizil: xato. Sariq: ma'lumot to'planadi yoki ishlatiladi.</figcaption>
+  <div class="evo-tabs" id="trgT" style="margin-top:0.9rem"></div>
+  <p class="say" id="trgSay" aria-live="polite"></p>
+</figure>
+<p><strong>Mutating table</strong> (<span class="num">ORA-04091: table is mutating, trigger/function may not see it</span>). Row trigger o'zi ishlayotgan jadvalni o'qisa yoki o'zgartirsa chiqadi. Sabab: UPDATE yarim yo'lda, jadvaldagi qatorlarning bir qismi yangi, bir qismi eski holatda. Shu paytda o'qilgan natija qaysi qator birinchi yangilanganiga bog'liq bo'lib qolardi, ya'ni tasodifiy. Oracle bunga yo'l qo'ymaydi. Statement darajasidagi trigger esa buyruqdan oldin yoki keyin ishlaydi, jadval izchil holatda, shuning uchun unda o'qish mumkin.</p>
+<p>Yechimlar, eskisidan yangisiga: (1) mantiqni triggerdan protseduraga ko'chirish (eng yaxshisi ko'pincha shu); (2) eski usul: paket o'zgaruvchisi, row triggerda qatorlar kalitini to'plash, AFTER statement triggerda ularni qayta ishlash (uchta obyekt va sessiya holati); (3) 11g dan <strong>compound trigger</strong>: bitta trigger ichida to'rt qism (<span class="num">BEFORE STATEMENT</span>, <span class="num">BEFORE EACH ROW</span>, <span class="num">AFTER EACH ROW</span>, <span class="num">AFTER STATEMENT</span>) va ularning umumiy o'zgaruvchilari, buyruq tugagach tozalanadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE OR REPLACE TRIGGER hisoblar_limit_trg
+FOR UPDATE OF qoldiq ON hisoblar
+COMPOUND TRIGGER
+  TYPE t_ids IS TABLE OF hisoblar.mijoz_id%TYPE;
+  g_ids t_ids := t_ids();
+  AFTER EACH ROW IS
+  BEGIN
+    g_ids.EXTEND; g_ids(g_ids.LAST) := :NEW.mijoz_id;    -- faqat to'plash, jadvalni o'qimaslik
+  END AFTER EACH ROW;
+  AFTER STATEMENT IS
+  BEGIN
+    FOR i IN 1 .. g_ids.COUNT LOOP                       -- endi jadval izchil, o'qish mumkin
+      tekshir_mijoz_limiti(g_ids(i));
+    END LOOP;
+  END AFTER STATEMENT;
+END;</pre>
+<p>Triggerlar haqida umumiy qoidalar: trigger ichida <span class="num">COMMIT</span> yoki <span class="num">ROLLBACK</span> qilib bo'lmaydi (u chaqirgan buyruqning tranzaksiyasi ichida); triggerdagi xato butun buyruqni bekor qiladi; bitta hodisaga bir nechta trigger bo'lsa, tartib 11g gacha kafolatlanmagan edi, endi <span class="num">FOLLOWS</span> bilan beriladi; <span class="num">ALTER TRIGGER ... DISABLE</span> katta yuklashda o'chirib turish uchun. 12c dan identifikator uchun trigger va sequence o'rniga <span class="num">GENERATED AS IDENTITY</span> ustun yoki <span class="num">DEFAULT seq.NEXTVAL</span>.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Saqlanadigan kod tarixi</h3>
+<div class="bench" id="evoPk"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Saqlanadigan dastur (stored program unit)</dt><dd>Bazada nom bilan, kompilyatsiya qilingan holda saqlanadigan protsedura, funksiya, paket, trigger yoki tip.</dd>
+  <dt>Protsedura, funksiya</dt><dd>Amal bajaradigan va OUT orqali natija beradigan; doim bitta qiymat qaytaradigan va ifodada ishlatiladigan nomlangan blok.</dd>
+  <dt>IN, OUT, IN OUT</dt><dd>Parametr qiymatining yo'nalishi: faqat ichkariga; faqat tashqariga; ikkalasiga. IN havola bilan, OUT va IN OUT sukut bo'yicha nusxa bilan.</dd>
+  <dt>NOCOPY</dt><dd>OUT va IN OUT parametrni havola bilan uzatishni so'rash. Tezroq, lekin xatoda chaqiruvchining qiymati yarim o'zgargan bo'lishi mumkin. Oracle so'rovni rad etishi ham mumkin.</dd>
+  <dt>Nomli chaqiruv (=&gt;)</dt><dd>Argumentlarni parametr nomi bilan berish: tartib muhim emas, sukut qiymatlilarni tushirish oson.</dd>
+  <dt>DETERMINISTIC, RESULT_CACHE, PRAGMA UDF</dt><dd>Bir xil kirishga bir xil natija va'dasi; natijani umumiy keshda saqlash; SQL dan chaqirishga moslab kompilyatsiya.</dd>
+  <dt>Paket spetsifikatsiyasi (spec), tanasi (body)</dt><dd>Tashqi interfeys: public e'lonlar; amalga oshirish va private qism. Chaqiruvchilar faqat specga bog'liq.</dd>
+  <dt>Paket holati</dt><dd>Paket darajasidagi o'zgaruvchilar qiymati. Har sessiyada alohida, sessiya bo'yi yashaydi.</dd>
+  <dt>Ishga tushirish bloki</dt><dd>Paket body oxiridagi BEGIN qismi: sessiyada paketga birinchi murojaatda bir marta bajariladi.</dd>
+  <dt>Overloading</dt><dd>Bir xil nomli, lekin parametr tiplari yoki soni har xil bo'lgan dasturlar.</dd>
+  <dt>ORA-04068, ORA-04061</dt><dd>Sessiya ushlab turgan paket holati qayta kompilyatsiya tufayli tashlandi.</dd>
+  <dt>SERIALLY_REUSABLE</dt><dd>Paket holati faqat bitta server chaqiruvi davomida yashaydi.</dd>
+  <dt>VALID, INVALID, bog'liqlik</dt><dd>Obyekt holati. Bog'liq obyekt o'zgarsa INVALID bo'ladi, keyingi chaqiruvda Oracle uni o'zi qayta kompilyatsiya qiladi. USER_DEPENDENCIES ko'rinishida.</dd>
+  <dt>Edition-Based Redefinition (EBR)</dt><dd>Kodning yangi versiyasini alohida nashrda o'rnatib, ishlab turgan sessiyalarni to'xtatmasdan almashtirish.</dd>
+  <dt>AUTHID DEFINER, CURRENT_USER</dt><dd>Dastur egasi yoki chaqiruvchi huquqlari bilan bajarish.</dd>
+  <dt>ACCESSIBLE BY</dt><dd>Dasturni faqat sanab o'tilgan boshqa dasturlar chaqira olishi.</dd>
+  <dt>DML trigger: BEFORE, AFTER, ROW, STATEMENT</dt><dd>Hodisadan oldin yoki keyin; har qator uchun yoki buyruq uchun bir marta.</dd>
+  <dt>:OLD, :NEW</dt><dd>Row triggerda qatorning eski va yangi qiymati.</dd>
+  <dt>INSTEAD OF trigger</dt><dd>View'ga qilingan DML o'rniga bajariladigan trigger.</dd>
+  <dt>DDL va tizim triggerlari</dt><dd>CREATE, ALTER, DROP, LOGON, SERVERERROR kabi hodisalarga.</dd>
+  <dt>Mutating table, ORA-04091</dt><dd>Row trigger o'zgarayotgan jadvalni o'qishi yoki o'zgartirishi taqiqlangan holat.</dd>
+  <dt>Compound trigger</dt><dd>To'rt vaqt nuqtasini va umumiy o'zgaruvchilarni bitta triggerda birlashtiradi. 11g dan.</dd>
+  <dt>FOLLOWS, PRECEDES</dt><dd>Bir hodisadagi triggerlarning tartibini berish.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: biznes mantiqni triggerga yashirish</b>
+  <p>Hisob qoldig'i yangilanganda trigger provodka yozadi, u boshqa jadvalni yangilaydi, u yerda yana trigger. Bitta UPDATE ning haqiqiy ta'sirini kodni o'qib bilib bo'lmaydi, katta yuklash esa har qatorda butun zanjirni ishga tushiradi va soatlab ishlaydi.</p>
+  <p class="why">To'g'risi: biznes jarayoni aniq chaqiriladigan paket protsedurasida. Triggerga faqat «har doim, hech istisnosiz» bo'lishi kerak bo'lgan oddiy ishlar: audit, texnik ustunlarni to'ldirish, tarix yozuvi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: prodda ish vaqtida paketni qayta kompilyatsiya qilish</b>
+  <p>Kichik tuzatish uchun body o'rnatildi. Connection pool'dagi har bir ochiq sessiya keyingi chaqiruvda <span class="num">ORA-04068</span> oldi: yuzlab to'lov xato bilan qaytdi. Body ichidagi bitta <span class="num">g_kesh</span> o'zgaruvchisi paketni holatli qilgan edi.</p>
+  <p class="why">To'g'risi: holatni kerak bo'lmasa paketga qo'ymaslik (yoki uni alohida kichik paketga ajratish), o'rnatishni oynada qilish, ilovada <span class="num">ORA-04068</span> ni bir marta qayta urinish bilan ishlash, katta tizimlarda EBR.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: SQL dagi funksiya ichida SELECT</b>
+  <p><span class="num">SELECT t.*, mijoz_nomi(t.mijoz_id) FROM tolovlar t</span>: funksiya ichida <span class="num">SELECT nomi FROM mijozlar</span>. 5 million qatorda 5 million alohida so'rov va 10 million kontekst almashinuvi. Bundan tashqari funksiya ichidagi SELECT tashqi so'rov boshlangan paytdagi emas, o'zi bajarilgan paytdagi holatni ko'radi: natija izchil bo'lmasligi mumkin.</p>
+  <p class="why">To'g'risi: JOIN. Funksiya kerak bo'lsa: skalyar subquery'ga o'rash (keshlanadi), <span class="num">RESULT_CACHE</span>, yoki 12c dan <span class="num">WITH FUNCTION</span> va <span class="num">PRAGMA UDF</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: NOCOPY va xato</b>
+  <p><span class="num">IN OUT NOCOPY</span> kolleksiyani protsedura yarmigacha to'ldirib, xato bilan chiqdi. Chaqiruvchi xatoni ushlab, kolleksiyani ishlatishda davom etdi: unda yarim yangilangan ma'lumot. NOCOPY siz kolleksiya o'zgarmagan holda qolardi.</p>
+  <p class="why">To'g'risi: NOCOPY faqat katta parametrlar uchun va xato bo'lsa chaqiruvchi parametrni tashlab yuborishi aniq bo'lgan joyda.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: statement triggerdagi «har qator uchun» mantiq</b>
+  <p>Audit triggeri <span class="num">FOR EACH ROW</span> siz yozilgan: UPDATE 1000 qatorni o'zgartirsa ham, audit jadvalida bitta yozuv, va unda <span class="num">:NEW</span> yo'q. Yoki aksincha: 0 qator o'zgargan UPDATE ham statement triggerni ishga tushiradi.</p>
+  <p class="why">To'g'risi: qator ma'lumoti kerak bo'lsa row trigger yoki compound trigger, buyruq haqidagi fakt kerak bo'lsa statement trigger.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. iABS dagi API, KERNEL, SERVICE qatlamlarini misol qilib keltirsangiz, bu sizning amaliy tajribangizni ko'rsatadi.</p>
+<details><summary>Protsedura va funksiya farqi nima?</summary>
+<p>Funksiya doim bitta qiymat qaytaradi va ifoda ichida ishlatiladi, shu jumladan SQL da, agar cheklovlarga mos bo'lsa (DML va COMMIT yo'q, SQL tiplari). Protsedura amal bajaradi, mustaqil buyruq sifatida chaqiriladi va natijalarni OUT parametrlar orqali beradi, SQL dan chaqirilmaydi. Texnik jihatdan funksiyada ham OUT parametr bo'lishi mumkin, lekin bu yomon uslub: bunday funksiya SQL da ishlatilmaydi. Qoida: hisoblab beradigan narsa funksiya, holatni o'zgartiradigan narsa protsedura.</p></details>
+<details><summary>IN, OUT va IN OUT parametrlar qanday uzatiladi? NOCOPY nima?</summary>
+<p>IN faqat o'qiladi va havola bilan uzatiladi. OUT protsedura boshida NULL, IN OUT esa kirish qiymatiga ega; ikkalasi sukut bo'yicha nusxa bilan: protsedura nusxa ustida ishlaydi va muvaffaqiyatli tugaganda natija chaqiruvchiga ko'chiriladi. Xato bilan tugasa, chaqiruvchining o'zgaruvchisi o'zgarmaydi. NOCOPY havola bilan uzatishni so'raydi: katta kolleksiyalarda nusxalash vaqti va xotirasi tejaladi, lekin xatoda chaqiruvchi yarim o'zgargan qiymatni ko'radi. NOCOPY bu kompilyatorga maslahat, ba'zi holatlarda (masalan, tip almashinuvi kerak bo'lsa) e'tiborsiz qoldiriladi.</p></details>
+<details><summary>Nega paket ishlatiladi? Spec va body nima uchun alohida?</summary>
+<p>Paket bog'liq dasturlar, tiplar, konstantalar va exceptionlarni bitta modulga yig'adi. Spec public interfeys, body amalga oshirish va private qism. Ajratishning asosiy sababi bog'liqliklar: chaqiruvchilar faqat specga bog'liq, shuning uchun body ni o'zgartirish ularni INVALID qilmaydi va qayta kompilyatsiya zanjiri yo'q. Yana: inkapsulyatsiya (ichki yordamchilarni yashirish), sessiya holati (paket o'zgaruvchilari), overloading, birinchi chaqiruvda butun paketni yuklash, va huquqni bitta EXECUTE bilan berish. Spec bodysiz ham bo'lishi mumkin: faqat konstantalar va tiplar uchun.</p></details>
+<details><summary>Paket o'zgaruvchisi qayerda saqlanadi va qancha yashaydi?</summary>
+<p>Har sessiyaning o'z nusxasi, sessiya xotirasida (UGA; dedicated serverda PGA ichida, shared serverda SGA da). Sessiyada paketga birinchi murojaatda yaratiladi, ishga tushirish bloki bajariladi, va sessiya tugaguncha yoki paket qayta kompilyatsiya qilinguncha yashaydi. Boshqa sessiya uni ko'rmaydi. Connection pool'da bitta Java so'rovi qoldirgan qiymat keyingi, boshqa foydalanuvchining so'roviga ham ko'rinadi: bu xavfli, shuning uchun bunday holatni har chaqiruv boshida tozalash kerak.</p></details>
+<details><summary>ORA-04068 nima va qanday oldini olasiz?</summary>
+<p>«Existing state of packages has been discarded»: sessiya paket holatini ushlab turgan paytda paket (yoki u bog'liq obyekt) qayta kompilyatsiya qilindi. Oracle holatni tashlaydi va sessiyaga bir marta xato beradi; qayta chaqiruv ishlaydi. Oldini olish: paketlarni holatsiz qilish (faqat CONSTANT lar, holat alohida paketda), o'rnatishni ilova to'xtagan paytda qilish, SERIALLY_REUSABLE, EBR, va ilova tomonida shu xatoda bir marta qayta urinish.</p></details>
+<details><summary>Obyekt qachon INVALID bo'ladi va nima qilish kerak?</summary>
+<p>U bog'liq bo'lgan obyekt o'zgarganda: jadval ustuni o'zgardi, chaqiriladigan paket speci o'zgardi, view qayta yaratildi. 11g dan bog'liqlik aniqroq kuzatiladi (fine-grained): jadvalga ustun qo'shilsa, shu ustunni ishlatmaydigan kod INVALID bo'lmaydi. INVALID obyekt keyingi chaqiruvda avtomatik qayta kompilyatsiya qilinadi; muvaffaqiyatsiz bo'lsa, xato. O'rnatishdan keyin <span class="num">USER_OBJECTS WHERE status = 'INVALID'</span> ni tekshirib, <span class="num">UTL_RECOMP</span> yoki <span class="num">DBMS_UTILITY.COMPILE_SCHEMA</span> bilan oldindan kompilyatsiya qilish odat.</p></details>
+<details><summary>Definer rights va invoker rights farqi?</summary>
+<p>AUTHID DEFINER (sukut) dastur egasining huquqlari bilan ishlaydi: foydalanuvchiga faqat EXECUTE beriladi, jadvalga to'g'ridan-to'g'ri huquq kerak emas. Bu xavfsizlik modeli: ma'lumotga faqat paket orqali. Definer dasturida rollar orqali berilgan huquqlar ishlamaydi, to'g'ridan-to'g'ri GRANT kerak. AUTHID CURRENT_USER chaqiruvchi huquqlari va sxemasi bilan ishlaydi: umumiy yordamchi kod uchun. Dinamik SQL va SQL injection kontekstida definer dasturi xavfliroq, chunki egasining kuchli huquqlari bilan bajariladi.</p></details>
+<details><summary>SQL so'rovida ishlatiladigan funksiyaga qanday talablar bor va uni qanday tezlashtirasiz?</summary>
+<p>DML qilmasligi (aks holda ORA-14551), COMMIT qilmasligi, SQL tiplarida parametr va natija. Tezlashtirish: DETERMINISTIC, RESULT_CACHE, 12c dan PRAGMA UDF yoki WITH FUNCTION, chaqiruvni skalyar subquery ga o'rash (scalar subquery caching), va eng yaxshisi mantiqni SQL ning o'ziga ko'chirish (JOIN, CASE). Funksiya ichida SELECT bo'lsa, har qator uchun alohida so'rov va o'qish izchilligi buziladi.</p></details>
+<details><summary>Trigger turlarini va ularning bajarilish tartibini ayting.</summary>
+<p>DML: BEFORE va AFTER, statement va row darajasida; INSTEAD OF (view uchun); DDL (CREATE, ALTER, DROP); tizim (LOGON, LOGOFF, STARTUP, SERVERERROR); compound. Bitta UPDATE uchun tartib: BEFORE STATEMENT bir marta; har qator uchun BEFORE ROW, qatorni o'zgartirish va tekshiruvlar, AFTER ROW; oxirida AFTER STATEMENT bir marta. Bir hodisaga bir nechta bir xil trigger bo'lsa, tartib FOLLOWS bilan beriladi. BEFORE ROW da :NEW ni o'zgartirish mumkin, AFTER ROW da yo'q.</p></details>
+<details><summary>Mutating table xatosi nima va qanday hal qilinadi?</summary>
+<p>ORA-04091: row trigger o'zi ishlayotgan jadvalni (yoki FK ON DELETE CASCADE orqali o'zgarayotgan jadvalni) o'qiydi yoki o'zgartiradi. Buyruq yarim bajarilgan, jadval izchil emas, natija qatorlar tartibiga bog'liq bo'lardi, shuning uchun Oracle taqiqlaydi. Yechimlar: mantiqni triggerdan protseduraga ko'chirish; compound trigger (11g): row qismida faqat kerakli kalitlarni kolleksiyaga to'plash, AFTER STATEMENT qismida jadvalni o'qib qayta ishlash; eski usulda paket o'zgaruvchisi va row hamda statement triggerlar juftligi. Avtonom tranzaksiya bilan «aylanib o'tish» noto'g'ri: u hali COMMIT qilinmagan o'zgarishlarni ko'rmaydi va noto'g'ri natija beradi.</p></details>
+<details><summary>Triggerda COMMIT qilish mumkinmi?</summary>
+<p>Yo'q: trigger uni ishga tushirgan buyruqning tranzaksiyasi ichida, va COMMIT uni yarim yo'lda tugatib yuborardi (ORA-04092). Triggerdagi xato butun buyruqni bekor qiladi. Faqat PRAGMA AUTONOMOUS_TRANSACTION bilan e'lon qilingan trigger o'z alohida tranzaksiyasida COMMIT qila oladi: masalan, urinishlar auditi, asosiy buyruq bekor bo'lsa ham saqlanadigan. Lekin u asosiy tranzaksiyaning saqlanmagan o'zgarishlarini ko'rmaydi.</p></details>
+<details><summary>Trigger va constraint (cheklov) farqi? Qaysi birini tanlaysiz?</summary>
+<p>NOT NULL, UNIQUE, CHECK, FOREIGN KEY deklarativ: Oracle ularni har doim, hamma sessiyalar uchun to'g'ri ta'minlaydi, optimizator ulardan foydalanadi (masalan, join elimination), va ular tez. Trigger bilan yozilgan tekshiruv ko'p sessiyali holatda teshik qoldirishi mumkin: ikki sessiya bir vaqtda tekshirib, ikkalasi ham «yo'q» ni ko'rib, takror qo'shadi, chunki har biri ikkinchisining saqlanmagan qatorini ko'rmaydi. Qoida: cheklov bilan ifodalash mumkin bo'lgan qoida doim cheklov. Trigger faqat cheklov bilan yozib bo'lmaydigan narsa uchun.</p></details>
+<details><summary>Paketda bir xil nomli ikki protsedura bo'lishi mumkinmi?</summary>
+<p>Ha, overloading: parametrlar soni, tartibi yoki tip oilasi har xil bo'lsa. Faqat nomi yoki rejimi (IN va OUT) farq qilsa, yoki faqat NUMBER va INTEGER kabi bir oiladagi tiplar farq qilsa, chaqiruv noaniq bo'ladi va PLS-00307 xatosi beradi. Funksiyalarni faqat qaytish tipi bilan farqlab bo'lmaydi. Overloading faqat paket ichida yoki ichki blokda, mustaqil protseduralarda yo'q.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>To'lov o'tkazish uchun paket speci va bodysini loyihalang: qaysi dasturlar public, qaysilari private, qaysi exceptionlar specda bo'ladi va nega.</li>
+  <li>Hamkasbingiz paket bodysidagi bitta qatorni tuzatdi va prodga o'rnatdi. Keyin ilova logida bir nechta ORA-04068 chiqdi. Nega, va keyingi safar nima qilish kerak?</li>
+  <li><span class="num">hisoblar</span> jadvalidagi har bir qoldiq o'zgarishini tarix jadvaliga yozadigan trigger yozing: kim, qachon, eski va yangi qiymat. Row yoki statement? BEFORE yoki AFTER?</li>
+  <li>Trigger «mijozning barcha hisoblari bo'yicha qoldiqlar jami limitdan oshmasin» ni tekshirishi kerak. Oddiy row triggerda nima bo'ladi va qanday yozasiz?</li>
+  <li><span class="num">SELECT ... , kurs_ol(valyuta, sana) FROM tolovlar</span> 10 million qatorda sekin ishlayapti. Uch xil tezlashtirish yo'lini ayting.</li>
+  <li>Ish joyingizdagi biror modulni oling: API, ichki mantiq va yordamchi paketlar qanday bo'lingan, va ekran qaysi paketni chaqiradi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Bog'liqliklar lug'ati va qayta kompilyatsiya</summary>
+<p><span class="num">USER_DEPENDENCIES</span> (yoki <span class="num">ALL_</span>, <span class="num">DBA_</span>) kim kimga bog'liqligini saqlaydi: <span class="num">SELECT name, type FROM user_dependencies WHERE referenced_name = 'TOLOV'</span>. Bu ta'sir tahlilining birinchi qadami: «agar shu paket speci o'zgarsa, nima INVALID bo'ladi?». 11g dan bog'liqlik obyekt emas, element darajasida kuzatiladi: specga yangi protsedura oxiriga qo'shilsa, mavjud chaqiruvchilar INVALID bo'lmaydi. Shuning uchun yangi e'lonlarni spec oxiriga qo'shish odati bor.</p></details>
+<details><summary>Paket ishga tushirish bloki va xatolar</summary>
+<p>Ishga tushirish blokida xato chiqsa (masalan, sozlama jadvalidan o'qish NO_DATA_FOUND berdi), paket shu sessiyada ishlamay qoladi va har murojaat xato beradi: ORA-04067, ORA-06508. Shuning uchun u yerda faqat oddiy, xato bermaydigan ishlar, yoki xatoni ushlab, sukut qiymat berish.</p></details>
+<details><summary>Kod o'rnatish va Edition-Based Redefinition</summary>
+<p>EBR (11g R2) bir sxemada kodning bir necha nashrini saqlaydi. Yangi nashrda paketlar o'zgartiriladi, ishlab turgan sessiyalar eski nashrda qoladi, yangi sessiyalar yangisiga ulanadi. Jadval tuzilishi o'zgarishi uchun «editioning view» va «cross-edition trigger» lar bor. Bu to'xtovsiz ishlashi kerak bo'lgan bank tizimlarida o'rnatishni xavfsiz qiladi, lekin loyihalashni murakkablashtiradi.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database PL/SQL Language Reference: Subprograms, Packages, Triggers, PL/SQL Optimization and Tuning. Oracle Database Development Guide: Using Edition-Based Redefinition. Steven Feuerstein, «Oracle PL/SQL Best Practices». Tom Kyte maqolasi «The Trouble with Triggers» (Oracle Magazine, 2008).</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Saqlanadigan kod mantiqni bir joyda, huquqni EXECUTE orqali beradi. Funksiya qiymat qaytaradi va SQL da DML siz ishlaydi, protsedura amal bajaradi. OUT va IN OUT nusxa bilan, NOCOPY havola bilan. Paket: spec interfeys, body amalga oshirish; chaqiruvchilar faqat specga bog'liq; paket o'zgaruvchilari sessiyaga xos va qayta kompilyatsiyada ORA-04068. Trigger tartibi: BEFORE STATEMENT, har qator uchun BEFORE ROW va AFTER ROW, AFTER STATEMENT. Row trigger o'z jadvalini o'qisa mutating table; yechim protsedura yoki compound trigger. Cheklov bilan yoziladigan qoida trigger bilan yozilmaydi.</p>
+  <p><strong>Keyingi dars.</strong> P5. Katta hajmdagi ma'lumot: kolleksiyalar, BULK COLLECT va LIMIT, FORALL va SAVE EXCEPTIONS, pipelined funksiyalar, dinamik SQL va SQL injection.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p3-plsql-asoslari.html">Oldingi: P3. PL/SQL asoslari</a><span>Keyingi: P5. Katta hajmdagi ma'lumot (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: '{call tolov.otkazish(?, ?, ?)}', link: 'GRANT EXECUTE orqali chaqiradi' },
+    { title: 'PL/SQL dasturlar', sub: 'Paket, protsedura, trigger: P3–P5', ex: 'PACKAGE tolov, TRIGGER hisoblar_aud', link: 'ichida SQL bajaradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'UPDATE hisoblar SET ...', link: 'optimizatorga beriladi' },
+    { title: 'Optimizator va reja', sub: 'Parse, bind, reja, indeks: P6–P7', ex: 'EXPLAIN PLAN, INDEX RANGE SCAN', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'SELECT ... FOR UPDATE', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'segment, blok, partitsiya', link: '' }
+  ], [1], 'Saqlanadigan kod va triggerlar');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+
+  // ---------- Parametr rejimlari ----------
+  (function () {
+    var svg = $('prm'), say = $('prmSay'), cur = 0;
+    var M = [
+      { t: 'IN', a: '100', b: '100 (faqat o\'qiladi)', inA: true, outA: false, ref: true, err: 'v = 100: o\'zgarmaydi', s: `IN parametr havola bilan uzatiladi: nusxa yo'q, shuning uchun tez. Protsedura uni o'zgartira olmaydi: p := 5 yozilsa, kompilyatsiya xatosi PLS-00363. Ifoda ham berish mumkin: proc(v * 2).` },
+      { t: 'OUT', a: '100', b: 'boshida NULL, keyin 250', inA: false, outA: true, ref: false, err: 'v = 100: nusxa ko\'chirilmadi', s: `OUT parametr protsedura boshida NULL: chaqiruvchidagi 100 ichkariga bormaydi. Protsedura nusxaga 250 yozadi va muvaffaqiyatli tugaganda u v ga ko'chiriladi. Faqat o'zgaruvchi berish mumkin, ifoda yoki literal emas.` },
+      { t: 'IN OUT', a: '100', b: '100, keyin 250', inA: true, outA: true, ref: false, err: 'v = 100: nusxa ko\'chirilmadi', s: `IN OUT: kirishda nusxa olinadi (100), protsedura nusxani o'zgartiradi (250), tugaganda nusxa qaytib ko'chiriladi. Ikki marta nusxalash: oddiy son uchun arzon, million elementli kolleksiya uchun qimmat.` },
+      { t: 'IN OUT NOCOPY', a: '100', b: 'havola: v ning o\'zi', inA: true, outA: true, ref: true, err: 'v = 250: yarim o\'zgargan holda qoldi', s: `NOCOPY: protsedura chaqiruvchining o'zgaruvchisi bilan to'g'ridan-to'g'ri ishlaydi, nusxa yo'q. Tez, lekin protsedura 250 yozib, keyin xato bilan chiqsa, v da 250 qoladi. Nusxa bilan uzatilganda xato bo'lsa, chaqiruvchining qiymati o'zgarmasdi.` }
+    ];
+    var setT = tabs('prmT', M.map(function (m) { return m.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var m = M[cur]; setT(cur); svg.textContent = ''; marker(svg, 'prmk');
+      group(svg, 20, 20, 340, 180, 'Chaqiruvchi blok');
+      box(svg, 40, 70, 300, 90, 'v NUMBER := 100;', 'proc(v);', 'on');
+      group(svg, 860, 20, 360, 180, 'proc (p ' + m.t + ' NUMBER)');
+      box(svg, 900, 70, 300, 90, m.ref ? 'p = v ga havola' : 'p = nusxa', m.b, m.ref ? 'live' : '');
+      if (m.ref) { S(svg, 'path', { d: 'M340 115H898', 'class': 'arr', style: 'stroke-dasharray:6 5' }); S(svg, 'text', { x: 620, y: 105, 'text-anchor': 'middle', 'class': 'lbl' }, 'havola: bitta qiymat, nusxa yo\'q'); }
+      else {
+        if (m.inA) arrow(svg, 'prmk', 'M340 95H898', 'chaqiruvda nusxa: 100', 620, 86);
+        else S(svg, 'text', { x: 620, y: 95, 'text-anchor': 'middle', 'class': 'lbl' }, 'kirishda hech narsa bormaydi');
+        if (m.outA) arrow(svg, 'prmk', 'M898 140H342', 'muvaffaqiyatli tugaganda nusxa qaytadi: 250', 620, 132);
+      }
+      box(svg, 20, 220, 1200, 60, 'Protsedura p := 250 dan keyin xato bilan chiqsa:', m.err, cur === 3 ? 'bad' : 'on');
+      say.textContent = m.s; say.className = 'say' + (cur === 3 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Paket ----------
+  (function () {
+    var svg = $('pkg'), say = $('pkgSay'), cur = 0;
+    var C = [
+      { t: 'Oddiy ishlash', inv: false, s1: 'g_chaqiruvlar = 3', s2: 'g_chaqiruvlar = 1', err: false, s: `Uchta obyekt paketni chaqiradi, hammasi VALID: ular faqat specdagi otkazish va qoldiq ni biladi. tekshir protsedurasi va g_chaqiruvlar o'zgaruvchisi bodyda, tashqaridan ko'rinmaydi. Har sessiyaning o'z g_chaqiruvlar nusxasi bor: 1-sessiya 3 marta chaqirgan, 2-sessiya bir marta.` },
+      { t: 'Body o\'zgardi', inv: false, s1: 'holat tashlanadi', s2: 'holat tashlanadi', err: true, bodyNew: true, s: `Bodydagi xato tuzatildi va qayta kompilyatsiya qilindi. Chaqiruvchilar VALID qoldi: spec o'zgarmadi, ular bodyni bilmaydi. Lekin sessiyalardagi eski holat yangi kodga mos kelmaydi: har bir sessiya keyingi chaqiruvda bir marta ORA-04068 oladi, keyin holat qaytadan yaratiladi.` },
+      { t: 'Spec o\'zgardi', inv: true, s1: 'holat tashlanadi', s2: 'holat tashlanadi', err: true, specNew: true, s: `Specdagi otkazish ga yangi parametr qo'shildi. Unga bog'liq hamma obyekt INVALID: keyingi chaqiruvda Oracle ularni o'zi qayta kompilyatsiya qiladi, chaqiruv mos kelmasa xato beradi. Ming paketli tizimda bitta spec o'zgarishi yuzlab obyektni INVALID qiladi. Shuning uchun spec kam o'zgaradigan, barqaror interfeys bo'lishi kerak.` },
+      { t: 'Holatsiz paket', inv: false, s1: 'holat yo\'q', s2: 'holat yo\'q', err: false, bodyNew: true, stateless: true, s: `Paketda o'zgaruvchi yo'q, faqat CONSTANT lar (yoki SERIALLY_REUSABLE). Body qayta kompilyatsiya qilinganda tashlanadigan holat ham yo'q: sessiyalar keyingi chaqiruvda yangi kodni xatosiz oladi. Prodda tez-tez o'zgaradigan paketlar uchun eng yaxshi uslub.` }
+    ];
+    var setT = tabs('pkgT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'pkmk');
+      group(svg, 20, 20, 300, 360, 'Chaqiruvchilar');
+      ['ekran_api', 'tungi_job', 'tolov_shlyuz'].forEach(function (n, i) { box(svg, 40, 60 + i * 100, 260, 64, n, c.inv ? 'INVALID: qayta kompilyatsiya' : 'VALID', c.inv ? 'bad' : 'on'); arrow(svg, 'pkmk', 'M300 ' + (92 + i * 100) + 'L418 ' + (110 + i * 20)); });
+      group(svg, 420, 20, 420, 360, 'PACKAGE tolov');
+      box(svg, 440, 60, 380, 110, 'SPEC (public)', c.specNew ? 'otkazish(..., p_valyuta) yangi' : 'otkazish(...), qoldiq(...), e_mablag', c.specNew ? 'live' : 'on');
+      box(svg, 440, 200, 380, 160, 'BODY (amalga oshirish)', c.bodyNew ? 'yangi versiya kompilyatsiya qilindi' : 'tekshir(...)  private', c.bodyNew ? 'live' : '');
+      S(svg, 'text', { x: 456, y: 290, 'class': 'mono' }, c.stateless ? 'c_limit CONSTANT NUMBER := ...' : 'g_chaqiruvlar PLS_INTEGER;');
+      S(svg, 'text', { x: 456, y: 320, 'class': 'sub' }, c.stateless ? 'o\'zgaruvchi yo\'q: holatsiz' : 'paket darajasidagi o\'zgaruvchi: holat');
+      group(svg, 880, 20, 340, 360, 'Sessiyalar (har birida o\'z nusxa)');
+      [c.s1, c.s2].forEach(function (s, i) { box(svg, 900, 60 + i * 160, 300, 120, (i + 1) + '-sessiya', s, c.err ? 'bad' : (c.stateless ? 'freed' : 'live')); if (c.err) S(svg, 'text', { x: 916, y: 140 + i * 160, 'class': 'mono' }, 'ORA-04068'); });
+      S(svg, 'path', { d: 'M840 280H898', 'class': 'arr', style: 'stroke-dasharray:6 5' });
+      say.textContent = c.s; say.className = 'say' + (c.err ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Trigger tartibi ----------
+  (function () {
+    var svg = $('trg'), say = $('trgSay'), cur = 0;
+    var C = [
+      { t: 'Bajarilish tartibi', s: `UPDATE hisoblar SET qoldiq = ... WHERE filial = '00450' uch qatorni o'zgartiradi. BEFORE STATEMENT bir marta, keyin har qator uchun BEFORE ROW, qatorning o'zgarishi (va cheklovlar tekshiruvi), AFTER ROW. Oxirida AFTER STATEMENT bir marta. Buyruq 0 qator o'zgartirsa ham statement triggerlar ishlaydi, row triggerlar esa yo'q.` },
+      { t: 'Mutating table', s: `AFTER ROW trigger «mijozning jami qoldig'i» uchun SELECT SUM(qoldiq) FROM hisoblar qildi. 1-qator yangilangan, 2 va 3 hali eski: jami qatorlar tartibiga bog'liq bo'lardi. Oracle ORA-04091 beradi va butun UPDATE bekor qilinadi.` },
+      { t: 'Compound trigger', s: `Compound trigger: AFTER EACH ROW qismi jadvalni o'qimaydi, faqat :NEW.mijoz_id ni umumiy kolleksiyaga qo'shadi. AFTER STATEMENT qismida buyruq tugagan, jadval izchil: endi SUM o'qish mumkin. Kolleksiya buyruq tugagach o'zi tozalanadi, paket o'zgaruvchisi kerak emas.` }
+    ];
+    var setT = tabs('trgT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'trmk');
+      group(svg, 20, 20, 1200, 230, 'UPDATE hisoblar SET qoldiq = ... (3 qator)');
+      box(svg, 40, 70, 150, 110, 'BEFORE', 'STATEMENT', cur === 2 ? 'freed' : 'on');
+      for (var i = 0; i < 3; i++) {
+        var x = 220 + i * 280;
+        group(svg, x, 56, 270, 180, (i + 1) + '-qator');
+        box(svg, x + 8, 90, 80, 70, 'BEFORE', 'ROW', cur === 2 || (cur === 1 && i > 0) ? 'freed' : 'on');
+        box(svg, x + 95, 90, 80, 70, 'DML', 'o\'zgarish', cur === 1 && i > 0 ? 'freed' : '');
+        var bad = cur === 1 && i === 0, live = cur === 2;
+        box(svg, x + 182, 90, 80, 70, 'AFTER', 'ROW', bad ? 'bad' : (live ? 'live' : (cur === 1 && i > 0 ? 'freed' : 'on')));
+        if (live) S(svg, 'text', { x: x + 10, y: 190, 'class': 'sub' }, 'ids.EXTEND; ids(LAST) := :NEW...');
+        if (bad) S(svg, 'text', { x: x + 10, y: 190, 'class': 'sub' }, 'SELECT SUM(qoldiq) FROM hisoblar');
+        if (cur === 1 && i > 0) S(svg, 'text', { x: x + 10, y: 190, 'class': 'sub' }, 'bajarilmadi');
+        arrow(svg, 'trmk', 'M' + (x + 88) + ' 125H' + (x + 93)); arrow(svg, 'trmk', 'M' + (x + 175) + ' 125H' + (x + 180));
+      }
+      arrow(svg, 'trmk', 'M190 125H218');
+      box(svg, 1065, 70, 145, 110, 'AFTER', 'STATEMENT', cur === 1 ? 'freed' : (cur === 2 ? 'live' : 'on'));
+      arrow(svg, 'trmk', 'M1050 125H1063');
+      if (cur === 1) box(svg, 20, 270, 1200, 64, 'ORA-04091: table HISOBLAR is mutating, trigger/function may not see it', 'butun UPDATE bekor qilindi: 1-qator ham eski holatiga qaytdi', 'bad');
+      else if (cur === 2) box(svg, 20, 270, 1200, 64, 'AFTER STATEMENT: FOR i IN 1 .. ids.COUNT LOOP tekshir_limit(ids(i)); END LOOP;', 'jadval endi izchil: o\'qish mumkin', 'live');
+      else box(svg, 20, 270, 1200, 64, ':OLD va :NEW faqat ROW qismlarida', 'BEFORE ROW da :NEW ni o\'zgartirish mumkin, AFTER ROW da yo\'q', '');
+      say.textContent = c.s; say.className = 'say' + (cur === 1 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoPk', [
+    { name: `Oracle 7: saqlanadigan kod`, years: `1992`, art: `<rect x="20" y="20" width="80" height="26" rx="3" class="acc"/><rect x="20" y="52" width="80" height="30" rx="3"/>`,
+      how: `Protsedura, funksiya, paket (spec va body) va DML triggerlar. Bog'liqliklar lug'atda kuzatiladi, INVALID obyektlar avtomatik qayta kompilyatsiya qilinadi.`,
+      better: `Mantiq bir joyda, huquq EXECUTE orqali, interfeys va amalga oshirish ajratilgan.`,
+      pain: `Faqat definer huquqlari; tizim hodisalariga trigger yo'q.`,
+      ex: `Paket g'oyasi Ada tilidan, 1983.` },
+    { name: `8i: huquqlar va tizim triggerlari`, years: `1999`, art: `<circle cx="40" cy="50" r="16"/><circle cx="80" cy="50" r="16" class="acc"/>`,
+      how: `AUTHID CURRENT_USER (invoker rights), avtonom tranzaksiya, NOCOPY, DDL va tizim triggerlari (LOGON, SERVERERROR, BEFORE DROP), INSTEAD OF trigger kengaydi.`,
+      better: `Umumiy kod har sxemada o'z ma'lumoti bilan, xavfsizlik va audit triggerlari, katta parametrlar nusxasiz.`,
+      pain: `Mutating table bilan kurash uchun uch obyektli usul.`,
+      ex: `LOGON triggerda sessiya kontekstini o'rnatish (DBMS_SESSION.SET_CONTEXT) bilan qatorlar darajasidagi xavfsizlik (VPD).` },
+    { name: `11g: compound trigger va tartib`, years: `2007`, art: `<rect x="16" y="20" width="88" height="60" rx="3"/><path d="M16 35h88M16 50h88M16 65h88" class="acc"/>`,
+      how: `Compound trigger, FOLLOWS, CREATE TRIGGER ... DISABLE, fine-grained bog'liqlik, funksiya natija keshi (RESULT_CACHE), SIMPLE_INTEGER.`,
+      better: `Mutating table bitta trigger bilan hal bo'ladi; paketga qo'shimcha qilish chaqiruvchilarni INVALID qilmaydi.`,
+      pain: `Paket holati va o'rnatishdagi ORA-04068 baribir qoladi.`,
+      ex: `11g R2: Edition-Based Redefinition.` },
+    { name: `12c: kirish nazorati`, years: `2013`, art: `<rect x="30" y="40" width="60" height="40" rx="3"/><path d="M42 40V30a18 18 0 0 1 36 0v10" class="acc"/>`,
+      how: `ACCESSIBLE BY (oq ro'yxat), PRAGMA UDF, WITH ichida funksiya, rollarni PL/SQL dasturiga berish (code based access control), IDENTITY ustunlar.`,
+      better: `Ichki paketlarni faqat API paket chaqira oladi; ID uchun trigger kerak emas.`,
+      pain: `Eski kod bazasi triggerlarda ID berishda davom etadi.`,
+      ex: `DEFAULT seq.NEXTVAL ustunda: trigger siz.` },
+    { name: `18c–23ai`, years: `2018–2023`, art: `<circle cx="60" cy="50" r="30"/><path d="M60 30v20l14 10" class="acc"/>`,
+      how: `Polymorphic table functions (18c), SQL macros (19c–21c: so'rov qismini qaytaradigan funksiya), 23ai: SQL Transpiler, BOOLEAN SQL da.`,
+      better: `SQL dan PL/SQL funksiya chaqirishning narxi kamayadi: oddiy funksiyalar SQL ifodaga aylantiriladi.`,
+      pain: `Yangi imkoniyatlar faqat yangi versiyalarda.`,
+      ex: `19c da SQL macro yangilanish paketlari orqali qo'shilgan.` }
+  ]);
+})();
+</script>
+</body>
+</html>
