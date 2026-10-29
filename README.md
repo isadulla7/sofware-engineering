@@ -25,6 +25,8 @@ index.html            yo'l xaritasi: barcha yo'nalishlar, darslar va holati
 assets/style.css      umumiy ko'rinish
 assets/evo.js         texnologiya bosqichlari ko'rsatkichi
 1-poydevor/           har bir yo'nalish o'z papkasida, har bir dars alohida fayl
+android-suhbat/       Android suhbati uchun tezlashtirilgan bo'lim
+plsql-suhbat/         Oracle PL/SQL suhbati uchun tezlashtirilgan bo'lim
 arxiv/                yangi formatga o'tishdan oldingi sahifalar
 ```
 

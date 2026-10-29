@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P1. SQL poydevori</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P1. SQL poydevori: bajarilish tartibi, JOIN, GROUP BY, subquery, NULL</h1>
+<p class="lead">Savol: Oracle bitta <span class="num">SELECT</span> ni qaysi tartibda bajaradi, jadvallar qanday birlashtiriladi, guruhlash qanday ishlaydi, va nega <span class="num">NULL</span> bilan yozilgan so'rov ba'zan jimgina noto'g'ri javob beradi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>SQL</strong> (Structured Query Language) bazaga «nima kerak»ligini aytadigan til. Siz «qanday qidirish kerak»ligini yozmaysiz: qaysi indeksdan, qaysi tartibda o'qishni Oracle'ning o'zi hal qiladi. Bu <strong>deklarativ</strong> yondashuv deyiladi: restoranda taom buyurtma qilasiz, oshxonada qanday pishirishni oshpaz biladi.</p>
+    <p>PL/SQL (P3 dan boshlab) shu SQL ustiga qurilgan. Har qanday paket, protsedura yoki trigger ichida ishning asosiy qismini baribir SQL bajaradi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Hamma joyda:</strong> ekrandagi ro'yxat, hisobot, kun yopish jarayoni, Markaziy bankka yuboriladigan fayllar: hammasi oxir-oqibat <span class="num">SELECT</span>, <span class="num">INSERT</span>, <span class="num">UPDATE</span>, <span class="num">DELETE</span>.</li>
+      <li><strong>Bankda:</strong> «filial bo'yicha bugungi to'lovlar», «hisobi yo'q mijozlar», «oxirgi kungi qoldiq» kabi so'rovlar har kuni yoziladi.</li>
+      <li><strong>Suhbatda:</strong> birinchi texnik savollar deyarli doim shu yerdan: <span class="num">WHERE</span> va <span class="num">HAVING</span> farqi, JOIN turlari, <span class="num">NOT IN</span> va <span class="num">NULL</span>.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <p>Darsdan keyin siz quyidagilarni tushuntira olasiz:</p>
+    <ul>
+      <li><span class="num">SELECT</span> qismlari qaysi tartibda bajariladi va nega alias <span class="num">WHERE</span> da ishlamaydi;</li>
+      <li>INNER, LEFT, RIGHT, FULL, CROSS JOIN, semi-join va anti-join;</li>
+      <li><span class="num">GROUP BY</span>, agregatlar, <span class="num">HAVING</span> va «not a GROUP BY expression» xatosi;</li>
+      <li>subquery turlari: skalyar, inline view, korrelyatsiyalangan, <span class="num">IN</span> va <span class="num">EXISTS</span>;</li>
+      <li>uch qiymatli mantiq, <span class="num">NOT IN</span> tuzog'i va Oracle'ning <span class="num">NULL</span> bilan bog'liq o'ziga xosliklari.</li>
+    </ul>
+  </div>
+</div>
+<p>Pastdagi chizmada bu bo'lim darslari qavatlarga joylashgan. Tepada ilova, pastda disk. Bu dars SQL qavati haqida: ilova ham, PL/SQL ham bazaga faqat shu til orqali gapiradi.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, SQL qavati ajratilgan"></svg></div>
+  <figcaption>Ilovadan diskkacha. Ko'k quti shu darsning mavzusi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>SQL qaysi muammodan paydo bo'lgan</li>
+      <li><span class="num">SELECT</span> ning mantiqiy bajarilish tartibi</li>
+      <li>JOIN turlari, ON va WHERE farqi, fan-out (qatorlar ko'payishi)</li>
+      <li><span class="num">GROUP BY</span>, agregat funksiyalar, <span class="num">HAVING</span>, <span class="num">DISTINCT</span></li>
+      <li>Subquery turlari, <span class="num">IN</span>, <span class="num">EXISTS</span>, <span class="num">ANY</span>, <span class="num">ALL</span></li>
+      <li><span class="num">UNION</span>, <span class="num">UNION ALL</span>, <span class="num">INTERSECT</span>, <span class="num">MINUS</span></li>
+      <li><span class="num">NULL</span>: uch qiymatli mantiq, <span class="num">NVL</span>, <span class="num">COALESCE</span>, <span class="num">NULLIF</span>, <span class="num">DECODE</span>, bo'sh satr</li>
+      <li>Top-N: <span class="num">ROWNUM</span> va <span class="num">FETCH FIRST</span></li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Analitik funksiyalar (<span class="num">ROW_NUMBER</span>, <span class="num">RANK</span>, <span class="num">LAG</span>), <span class="num">WITH</span> ni chuqur, <span class="num">CONNECT BY</span>, <span class="num">MERGE</span>: P2-darsda</li>
+      <li>JOIN qanday fizik bajariladi (nested loops, hash join, merge join) va indeks: P7-darsda</li>
+      <li>Jadval, kalit va normallashtirish: P9-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Ma'lumotni olish uchun dastur yozish kerak edi</h3>
+<p>1960-yillarda ma'lumot <strong>ierarxik</strong> (IBM IMS) va <strong>tarmoq</strong> (CODASYL) bazalarida saqlanardi. Ularda yozuvlar bir-biriga ko'rsatkichlar bilan bog'langan edi: «mijoz yozuvidan uning birinchi hisobiga o'tish, keyin keyingi hisobga o'tish». Bitta savolga javob olish uchun dasturchi COBOL'da shu ko'rsatkichlar bo'ylab yuradigan dastur yozardi. Bu 4-yo'nalishning <a href="../4-baza/02-ierarxik-tarmoq-relyatsion.html">2-darsida</a> batafsil.</p>
+<ul>
+  <li><strong>Har bir savol: yangi dastur.</strong> «Qoldig'i 1 milliondan katta mijozlar» degan oddiy savol uchun ham dasturchi kerak edi. Boshqaruvchi o'zi so'ray olmasdi.</li>
+  <li><strong>Tuzilish o'zgarsa, dasturlar buziladi.</strong> Dastur yo'lni bilardi: «avval mijoz, keyin hisob». Ma'lumot boshqacha joylashtirilsa, hamma dasturni qayta yozish kerak edi.</li>
+  <li><strong>Tezlik dasturchining qo'lida.</strong> Qaysi yo'l bilan yurish tez ekanini dasturchi o'zi o'ylashi kerak edi, va ma'lumot hajmi o'zgarganda u eskirib qolardi.</li>
+</ul>
+<p>1970-yilda IBM xodimi Edgar Codd boshqa g'oyani taklif qildi: ma'lumot oddiy jadvallarda (relyatsiyalarda) tursin, bog'lanish esa ko'rsatkich emas, qiymat orqali bo'lsin (hisobda <span class="num">mijoz_id</span> ustuni). Savol esa matematik to'plamlar tilida berilsin: «qaysi qatorlar kerak», «qanday yo'l bilan» emas. Bu g'oyani odam yoza oladigan tilga aylantirish uchun IBM'da SEQUEL, keyinroq SQL deb atalgan til yaratildi. Kerak bo'lgan narsa shu edi: savolni dasturchi bo'lmagan odam ham yoza olsin, yo'lni esa baza o'zi tanlasin.</p>
+
+<h3><span class="part">2. Ichkarida</span>SQL qanday ishlaydi</h3>
+
+<p class="beat">SELECT qaysi tartibda bajariladi</p>
+<p>So'rov ingliz tilidagi gapga o'xshab yoziladi: avval <span class="num">SELECT</span> (nimani), keyin <span class="num">FROM</span> (qayerdan). Lekin Oracle uni boshqa tartibda «o'qiydi». Buni oshxona bilan solishtirish mumkin: menyuda taom nomi birinchi yozilgan, lekin oshpaz avval omborxonadan mahsulot oladi (<span class="num">FROM</span>), keraksizini ajratadi (<span class="num">WHERE</span>), turlarga bo'ladi (<span class="num">GROUP BY</span>), kichik guruhlarni chetga qo'yadi (<span class="num">HAVING</span>), tarelkaga soladi (<span class="num">SELECT</span>), tartib bilan teradi (<span class="num">ORDER BY</span>) va faqat birinchi ikkitasini olib chiqadi (<span class="num">FETCH FIRST</span>).</p>
+<p>Bu <strong>mantiqiy</strong> tartib: natija qanday bo'lishi kerakligini belgilaydi. Optimizator fizik tartibni o'zgartirishi mumkin (masalan, filtrni JOIN dan oldin qo'llash), lekin natija doim shu mantiqiy tartibdagidek chiqadi. Pastdagi chizmada bitta so'rov to'qqiz qatorli to'lovlar jadvali ustida qadamma-qadam bajariladi. Qadamni tanlang.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT   filial, COUNT(*) AS soni, SUM(summa) AS jami
+FROM     tolovlar
+WHERE    holat = 'OK'
+GROUP BY filial
+HAVING   SUM(summa) &gt; 600
+ORDER BY jami DESC
+FETCH FIRST 2 ROWS ONLY;</pre>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="ord" style="width:1240px;height:440px" viewBox="0 0 1240 440" role="img" aria-label="SELECT so'rovining yetti bosqichi va har bosqichdan keyin qolgan qatorlar"></svg></div>
+  <figcaption>Tepada bajarilish tartibi (har qutida yozilishdagi o'rni ham ko'rsatilgan). Pastda shu bosqichdan keyingi oraliq natija: chiziq bilan o'chirilgan qatorlar shu bosqichda tashlab yuborilgan. O'ngda shu bosqichda nima ishlatish mumkinligi.</figcaption>
+  <div class="evo-tabs" id="ordT" style="margin-top:0.9rem"></div>
+  <p class="say" id="ordSay" aria-live="polite"></p>
+</figure>
+<p>Shu tartibdan suhbatdagi uchta mashhur savolning javobi kelib chiqadi:</p>
+<ul>
+  <li><strong>Nega <span class="num">WHERE jami &gt; 600</span> xato beradi?</strong> <span class="num">jami</span> nomi <span class="num">SELECT</span> da beriladi, <span class="num">SELECT</span> esa 5-bosqich. <span class="num">WHERE</span> 2-bosqichda ishlaydi va u paytda bunday nom hali yo'q: <span class="num">ORA-00904: invalid identifier</span>. <span class="num">ORDER BY jami</span> esa ishlaydi, chunki u <span class="num">SELECT</span> dan keyin.</li>
+  <li><strong>Nega <span class="num">WHERE SUM(summa) &gt; 600</span> xato beradi?</strong> <span class="num">WHERE</span> har bir qatorni alohida tekshiradi, guruhlar hali yo'q, demak yig'indi ham yo'q: <span class="num">ORA-00934: group function is not allowed here</span>. Guruh bo'yicha filtr <span class="num">HAVING</span> ning ishi.</li>
+  <li><strong>Nega <span class="num">SELECT filial, holat, COUNT(*) ... GROUP BY filial</span> xato?</strong> Guruhlangandan keyin bitta filialga bitta qator qoladi. Toshkent guruhida <span class="num">holat</span> ham <span class="num">OK</span>, ham <span class="num">XATO</span> bo'lishi mumkin: qaysi birini chiqarish kerak? Oracle taxmin qilmaydi: <span class="num">ORA-00979: not a GROUP BY expression</span>. Qoida: <span class="num">GROUP BY</span> bor so'rovda <span class="num">SELECT</span> dagi har bir ustun yoki guruhlash ustuni, yoki agregat ichida bo'lishi kerak.</li>
+</ul>
+<p>Oracle 23ai dan boshlab <span class="num">GROUP BY</span> va <span class="num">HAVING</span> da <span class="num">SELECT</span> dagi aliasni ishlatish mumkin bo'ldi (<span class="num">GROUP BY 1</span> kabi pozitsiya ham). Lekin bank tizimlarining ko'pi hali 19c da, shuning uchun eski qoidani bilish shart.</p>
+
+<p class="beat">JOIN: ikki jadvalni qiymat bo'yicha ulash</p>
+<p>Codd g'oyasida jadvallar ko'rsatkich bilan emas, qiymat bilan bog'lanadi. <strong>JOIN</strong> shu qiymatlar bo'yicha qatorlarni juftlaydi. Eng sodda tasavvur: Oracle chap jadvalning har bir qatorini o'ng jadvalning har bir qatori bilan juftlab chiqadi (bu <strong>dekart ko'paytma</strong>, CROSS JOIN), keyin <span class="num">ON</span> shartiga mos kelmagan juftlarni tashlaydi. Haqiqatda u buni ancha aqlliroq qiladi (P7), lekin natija shu tasavvurdagidek.</p>
+<p>JOIN turlari mos juftini topa olmagan qator bilan nima qilish kerakligi bilan farq qiladi. Pastdagi misolda uchta mijoz va to'rtta hisob bor. Sardorning hisobi yo'q, 104-hisobning esa egasi ko'rsatilmagan (<span class="num">mijoz_id</span> bo'sh). Turni tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="jn" style="width:1240px;height:470px" viewBox="0 0 1240 470" role="img" aria-label="Mijozlar va hisoblar jadvallari, tanlangan JOIN turi bo'yicha natija"></svg></div>
+  <figcaption>Chapda ikki jadval, chiziqlar ON shartiga mos kelgan juftlar. O'ngda natija. Sariq qatorlarda yetishmagan tomon NULL bilan to'ldirilgan.</figcaption>
+  <div class="evo-tabs" id="jnT" style="margin-top:0.9rem"></div>
+  <p class="say" id="jnSay" aria-live="polite"></p>
+</figure>
+<p>Turlarni bir gapda eslab qolish:</p>
+<ul>
+  <li><strong>INNER JOIN</strong>: faqat juft topilgan qatorlar.</li>
+  <li><strong>LEFT [OUTER] JOIN</strong>: chap jadvalning hamma qatori, juft topilmasa o'ng tomon <span class="num">NULL</span>. «Hisobi bo'lsa ham, bo'lmasa ham hamma mijozlar».</li>
+  <li><strong>RIGHT JOIN</strong>: aksincha. Amalda kam yoziladi: jadvallar joyini almashtirib LEFT yoziladi, o'qish oson.</li>
+  <li><strong>FULL OUTER JOIN</strong>: ikkala tomonning hammasi. Ikki manbani solishtirishda (masalan, bank hisobi va protsessing ma'lumotini yarashtirish) juda kerak: qaysi yozuv qaysi tomonda yo'q.</li>
+  <li><strong>CROSS JOIN</strong>: har biri har biri bilan. Ataylab kam ishlatiladi (masalan, har filial uchun har kun qatorini yasash). Tasodifan esa JOIN shartini unutganda chiqadi.</li>
+  <li><strong>Semi-join</strong> (<span class="num">EXISTS</span>, <span class="num">IN</span>): chap jadval qatori, agar o'ngda kamida bitta jufti bo'lsa. Qator ko'paymaydi.</li>
+  <li><strong>Anti-join</strong> (<span class="num">NOT EXISTS</span>): chap jadval qatori, agar o'ngda jufti bo'lmasa.</li>
+  <li><strong>Self join</strong>: jadvalni o'zi bilan ulash, ikki xil alias bilan. Masalan, xodim va uning rahbari bitta jadvalda: <span class="num">FROM xodimlar x JOIN xodimlar r ON r.id = x.rahbar_id</span>.</li>
+</ul>
+<p>Oracle'da JOIN ni ikki xil yozish mumkin. Eski usul, Oracle'ning o'z sintaksisi: jadvallar vergul bilan, shart <span class="num">WHERE</span> da, tashqi JOIN esa <span class="num">(+)</span> belgisi bilan: <span class="num">WHERE m.id = h.mijoz_id(+)</span> bu LEFT JOIN. <span class="num">(+)</span> «NULL qatorni qo'shib beradigan» tomonga qo'yiladi. Yangi usul, SQL-92 standarti: <span class="num">JOIN ... ON</span>. Oracle uni 9i (2001) dan beri qo'llaydi. Eski bank kodida <span class="num">(+)</span> juda ko'p uchraydi, shuning uchun uni o'qiy olish kerak. Yangi kodda ANSI sintaksis afzal: JOIN sharti va filtr ajralib turadi, FULL OUTER JOIN esa <span class="num">(+)</span> bilan umuman yozilmaydi.</p>
+
+<p class="beat">GROUP BY va agregatlar</p>
+<p><strong>Agregat funksiya</strong> ko'p qatordan bitta qiymat chiqaradi: <span class="num">COUNT</span>, <span class="num">SUM</span>, <span class="num">AVG</span>, <span class="num">MIN</span>, <span class="num">MAX</span>, va Oracle'da yana <span class="num">LISTAGG</span> (qiymatlarni bitta satrga terish), <span class="num">MEDIAN</span>, <span class="num">STDDEV</span>. <span class="num">GROUP BY</span> bo'lmasa, butun natija bitta guruh. <span class="num">GROUP BY filial</span> bo'lsa, har filial alohida guruh va har biri uchun bitta qator.</p>
+<p>Agregatlarning <span class="num">NULL</span> bilan munosabati suhbatda ko'p so'raladi:</p>
+<ul>
+  <li><span class="num">COUNT(*)</span> qatorlarni sanaydi, ichida nima borligiga qaramaydi. <span class="num">COUNT(1)</span> aynan shu narsa: Oracle ikkalasini bir xil bajaradi, «COUNT(1) tezroq» degan gap afsona.</li>
+  <li><span class="num">COUNT(summa)</span> faqat <span class="num">summa</span> bo'sh bo'lmagan qatorlarni sanaydi. <span class="num">COUNT(DISTINCT filial)</span> esa nechta har xil filial borligini.</li>
+  <li><span class="num">SUM</span>, <span class="num">AVG</span>, <span class="num">MIN</span>, <span class="num">MAX</span> bo'sh qiymatlarni tashlab hisoblaydi. Shuning uchun <span class="num">AVG(summa)</span> va <span class="num">SUM(summa)/COUNT(*)</span> har xil chiqishi mumkin.</li>
+  <li>Bitta ham qator bo'lmasa, <span class="num">COUNT</span> 0 qaytaradi, <span class="num">SUM</span> esa <span class="num">NULL</span>. PL/SQL da <span class="num">SELECT SUM(...) INTO v</span> dan keyin <span class="num">v</span> bo'sh qolishi mumkin: <span class="num">NVL(SUM(summa), 0)</span>.</li>
+</ul>
+<p><strong>DISTINCT</strong> va <strong>GROUP BY</strong>: <span class="num">SELECT DISTINCT filial</span> va <span class="num">SELECT filial ... GROUP BY filial</span> bir xil natija beradi. Farqi: GROUP BY bilan har guruh uchun agregat hisoblash mumkin. DISTINCT ni JOIN dan keyin ko'paygan qatorlarni «yamash» uchun ishlatish yomon belgi: odatda bu JOIN noto'g'ri yozilganini bildiradi (pastdagi «fan-out» tuzog'iga qarang).</p>
+<p>Oracle'da guruhlashning kengaytmalari ham bor: <span class="num">GROUP BY ROLLUP(filial, valyuta)</span> oraliq va umumiy jami qatorlarini qo'shadi (hisobotlarda «Jami» qatori), <span class="num">CUBE</span> barcha kombinatsiyalar bo'yicha, <span class="num">GROUPING SETS</span> esa kerakli kombinatsiyalarni o'zingiz sanab berasiz.</p>
+
+<p class="beat">Subquery: so'rov ichidagi so'rov</p>
+<p><strong>Subquery</strong> (ichki so'rov) qavs ichidagi <span class="num">SELECT</span>. U qayerda turishi va tashqi so'rov bilan qanday bog'lanishiga qarab bir necha turga bo'linadi. Eng muhim farq: ichki so'rov bir marta bajariladimi, yoki tashqi so'rovning har bir qatori uchun qayta-qayta. Turni tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="sq" style="width:1240px;height:290px" viewBox="0 0 1240 290" role="img" aria-label="Ichki va tashqi so'rov, ular orasida qiymat qanday uzatiladi"></svg></div>
+  <figcaption>Chapda ichki so'rov, o'ngda tashqi so'rov. Strelkalar qiymat qaysi tomonga va necha marta uzatilishini ko'rsatadi.</figcaption>
+  <div class="evo-tabs" id="sqT" style="margin-top:0.9rem"></div>
+  <p class="say" id="sqSay" aria-live="polite"></p>
+</figure>
+<ul>
+  <li><strong>Skalyar subquery</strong>: bitta qator va bitta ustun qaytaradi, oddiy qiymat o'rnida turadi. Ikki qator qaytarsa, <span class="num">ORA-01427: single-row subquery returns more than one row</span>. Hech narsa qaytarmasa, <span class="num">NULL</span>.</li>
+  <li><strong>Inline view</strong>: <span class="num">FROM</span> ichidagi subquery, vaqtinchalik jadval kabi ishlaydi. Avval guruhlab, keyin JOIN qilish uchun qulay.</li>
+  <li><strong>Korrelyatsiyalangan subquery</strong>: tashqi so'rov ustuniga murojaat qiladi (<span class="num">q2.hisob = q.hisob</span>), shuning uchun mantiqan har bir tashqi qator uchun qayta bajariladi. Oracle uni ko'pincha JOIN ga aylantirib yuboradi (subquery unnesting), lekin har doim emas.</li>
+  <li><strong><span class="num">IN</span> va <span class="num">EXISTS</span></strong>: ikkalasi ham semi-join. <span class="num">IN (ro'yxat)</span> qiymat ro'yxatda bormi, <span class="num">EXISTS</span> ichki so'rov kamida bitta qator qaytaradimi. Zamonaviy Oracle ikkalasini odatda bir xil rejaga aylantiradi. Asosiy farq <span class="num">NOT</span> bilan va <span class="num">NULL</span> bilan chiqadi: <span class="num">NOT IN</span> ichida bitta <span class="num">NULL</span> bo'lsa, natija bo'sh.</li>
+  <li><strong><span class="num">ANY</span> va <span class="num">ALL</span></strong>: <span class="num">qoldiq &gt; ALL (SELECT ...)</span> «hammasidan katta», <span class="num">&gt; ANY</span> «kamida bittasidan katta». Kam ishlatiladi, odatda <span class="num">MAX</span> va <span class="num">MIN</span> bilan almashtiriladi.</li>
+</ul>
+
+<p class="beat">To'plam amallari: UNION, INTERSECT, MINUS</p>
+<p>Ikki so'rov natijasini qator sifatida birlashtiradi. Ustunlar soni va turlari mos bo'lishi kerak, nomlar birinchi so'rovdan olinadi.</p>
+<ul>
+  <li><span class="num">UNION ALL</span>: ikkalasini shunchaki ulab qo'yadi. Tez.</li>
+  <li><span class="num">UNION</span>: ulaydi va takrorlarni olib tashlaydi. Buning uchun saralash yoki xesh kerak: katta natijada sekin. Takror bo'lmasligi aniq bo'lsa, doim <span class="num">UNION ALL</span>.</li>
+  <li><span class="num">INTERSECT</span>: ikkalasida bor qatorlar. <span class="num">MINUS</span> (standartda <span class="num">EXCEPT</span>, Oracle 21c dan bu nom ham ishlaydi): birinchisida bor, ikkinchisida yo'q. Ikki jadvalni yarashtirishda qulay: «bizda bor, protsessingda yo'q».</li>
+  <li>Bu amallar <span class="num">NULL</span> ni teng deb hisoblaydi: <span class="num">WHERE</span> dagi <span class="num">=</span> dan farqli.</li>
+</ul>
+
+<p class="beat">NULL: «qiymat yo'q» va uch qiymatli mantiq</p>
+<p><span class="num">NULL</span> son ham, bo'sh satr ham, nol ham emas. U «noma'lum» yoki «yo'q» degani. Hayotiy o'xshatish: anketadagi to'ldirilmagan katak. Ikki to'ldirilmagan katakning qiymati tengmi? Bilmaymiz. Shuning uchun SQL da <span class="num">NULL = NULL</span> rost ham, yolg'on ham emas, balki uchinchi qiymat: <strong>UNKNOWN</strong>. Bu <strong>uch qiymatli mantiq</strong> deyiladi.</p>
+<p><span class="num">WHERE</span> faqat <span class="num">TRUE</span> chiqqan qatorlarni o'tkazadi. <span class="num">FALSE</span> ham, <span class="num">UNKNOWN</span> ham tashlanadi. Tuzoqlarning hammasi shu yerdan: shart «yolg'on» chiqmaydi, lekin qator baribir yo'qoladi va xato xabari yo'q. Pastda mantiq jadvallari va tez-tez uchraydigan ifodalar. Ifodani tanlang.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="nl" style="width:1240px;height:360px" viewBox="0 0 1240 360" role="img" aria-label="AND, OR, NOT uchun uch qiymatli mantiq jadvallari va tanlangan ifoda natijasi"></svg></div>
+  <figcaption>Tepada AND, OR va NOT jadvallari: satr chap qiymat, ustun o'ng qiymat. Sariq katak tanlangan ifodada ishlatilgan holat. Pastda ifoda va uning natijasi (misollardagi 8-to'lovning summasi NULL).</figcaption>
+  <div class="evo-tabs" id="nlT" style="margin-top:0.9rem"></div>
+  <p class="say" id="nlSay" aria-live="polite"></p>
+</figure>
+<p>NULL bilan ishlash vositalari:</p>
+<ul>
+  <li><span class="num">IS NULL</span>, <span class="num">IS NOT NULL</span>: tekshirishning yagona to'g'ri yo'li. <span class="num">= NULL</span> hech qachon <span class="num">TRUE</span> bermaydi.</li>
+  <li><span class="num">NVL(a, b)</span>: <span class="num">a</span> bo'sh bo'lsa <span class="num">b</span>. Oracle funksiyasi. Ikkala argumentni ham doim hisoblaydi.</li>
+  <li><span class="num">COALESCE(a, b, c, ...)</span>: birinchi bo'sh bo'lmaganini. Standart funksiya, «qisqa tutashuv» bilan: birinchi topilganda qolganini hisoblamaydi. <span class="num">NVL(x, og'ir_funksiya())</span> da funksiya har doim chaqiriladi, <span class="num">COALESCE</span> da faqat kerak bo'lganda.</li>
+  <li><span class="num">NVL2(a, b, c)</span>: <span class="num">a</span> bo'sh bo'lmasa <span class="num">b</span>, bo'sh bo'lsa <span class="num">c</span>.</li>
+  <li><span class="num">NULLIF(a, b)</span>: teng bo'lsa <span class="num">NULL</span>, aks holda <span class="num">a</span>. Nolga bo'lishdan qochish: <span class="num">summa / NULLIF(soni, 0)</span>.</li>
+  <li><span class="num">DECODE(x, NULL, 'bo''sh', ...)</span>: Oracle funksiyasi, u ikki <span class="num">NULL</span> ni teng deb hisoblaydi. <span class="num">CASE x WHEN NULL</span> esa hech qachon ishlamaydi, <span class="num">CASE WHEN x IS NULL</span> yozish kerak.</li>
+</ul>
+<p>Oracle'ning ikkita o'ziga xosligi, boshqa bazalardan kelganlar uchun kutilmagan:</p>
+<ul>
+  <li><strong>Bo'sh satr <span class="num">''</span> bu <span class="num">NULL</span>.</strong> <span class="num">WHERE izoh = ''</span> hech qachon qator qaytarmaydi. PostgreSQL va SQL Server'da bunday emas. Java'dan bo'sh <span class="num">String</span> yuborilsa, bazaga <span class="num">NULL</span> bo'lib tushadi.</li>
+  <li><strong><span class="num">||</span> NULL ni e'tiborsiz qoldiradi.</strong> <span class="num">'Hisob: ' || NULL</span> natijasi <span class="num">'Hisob: '</span>. Standartda va boshqa bazalarda bu <span class="num">NULL</span>. Arifmetikada esa Oracle ham standart bo'yicha: <span class="num">100 + NULL</span> bu <span class="num">NULL</span>.</li>
+</ul>
+<p>Saralashda <span class="num">NULL</span> Oracle'da eng katta qiymat kabi: <span class="num">ORDER BY summa</span> da oxirida, <span class="num">DESC</span> da boshida. Kerak bo'lsa <span class="num">NULLS FIRST</span> yoki <span class="num">NULLS LAST</span> yoziladi.</p>
+
+<p class="beat">Top-N: ROWNUM va FETCH FIRST</p>
+<p><span class="num">ROWNUM</span> Oracle'ning yashirin ustuni: qator natijaga <strong>kirayotgan paytda</strong> beriladigan tartib raqami (1, 2, 3...). U <span class="num">WHERE</span> bosqichida beriladi, <span class="num">ORDER BY</span> esa ancha keyin. Shuning uchun <span class="num">SELECT * FROM hisoblar WHERE ROWNUM &lt;= 3 ORDER BY qoldiq DESC</span> «eng katta uchta qoldiq» emas: tasodifiy uchta qatorni olib, keyin ularni saralaydi. To'g'risi eski usulda: avval inline view ichida saralash, keyin tashqarida <span class="num">ROWNUM</span>.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- 12c gacha
+SELECT * FROM (SELECT * FROM hisoblar ORDER BY qoldiq DESC) WHERE ROWNUM &lt;= 3;
+-- 12c dan
+SELECT * FROM hisoblar ORDER BY qoldiq DESC FETCH FIRST 3 ROWS ONLY;
+-- sahifalash: 21-dan 30-gacha
+SELECT * FROM hisoblar ORDER BY qoldiq DESC OFFSET 20 ROWS FETCH NEXT 10 ROWS ONLY;</pre>
+<p>Yana bir tuzoq: <span class="num">WHERE ROWNUM = 2</span> hech qachon qator qaytarmaydi. Birinchi qator 1 raqamini oladi, shartdan o'tmaydi va tashlanadi. Keyingi qator yana 1 raqamini oladi, chunki hali hech kim o'tmagan. <span class="num">ROWNUM = 1</span> va <span class="num">ROWNUM &lt;= N</span> ishlaydi, <span class="num">&gt; 1</span> yoki <span class="num">= N</span> ishlamaydi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>SQL va Oracle tarixi</h3>
+<div class="bench" id="evoSql"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Deklarativ til</dt><dd>«Nima kerak»ni aytasiz, «qanday olish»ni tizim hal qiladi. SQL shunday. PL/SQL, Java esa protsedur (imperativ) tillar: qadamlarni o'zingiz yozasiz.</dd>
+  <dt>Relyatsiya, kortej, atribut</dt><dd>Codd modelidagi nomlar: jadval, qator, ustun.</dd>
+  <dt>Mantiqiy bajarilish tartibi</dt><dd>FROM, WHERE, GROUP BY, HAVING, SELECT, DISTINCT, ORDER BY, OFFSET/FETCH. Natija qanday bo'lishini belgilaydi. Fizik tartibni optimizator tanlaydi.</dd>
+  <dt>Alias</dt><dd>Ustun yoki jadvalga berilgan qisqa nom: <span class="num">SUM(summa) AS jami</span>, <span class="num">FROM hisoblar h</span>. Ustun aliasi SELECT dan keyingi bosqichlarda ko'rinadi.</dd>
+  <dt>Predikat</dt><dd>TRUE, FALSE yoki UNKNOWN qaytaradigan shart: <span class="num">holat = 'OK'</span>.</dd>
+  <dt>Dekart ko'paytma (CROSS JOIN)</dt><dd>Har bir chap qatorning har bir o'ng qator bilan jufti. 1000 va 1000 qatordan 1 million qator.</dd>
+  <dt>INNER, LEFT, RIGHT, FULL OUTER JOIN</dt><dd>Faqat juftlar; chapning hammasi; o'ngning hammasi; ikkalasining hammasi. Juft topilmagan tomon NULL bilan to'ldiriladi.</dd>
+  <dt>Semi-join, anti-join</dt><dd>Chap qator, agar o'ngda jufti bor bo'lsa (EXISTS, IN) yoki yo'q bo'lsa (NOT EXISTS). Chap qator ko'paymaydi.</dd>
+  <dt>Self join</dt><dd>Jadvalni o'zi bilan ikki alias orqali ulash: xodim va rahbar, hisob va uning ota hisobi.</dd>
+  <dt>(+) sintaksisi</dt><dd>Oracle'ning eski tashqi JOIN yozuvi. NULL qator qo'shiladigan tomonga qo'yiladi.</dd>
+  <dt>Fan-out</dt><dd>Birga-ko'p JOIN dan keyin chap qatorlarning ko'payishi. Undan keyin SUM qilinsa, summa ko'paygan qatorlar soniga ko'payadi.</dd>
+  <dt>Agregat funksiya</dt><dd>Ko'p qatordan bitta qiymat: COUNT, SUM, AVG, MIN, MAX, LISTAGG. COUNT(*) dan boshqalari NULL ni tashlab ketadi.</dd>
+  <dt>GROUP BY, HAVING</dt><dd>Qatorlarni guruhlarga bo'lish; guruhlarni agregat shart bo'yicha filtrlash. WHERE qatorlarni guruhlashdan oldin filtrlaydi.</dd>
+  <dt>ROLLUP, CUBE, GROUPING SETS</dt><dd>Bitta so'rovda bir necha darajadagi jami: oraliq jamilar, barcha kombinatsiyalar, tanlangan kombinatsiyalar.</dd>
+  <dt>Subquery: skalyar, inline view, korrelyatsiyalangan</dt><dd>Bitta qiymat qaytaradigan; FROM ichida jadval o'rnida turadigan; tashqi so'rov ustuniga murojaat qiladigan va mantiqan har tashqi qator uchun bajariladigan ichki so'rov.</dd>
+  <dt>Subquery unnesting</dt><dd>Optimizatorning ichki so'rovni JOIN, semi-join yoki anti-join ga aylantirishi.</dd>
+  <dt>UNION, UNION ALL, INTERSECT, MINUS</dt><dd>Natijalarni birlashtirish (takrorsiz, takror bilan), kesishma, ayirma.</dd>
+  <dt>Uch qiymatli mantiq</dt><dd>TRUE, FALSE va UNKNOWN. NULL bilan har qanday solishtirish UNKNOWN beradi, WHERE esa faqat TRUE ni o'tkazadi.</dd>
+  <dt>NVL, NVL2, COALESCE, NULLIF, DECODE</dt><dd>NULL o'rniga qiymat; NULL ga qarab ikki qiymatdan biri; birinchi bo'sh bo'lmagan (qisqa tutashuv bilan); teng bo'lsa NULL; Oracle'ning NULL ni teng deb biladigan shartli funksiyasi.</dd>
+  <dt>ROWNUM</dt><dd>Qator natijaga kirayotganda beriladigan tartib raqami. ORDER BY dan oldin beriladi.</dd>
+  <dt>FETCH FIRST, OFFSET</dt><dd>12c dan standart top-N va sahifalash yozuvi. ORDER BY dan keyin ishlaydi.</dd>
+  <dt>DUAL</dt><dd>Bitta qator va bitta ustunli maxsus jadval. Jadvalsiz ifodani hisoblash uchun: <span class="num">SELECT SYSDATE FROM dual</span>. 23ai dan FROM siz ham yozish mumkin.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: LEFT JOIN ning o'ng jadvaliga WHERE da shart qo'yish</b>
+  <p><span class="num">FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id WHERE h.qoldiq &gt; 0</span>. Hisobi yo'q mijozda <span class="num">h.qoldiq</span> bu NULL, <span class="num">NULL &gt; 0</span> esa UNKNOWN, va qator tashlanadi. LEFT JOIN jimgina INNER JOIN ga aylandi. «Hamma mijozlar ro'yxati» hisobotidan mijozlar yo'qoladi va xato xabari chiqmaydi.</p>
+  <p class="why">To'g'risi: o'ng jadval bo'yicha shartni <span class="num">ON</span> ga ko'chirish: <span class="num">ON h.mijoz_id = m.id AND h.qoldiq &gt; 0</span>. Qoida: <span class="num">ON</span> «qaysi qatorlar juft bo'ladi»ni belgilaydi, <span class="num">WHERE</span> esa «JOIN dan keyin qaysi qatorlar qoladi»ni. Chap jadval bo'yicha shart esa <span class="num">WHERE</span> da qoladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: NOT IN va ichida NULL</b>
+  <p><span class="num">SELECT * FROM mijozlar WHERE id NOT IN (SELECT mijoz_id FROM hisoblar)</span> «hisobi yo'q mijozlar» bo'lishi kerak edi. Lekin hisoblarda bitta <span class="num">mijoz_id</span> bo'sh bo'lsa, natija bo'sh. <span class="num">x NOT IN (1, 2, NULL)</span> bu <span class="num">x &lt;&gt; 1 AND x &lt;&gt; 2 AND x &lt;&gt; NULL</span>, oxirgisi doim UNKNOWN, demak butun shart hech qachon TRUE bo'lmaydi.</p>
+  <p class="why">To'g'risi: <span class="num">NOT EXISTS (SELECT 1 FROM hisoblar h WHERE h.mijoz_id = m.id)</span>. U NULL dan ta'sirlanmaydi. Yoki ichki so'rovga <span class="num">WHERE mijoz_id IS NOT NULL</span> qo'shish. Ustunda <span class="num">NOT NULL</span> cheklovi bo'lsa, xavf yo'q va optimizator ham buni biladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: fan-out, ya'ni summa ikki baravar chiqadi</b>
+  <p>Mijozning hisoblaridagi qoldiq yig'indisi va to'lovlari sonini bitta so'rovda olmoqchisiz: <span class="num">FROM mijozlar m JOIN hisoblar h ON ... JOIN tolovlar t ON t.mijoz_id = m.id ... SUM(h.qoldiq), COUNT(t.id)</span>. Mijozning 2 hisobi va 3 to'lovi bo'lsa, JOIN 2 × 3 = 6 qator beradi, va har bir qoldiq 3 marta qo'shiladi. Hisobot «chiroyli», lekin noto'g'ri.</p>
+  <p class="why">To'g'risi: har bir «ko'p» tomonni avval alohida guruhlab, mijoz darajasiga keltirib, keyin JOIN qilish (inline view yoki <span class="num">WITH</span>). Har bir JOIN dan keyin «natijada bir qator nimani bildiradi?» deb so'rang. <span class="num">DISTINCT</span> yoki <span class="num">SUM(DISTINCT ...)</span> bilan yamash xato: ikki hisobning qoldig'i tasodifan teng bo'lsa, biri yo'qoladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ROWNUM va ORDER BY bitta darajada</b>
+  <p><span class="num">WHERE ROWNUM &lt;= 10 ORDER BY sana DESC</span> «oxirgi 10 ta» emas, «tasodifiy 10 ta, saralangan». Test bazasida kam ma'lumotda to'g'ri ko'rinishi mumkin, prodda esa noto'g'ri.</p>
+  <p class="why">To'g'risi: 12c dan <span class="num">ORDER BY sana DESC FETCH FIRST 10 ROWS ONLY</span>, eski versiyada saralangan inline view ustida <span class="num">ROWNUM</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ustunga funksiya va turlarning yashirin almashuvi</b>
+  <p><span class="num">WHERE TRUNC(sana) = DATE '2026-10-29'</span> yoki <span class="num">WHERE hisob_raqam = 20208000100000000001</span> (ustun <span class="num">VARCHAR2</span>, qiymat son). Ikkinchisida Oracle ustunni songa aylantiradi: <span class="num">TO_NUMBER(hisob_raqam) = ...</span>. Ikkala holatda ham ustundagi oddiy indeks ishlatilmaydi va jadval to'liq o'qiladi. Satrdagi bitta raqam bo'lmagan qiymat esa <span class="num">ORA-01722: invalid number</span> beradi.</p>
+  <p class="why">To'g'risi: funksiyani qiymat tomonga o'tkazish (<span class="num">sana &gt;= DATE '2026-10-29' AND sana &lt; DATE '2026-10-30'</span>) va qiymatni ustun turida berish (<span class="num">'20208000100000000001'</span>). Indeks P7-darsda.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: BETWEEN va sanadagi vaqt</b>
+  <p>Oracle'ning <span class="num">DATE</span> turida soat, daqiqa, soniya ham bor. <span class="num">sana BETWEEN DATE '2026-10-01' AND DATE '2026-10-31'</span> 31-oktabrning 00:00:00 dan keyingi yozuvlarini olmaydi: oyning oxirgi kuni yo'qoladi.</p>
+  <p class="why">To'g'risi: yarim ochiq oraliq: <span class="num">sana &gt;= DATE '2026-10-01' AND sana &lt; DATE '2026-11-01'</span>.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Namunaviy javob yod olish uchun emas: undagi asosiy fikrlar sizning javobingizda bo'lishi kerak. Javob bilmasangiz, «bilmayman» demang: tartibni bilaman, shundan kelib chiqib o'ylayman, deb fikrlashni ovoz chiqarib davom ettiring.</p>
+<details><summary>SELECT so'rovi qanday tartibda bajariladi?</summary>
+<p>Mantiqiy tartib: FROM va JOIN (manbalar yig'iladi), WHERE (qatorlar filtrlanadi), GROUP BY (guruhlarga bo'linadi), HAVING (guruhlar filtrlanadi), SELECT (ifodalar va aliaslar hisoblanadi), DISTINCT, ORDER BY, va oxirida OFFSET/FETCH yoki tashqi ROWNUM. Shundan xulosalar: WHERE da SELECT aliasi va agregat ishlamaydi, ORDER BY da alias ishlaydi. Bu mantiqiy tartib: optimizator fizik tartibni o'zgartirishi mumkin, masalan filtrni JOIN dan oldin qo'llash yoki view ichiga kiritish, lekin natija o'zgarmaydi.</p></details>
+<details><summary>WHERE va HAVING farqi nima? Bitta shartni ikkalasiga ham yozish mumkin bo'lsa, qaysi biri yaxshi?</summary>
+<p>WHERE alohida qatorlarni guruhlashdan oldin filtrlaydi va unda agregat ishlatib bo'lmaydi. HAVING guruhlashdan keyin guruhlarni filtrlaydi va odatda agregat shart bilan: <span class="num">HAVING SUM(summa) &gt; 1000</span>. Guruhlash ustuni bo'yicha shart (<span class="num">filial = 'Toshkent'</span>) ikkalasida ham ishlaydi, lekin WHERE da yozish to'g'ri: keraksiz qatorlar guruhlashdan oldin tashlanadi, ish kamroq. Optimizator ko'pincha buni o'zi ko'chiradi, lekin bunga suyanmaslik kerak.</p></details>
+<details><summary>ORA-00979: not a GROUP BY expression qachon chiqadi?</summary>
+<p>GROUP BY bor so'rovda SELECT, HAVING yoki ORDER BY da guruhlash ustuni ham, agregat ham bo'lmagan ustun ishlatilsa. Guruhdan bitta qator chiqadi, guruh ichida esa bu ustun har xil bo'lishi mumkin, va Oracle qaysi qiymatni olishni bilmaydi. Yechim: ustunni GROUP BY ga qo'shish yoki agregatga o'rash (MAX, MIN, LISTAGG). MySQL ba'zi rejimlarda tasodifiy qiymat olib qo'yadi, Oracle esa xato beradi.</p></details>
+<details><summary>JOIN turlarini tushuntiring.</summary>
+<p>INNER: faqat shart bo'yicha juft topilgan qatorlar. LEFT OUTER: chap jadvalning hammasi, jufti yo'qlarida o'ng ustunlar NULL. RIGHT: aksincha. FULL OUTER: ikkala tomon ham, juftsizlar NULL bilan; ikki manbani yarashtirishda kerak. CROSS: dekart ko'paytma. Bundan tashqari semi-join (EXISTS, IN: chap qator, jufti bor bo'lsa, ko'paymasdan) va anti-join (NOT EXISTS). Self join: jadvalni o'zi bilan. Oracle'da eski <span class="num">(+)</span> sintaksisi ham bor, u NULL qo'shiladigan tomonga yoziladi, FULL OUTER ni u bilan yozib bo'lmaydi. JOIN ning fizik usullari, nested loops, hash join va sort merge, alohida mavzu: ularni optimizator tanlaydi.</p></details>
+<details><summary>LEFT JOIN da o'ng jadval shartini ON ga yozish bilan WHERE ga yozishning farqi nima?</summary>
+<p>ON da: shart juftlashga qatnashadi, chap jadvalning hamma qatori baribir qoladi, shartga mos o'ng qator bo'lmasa, NULL bilan. WHERE da: shart JOIN dan keyin ishlaydi, juftsiz qatorlarda o'ng ustun NULL bo'lgani uchun shart UNKNOWN beradi va qator tashlanadi, ya'ni LEFT JOIN amalda INNER JOIN ga aylanadi. Istisno: <span class="num">WHERE h.id IS NULL</span>. Bu ataylab qilinadigan anti-join usuli: «jufti yo'q qatorlar».</p></details>
+<details><summary>IN va EXISTS farqi? NOT IN va NOT EXISTS farqi?</summary>
+<p>IN qiymatni ro'yxat yoki ichki so'rov natijasi bilan solishtiradi. EXISTS ichki so'rov kamida bitta qator qaytarishini tekshiradi va birinchi topilgan qatorda to'xtaydi; u odatda korrelyatsiyalangan. Zamonaviy Oracle ikkalasini semi-join ga aylantiradi va rejalar ko'pincha bir xil, shuning uchun «EXISTS doim tez» degan gap eskirgan. Katta farq NOT bilan: ichki so'rovda bitta NULL bo'lsa, NOT IN hech qanday qator qaytarmaydi, chunki <span class="num">x &lt;&gt; NULL</span> UNKNOWN. NOT EXISTS NULL dan ta'sirlanmaydi. Shuning uchun «yo'q» degan savolga NOT EXISTS yoki ustun NOT NULL ekanini aniq bilish.</p></details>
+<details><summary>Korrelyatsiyalangan subquery nima va qachon sekin?</summary>
+<p>Tashqi so'rov ustuniga murojaat qiladigan ichki so'rov, masalan har bir hisobning oxirgi kungi qoldig'ini olish uchun <span class="num">WHERE q.kun = (SELECT MAX(kun) FROM qoldiqlar q2 WHERE q2.hisob = q.hisob)</span>. Mantiqan u har tashqi qator uchun bajariladi. Agar Oracle uni JOIN ga aylantira olmasa va ichki so'rov indeks bilan tez topilmasa, millionlab qatorda millionlab qidiruv bo'ladi. Ko'pincha optimizator uni unnest qiladi; bo'lmasa analitik funksiya (P2: <span class="num">ROW_NUMBER</span> yoki <span class="num">MAX(...) KEEP (DENSE_RANK LAST ...)</span>) yoki guruhlangan inline view bilan qayta yoziladi.</p></details>
+<details><summary>COUNT(*), COUNT(1), COUNT(ustun), COUNT(DISTINCT ustun) farqi?</summary>
+<p>COUNT(*) va COUNT(1) bir xil: qatorlar soni, Oracle ikkalasini bir xil bajaradi. COUNT(ustun) shu ustunda NULL bo'lmagan qatorlar soni. COUNT(DISTINCT ustun) har xil NULL bo'lmagan qiymatlar soni. Bo'sh to'plamda COUNT 0, SUM esa NULL qaytaradi. AVG ham NULL larni tashlab hisoblaydi, shuning uchun AVG(summa) va SUM(summa)/COUNT(*) farq qilishi mumkin.</p></details>
+<details><summary>NULL bilan solishtirish qanday ishlaydi? Oracle'da bo'sh satr nima?</summary>
+<p>NULL «noma'lum». Har qanday solishtirish, hatto NULL = NULL ham, UNKNOWN beradi. WHERE faqat TRUE ni o'tkazadi, shuning uchun UNKNOWN qator tashlanadi. Tekshirish faqat IS NULL va IS NOT NULL bilan. AND da FALSE ustun keladi (FALSE AND UNKNOWN = FALSE), OR da TRUE (TRUE OR UNKNOWN = TRUE), NOT UNKNOWN esa UNKNOWN. Oracle'da bo'sh satr '' NULL ga teng: VARCHAR2 da uzunligi nol satr yo'q. Yana bir o'ziga xoslik: <span class="num">||</span> NULL ni bo'sh satr deb oladi, arifmetika esa NULL qaytaradi.</p></details>
+<details><summary>NVL, NVL2, COALESCE, NULLIF va DECODE farqi?</summary>
+<p>NVL(a, b): a NULL bo'lsa b; Oracle'ga xos, ikkala argument doim hisoblanadi. COALESCE(a, b, ...): birinchi NULL bo'lmagan, standart, ko'p argument oladi va qisqa tutashuv bilan ishlaydi; argument turlari mos bo'lishi kerak. NVL2(a, b, c): a NULL emas bo'lsa b, aks holda c. NULLIF(a, b): teng bo'lsa NULL, nolga bo'lishdan himoya uchun. DECODE: Oracle'ning shartli funksiyasi, CASE ning eski varianti, va u NULL ni NULL ga teng deb biladi. CASE esa standart, murakkab shartlarni yozadi, lekin <span class="num">CASE x WHEN NULL</span> ishlamaydi.</p></details>
+<details><summary>UNION va UNION ALL farqi? MINUS qachon kerak?</summary>
+<p>UNION ALL natijalarni shunchaki ulaydi. UNION takrorlarni olib tashlaydi, buning uchun saralash yoki xesh qiladi, shuning uchun sekinroq. Takror bo'lmasligi aniq bo'lsa yoki takror kerak bo'lsa, UNION ALL. MINUS birinchi natijada bor, ikkinchisida yo'q qatorlarni beradi, INTERSECT ikkalasida borini. Masalan, ikki tizim ma'lumotini solishtirish: bizning hisob ro'yxatimiz MINUS protsessing ro'yxati. To'plam amallarida NULL lar teng deb hisoblanadi.</p></details>
+<details><summary>Eng katta 3 ta qoldiqni qanday olasiz? ROWNUM da qanday xato qilish mumkin?</summary>
+<p>12c dan: <span class="num">ORDER BY qoldiq DESC FETCH FIRST 3 ROWS ONLY</span>. Eski versiyada: <span class="num">SELECT * FROM (SELECT ... ORDER BY qoldiq DESC) WHERE ROWNUM &lt;= 3</span>. Xato: ROWNUM va ORDER BY ni bitta darajada yozish, chunki ROWNUM saralashdan oldin beriladi. Yana: <span class="num">ROWNUM = 2</span> yoki <span class="num">ROWNUM &gt; 1</span> hech narsa qaytarmaydi. Teng qiymatlar bo'lsa (uchinchi va to'rtinchi qoldiq teng) qaysi biri chiqishi tasodifiy; hammasi kerak bo'lsa <span class="num">FETCH FIRST 3 ROWS WITH TIES</span> yoki P2 dagi <span class="num">DENSE_RANK</span>.</p></details>
+<details><summary>Mijozlar, hisoblar va to'lovlarni JOIN qilib SUM qilsam, summa haqiqiydan katta chiqdi. Nega?</summary>
+<p>Bu fan-out. Mijozga hisoblar ham, to'lovlar ham «birga-ko'p». Ikkalasini bitta so'rovda ulaganda har bir hisob har bir to'lov bilan juftlanadi: 2 hisob va 3 to'lov 6 qator beradi, har bir qoldiq 3 marta qo'shiladi. Yechim: har bir ko'p tomonni avval mijoz darajasida guruhlash (inline view yoki WITH), keyin ularni mijozga ulash. Tekshirish usuli: JOIN dan keyin qatorlar sonini va kalit bo'yicha takrorlarni ko'rish.</p></details>
+<details><summary>Jadvaldagi takror yozuvlarni qanday topasiz va qanday o'chirasiz?</summary>
+<p>Topish: <span class="num">SELECT hisob, kun, COUNT(*) FROM qoldiqlar GROUP BY hisob, kun HAVING COUNT(*) &gt; 1</span>. O'chirish, har guruhdan bittasini qoldirib: <span class="num">DELETE FROM qoldiqlar WHERE ROWID NOT IN (SELECT MIN(ROWID) FROM qoldiqlar GROUP BY hisob, kun)</span>. ROWID qatorning fizik manzili, har qatorda noyob. P2 da shu ishni <span class="num">ROW_NUMBER</span> bilan qilish ham bor. Keyin qayta takrorlanmasligi uchun shu ustunlarga UNIQUE cheklov qo'yish kerak (P9).</p></details>
+<details><summary>Analitik funksiyasiz ikkinchi eng katta qoldiqni qanday topasiz?</summary>
+<p><span class="num">SELECT MAX(qoldiq) FROM hisoblar WHERE qoldiq &lt; (SELECT MAX(qoldiq) FROM hisoblar)</span>. Ichki so'rov eng kattasini beradi, tashqi so'rov undan kichiklar ichida eng kattasini. N-chi uchun bu usul qiyinlashadi, shuning uchun amalda <span class="num">DENSE_RANK</span> (P2) yoki <span class="num">ORDER BY qoldiq DESC OFFSET 1 ROWS FETCH NEXT 1 ROW ONLY</span>; lekin oxirgisi teng qiymatlarni hisobga olmaydi.</p></details>
+<details><summary>DISTINCT va GROUP BY farqi bormi?</summary>
+<p>Agregatsiz bir xil natija beradi va Oracle ko'pincha bir xil reja tuzadi. GROUP BY bilan har guruhga agregat hisoblash mumkin, DISTINCT esa faqat takrorlarni olib tashlaydi. Amaliy maslahat: JOIN dan keyin takror chiqqani uchun DISTINCT qo'yish odatda xatoni yashirish: avval nega takror chiqqanini tushunish kerak.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing, men suhbatdoshdek baholayman. Jadvallar darsdagi misollardan: <span class="num">mijozlar(id, ism)</span>, <span class="num">hisoblar(raqam, mijoz_id, qoldiq)</span>, <span class="num">tolovlar(id, filial, summa, holat)</span>.</p>
+<ol class="check">
+  <li>Har bir filialdagi <span class="num">OK</span> to'lovlar soni va jami summasini chiqaring, faqat 3 tadan ko'p to'lovi bor filiallarni, summa bo'yicha kamayish tartibida.</li>
+  <li>Hisobi yo'q mijozlarni ikki xil usulda toping. Ikkalasi qachon har xil natija beradi?</li>
+  <li><span class="num">SELECT COUNT(*), COUNT(summa), SUM(summa), AVG(summa) FROM tolovlar WHERE filial = 'Samarqand'</span> darsdagi ma'lumotda nima qaytaradi? <span class="num">WHERE filial = 'Buxoro'</span> bo'lsa-chi?</li>
+  <li>Hamkasbingiz «hamma mijozlar va ularning musbat qoldiqli hisoblari» hisobotini yozgan, lekin hisobi yo'q mijozlar chiqmayapti. Ehtimoliy sababi va tuzatilgan so'rov?</li>
+  <li>Kunlik qoldiqlar jadvalidan <span class="num">qoldiqlar(hisob, kun, qoldiq)</span> har bir hisobning eng oxirgi kundagi qoldig'ini analitik funksiyasiz oling. Bu so'rov 50 million qatorda sekin ishlashi mumkinmi, nega?</li>
+  <li>Ish joyingizdagi iABS kodida <span class="num">(+)</span> bilan yozilgan JOIN ni eslang yoki toping va uni ANSI sintaksisiga o'girib ko'ring.</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Mantiqiy tartib va optimizator: so'rov aslida qanday bajariladi</summary>
+<p>Optimizator so'rovni bajarishdan oldin uni qayta yozadi (query transformation): view'ni tashqi so'rovga qo'shib yuboradi (view merging), filtrni ichkariga suradi (predicate pushing), subquery'ni JOIN ga aylantiradi (unnesting), keraksiz JOIN ni olib tashlaydi (join elimination, masalan FK bo'yicha ulangan va ustuni ishlatilmagan jadval). Keyin har bir variant uchun narxni hisoblab, eng arzon fizik rejani tanlaydi. Bu P6 va P7 darslarida. Bu darsdan bitta xulosa yetarli: natija mantiqiy tartib bilan belgilanadi, tezlik esa reja bilan.</p></details>
+<details><summary>LATERAL, CROSS APPLY va OUTER APPLY</summary>
+<p>12c dan Oracle'da inline view tashqi jadval ustuniga murojaat qila oladi: <span class="num">FROM mijozlar m CROSS APPLY (SELECT * FROM hisoblar h WHERE h.mijoz_id = m.id ORDER BY qoldiq DESC FETCH FIRST 1 ROW ONLY)</span>: har mijozning eng katta qoldiqli hisobi. <span class="num">OUTER APPLY</span> LEFT JOIN kabi, jufti yo'q mijozni ham qoldiradi. Bu korrelyatsiyalangan subquery'ning JOIN ko'rinishidagi varianti.</p></details>
+<details><summary>Oracle'ning eski (+) sintaksisidagi cheklovlar</summary>
+<p><span class="num">(+)</span> bilan FULL OUTER JOIN yozilmaydi (UNION bilan ikki LEFT JOIN kerak edi). Bitta jadval ikki jadvalga (+) bilan tashqi ulanishi 12c gacha taqiqlangan edi. (+) ni OR yoki IN ichida ishlatib bo'lmaydi. Filtr shartiga (+) qo'yilmasa, LEFT JOIN yana INNER ga aylanadi: <span class="num">AND h.qoldiq(+) &gt; 0</span> ON dagi shartga, (+) siz esa WHERE dagi shartga teng.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>E. F. Codd, «A Relational Model of Data for Large Shared Data Banks», Communications of the ACM, 1970. D. Chamberlin, R. Boyce, «SEQUEL: A Structured English Query Language», 1974. Oracle Database SQL Language Reference (19c va 23ai): SELECT, Joins, Subqueries, Nulls, Aggregate Functions. Oracle Database New Features Guide 23ai: GROUP BY column alias, SELECT without FROM. C. J. Date, «SQL and Relational Theory» (NULL va uch qiymatli mantiq tanqidi).</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> SQL deklarativ: siz natijani tasvirlaysiz, yo'lni Oracle tanlaydi. Mantiqiy tartib FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, FETCH, shuning uchun WHERE da alias va agregat yo'q. JOIN turlari juftsiz qator bilan nima qilish bilan farq qiladi, ON va WHERE ning o'rni har xil, birga-ko'p JOIN qatorlarni ko'paytiradi. NULL uchinchi mantiqiy qiymat beradi, WHERE uni tashlaydi, NOT IN ichidagi bitta NULL hammasini o'chiradi. Oracle'da '' bu NULL, ROWNUM esa ORDER BY dan oldin.</p>
+  <p><strong>Keyingi dars.</strong> P2. Analitik funksiyalar va murakkab so'rovlar: guruhlamasdan hisoblash (ROW_NUMBER, RANK, LAG, LEAD, yig'ma jami), WITH va rekursiya, CONNECT BY bilan ierarxiya, MERGE.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="./">Bo'lim mundarijasi</a><span>Keyingi: P2. Analitik funksiyalar (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'CallableStatement, connection pool', link: 'SQL yoki PL/SQL chaqiradi' },
+    { title: 'PL/SQL dasturlar', sub: 'Paket, protsedura, trigger: P3–P5', ex: 'PKG_TOLOV.Otkazish(...)', link: 'ichida SQL bajaradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'SELECT ... FROM ... WHERE ... GROUP BY', link: 'optimizatorga beriladi' },
+    { title: 'Optimizator va reja', sub: 'Parse, bind, reja, indeks: P6–P7', ex: 'EXPLAIN PLAN, INDEX RANGE SCAN', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'SELECT ... FOR UPDATE', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'segment, blok, partitsiya', link: '' }
+  ], [2], 'SQL: hamma qavat shu til orqali');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function show(v) { return v === null ? 'NULL' : String(v); }
+  // Jadval chizish: ustun kengliklari, sarlavha, qatorlar [{c: [qiymatlar], k: 'freed'|'live'|''}]
+  function grid(svg, x, y, ws, head, rows, title) {
+    var W = ws.reduce(function (a, b) { return a + b; }, 0), H = 26;
+    if (title) S(svg, 'text', { x: x, y: y - 10, 'class': 'ttl' }, title);
+    S(svg, 'rect', { x: x, y: y, width: W, height: H, 'class': 'box on' });
+    var cx = x; head.forEach(function (h, i) { S(svg, 'text', { x: cx + 8, y: y + 18, 'class': 'mono' }, h); cx += ws[i]; });
+    rows.forEach(function (r, j) {
+      var ry = y + H * (j + 1);
+      S(svg, 'rect', { x: x, y: ry, width: W, height: H, 'class': 'box' + (r.k ? ' ' + r.k : '') });
+      var cx2 = x; r.c.forEach(function (v, i) { S(svg, 'text', { x: cx2 + 8, y: ry + 18, 'class': 'mono', style: r.k === 'freed' ? 'opacity:0.45' : '' }, show(v)); cx2 += ws[i]; });
+      if (r.k === 'freed') S(svg, 'line', { x1: x + 4, y1: ry + 13, x2: x + W - 4, y2: ry + 13, 'class': 'arr', style: 'opacity:0.6' });
+    });
+    return { w: W, h: H * (rows.length + 1) };
+  }
+
+  // ---------- SELECT bajarilish tartibi ----------
+  (function () {
+    var svg = $('ord'), say = $('ordSay'), cur = 0;
+    var T = [[1, 'Toshkent', 700, 'OK'], [2, 'Toshkent', 500, 'OK'], [3, 'Andijon', 300, 'OK'], [4, 'Andijon', 900, 'XATO'], [5, 'Andijon', 200, 'OK'], [6, 'Samarqand', 1500, 'OK'], [7, 'Toshkent', 200, 'XATO'], [8, 'Samarqand', null, 'OK'], [9, 'Namangan', 800, 'OK']];
+    var ok = T.filter(function (r) { return r[3] === 'OK'; });
+    var groups = []; ok.forEach(function (r) { var g = groups.filter(function (x) { return x.f === r[1]; })[0]; if (!g) { g = { f: r[1], ids: [], n: 0, s: null }; groups.push(g); } g.ids.push(r[0]); g.n++; if (r[2] !== null) g.s = (g.s || 0) + r[2]; });
+    var kept = groups.filter(function (g) { return g.s > 600; });
+    var sorted = kept.slice().sort(function (a, b) { return b.s - a.s; });
+    var ST = [
+      { t: 'FROM', w: 2, s: `1-bosqich, FROM. Oracle manbani oladi: tolovlar jadvalining 9 qatori. JOIN bo'lsa, jadvallar shu bosqichda ulanadi. Hali hech qanday filtr, guruh yoki alias yo'q.`, can: ['Jadval ustunlari: hammasi', 'SELECT aliaslari: yo\'q', 'Agregat: yo\'q'] },
+      { t: 'WHERE', w: 3, s: `2-bosqich, WHERE holat = 'OK'. Har bir qator alohida tekshiriladi. 4 va 7-to'lovlar XATO, ular tashlandi: 7 qator qoldi. Bu bosqichda hali guruh yo'q, shuning uchun WHERE SUM(summa) > 600 yozsangiz ORA-00934. SELECT ham hali bajarilmagan, shuning uchun WHERE jami > 600 yozsangiz ORA-00904: jami degan nom hali yo'q.`, can: ['Jadval ustunlari: ha', 'SELECT aliaslari: yo\'q', 'Agregat: mumkin emas'] },
+      { t: 'GROUP BY', w: 4, s: `3-bosqich, GROUP BY filial. 7 qator 4 guruhga bo'lindi. Endi har guruhdan bitta qator chiqadi, va agregatlar shu yerda hisoblanadi. E'tibor bering: Samarqandda 2 qator bor, lekin 8-to'lovning summasi NULL. COUNT(*) = 2, SUM(summa) esa NULL ni tashlab 1500 hisobladi.`, can: ['Guruhlash ustuni: filial', 'Boshqa ustunlar: faqat agregat ichida', 'Agregat: COUNT, SUM, ...'] },
+      { t: 'HAVING', w: 5, s: `4-bosqich, HAVING SUM(summa) > 600. Endi qator emas, guruh tekshiriladi. Andijonning yig'indisi 500, u tashlandi. WHERE qatorlarni guruhlashdan oldin, HAVING guruhlarni guruhlashdan keyin filtrlaydi.`, can: ['Guruhlash ustuni: ha', 'Agregat: ha', 'SELECT aliaslari: 23ai gacha yo\'q'] },
+      { t: 'SELECT', w: 1, s: `5-bosqich, SELECT. Faqat endi chiqadigan ustunlar tuziladi va aliaslar beriladi: soni, jami. Shundan keyingi bosqichlar bu nomlarni ko'radi, oldingilari esa ko'rmaydi. DISTINCT bo'lsa, u shu bosqichdan keyin ishlaydi.`, can: ['Aliaslar shu yerda tug\'iladi', 'Analitik funksiyalar shu yerda (P2)', 'DISTINCT shundan keyin'] },
+      { t: 'ORDER BY', w: 6, s: `6-bosqich, ORDER BY jami DESC. Alias bu yerda ishlaydi, chunki SELECT allaqachon bajarilgan. Saralash qimmat amal: katta natijada xotira (PGA) va vaqtinchalik joy (TEMP) ishlatadi. ORDER BY yozilmasa, Oracle hech qanday tartibni va'da qilmaydi, hatto bugun bir xil chiqsa ham.`, can: ['SELECT aliaslari: ha', 'Jadval ustunlari: ha', 'NULLS FIRST / LAST'] },
+      { t: 'FETCH', w: 7, s: `7-bosqich, FETCH FIRST 2 ROWS ONLY. Saralangan natijadan birinchi ikkitasi olinadi: Namangan tashlandi. Bu 12c dan beri bor standart yozuv. Eski ROWNUM esa WHERE bosqichida beriladi, ya'ni saralashdan oldin: shuning uchun ROWNUM bilan top-N uchun inline view kerak.`, can: ['Faqat oxirida', 'OFFSET n ROWS: sahifalash', 'WITH TIES: tenglarni ham'] }
+    ];
+    var setT = tabs('ordT', ST.map(function (s, i) { return (i + 1) + '. ' + s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      setT(cur); svg.textContent = ''; marker(svg, 'ordmk');
+      ST.forEach(function (s, i) {
+        var x = 20 + i * 175;
+        box(svg, x, 16, 150, 64, (i + 1) + '. ' + s.t, 'yozilishda: ' + s.w + '-o\'rin', i === cur ? 'on' : (i < cur ? 'live' : ''));
+        if (i < ST.length - 1) arrow(svg, 'ordmk', 'M' + (x + 150) + ' 48H' + (x + 173));
+      });
+      var rows, head, ws;
+      if (cur <= 1) {
+        head = ['id', 'filial', 'summa', 'holat']; ws = [60, 140, 100, 100];
+        rows = T.map(function (r) { return { c: r, k: cur === 1 && r[3] !== 'OK' ? 'freed' : '' }; });
+      } else if (cur <= 3) {
+        head = ['filial', 'qatorlar', 'COUNT(*)', 'SUM(summa)']; ws = [140, 120, 110, 130];
+        rows = groups.map(function (g) { return { c: [g.f, g.ids.join(', '), g.n, g.s], k: cur === 3 && !(g.s > 600) ? 'freed' : '' }; });
+      } else {
+        head = ['filial', 'soni', 'jami']; ws = [140, 90, 110];
+        var src = cur === 4 ? kept : sorted;
+        rows = src.map(function (g, j) { return { c: [g.f, g.n, g.s], k: cur === 6 && j >= 2 ? 'freed' : '' }; });
+      }
+      grid(svg, 20, 136, ws, head, rows, 'Bu bosqichdan keyingi natija');
+      var left = rows.filter(function (r) { return r.k !== 'freed'; }).length;
+      box(svg, 760, 110, 460, 190, ST[cur].t + ' bosqichida', 'qoladi: ' + left + (cur >= 2 && cur <= 3 ? ' guruh' : ' qator'), 'live');
+      ST[cur].can.forEach(function (c, i) { S(svg, 'text', { x: 778, y: 200 + i * 34, 'class': 'mono' }, '• ' + c); });
+      say.textContent = ST[cur].s;
+    }
+    draw();
+  })();
+
+  // ---------- JOIN turlari ----------
+  (function () {
+    var svg = $('jn'), say = $('jnSay'), cur = 0;
+    var M = [[1, 'Ali'], [2, 'Vali'], [3, 'Sardor']];
+    var H = [[101, 1, 500], [102, 1, 200], [103, 2, 0], [104, null, 300]];
+    function match(m, h, extra) { return h[1] !== null && h[1] === m[0] && (!extra || h[2] > 0); }
+    var J = [
+      { t: 'INNER', q: 'SELECT ... FROM mijozlar m JOIN hisoblar h ON h.mijoz_id = m.id', s: `INNER JOIN faqat juft topilgan qatorlarni beradi: 3 qator. Ali ikki marta chiqdi, chunki uning ikki hisobi bor: bu birga-ko'p bog'lanishda normal holat. Sardor (hisobi yo'q) va 104-hisob (egasi yo'q) natijada yo'q.` },
+      { t: 'LEFT', q: 'SELECT ... FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id', s: `LEFT JOIN chap jadvalning hammasini saqlaydi: 4 qator. Sardorning jufti yo'q, uning hisob ustunlari NULL bilan to'ldirildi. «Hamma mijozlar va hisoblari, bo'lsa» degan hisobot shunday yoziladi.` },
+      { t: 'RIGHT', q: 'SELECT ... FROM mijozlar m RIGHT JOIN hisoblar h ON h.mijoz_id = m.id', s: `RIGHT JOIN o'ng jadvalning hammasini saqlaydi: 4 qator. 104-hisobning egasi yo'q, mijoz ustunlari NULL. Amalda buni jadvallar joyini almashtirib LEFT JOIN bilan yozish odat: FROM hisoblar h LEFT JOIN mijozlar m.` },
+      { t: 'FULL', q: 'SELECT ... FROM mijozlar m FULL JOIN hisoblar h ON h.mijoz_id = m.id', s: `FULL OUTER JOIN ikkala tomonni saqlaydi: 5 qator. Sardor ham, 104-hisob ham bor. Ikki manbani yarashtirishda eng foydali tur: NULL tomoni qaysi yozuv qaysi manbada yo'qligini ko'rsatadi. Eski (+) sintaksisida buni yozib bo'lmaydi.` },
+      { t: 'CROSS', q: 'SELECT ... FROM mijozlar m CROSS JOIN hisoblar h', s: `CROSS JOIN har birini har biri bilan juftlaydi: 3 × 4 = 12 qator, shart yo'q. Eski sintaksisda FROM mijozlar m, hisoblar h deb yozib WHERE ni unutsangiz, xuddi shu bo'ladi. Million qatorli ikki jadvalda bu trillion qator.` },
+      { t: 'LEFT + WHERE', q: 'FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id WHERE h.qoldiq > 0', s: `Tuzoq. Avval LEFT JOIN 4 qator berdi, keyin WHERE h.qoldiq > 0 ishladi. Vali (qoldiq 0) FALSE, Sardor (qoldiq NULL) UNKNOWN: ikkalasi tashlandi. LEFT JOIN jimgina INNER JOIN ga aylandi va Sardor hisobotdan yo'qoldi.` },
+      { t: 'LEFT + ON', q: 'FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id AND h.qoldiq > 0', s: `To'g'risi. Shart ON ichida, ya'ni u faqat «qaysi hisob juft bo'ladi»ni belgilaydi. Valining yagona hisobi shartga mos emas, shuning uchun Vali NULL bilan qoldi. Sardor ham qoldi. Hamma mijozlar bor, hisoblardan faqat musbat qoldiqlilari.` },
+      { t: 'EXISTS', q: 'SELECT m.* FROM mijozlar m WHERE EXISTS (SELECT 1 FROM hisoblar h WHERE h.mijoz_id = m.id)', s: `Semi-join. Natijada faqat mijoz ustunlari va Ali bir marta, garchi uning ikki hisobi bo'lsa ham. EXISTS birinchi topilgan juftda to'xtaydi. «Hisobi bor mijozlar» uchun JOIN + DISTINCT emas, EXISTS yoki IN yoziladi.` },
+      { t: 'NOT EXISTS', q: 'SELECT m.* FROM mijozlar m WHERE NOT EXISTS (SELECT 1 FROM hisoblar h WHERE h.mijoz_id = m.id)', s: `Anti-join. Jufti yo'q mijozlar: faqat Sardor. 104-hisobdagi NULL hech narsaga xalaqit bermadi, chunki h.mijoz_id = m.id shart UNKNOWN berib, shunchaki «juft emas» deb hisoblandi.` },
+      { t: 'NOT IN', q: 'SELECT m.* FROM mijozlar m WHERE m.id NOT IN (SELECT h.mijoz_id FROM hisoblar h)', s: `Tuzoq. Ichki so'rov (1, 1, 2, NULL) qaytaradi. Sardor uchun shart 3 <> 1 AND 3 <> 2 AND 3 <> NULL. Oxirgisi UNKNOWN, TRUE AND UNKNOWN esa UNKNOWN. Natija bo'sh, xato xabari yo'q. Xuddi shu savolga NOT EXISTS Sardorni topgan edi.` }
+    ];
+    var setT = tabs('jnT', J.map(function (j) { return j.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      setT(cur); svg.textContent = ''; var j = J[cur];
+      S(svg, 'text', { x: 20, y: 26, 'class': 'mono' }, j.q);
+      var mRows = M.map(function (m) { return { c: m, k: '' }; }), hRows = H.map(function (h) { return { c: h, k: '' }; });
+      grid(svg, 20, 80, [50, 100], ['id', 'ism'], mRows, 'mijozlar m');
+      grid(svg, 300, 80, [80, 100, 90], ['raqam', 'mijoz_id', 'qoldiq'], hRows, 'hisoblar h');
+      var extra = cur === 6, res = [], semi = cur >= 7;
+      if (cur !== 4) M.forEach(function (m, i) { H.forEach(function (h, k) { if (match(m, h, extra)) S(svg, 'line', { x1: 170, y1: 80 + 26 * (i + 1) + 13, x2: 300, y2: 80 + 26 * (k + 1) + 13, 'class': 'arr', style: 'stroke-width:2' }); }); });
+      if (cur === 4) M.forEach(function (m) { H.forEach(function (h) { res.push({ c: [m[0], m[1], h[0], h[1], h[2]], k: '' }); }); });
+      else if (cur === 7) M.forEach(function (m) { if (H.some(function (h) { return match(m, h); })) res.push({ c: m, k: '' }); });
+      else if (cur === 8) M.forEach(function (m) { if (!H.some(function (h) { return match(m, h); })) res.push({ c: m, k: '' }); });
+      else if (cur === 9) { /* NULL tufayli bo'sh */ }
+      else {
+        var left = cur === 1 || cur === 3 || cur === 5 || cur === 6, right = cur === 2 || cur === 3;
+        M.forEach(function (m) { var any = false; H.forEach(function (h) { if (match(m, h, extra)) { any = true; res.push({ c: [m[0], m[1], h[0], h[1], h[2]], k: '' }); } }); if (!any && left) res.push({ c: [m[0], m[1], null, null, null], k: 'live' }); });
+        if (right) H.forEach(function (h) { if (!M.some(function (m) { return match(m, h); })) res.push({ c: [null, null, h[0], h[1], h[2]], k: 'live' }); });
+        if (cur === 5) res = res.map(function (r) { return { c: r.c, k: r.c[4] !== null && r.c[4] > 0 ? '' : 'freed' }; });
+      }
+      var n = res.filter(function (r) { return r.k !== 'freed'; }).length;
+      var title = 'Natija: ' + n + ' qator';
+      if (semi) grid(svg, 640, 80, [60, 110], ['m.id', 'm.ism'], res, title);
+      else grid(svg, 640, 80, [60, 100, 90, 100, 90], ['m.id', 'm.ism', 'h.raqam', 'h.mijoz_id', 'h.qoldiq'], res, title);
+      if (cur === 9) box(svg, 640, 120, 440, 64, 'Bo\'sh natija', 'ichki so\'rovda NULL bor: hamma shart UNKNOWN', 'bad');
+      if (cur === 4) S(svg, 'text', { x: 20, y: 260, 'class': 'sub' }, 'CROSS JOIN da shart yo\'q: chiziq har bir juftga borardi.');
+      var hh = Math.max(300, 80 + 26 * (Math.max(res.length, 4) + 1) + 30); svg.setAttribute('viewBox', '0 0 1240 ' + hh); svg.style.height = hh + 'px';
+      say.textContent = j.s; say.className = 'say' + (cur === 5 || cur === 9 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Subquery turlari ----------
+  (function () {
+    var svg = $('sq'), say = $('sqSay'), cur = 0;
+    var Q = [
+      { t: 'Skalyar', i: ['SELECT AVG(qoldiq)', 'FROM hisoblar'], o: ['SELECT raqam, qoldiq,', '  (ichki so\'rov) AS ortacha', 'FROM hisoblar'], a: ['1 marta,', 'bitta qiymat'], b: null, s: `Skalyar subquery bitta qator va bitta ustun qaytaradi va oddiy qiymat o'rnida turadi. Bu misol korrelyatsiyalanmagan, shuning uchun Oracle uni bir marta hisoblaydi. Ikki qator qaytsa ORA-01427, hech narsa qaytmasa NULL.` },
+      { t: 'Inline view', i: ['SELECT mijoz_id, SUM(qoldiq) jami', 'FROM hisoblar', 'GROUP BY mijoz_id'], o: ['SELECT m.ism, t.jami', 'FROM mijozlar m', 'JOIN (ichki so\'rov) t', '  ON t.mijoz_id = m.id'], a: ['vaqtinchalik', 'jadval kabi'], b: null, s: `Inline view FROM ichidagi so'rov: u jadval o'rnida turadi va nomi (t) bo'ladi. Fan-out'dan qochishning asosiy usuli: «ko'p» tomonni avval guruhlab, keyin ulash. Optimizator uni ko'pincha tashqi so'rovga qo'shib yuboradi (view merging).` },
+      { t: 'Korrelyatsiyalangan', i: ['SELECT MAX(q2.kun)', 'FROM qoldiqlar q2', 'WHERE q2.hisob = q.hisob'], o: ['SELECT q.hisob, q.kun, q.qoldiq', 'FROM qoldiqlar q', 'WHERE q.kun = (ichki so\'rov)'], a: ['har tashqi qator', 'uchun: MAX(kun)'], b: 'q.hisob qiymati', s: `Ichki so'rov tashqi ustunga (q.hisob) murojaat qiladi, shuning uchun mantiqan har tashqi qator uchun qayta bajariladi. Bu misol: har hisobning eng oxirgi kundagi qoldig'i. Indeks (hisob, kun) bo'lsa tez, bo'lmasa har qator uchun katta qidiruv. Oracle uni ko'pincha guruhlangan JOIN ga aylantiradi.` },
+      { t: 'EXISTS', i: ['SELECT 1', 'FROM hisoblar h', 'WHERE h.mijoz_id = m.id'], o: ['SELECT m.ism', 'FROM mijozlar m', 'WHERE EXISTS (ichki so\'rov)'], a: ['bor yoki yo\'q,', 'birinchisida to\'xtaydi'], b: 'm.id qiymati', s: `EXISTS ichki so'rov qanday ustun qaytarishiga qaramaydi, faqat qator bormi-yo'qmi. Shuning uchun SELECT 1 yoki SELECT * farqsiz. Birinchi mos qator topilishi bilan to'xtaydi. IN bilan yozilgan variantni Oracle odatda xuddi shu semi-join rejasiga aylantiradi.` },
+      { t: 'WITH', i: ['WITH jami AS (', '  SELECT mijoz_id, SUM(qoldiq) s', '  FROM hisoblar GROUP BY mijoz_id)'], o: ['SELECT * FROM jami', 'WHERE s > (SELECT AVG(s)', '           FROM jami)'], a: ['nomlangan,', '2 marta ishlatildi'], b: null, s: `WITH (CTE, umumiy jadval ifodasi) ichki so'rovga oldindan nom beradi. Bir necha marta ishlatish va so'rovni yuqoridan pastga o'qiladigan qilish uchun. Oracle uni yo inline view kabi joyiga qo'yadi, yo bir marta hisoblab vaqtinchalik saqlaydi (materialize). Batafsil va rekursiv WITH: P2-darsda.` }
+    ];
+    var setT = tabs('sqT', Q.map(function (q) { return q.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var q = Q[cur]; setT(cur); svg.textContent = ''; marker(svg, 'sqmk');
+      group(svg, 20, 20, 480, 250, 'Ichki so\'rov');
+      q.i.forEach(function (l, k) { S(svg, 'text', { x: 40, y: 80 + k * 28, 'class': 'mono', style: 'white-space:pre' }, l); });
+      group(svg, 740, 20, 480, 250, 'Tashqi so\'rov');
+      q.o.forEach(function (l, k) { S(svg, 'text', { x: 760, y: 80 + k * 28, 'class': 'mono', style: 'white-space:pre' }, l); });
+      arrow(svg, 'sqmk', 'M500 120H738', null);
+      S(svg, 'text', { x: 620, y: 108, 'text-anchor': 'middle', 'class': 'lbl' }, 'natija');
+      q.a.forEach(function (l, k) { S(svg, 'text', { x: 620, y: 145 + k * 18, 'text-anchor': 'middle', 'class': 'sub' }, l); });
+      if (q.b) { arrow(svg, 'sqmk', 'M738 220H502', null); S(svg, 'text', { x: 620, y: 208, 'text-anchor': 'middle', 'class': 'lbl' }, q.b); }
+      say.textContent = q.s;
+    }
+    draw();
+  })();
+
+  // ---------- NULL va uch qiymatli mantiq ----------
+  (function () {
+    var svg = $('nl'), say = $('nlSay'), cur = 0;
+    var V = ['TRUE', 'FALSE', 'UNKNOWN'];
+    var AND = [[0, 1, 2], [1, 1, 1], [2, 1, 2]], OR = [[0, 0, 0], [0, 1, 2], [0, 2, 2]], NOT = [1, 0, 2];
+    var E = [
+      { t: 'NULL = NULL', e: 'WHERE NULL = NULL', r: 'UNKNOWN: qator chiqmaydi', c: null, s: `Ikki noma'lum qiymat teng ekanini bilmaymiz, shuning uchun natija UNKNOWN. WHERE faqat TRUE ni o'tkazadi. NULL ni tekshirishning yagona yo'li IS NULL.` },
+      { t: 'summa <> 500', e: 'WHERE summa <> 500   -- 8-to\'lov, summa NULL', r: 'UNKNOWN: 8-to\'lov chiqmaydi', c: null, s: `«500 dan farqli to'lovlar» so'rovida summasi NULL bo'lgan to'lov yo'q. U 500 ga teng ham emas, farqli ham emas: noma'lum. Kerak bo'lsa: WHERE summa <> 500 OR summa IS NULL, yoki NVL(summa, 0) <> 500.` },
+      { t: 'TRUE AND UNKNOWN', e: 'WHERE holat = \'OK\' AND summa > 100   -- 8-to\'lov', r: 'TRUE AND UNKNOWN = UNKNOWN', c: ['a', 0, 2], s: `holat = 'OK' rost, summa > 100 noma'lum. AND da natija «eng yomoni»: FALSE bo'lsa FALSE, aks holda UNKNOWN bo'lsa UNKNOWN. Qator chiqmaydi.` },
+      { t: 'TRUE OR UNKNOWN', e: 'WHERE holat = \'OK\' OR summa > 100   -- 8-to\'lov', r: 'TRUE OR UNKNOWN = TRUE', c: ['o', 0, 2], s: `OR da bitta TRUE yetarli: ikkinchi qism noma'lum bo'lsa ham natija TRUE. Qator chiqadi.` },
+      { t: 'NOT UNKNOWN', e: 'WHERE NOT (summa > 100)   -- 8-to\'lov', r: 'NOT UNKNOWN = UNKNOWN', c: ['n', 2], s: `Inkor ham yordam bermaydi: noma'lumning teskarisi ham noma'lum. Shuning uchun summa > 100 so'rovi ham, NOT (summa > 100) so'rovi ham 8-to'lovni bermaydi: ikkalasini birlashtirsangiz, bitta qator yo'qoladi.` },
+      { t: 'NOT IN (.., NULL)', e: 'WHERE 5 NOT IN (1, 2, NULL)', r: '5<>1 AND 5<>2 AND 5<>NULL = UNKNOWN', c: ['a', 0, 2], s: `NOT IN ichkarida AND zanjiriga aylanadi. Oxirgi bo'g'in UNKNOWN, TRUE AND UNKNOWN esa UNKNOWN. Ro'yxatda bitta NULL bo'lsa, NOT IN hech qachon TRUE bermaydi. IN esa OR zanjiri: 1 IN (1, NULL) baribir TRUE.` },
+      { t: '\'\' IS NULL', e: 'SELECT CASE WHEN \'\' IS NULL THEN \'ha\' END FROM dual', r: '\'ha\': Oracle\'da bo\'sh satr NULL', c: null, s: `Oracle'da VARCHAR2 uchun uzunligi nol satr yo'q: '' yozilsa, u NULL. Shuning uchun WHERE izoh = '' hech qachon ishlamaydi, WHERE izoh IS NULL kerak. PostgreSQL va SQL Server'da '' va NULL har xil.` },
+      { t: 'NULL + 100', e: 'SELECT summa + 100 FROM tolovlar WHERE id = 8', r: 'NULL', c: null, s: `Arifmetikada NULL «yuqumli»: NULL ga nima qo'shsangiz ham NULL. Komissiya hisoblashda NVL(summa, 0) + komissiya yozilmasa, natija bo'sh qoladi.` },
+      { t: '\'Hisob: \' || NULL', e: 'SELECT \'Hisob: \' || NULL FROM dual', r: '\'Hisob: \'', c: null, s: `Oracle'ning o'ziga xosligi: satr ulashda NULL bo'sh satr deb olinadi. Standartda va PostgreSQL'da natija NULL bo'lardi. Bu NULL + 100 dan farqli: arifmetikada Oracle ham NULL qaytaradi.` },
+      { t: 'COUNT va AVG', e: 'SELECT COUNT(*), COUNT(summa), AVG(summa), AVG(NVL(summa,0)) FROM tolovlar', r: '9,  8,  637.5,  566.67', c: null, s: `COUNT(*) 9 qatorni sanadi. COUNT(summa) NULL ni tashladi: 8. AVG ham NULL ni tashlab, 5100 ni 8 ga bo'ldi: 637.5. Agar NULL «0 so'm» degani bo'lsa, AVG(NVL(summa, 0)) = 5100 / 9 = 566.67. Qaysi biri to'g'ri, biznes ma'nosiga bog'liq: buni tahlilchi bilan aniqlashtirish kerak.` },
+      { t: 'DECODE va CASE', e: 'DECODE(NULL, NULL, \'teng\', \'teng emas\')   |   CASE NULL WHEN NULL THEN \'teng\' ELSE \'teng emas\' END', r: 'DECODE: \'teng\'   CASE: \'teng emas\'', c: null, s: `DECODE ikki NULL ni teng deb biladi, oddiy CASE esa = bilan solishtiradi va NULL = NULL UNKNOWN. Eski kodni DECODE dan CASE ga ko'chirishda shu farq xato tug'diradi. CASE WHEN x IS NULL THEN ... yozish kerak.` }
+    ];
+    var setT = tabs('nlT', E.map(function (e) { return e.t; }), function (i) { cur = i; draw(); });
+    function cell(svg, x, y, txt, cls) { S(svg, 'rect', { x: x, y: y, width: 100, height: 30, 'class': 'box' + (cls ? ' ' + cls : '') }); S(svg, 'text', { x: x + 8, y: y + 20, 'class': 'mono' }, txt); }
+    function table2(x, name, M, key, hi) {
+      S(svg, 'text', { x: x, y: 26, 'class': 'ttl' }, name);
+      cell(svg, x, 36, '', 'freed'); V.forEach(function (v, i) { cell(svg, x + 100 * (i + 1), 36, v, 'on'); cell(svg, x, 66 + 30 * i, v, 'on'); });
+      M.forEach(function (row, i) { row.forEach(function (r, j) { cell(svg, x + 100 * (j + 1), 66 + 30 * i, V[r], hi && hi[0] === key && hi[1] === i && hi[2] === j ? 'live' : ''); }); });
+    }
+    function draw() {
+      var e = E[cur]; setT(cur); svg.textContent = ''; marker(svg, 'nlmk');
+      table2(20, 'AND', AND, 'a', e.c); table2(450, 'OR', OR, 'o', e.c);
+      S(svg, 'text', { x: 880, y: 26, 'class': 'ttl' }, 'NOT');
+      V.forEach(function (v, i) { cell(svg, 880, 66 + 30 * i, v, 'on'); cell(svg, 980, 66 + 30 * i, V[NOT[i]], e.c && e.c[0] === 'n' && e.c[1] === i ? 'live' : ''); });
+      S(svg, 'rect', { x: 20, y: 200, width: 1200, height: 64, rx: 5, 'class': 'box' });
+      S(svg, 'text', { x: 36, y: 222, 'class': 'sub' }, 'Ifoda');
+      S(svg, 'text', { x: 36, y: 248, 'class': 'mono' }, e.e);
+      arrow(svg, 'nlmk', 'M620 264V292');
+      var bad = /UNKNOWN|NULL$|chiqmaydi|teng emas/.test(e.r);
+      S(svg, 'rect', { x: 20, y: 294, width: 1200, height: 52, rx: 5, 'class': 'box ' + (bad ? 'bad' : 'on') });
+      S(svg, 'text', { x: 36, y: 326, 'class': 'val' }, 'Natija:  ' + e.r);
+      say.textContent = e.s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoSql', [
+    { name: `Codd va SEQUEL`, years: `1970–1979`, art: `<rect x="14" y="20" width="92" height="60" rx="3"/><path d="M14 40h92M14 60h92M44 20v60M74 20v60" class="acc"/>`,
+      how: `Edgar Codd 1970-yilda relyatsion modelni e'lon qiladi: ma'lumot jadvallarda, bog'lanish qiymat orqali, savol to'plamlar tilida. IBM'ning System R loyihasida Donald Chamberlin va Raymond Boyce 1974-yilda SEQUEL tilini yozadi. Savdo belgisi tufayli nom SQL ga qisqaradi.`,
+      better: `Savol «qanday yurish» emas, «nima kerak» deb yoziladi. Ma'lumot joylashuvi o'zgarsa, so'rovlar buzilmaydi.`,
+      pain: `Deklarativ so'rovni tez bajarish qiyin: buning uchun optimizator kerak, birinchi tizimlar sekin edi.`,
+      ex: `System R birinchi bo'lib xarajatga asoslangan optimizator g'oyasini ko'rsatdi (Selinger, 1979).` },
+    { name: `Oracle V2`, years: `1979`, art: `<ellipse cx="60" cy="50" rx="44" ry="26"/><ellipse cx="60" cy="50" rx="30" ry="14" class="acc"/>`,
+      how: `Larri Ellison, Bob Majner va Ed Outs (Relational Software Inc.) IBM maqolalari asosida birinchi tijoriy SQL bazasini chiqaradi. «Birinchi versiya»dan ishonchliroq ko'rinsin deb nomi V2.`,
+      better: `SQL laboratoriyadan bozorga chiqdi. JOIN vergul va WHERE bilan, tashqi JOIN Oracle'ning (+) belgisi bilan yoziladi.`,
+      pain: `Har bir ishlab chiqaruvchining o'z SQL lahjasi: bir bazadan boshqasiga ko'chish qiyin.`,
+      ex: `Kompaniya 1983-yilda Oracle Corporation nomini oladi.` },
+    { name: `Standartlar: SQL-86 va SQL-92`, years: `1986–1992`, art: `<rect x="20" y="18" width="80" height="64" rx="3"/><path d="M32 36h56M32 50h56M32 64h36" class="acc"/>`,
+      how: `ANSI va ISO SQL ni standartlashtiradi. SQL-92 katta qadam: JOIN ... ON, LEFT, RIGHT, FULL OUTER JOIN, CASE, COALESCE, NULLIF, CAST.`,
+      better: `JOIN sharti va filtr ajraladi, FULL OUTER JOIN yoziladi, kod bazalar orasida o'xshashroq bo'ladi.`,
+      pain: `Oracle ANSI JOIN sintaksisini faqat 9i (2001) da qo'llay boshladi, shuning uchun eski bank kodi (+) ga to'la.`,
+      ex: `Oracle 8i (1999) CASE ni va analitik funksiyalarni qo'shdi, 9i esa ANSI JOIN va MERGE ni.` },
+    { name: `SQL:1999 va SQL:2003`, years: `1999–2003`, art: `<path d="M20 80V30h30v50M50 55h30v25M80 40h20v40" class="acc"/><path d="M14 80h92"/>`,
+      how: `Standartga WITH (CTE) va rekursiv so'rovlar, oyna (analitik) funksiyalari, MERGE qo'shiladi. Oracle analitik funksiyalarni standartdan oldin, 8i da kiritgan edi.`,
+      better: `Guruhlamasdan reyting, oldingi qator, yig'ma jami hisoblash: korrelyatsiyalangan subquery'ning ko'p og'ir holatlari yo'qoladi. Bu P2-dars.`,
+      pain: `Top-N va sahifalash hali ham ROWNUM va inline view bilan yoziladi, va bu xatolarga sabab bo'ladi.`,
+      ex: `Rekursiv WITH Oracle'da 11g R2 (2009) dan. Undan oldin ierarxiya uchun Oracle'ning CONNECT BY si.` },
+    { name: `Oracle 12c`, years: `2013`, art: `<rect x="20" y="20" width="80" height="60" rx="3"/><path d="M20 35h80M20 50h80" class="acc"/><path d="M20 65h80" class="lit"/>`,
+      how: `FETCH FIRST n ROWS, OFFSET, WITH TIES; LATERAL, CROSS APPLY va OUTER APPLY; (+) cheklovlarining bir qismi olib tashlanadi.`,
+      better: `Top-N va sahifalash standart va tushunarli yoziladi, ROWNUM tuzog'i yo'qoladi.`,
+      pain: `Ko'p bank tizimlari 11g da qolib ketgan edi va eski usullar kodda yashashda davom etdi.`,
+      ex: `19c (2019) 12c oilasining uzoq qo'llab-quvvatlanadigan versiyasi: bugun eng ko'p tarqalgani.` },
+    { name: `23ai va 26ai`, years: `2023–2025`, art: `<circle cx="60" cy="50" r="32"/><path d="M42 50h36M60 32v36" class="acc"/>`,
+      how: `SQL qulayliklari: GROUP BY va HAVING da alias va pozitsiya, FROM siz SELECT, SQL da BOOLEAN turi, IF [NOT] EXISTS bilan DDL, VALUES dan jadval yasash. 26ai (2025-yil oktyabr) 23ai ning davomi.`,
+      better: `Mantiqiy tartib tufayli bo'lgan noqulayliklarning bir qismi yengillashdi.`,
+      pain: `Bu imkoniyatlar faqat yangi bazalarda: 19c kod bazasida eski qoidalar kuchda.`,
+      ex: `Suhbatda ish joyidagi Oracle versiyasini so'rab oling, javoblaringizni shunga moslang.` }
+  ]);
+})();
+</script>
+</body>
+</html>
