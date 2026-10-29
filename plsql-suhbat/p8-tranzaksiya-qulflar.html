@@ -1,0 +1,490 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P8. Tranzaksiya va qulflar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P8. Tranzaksiya, qulflar va izolyatsiya: COMMIT, undo va redo, lock, deadlock, FOR UPDATE, avtonom tranzaksiya</h1>
+<p class="lead">Savol: ikki kassir bir vaqtda bitta hisobdan pul yechsa, nega qoldiq to'g'ri chiqadi? Hisobot so'rovi ishlayotgan paytda o'tkazmalar bajarilsa, hisobot nimani ko'radi? Deadlock qanday paydo bo'ladi va bank kodida undan qanday qochiladi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Tranzaksiya</strong> bu bir butun bo'lib bajariladigan o'zgarishlar guruhi: yo hammasi saqlanadi (<span class="num">COMMIT</span>), yo hech biri (<span class="num">ROLLBACK</span>). <strong>Qulf</strong> (lock) bir vaqtda ikki sessiya bitta qatorni buzib yubormasligi uchun. <strong>Izolyatsiya</strong> esa parallel ishlayotgan tranzaksiyalar bir-birining qaysi o'zgarishlarini ko'rishini belgilaydi.</p>
+    <p>O'xshatish: bankdagi o'tkazma blanki. Kassir bir hisobdan yechib, ikkinchisiga yozadi. Agar o'rtada chiroq o'chsa, «yarim o'tkazma» bo'lmasligi kerak. Kassir blankni to'ldirayotganda boshqa kassir o'sha hisobga tegmasligi uchun hisob kartochkasini qo'liga oladi (qulf). Boshqalar esa kartochkaning oxirgi tasdiqlangan nusxasini ko'ra oladi (undo dan o'qish).</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Har bir provodka:</strong> debet va kredit bitta tranzaksiyada. Bittasi o'tib, ikkinchisi o'tmasa, balans buziladi.</li>
+      <li><strong>Parallel ish:</strong> mingta kassa, mobil ilova, protsessing va tungi jarayonlar bir xil hisoblarga bir vaqtda tegadi.</li>
+      <li><strong>Navbat va limitlar:</strong> to'lov navbatidan vazifa olish, kunlik limitni tekshirib kamaytirish: hammasi qulf bilan.</li>
+      <li><strong>Suhbatda:</strong> ACID, izolyatsiya darajalari, deadlock, <span class="num">FOR UPDATE</span>, avtonom tranzaksiya: bank vakansiyasida albatta so'raladi.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>ACID ni Oracle mexanizmlariga bog'lab tushuntirish (undo, redo, qulf, read consistency);</li>
+      <li>tranzaksiya chegaralari, savepoint, statement-level atomicity, yashirin COMMIT;</li>
+      <li>qator qulfi (TX) va jadval qulfi (TM), qulf kutish, <span class="num">NOWAIT</span>, <span class="num">SKIP LOCKED</span>;</li>
+      <li>deadlock va lost update ni ko'rsatib, oldini olish usullari;</li>
+      <li>izolyatsiya darajalari, ORA-01555, ORA-08177, avtonom tranzaksiya qachon to'g'ri va qachon xato.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, tranzaksiya va qulflar qavati ajratilgan"></svg></div>
+  <figcaption>Bu dars tranzaksiya qavati haqida: SQL va saqlash orasida o'zgarishlarni bir butun qiladigan va parallel ishni tartibga soladigan qavat.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>ACID; tranzaksiyaning boshlanishi va tugashi; <span class="num">SAVEPOINT</span>; statement-level atomicity; DDL va yashirin COMMIT</li>
+      <li>Undo va redo: nima yoziladi, nima uchun; ORA-01555</li>
+      <li>Multiversion read consistency: o'quvchi kutmaydi</li>
+      <li>Qulflar: TX va TM, ITL, qulf kutish, <span class="num">FOR UPDATE</span>, <span class="num">NOWAIT</span>, <span class="num">WAIT n</span>, <span class="num">SKIP LOCKED</span></li>
+      <li>Lost update, pessimistik va optimistik qulflash</li>
+      <li>Deadlock (ORA-00060) va oldini olish</li>
+      <li>Izolyatsiya: READ COMMITTED, SERIALIZABLE, READ ONLY; anomaliyalar</li>
+      <li>Avtonom tranzaksiya; ilovadagi autocommit</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>SGA, LGWR va tiklanish asoslari: P6-darsda</li>
+      <li>Indekssiz foreign key va bitmap ning indeks tomoni: P7-darsda</li>
+      <li>Taqsimlangan tranzaksiyalar (XA) batafsil: P11-darsda qisqacha</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Yarim o'tkazmalar va yo'qolgan pullar</h3>
+<p>Ma'lumotlar bazasi bo'lmagan davrda, ya'ni fayllar bilan ishlaydigan dasturlarda, uch xil falokat odatiy edi:</p>
+<ul>
+  <li><strong>Yarim bajarilgan ish.</strong> Dastur A hisobdan 100 ni yechdi, B hisobga yozishdan oldin yiqildi. Pul yo'qoldi, va qayerda to'xtaganini hech kim bilmaydi.</li>
+  <li><strong>Bir-birining ustidan yozish.</strong> Ikki kassir qoldiqni o'qidi (1000), birinchisi 100 yechib 900 yozdi, ikkinchisi 50 yechib 950 yozdi. Natija 950, to'g'risi 850: birinchi yechish yo'qoldi (lost update).</li>
+  <li><strong>Yarim yo'ldagi ma'lumotni o'qish.</strong> Hisobot hamma hisoblar qoldig'ini qo'shayotganda o'tkazma bajarildi: hisobot A dan yechilganini ko'rdi, B ga yozilganini esa ko'rmadi. Bank balansi «yo'qolgan» 100 bilan chiqdi.</li>
+</ul>
+<p>1970-yillarda IBM da Jim Gray tranzaksiya tushunchasini rasmiylashtirdi, 1983-yilda Härder va Reuter uni <strong>ACID</strong> deb nomladi: atomicity (bo'linmaslik), consistency (izchillik), isolation (ajratilganlik), durability (chidamlilik). Oracle bu xususiyatlarni o'ziga xos yo'l bilan amalga oshiradi, va aynan shu yo'l (undo dan o'qish, qatorda saqlanadigan qulflar) uni boshqa bazalardan ajratib turadi.</p>
+<ul>
+  <li><strong>Atomicity</strong>: undo. Har o'zgarishdan oldin eski qiymat undo ga yoziladi; ROLLBACK yoki yiqilishda shundan qaytariladi.</li>
+  <li><strong>Consistency</strong>: cheklovlar (PK, FK, CHECK), triggerlar va biznes qoidalari: tranzaksiya bazani bir to'g'ri holatdan boshqa to'g'ri holatga o'tkazadi.</li>
+  <li><strong>Isolation</strong>: qator qulflari va multiversion read consistency (undo dan nusxa).</li>
+  <li><strong>Durability</strong>: redo. COMMIT redo diskka yozilganda qaytadi (P6).</li>
+</ul>
+
+<h3><span class="part">2. Ichkarida</span>Tranzaksiya, undo, qulflar</h3>
+
+<p class="beat">Tranzaksiya chegaralari</p>
+<ul>
+  <li><strong>Boshlanishi</strong>: oshkor <span class="num">BEGIN TRANSACTION</span> yo'q. Tranzaksiya birinchi DML (yoki <span class="num">SELECT ... FOR UPDATE</span>, <span class="num">SET TRANSACTION</span>) bilan avtomatik boshlanadi.</li>
+  <li><strong>Tugashi</strong>: <span class="num">COMMIT</span>, <span class="num">ROLLBACK</span>, har qanday DDL (oldin va keyin yashirin COMMIT), sessiyaning normal yopilishi (sukut bo'yicha COMMIT), sessiyaning g'ayritabiiy uzilishi (PMON ROLLBACK qiladi).</li>
+  <li><strong>SAVEPOINT</strong>: tranzaksiya ichidagi belgi. <span class="num">ROLLBACK TO SAVEPOINT s</span> faqat shu belgidan keyingi o'zgarishlarni qaytaradi, tranzaksiya davom etadi. Masalan, to'lovlar paketidagi bitta to'lov xato bersa, faqat uni qaytarib, qolganini davom ettirish.</li>
+  <li><strong>Statement-level atomicity</strong>: bitta SQL buyruq xato bersa, faqat shu buyruqning o'zgarishlari qaytariladi, oldingi buyruqlar tranzaksiyada qoladi. 1000 qatorli UPDATE ning 999-qatorida xato: 998 qator ham qaytariladi, lekin undan oldingi INSERT qoladi. Qolganini nima qilish chaqiruvchining qarori.</li>
+  <li><strong>PL/SQL blok</strong>: ishlov berilmagan xato bilan tugagan anonim blok (ilova tomonidan chaqirilgan) bitta buyruq kabi: uning hamma o'zgarishlari qaytariladi. Xato <span class="num">WHEN OTHERS THEN NULL</span> bilan yutilsa, yarim bajarilgan o'zgarishlar qoladi (P3 dagi tuzoq).</li>
+</ul>
+<p>Java'da JDBC ulanishi sukut bo'yicha <strong>autocommit = true</strong>: har buyruqdan keyin avtomatik COMMIT. Debet va kredit ikki alohida tranzaksiya bo'lib qoladi. Bank kodida birinchi ish: <span class="num">setAutoCommit(false)</span>, keyin oshkor <span class="num">commit()</span> va xatoda <span class="num">rollback()</span> (yoki Spring <span class="num">@Transactional</span>). Yana yaxshiroq: butun o'tkazmani bitta PL/SQL protsedurada yozish, ilova faqat uni chaqiradi.</p>
+
+<p class="beat">Undo va redo: ikki xil jurnal</p>
+<p>Ikkalasi ham o'zgarish yozuvi, lekin vazifasi teskari. <strong>Undo</strong>: «qanday qaytarish» (eski qiymat), undo tablespace dagi segmentlarda, ROLLBACK va boshqalar uchun eski nusxa yasashda ishlatiladi. <strong>Redo</strong>: «qanday qayta bajarish» (yangi o'zgarish), redo log fayllarida, faqat tiklanishda o'qiladi. Muhim nozik joy: undo bloklari ham oddiy bloklar, ularning o'zgarishi ham redo ga yoziladi. Shuning uchun yiqilishdan keyin redo avval undo ni tiklaydi, keyin undo bilan commit qilinmaganlar qaytariladi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="undo" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="INSERT, UPDATE va DELETE da undo va redo ga nima yoziladi; ORA-01555"></svg></div>
+  <figcaption>Har buyruq uchun: blok oldin va keyin, undo ga yoziladigan narsa, redo ga yoziladigan narsa. Oxirgi holat: undo yetmaganda uzoq so'rov nima bo'ladi.</figcaption>
+  <div class="evo-tabs" id="undoT" style="margin-top:0.9rem"></div>
+  <p class="say" id="undoSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Multiversion read consistency: o'quvchi hech kimni kutmaydi</p>
+<p>Har SELECT boshlangan paytdagi SCN ni eslab qoladi va natijani <strong>shu paytdagi</strong> holat bo'yicha qaytaradi. Agar o'qilayotgan blok undan keyin o'zgargan bo'lsa (yoki unda commit qilinmagan o'zgarish bo'lsa), server jarayoni undo dan foydalanib blokning eski nusxasini keshda yasaydi va o'shani o'qiydi. Natija uch muhim xususiyat:</p>
+<ul>
+  <li><strong>Dirty read yo'q</strong>: commit qilinmagan o'zgarish hech qachon boshqa sessiyaga ko'rinmaydi.</li>
+  <li><strong>O'quvchi yozuvchini kutmaydi, yozuvchi o'quvchini kutmaydi.</strong> Ko'p boshqa bazalarda (eski SQL Server, DB2 sukut rejimida) o'qish ham qulf oladi va hisobot so'rovi kassalarni to'xtatadi. Oracle'da bunday emas.</li>
+  <li><strong>Bitta so'rov doim izchil</strong>: 20 daqiqalik <span class="num">SUM(qoldiq)</span> so'rovi ham hamma qatorlarni bitta lahza holatida ko'radi: o'tkazmaning yarmini emas.</li>
+</ul>
+<p>Narxi: undo yetarli bo'lishi kerak. So'rov uzoq ishlasa va kerakli eski undo boshqa tranzaksiyalar tomonidan qayta yozilib ketsa, <span class="num">ORA-01555: snapshot too old</span>. Pastdagi chizmada ikki sessiyaning vaqt bo'yicha harakati. Holatni tanlab, qadamlarni bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="tx" style="width:1240px;height:500px" viewBox="0 0 1240 500" role="img" aria-label="Ikki sessiya vaqt bo'yicha: o'qish va yozish, qulf kutish, lost update, deadlock, FOR UPDATE NOWAIT va SKIP LOCKED"></svg></div>
+  <figcaption>Chapda ikki sessiyaning buyruqlari vaqt bo'yicha yuqoridan pastga. O'ngda bazaning holati: jadval qatorlari, undo, qulflar va har sessiya nimani ko'radi. Qizil: kutish yoki xato.</figcaption>
+  <div class="evo-tabs" id="txT" style="margin-top:0.9rem"></div>
+  <div class="evo-tabs" id="txS" style="margin-top:0.5rem"></div>
+  <p class="say" id="txSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Qulflar qanday tuzilgan</p>
+<ul>
+  <li><strong>TX (qator qulfi)</strong>: DML o'zgartirgan har qator qulflanadi. Oracle qulf ro'yxatini xotirada saqlamaydi: qulf qator joylashgan blokning o'zida, blok sarlavhasidagi <strong>ITL</strong> (interested transaction list) yozuvi va qatordagi bayt orqali. Shuning uchun million qatorni qulflash million qulf xotirasini talab qilmaydi va <strong>lock escalation</strong> (qator qulflarini jadval qulfiga aylantirish) Oracle'da hech qachon bo'lmaydi.</li>
+  <li><strong>TM (jadval qulfi)</strong>: DML bajarilayotgan jadvalga yengil qulf (row exclusive, RX), u faqat jadval tuzilmasini o'zgartirishni (DDL) to'xtatadi va boshqa DML ga xalaqit bermaydi. Kuchliroq rejimlar: <span class="num">LOCK TABLE ... IN EXCLUSIVE MODE</span>; indekssiz foreign key da ota qatorni o'chirishda bola jadvalga share qulf (P7).</li>
+  <li><strong>Kutish</strong>: boshqa sessiya qulflagan qatorni o'zgartirmoqchi bo'lgan sessiya u COMMIT yoki ROLLBACK qilguncha kutadi: <span class="num">enq: TX - row lock contention</span>. Kim kimni kutayotgani <span class="num">V$SESSION.BLOCKING_SESSION</span> da.</li>
+  <li><strong>SELECT ... FOR UPDATE</strong>: o'qish bilan birga qatorlarni qulflash (pessimistik qulflash): «men buni o'qidim va o'zgartiraman, boshqalar kutsin». <span class="num">NOWAIT</span>: qulflangan bo'lsa darhol <span class="num">ORA-00054</span>; <span class="num">WAIT 5</span>: 5 sekund kutib, keyin xato; <span class="num">SKIP LOCKED</span>: qulflanganlarini o'tkazib, bo'shlarini olish: navbatni bir necha ishchi parallel qayta ishlashi uchun ideal. <span class="num">FOR UPDATE OF ustun</span>: join da faqat shu ustun jadvalining qatorlari qulflanadi.</li>
+  <li><strong>DDL qulflari</strong>: DDL ham obyektni qulflaydi. Faol DML bo'lgan jadvalga <span class="num">ALTER TABLE</span> darhol <span class="num">ORA-00054</span> beradi (11g dan <span class="num">DDL_LOCK_TIMEOUT</span> bilan kutishi mumkin). Ishlab turgan paketni qayta kompilyatsiya qilish uni ishlatayotgan sessiyalar tugashini kutadi (P4 dagi «library cache pin»).</li>
+</ul>
+
+<p class="beat">Lost update: pessimistik va optimistik yechim</p>
+<p>Oracle qatorni bir vaqtda ikki sessiya o'zgartirishiga yo'l qo'ymaydi, lekin <strong>ilova</strong> qoldiqni o'qib, o'zida hisoblab, natijani yozsa (read-modify-write), ikki sessiya bir xil eski qiymatdan hisoblab, bir-birining ustidan yozadi. Yechimlar:</p>
+<ul>
+  <li><strong>Hisobni SQL ichida qilish</strong>: <span class="num">UPDATE hisob SET qoldiq = qoldiq - :s WHERE id = :id AND qoldiq &gt;= :s</span>. Bitta buyruq: o'qish va yozish bitta qulf ostida. <span class="num">SQL%ROWCOUNT = 0</span> bo'lsa, mablag' yetmaydi. Eng sodda va eng tez.</li>
+  <li><strong>Pessimistik</strong>: <span class="num">SELECT ... FOR UPDATE</span> bilan o'qish, keyin hisoblash va yozish. Boshqalar shu orada kutadi. Qisqa tranzaksiyalar uchun, foydalanuvchi o'ylab turgan paytda emas.</li>
+  <li><strong>Optimistik</strong>: qatorda versiya ustuni. O'qishda versiyani eslab qolish, yozishda <span class="num">UPDATE ... SET ..., versiya = versiya + 1 WHERE id = :id AND versiya = :eski</span>. 0 qator yangilansa, kimdir o'zgartirib ulgurgan: foydalanuvchiga xabar yoki qayta urinish. Veb ekranlar uchun: o'qish va yozish orasida daqiqalar o'tadi, qulf ushlab turish mumkin emas. Versiya o'rniga <span class="num">ORA_ROWSCN</span> (jadval <span class="num">ROWDEPENDENCIES</span> bilan) yoki oxirgi o'zgarish vaqti ham ishlatiladi.</li>
+</ul>
+
+<p class="beat">Deadlock</p>
+<p>A sessiya 1-hisobni qulfladi va 2-hisobni kutyapti, B esa 2-hisobni qulflab 1-hisobni kutyapti. Hech biri o'z-o'zidan tugamaydi. Oracle buni bir necha sekundda aniqlaydi va sessiyalardan birining <strong>joriy buyrug'ini</strong> <span class="num">ORA-00060: deadlock detected</span> bilan qaytaradi (tranzaksiyani emas!), va trace faylga ikkala sessiya va qatorlar haqida ma'lumot yozadi. Xato olgan sessiya o'zi ROLLBACK qilishi kerak, aks holda u hali ham birinchi qulfni ushlab turibdi. Oldini olish:</p>
+<ul>
+  <li><strong>Doim bir xil tartibda qulflash</strong>: o'tkazmada ikki hisobni ID bo'yicha o'sish tartibida qulflash (<span class="num">SELECT ... WHERE id IN (:a, :b) ORDER BY id FOR UPDATE</span>), qaysi biri debet ekanidan qat'i nazar. Bank kodidagi klassik qoida.</li>
+  <li>Tranzaksiyalarni qisqa qilish; foydalanuvchi kiritishini kutayotganda qulf ushlamaslik.</li>
+  <li>Indekssiz foreign key va OLTP dagi bitmap indekslardan qochish (P7): ular ko'zga ko'rinmaydigan deadlock larning odatiy sababi.</li>
+  <li>Yetarli ITL: juda qizg'in yangilanadigan kichik jadvallarda <span class="num">INITRANS</span>.</li>
+</ul>
+
+<p class="beat">Izolyatsiya darajalari</p>
+<p>SQL standarti to'rt daraja va uch anomaliyani belgilaydi: <strong>dirty read</strong> (commit qilinmaganni o'qish), <strong>non-repeatable read</strong> (bir qatorni ikki marta o'qib, har xil qiymat olish), <strong>phantom</strong> (bir shart bilan ikki marta o'qib, yangi qatorlarni ko'rish). Oracle'da ikkitasi bor: <strong>READ COMMITTED</strong> (sukut: har <em>buyruq</em> o'z boshidagi holatni ko'radi) va <strong>SERIALIZABLE</strong> (butun <em>tranzaksiya</em> o'z boshidagi holatni ko'radi). Qo'shimcha: <strong>READ ONLY</strong> tranzaksiya (SERIALIZABLE kabi o'qiydi, lekin DML taqiqlangan). READ UNCOMMITTED Oracle'da yo'q: dirty read hech qachon bo'lmaydi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="iso" style="width:1240px;height:470px" viewBox="0 0 1240 470" role="img" aria-label="Izolyatsiya darajalari: hisobot tranzaksiyasi va parallel o'tkazma, har darajada ikkinchi so'rov nimani ko'radi; standart anomaliyalar jadvali"></svg></div>
+  <figcaption>Tepada vaqt chizig'i: T1 hisobot tranzaksiyasi, T2 o'tkazma va yangi hisob. O'rtada T1 ning ikkinchi so'rovi har darajada nimani qaytaradi. Pastda standart anomaliyalar va Oracle.</figcaption>
+  <div class="evo-tabs" id="isoT" style="margin-top:0.9rem"></div>
+  <p class="say" id="isoSay" aria-live="polite"></p>
+</figure>
+<p>SERIALIZABLE da T1 o'zi boshlanganidan keyin boshqa tranzaksiya o'zgartirgan va commit qilgan qatorni o'zgartirmoqchi bo'lsa: <span class="num">ORA-08177: can't serialize access for this transaction</span>. Ilova bunga tayyor bo'lishi va tranzaksiyani qaytadan bajarishi kerak. Shuning uchun SERIALIZABLE OLTP da kam ishlatiladi; ko'proq izchil ko'p so'rovli hisobotlar uchun (<span class="num">SET TRANSACTION READ ONLY</span> yoki <span class="num">ISOLATION LEVEL SERIALIZABLE</span>), yoki bir lahzadagi holatni olish uchun flashback query: <span class="num">SELECT ... AS OF SCN :s</span>.</p>
+
+<p class="beat">Avtonom tranzaksiya</p>
+<p><span class="num">PRAGMA AUTONOMOUS_TRANSACTION</span> bilan e'lon qilingan protsedura chaqiruvchining tranzaksiyasidan butunlay mustaqil tranzaksiyada ishlaydi: o'zi COMMIT yoki ROLLBACK qilishi shart, chaqiruvchining commit qilinmagan o'zgarishlarini ko'rmaydi, va uning COMMIT i chaqiruvchining ishini saqlamaydi. Asosiy foydalanish: <strong>xato va audit jurnali</strong>, asosiy tranzaksiya qaytarilsa ham jurnal qolishi kerak.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="auto" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Oddiy va avtonom log protsedurasi: asosiy tranzaksiya ROLLBACK qilinganda nima qoladi"></svg></div>
+  <figcaption>Chapda asosiy tranzaksiyaning qadamlari, o'rtada log protsedurasi, o'ngda ROLLBACK dan keyin jadvallarda nima qoldi.</figcaption>
+  <div class="evo-tabs" id="autoT" style="margin-top:0.9rem"></div>
+  <p class="say" id="autoSay" aria-live="polite"></p>
+</figure>
+<p>Avtonom tranzaksiyani biznes mantiqqa ishlatish xato: asosiy tranzaksiya qaytarilganda avtonom qism qolib ketadi va ma'lumot buziladi. Ikkinchi tuzoq: avtonom tranzaksiya chaqiruvchi qulflagan qatorni o'zgartirmoqchi bo'lsa, o'z chaqiruvchisini kutadi, chaqiruvchi esa uni kutadi: bitta sessiya ichidagi deadlock (ORA-00060). Uchinchisi: triggerda mutating table (P4) xatosini «yengish» uchun avtonom tranzaksiya: trigger boshqa tranzaksiyada ishlaydi va commit qilinmagan o'zgarishlarni ko'rmaydi, natija noto'g'ri.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Tranzaksiya va qulflar tarixi</h3>
+<div class="bench" id="evoTx"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Tranzaksiya, ACID</dt><dd>Bir butun bo'lib bajariladigan o'zgarishlar; atomicity, consistency, isolation, durability.</dd>
+  <dt>COMMIT, ROLLBACK, SAVEPOINT</dt><dd>Saqlash; qaytarish; tranzaksiya ichida qisman qaytarish uchun belgi.</dd>
+  <dt>Statement-level atomicity</dt><dd>Xato bergan buyruqning faqat o'z o'zgarishlari qaytariladi, tranzaksiya qoladi.</dd>
+  <dt>Implicit commit</dt><dd>DDL dan oldin va keyin avtomatik COMMIT.</dd>
+  <dt>Autocommit</dt><dd>JDBC da sukut: har buyruqdan keyin COMMIT. Bank kodida o'chiriladi.</dd>
+  <dt>Undo, undo tablespace, UNDO_RETENTION</dt><dd>Eski qiymatlar; ular saqlanadigan joy; ularni qancha vaqt saqlashga harakat qilish (sekund).</dd>
+  <dt>Redo</dt><dd>O'zgarishni qayta bajarish uchun yozuv; tiklanish uchun (P6).</dd>
+  <dt>Read consistency, multiversioning</dt><dd>So'rov o'z boshidagi SCN holatini ko'radi; eski nusxa undo dan yasaladi.</dd>
+  <dt>ORA-01555 snapshot too old</dt><dd>Uzoq so'rovga kerakli undo qayta yozilib ketgan.</dd>
+  <dt>TX lock, TM lock</dt><dd>Qator qulfi (tranzaksiya qulfi); jadval darajasidagi qulf (DML da yengil RX rejim).</dd>
+  <dt>ITL</dt><dd>Blok sarlavhasidagi shu blokda qator qulflagan tranzaksiyalar ro'yxati.</dd>
+  <dt>Lock escalation</dt><dd>Ko'p qator qulfini jadval qulfiga aylantirish. Oracle'da yo'q.</dd>
+  <dt>enq: TX - row lock contention</dt><dd>Boshqa sessiya qulflagan qatorni kutish hodisasi.</dd>
+  <dt>FOR UPDATE, NOWAIT, WAIT n, SKIP LOCKED</dt><dd>O'qib qulflash; kutmasdan xato (ORA-00054); n sekund kutish; qulflanganlarni o'tkazib yuborish.</dd>
+  <dt>Lost update</dt><dd>Ikki sessiya bir eski qiymatdan hisoblab, bir-birining natijasini yo'qotishi.</dd>
+  <dt>Pessimistik va optimistik qulflash</dt><dd>Oldindan qulflash; yozishda versiyani tekshirish.</dd>
+  <dt>Deadlock, ORA-00060</dt><dd>Ikki (yoki undan ko'p) sessiyaning bir-birini aylana bo'ylab kutishi; Oracle bitta buyruqni qaytaradi.</dd>
+  <dt>Dirty read, non-repeatable read, phantom</dt><dd>Commit qilinmaganni o'qish; qatorning qayta o'qishda o'zgarishi; shart bo'yicha yangi qatorlar paydo bo'lishi.</dd>
+  <dt>READ COMMITTED, SERIALIZABLE, READ ONLY</dt><dd>Har buyruq o'z lahzasini ko'radi; butun tranzaksiya bitta lahzani ko'radi; o'zgartirmaydigan tranzaksiya.</dd>
+  <dt>ORA-08177</dt><dd>SERIALIZABLE da boshqa tranzaksiya o'zgartirgan qatorni yangilashga urinish.</dd>
+  <dt>Flashback query</dt><dd><span class="num">AS OF SCN</span> yoki <span class="num">AS OF TIMESTAMP</span>: undo yordamida o'tgan holatni o'qish.</dd>
+  <dt>Avtonom tranzaksiya</dt><dd><span class="num">PRAGMA AUTONOMOUS_TRANSACTION</span>: chaqiruvchidan mustaqil tranzaksiya; jurnal uchun.</dd>
+  <dt>Two-phase commit (2PC)</dt><dd>Bir necha baza bo'ylab tranzaksiya: avval hammasi «tayyorman» deydi, keyin hammasi commit.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: ikki hisobni har xil tartibda qulflash</b>
+  <p>O'tkazma protsedurasi avval debet hisobini, keyin kredit hisobini yangilaydi. A dan B ga va B dan A ga bir vaqtda ikki o'tkazma: deadlock. Yuklama oshganda kuniga yuzlab ORA-00060, ba'zi o'tkazmalar «osilib» qoladi.</p>
+  <p class="why">To'g'risi: ikkala hisobni ID tartibida <span class="num">FOR UPDATE</span> bilan qulflab, keyin yangilash; xatoda butun tranzaksiyani ROLLBACK va qayta urinish.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: ORA-00060 dan keyin COMMIT</b>
+  <p>Deadlock xatosi ushlanib, log yozildi va kod davom etdi, oxirida COMMIT. Lekin deadlock faqat bitta buyruqni qaytargan edi: tranzaksiyaning yarmi (debet) saqlandi, kredit yo'q.</p>
+  <p class="why">To'g'risi: ORA-00060 (va umuman kutilmagan xato) dan keyin butun tranzaksiyani ROLLBACK yoki savepoint ga qaytish; jurnal avtonom tranzaksiyada.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: uzoq so'rov va kichik undo</b>
+  <p>Kun yopishdagi hisobot 2 soat ishlaydi, shu vaqtda kunduzgi operatsiyalar davom etadi. <span class="num">UNDO_RETENTION</span> 15 daqiqa, undo tablespace kichik: 1 soat 40 daqiqada ORA-01555 va hammasini boshidan.</p>
+  <p class="why">To'g'risi: so'rovni tezlashtirish (birinchi navbatda), undo hajmi va <span class="num">UNDO_RETENTION</span> ni eng uzoq so'rovga moslash (<span class="num">V$UNDOSTAT.MAXQUERYLEN</span>), og'ir hisobotlarni Data Guard dagi zaxira bazada yurgizish. Siklda tez-tez COMMIT qilish ORA-01555 ni ko'paytiradi, kamaytirmaydi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: foydalanuvchi o'ylayotganda qulf</b>
+  <p>Ekran ochilganda <span class="num">SELECT ... FOR UPDATE</span>, operator tushlikka ketdi. Shu mijozga tegishli hamma operatsiyalar bir soat kutdi.</p>
+  <p class="why">To'g'risi: ekran uchun optimistik qulflash (versiya ustuni); <span class="num">FOR UPDATE</span> faqat bitta qisqa tranzaksiya ichida, kerak bo'lsa <span class="num">WAIT n</span> bilan.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: siklda COMMIT «undo tugamasin deb»</b>
+  <p>Million qatorli yangilash har 100 qatorda COMMIT qiladi. Natija: sekinroq (har COMMIT da log file sync, P6), yarim yo'lda yiqilsa qayerdan davom etishni bilmaydi, va o'zi o'qiyotgan kursor uchun ORA-01555 oladi (o'zining eski undo si qayta yoziladi: «fetch across commit»).</p>
+  <p class="why">To'g'risi: bitta SQL yoki BULK bilan bitta tranzaksiya, undo ni shunga moslab; juda katta ish bo'lsa mantiqiy bo'laklar (DBMS_PARALLEL_EXECUTE, P5) va qayta ishga tushirish holatini saqlab.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda har javobni bank misoli (o'tkazma, qoldiq, limit) bilan bog'lash kerak.</p>
+<details><summary>ACID nima va Oracle har birini qanday ta'minlaydi?</summary>
+<p>Atomicity: tranzaksiya yo to'liq, yo umuman bajarilmaydi; Oracle har o'zgarishdan oldin eski qiymatni undo ga yozadi va ROLLBACK yoki yiqilishda shundan qaytaradi. Consistency: tranzaksiya bazani bir to'g'ri holatdan boshqasiga o'tkazadi; cheklovlar, triggerlar va to'g'ri yozilgan biznes mantiq. Isolation: parallel tranzaksiyalar bir-birining commit qilinmagan o'zgarishlarini ko'rmaydi; qator qulflari va undo dan izchil o'qish. Durability: commit qilingan ma'lumot yo'qolmaydi; COMMIT redo diskka yozilgandan keyin qaytadi va yiqilishda redo dan tiklanadi.</p></details>
+<details><summary>Oracle'da tranzaksiya qachon boshlanadi va tugaydi?</summary>
+<p>Birinchi DML yoki SELECT FOR UPDATE bilan avtomatik boshlanadi, oshkor BEGIN yo'q. COMMIT yoki ROLLBACK bilan tugaydi, har qanday DDL ham uni tugatadi (DDL dan oldin va keyin yashirin COMMIT), sessiya normal yopilsa COMMIT, uzilsa ROLLBACK. Ichida SAVEPOINT bilan qisman qaytarish mumkin. Bitta buyruq xato bersa, faqat uning o'zgarishlari qaytariladi, tranzaksiya davom etadi, va nima qilishni chaqiruvchi hal qiladi. JDBC da sukut autocommit, uni o'chirish kerak.</p></details>
+<details><summary>Undo va redo farqi?</summary>
+<p>Undo eski qiymatni saqlaydi: ROLLBACK, izchil o'qish (boshqa sessiyalar uchun eski nusxa), flashback query va tiklanishda commit qilinmaganlarni qaytarish uchun. U undo tablespace da, oddiy bloklarda. Redo esa o'zgarishni qayta bajarish uchun yozuv: redo log fayllarida, faqat tiklanishda (instance yoki media recovery) va Data Guard da o'qiladi. Undo bloklarining o'zgarishi ham redo ga yoziladi, shuning uchun tiklanishda avval redo undo ni ham tiklaydi. Qisqasi: undo «qanday orqaga», redo «qanday oldinga».</p></details>
+<details><summary>Hisobot so'rovi ishlayotganda boshqa sessiya ma'lumotni o'zgartirsa, hisobot nimani ko'radi?</summary>
+<p>So'rov boshlangan paytdagi holatni. So'rov SCN ni eslab qoladi; o'qilayotgan blok undan keyin o'zgargan bo'lsa, undo dan blokning o'sha paytdagi nusxasi yasaladi. Shuning uchun so'rov hech qachon commit qilinmagan ma'lumotni yoki o'tkazmaning yarmini ko'rmaydi, o'quvchi yozuvchini kutmaydi va aksincha. Agar so'rov juda uzoq ishlasa va kerakli undo qayta yozilib ketsa, ORA-01555. Bir necha so'rov bitta lahzani ko'rishi kerak bo'lsa: SERIALIZABLE yoki READ ONLY tranzaksiya, yoki AS OF SCN.</p></details>
+<details><summary>Oracle'da qanday qulflar bor? Lock escalation bo'ladimi?</summary>
+<p>Asosiylari: TX, ya'ni qator qulfi: DML o'zgartirgan har qator tranzaksiya oxirigacha qulflanadi; TM, ya'ni jadval qulfi: DML paytida yengil rejimda (boshqa DML ga xalaqit bermaydi, DDL ni to'xtatadi), LOCK TABLE yoki indekssiz FK holatida kuchliroq; DDL va library cache qulflari. Qator qulfi blokning o'zida (ITL va qator sarlavhasi) saqlanadi, alohida qulf jadvali yo'q, shuning uchun million qatorni qulflash xotira talab qilmaydi va lock escalation hech qachon bo'lmaydi. O'qish qulf olmaydi.</p></details>
+<details><summary>Deadlock nima, Oracle nima qiladi, siz qanday oldini olasiz?</summary>
+<p>Ikki sessiya bir-biri qulflagan resursni aylana bo'ylab kutishi. Oracle buni avtomatik aniqlaydi va sessiyalardan birining joriy buyrug'ini ORA-00060 bilan qaytaradi, trace faylga tafsilotlarni yozadi. Tranzaksiya qaytarilmaydi: xato olgan sessiya ROLLBACK qilishi kerak. Oldini olish: resurslarni doim bir xil tartibda qulflash (o'tkazmada hisoblarni ID tartibida FOR UPDATE), tranzaksiyalarni qisqa qilish, foreign key larni indekslash, OLTP da bitmap indeks ishlatmaslik. Ilovada ORA-00060 da butun tranzaksiyani qaytarib, qayta urinish.</p></details>
+<details><summary>SELECT FOR UPDATE nima uchun kerak? NOWAIT va SKIP LOCKED?</summary>
+<p>O'qish bilan birga qatorlarni qulflash, toki tranzaksiya oxirigacha boshqa hech kim ularni o'zgartirmasin: o'qib, tekshirib, keyin yozish kerak bo'lganda (limitni tekshirib kamaytirish, ikki hisobni tartib bilan qulflash). NOWAIT: qator band bo'lsa kutmasdan darhol ORA-00054, ilova foydalanuvchiga «band» deydi. WAIT n: n sekund kutib, keyin xato. SKIP LOCKED: band qatorlarni o'tkazib, bo'shlarini qaytaradi: bir nechta ishchi bitta navbat jadvalidan parallel vazifa olishi uchun, bir-birini kutmasdan.</p></details>
+<details><summary>Lost update nima va qanday oldini olasiz?</summary>
+<p>Ikki sessiya bir qiymatni o'qib, ilovada yangisini hisoblab yozadi; ikkinchisi birinchisining natijasini ustidan yozadi. Yechimlar: hisobni SQL ning o'zida qilish (SET qoldiq = qoldiq - :s, shart bilan); pessimistik qulflash, ya'ni SELECT FOR UPDATE bilan o'qish; optimistik qulflash, ya'ni versiya ustuni va UPDATE ... WHERE versiya = :eski, 0 qator bo'lsa qayta urinish. Qisqa server tranzaksiyalari uchun birinchi ikkitasi, veb ekranlar uchun optimistik.</p></details>
+<details><summary>Izolyatsiya darajalari va Oracle qaysilarini qo'llaydi?</summary>
+<p>Standartda to'rtta: READ UNCOMMITTED, READ COMMITTED, REPEATABLE READ, SERIALIZABLE; ular dirty read, non-repeatable read va phantom ga ruxsat berish bilan farq qiladi. Oracle'da READ COMMITTED (sukut) va SERIALIZABLE, qo'shimcha READ ONLY. Dirty read Oracle'da umuman yo'q. READ COMMITTED da har buyruq o'z boshidagi holatni ko'radi, shuning uchun bitta tranzaksiyadagi ikki so'rov har xil natija berishi mumkin. SERIALIZABLE da butun tranzaksiya o'z boshidagi holatni ko'radi; boshqa tranzaksiya o'zgartirgan qatorni yangilashga urinsa ORA-08177, ilova qayta urinishi kerak. Oracle'ning SERIALIZABLE i aslida snapshot isolation, ba'zi nozik anomaliyalarga (write skew) yo'l qo'yadi.</p></details>
+<details><summary>Avtonom tranzaksiya nima va qachon ishlatiladi?</summary>
+<p>PRAGMA AUTONOMOUS_TRANSACTION bilan e'lon qilingan protsedura, funksiya yoki trigger chaqiruvchidan mustaqil tranzaksiyada ishlaydi va o'zi COMMIT yoki ROLLBACK qilishi shart. Asosiy to'g'ri ishlatilishi: xato va audit jurnali, asosiy tranzaksiya ROLLBACK qilinsa ham jurnal yozuvi qolishi uchun. Biznes o'zgarishlarga ishlatish xato: asosiy ish qaytarilsa, avtonom qism qoladi va ma'lumot nomuvofiq bo'ladi. Avtonom tranzaksiya chaqiruvchining commit qilinmagan o'zgarishlarini ko'rmaydi, va chaqiruvchi qulflagan qatorni o'zgartirmoqchi bo'lsa bitta sessiya ichida deadlock bo'ladi.</p></details>
+<details><summary>Ikki hisob orasida o'tkazma protsedurasini qanday yozasiz?</summary>
+<p>Kirish tekshiruvi (summa musbat, hisoblar har xil). Ikkala hisobni ID tartibida SELECT ... FOR UPDATE bilan qulflash: deadlock yo'q. Holatlar va valyutani tekshirish, debetda yetarli mablag' (yoki UPDATE ... WHERE qoldiq &gt;= :s va SQL%ROWCOUNT). Debet va kredit UPDATE lari, provodka yozuvi, jurnal. Hammasi bitta tranzaksiyada; COMMIT ni chaqiruvchi (ilova yoki tashqi protsedura) qiladi, chunki o'tkazma kattaroq operatsiyaning bir qismi bo'lishi mumkin. Xatoda RAISE, chaqiruvchi ROLLBACK qiladi; jurnal avtonom tranzaksiyada. Qayta yuborish holati uchun idempotentlik: tashqi so'rov ID si bo'yicha unique cheklov.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>Sessiya A: <span class="num">UPDATE hisob SET qoldiq = qoldiq - 100 WHERE id = 1</span>, COMMIT qilmadi. Sessiya B: shu qatorni SELECT qiladi, keyin UPDATE qiladi. Har qadamda B nimani ko'radi va nima bo'ladi? A ROLLBACK qilsa-chi?</li>
+  <li>Protsedura 3 ta INSERT qiladi, uchinchisi unique cheklovni buzadi, xato ushlanmaydi. Ilova (autocommit o'chirilgan) xatoni olib, COMMIT qiladi. Jadvalda nima qoladi? Protsedurani anonim blokdan emas, ilovadan to'g'ridan-to'g'ri chaqirganda farq bormi?</li>
+  <li>To'lov navbati jadvali, 8 ta ishchi job ulardan vazifa oladi. Ikki ishchi bitta to'lovni ikki marta yubormasligi va bir-birini kutmasligi uchun so'rovni yozing.</li>
+  <li>Kunlik limit jadvali: mijoz bo'yicha bitta qator, <span class="num">ishlatilgan</span> va <span class="num">limit</span>. Parallel ikki to'lov limitdan oshirib yubormasligi uchun qanday yozasiz? Ikki usulni ayting.</li>
+  <li>Xato jurnali protsedurasi avtonom tranzaksiyada. U asosiy tranzaksiya yangilagan to'lov qatorining holatini ham «XATO» ga o'zgartiradi. Nima bo'ladi?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>UPDATE ning qayta boshlanishi (restart)</summary>
+<p>READ COMMITTED da <span class="num">UPDATE ... WHERE holat = 'YANGI'</span> qatorlarni o'z boshidagi lahza bo'yicha topadi. Qulflangan qatorni kutib bo'lgach, qator o'zgargan bo'lsa, Oracle uning joriy versiyasini qayta tekshiradi; WHERE dagi ustun o'zgargan bo'lsa, butun UPDATE ni yangi lahza bilan qayta boshlaydi («write consistency»). Shuning uchun ikki parallel <span class="num">UPDATE ... SET qoldiq = qoldiq - 100</span> doim to'g'ri natija beradi, va BEFORE UPDATE trigger ba'zan bir qator uchun ikki marta ishlashi mumkin (triggerda tashqi effekt qilmaslik sababi).</p></details>
+<details><summary>COMMIT WRITE NOWAIT va BATCH</summary>
+<p>10gR2 dan <span class="num">COMMIT WRITE BATCH NOWAIT</span>: sessiya LGWR ni kutmaydi. Tezroq, lekin durability yo'qoladi: yiqilishda «commit complete» olgan tranzaksiya yo'qolishi mumkin. Pul operatsiyalari uchun yaramaydi; faqat yo'qolishi mumkin bo'lgan texnik jurnallar uchun. Bilish foydali, chunki «COMMIT ni tezlashtirish» savoliga to'g'ri javob ko'pincha «kamroq COMMIT», bu emas.</p></details>
+<details><summary>Taqsimlangan tranzaksiya va 2PC</summary>
+<p>Database link orqali ikki bazada o'zgarish: Oracle avtomatik ravishda two-phase commit qiladi: koordinator hammadan «prepare» so'raydi, hammasi tayyor bo'lsa «commit». O'rtada aloqa uzilsa, tranzaksiya «in-doubt» holatda qoladi va qatorlar qulflangan turadi (<span class="num">DBA_2PC_PENDING</span>). Ilova va boshqa tizimlar (navbat, boshqa baza) orasida XA tranzaksiyalari ham shu tamoyil. Mikroservislarda ko'pincha 2PC o'rniga saga va kompensatsiya operatsiyalari.</p></details>
+<details><summary>Qulflarni kuzatish so'rovlari</summary>
+<p><span class="num">V$SESSION</span>: <span class="num">BLOCKING_SESSION</span>, <span class="num">EVENT</span>, <span class="num">ROW_WAIT_OBJ#</span>, <span class="num">SECONDS_IN_WAIT</span>. <span class="num">V$LOCK</span> va <span class="num">DBA_BLOCKERS</span>, <span class="num">DBA_WAITERS</span>. <span class="num">V$TRANSACTION</span>: faol tranzaksiyalar, undo hajmi (<span class="num">USED_UBLK</span>), boshlanish vaqti. Ishlab chiqarishda «kim kimni bloklayapti» so'rovini tayyor saqlash foydali.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database Concepts: Transactions, Data Concurrency and Consistency. Oracle Database PL/SQL Language Reference: Autonomous Transactions. Oracle Database SQL Language Reference: SELECT (for_update_clause), SET TRANSACTION, LOCK TABLE. Jim Gray, Andreas Reuter, «Transaction Processing: Concepts and Techniques». Tom Kyte, «Expert Oracle Database Architecture», 6–9-boblar.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Tranzaksiya birinchi DML bilan boshlanadi, COMMIT, ROLLBACK yoki DDL bilan tugaydi; xato bergan buyruq faqat o'zini qaytaradi. Undo orqaga, redo oldinga. O'quvchi hech kimni kutmaydi, har so'rov o'z lahzasini ko'radi; undo yetmasa ORA-01555. Qator qulfi blokda, escalation yo'q. Lost update: SQL ichida hisob, FOR UPDATE yoki versiya. Deadlock: bir xil tartibda qulflash, xatodan keyin ROLLBACK. Oracle'da READ COMMITTED va SERIALIZABLE, dirty read hech qachon yo'q. Avtonom tranzaksiya faqat jurnal uchun. JDBC da autocommit ni o'chiring.</p>
+  <p><strong>Keyingi dars.</strong> P9. Bazani loyihalash: normallashtirish (1NF, 2NF, 3NF, BCNF), kalitlar (natural va surrogate), cheklovlar, denormallashtirish qachon to'g'ri, partitsiyalash, katta jadvallar va arxivlash.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p7-indekslar-explain-plan.html">Oldingi: P7. Indekslar va EXPLAIN PLAN</a><span>Keyingi: P9. Bazani loyihalash (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'setAutoCommit(false)', link: 'bitta tranzaksiya' },
+    { title: 'PL/SQL', sub: 'Blok, protsedura, paket: P3–P5', ex: 'SAVEPOINT, PRAGMA AUTONOMOUS', link: 'SQL ni chaqiradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'SELECT ... FOR UPDATE SKIP LOCKED', link: 'reja tanlanadi' },
+    { title: 'Optimizator va reja', sub: 'Parse, statistika, reja: P6–P7', ex: 'reja', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'TX, TM, ITL, ORA-00060', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'undo tablespace, redo log', link: '' }
+  ], [4], 'Tranzaksiya qavati');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function boxL(svg, x, y, w, h, title, lines, cls) {
+    S(svg, 'rect', { x: x, y: y, width: w, height: h, rx: 5, 'class': 'box' + (cls ? ' ' + cls : '') });
+    S(svg, 'text', { x: x + 14, y: y + 26, 'class': 'ttl' }, title);
+    (lines || []).forEach(function (l, i) { S(svg, 'text', { x: x + 14, y: y + 46 + i * 18, 'class': 'sub' }, l); });
+  }
+
+  // ---------- Undo va redo ----------
+  (function () {
+    var svg = $('undo'), say = $('undoSay'), cur = 0;
+    var V = [
+      { t: 'INSERT', before: ['bo\'sh joy'], after: ['id=7, qoldiq=500'], undo: ['«7-qatorni o\'chir»', 'kichik: faqat ROWID'], redo: ['yangi qatorning hamma ustunlari', '+ undo yozuvining redo si'], s: `INSERT uchun undo juda kichik: qaytarish uchun faqat «shu qatorni o'chir» yetarli. Redo esa butun yangi qatorni saqlaydi. Shuning uchun INSERT ning undo si arzon, redo si qator hajmiga teng.` },
+      { t: 'UPDATE', before: ['id=1, qoldiq=1000'], after: ['id=1, qoldiq=900'], undo: ['«qoldiq ustuniga 1000 ni qaytar»', 'faqat o\'zgargan ustunlar'], redo: ['«qoldiq = 900» o\'zgarish vektori', '+ undo yozuvining redo si'], s: `UPDATE da undo faqat o'zgargan ustunlarning eski qiymatini, redo esa yangi qiymatini saqlaydi. Ko'p ustunli keng qatorda bitta ustunni o'zgartirish arzon. Indekslangan ustun o'zgarsa, indeks yozuvlari uchun ham undo va redo (P7).` },
+      { t: 'DELETE', before: ['id=3, qoldiq=250'], after: ['o\'chirilgan deb belgilangan'], undo: ['butun qator: hamma ustunlar', 'eng katta undo'], redo: ['«3-qator o\'chirildi»', '+ undo yozuvining redo si (katta)'], s: `DELETE da undo butun qatorni saqlaydi, chunki ROLLBACK uni to'liq tiklashi kerak. Undo ning o'zgarishi ham redo ga yozilgani uchun DELETE eng ko'p undo va redo hosil qiladi. Million qatorni o'chirish o'rniga ko'pincha TRUNCATE (DDL, undo siz) yoki partitsiyani tashlash (P9).` },
+      { t: 'ORA-01555', before: ['09:00 SCN 100: so\'rov boshlandi'], after: ['09:10 blok o\'zgardi, commit'], undo: ['09:10 dagi eski qiymat', '09:30 da qayta yozildi'], redo: ['09:40: so\'rov shu blokka yetdi', 'SCN 100 nusxasi kerak, undo yo\'q'], bad: true, s: `So'rov 09:00 da boshlangan va hamma blokni SCN 100 holatida ko'rishi kerak. Blok 09:10 da o'zgargan, uning eski qiymati undo da edi. UNDO_RETENTION 15 daqiqa va undo kichik: 09:30 da bu joy boshqa tranzaksiyaga berildi. 09:40 da so'rov blokka yetdi, eski nusxani yasay olmadi: ORA-01555 snapshot too old. Yechim: so'rovni tezlashtirish, undo va retention ni oshirish.` }
+    ];
+    var setT = tabs('undoT', V.map(function (v) { return v.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var v = V[cur]; setT(cur); svg.textContent = ''; marker(svg, 'unmk');
+      var four = cur === 3;
+      boxL(svg, 20, 30, 280, 110, four ? 'Uzoq so\'rov' : 'Blok oldin', v.before, four ? 'on' : '');
+      S(svg, 'path', { d: 'M300 85H338', 'class': 'arr', 'marker-end': 'url(#unmk)' });
+      boxL(svg, 340, 30, 280, 110, four ? 'Boshqa tranzaksiya' : 'Blok keyin', v.after, four ? 'live' : 'on');
+      boxL(svg, 660, 30, 270, 110, 'Undo', v.undo, four ? 'bad' : 'live');
+      boxL(svg, 950, 30, 270, 110, four ? 'Natija' : 'Redo', v.redo, four ? 'bad' : 'on');
+      group(svg, 20, 170, 1200, 140, four ? 'Nega' : 'Kim ishlatadi');
+      var lines = four ? ['So\'rov uchun «eski nusxa» undo dan yasaladi. Undo cheksiz emas: commit qilingan tranzaksiyalarning undo si UNDO_RETENTION dan keyin', 'qayta yozilishi mumkin. Eng uzoq so\'rov vaqti (V$UNDOSTAT.MAXQUERYLEN) retention dan katta bo\'lsa xavf bor.', 'RETENTION GUARANTEE undo ni majburan saqlaydi, lekin unda undo tugasa DML lar xato beradi.'] :
+        ['Undo: ROLLBACK, boshqa sessiyalar uchun izchil o\'qish (eski nusxa), flashback query, tiklanishda commit qilinmaganlarni qaytarish.', 'Redo: faqat tiklanishda (instance yoki media recovery) va Data Guard da. Oddiy ishda hech kim o\'qimaydi, faqat yoziladi.', 'Undo ning o\'zgarishi ham redo ga yoziladi: tiklanishda avval undo tiklanadi, keyin u bilan rollback qilinadi.'];
+      lines.forEach(function (l, i) { S(svg, 'text', { x: 40, y: 220 + i * 26, 'class': 'sub' }, l); });
+      say.textContent = v.s; say.className = 'say' + (v.bad ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Ikki sessiya ----------
+  (function () {
+    var svg = $('tx'), say = $('txSay'), sc = 0, st = 0;
+    var SC = [
+      { t: 'O\'qish yozishni kutmaydi', steps: [
+        { l: 0, sql: 'UPDATE hisob SET qoldiq = qoldiq - 100 WHERE id = 1', sub: 'qator qulflandi', st: { rows: ['id=1: 900 (commit qilinmagan)'], undo: ['id=1: qoldiq 1000 edi'], lock: ['id=1: A ushlab turibdi'], see: ['A ko\'radi: 900', 'B ko\'radi: 1000'] }, s: `A qatorni o'zgartirdi, eski qiymat undo ga yozildi, qatorga A ning tranzaksiya qulfi qo'yildi. A o'z o'zgarishini ko'radi (900), boshqalar hali ko'rmaydi.` },
+        { l: 1, sql: 'SELECT qoldiq FROM hisob WHERE id = 1', sub: 'natija: 1000, kutmadi', st: { rows: ['id=1: 900 (commit qilinmagan)'], undo: ['id=1: 1000, B shundan o\'qidi'], lock: ['id=1: A ushlab turibdi'], see: ['A ko\'radi: 900', 'B ko\'radi: 1000'] }, s: `B o'qiydi: qatorda commit qilinmagan o'zgarish bor, shuning uchun server jarayoni undo dan blokning eski nusxasini yasadi va 1000 ni qaytardi. B kutmadi, A ga xalaqit bermadi. Dirty read yo'q.` },
+        { l: 0, sql: 'COMMIT', sub: 'redo diskka yozildi', st: { rows: ['id=1: 900 (commit qilingan)'], undo: ['id=1: 1000 (retention muddati saqlanadi)'], lock: ['qulf yo\'q'], see: ['A ko\'radi: 900', 'B ko\'radi: 900'] }, s: `A commit qildi: qulf bo'shadi, o'zgarish hammaga ko'rinadi. Undo dagi eski qiymat yana bir muddat saqlanadi: hozir boshlangan uzoq so'rovlarga yoki flashback ga kerak bo'lishi mumkin.` },
+        { l: 1, sql: 'SELECT qoldiq FROM hisob WHERE id = 1', sub: 'natija: 900', st: { rows: ['id=1: 900 (commit qilingan)'], undo: ['id=1: 1000'], lock: ['qulf yo\'q'], see: ['A ko\'radi: 900', 'B ko\'radi: 900'] }, s: `B ning yangi so'rovi yangi lahzani ko'radi: 900. READ COMMITTED da har buyruq o'z boshidagi holatni ko'radi, shuning uchun B ning ikki so'rovi har xil natija berdi (non-repeatable read).` }
+      ] },
+      { t: 'Ikki yozuvchi bitta qatorga', steps: [
+        { l: 0, sql: 'UPDATE hisob SET qoldiq = qoldiq - 100 WHERE id = 1', sub: 'qator qulflandi', st: { rows: ['id=1: 900 (commit qilinmagan)'], undo: ['id=1: 1000 edi'], lock: ['id=1: A ushlab turibdi'], see: ['A ko\'radi: 900', 'B ko\'radi: 1000'] }, s: `A kassir 100 yechdi, qator A ning qulfi ostida.` },
+        { l: 1, sql: 'UPDATE hisob SET qoldiq = qoldiq - 50 WHERE id = 1', sub: 'KUTYAPTI: enq: TX - row lock contention', bad: 1, st: { rows: ['id=1: 900 (commit qilinmagan)'], undo: ['id=1: 1000 edi'], lock: ['id=1: A ushlab turibdi', 'kutmoqda: B'], see: ['A ko\'radi: 900', 'B: buyruq kutmoqda'] }, s: `B ham shu qatorni o'zgartirmoqchi. Qator A ning qulfi ostida: B kutadi, xato bermaydi. V$SESSION da B ning BLOCKING_SESSION ustunida A ning SID i.` },
+        { l: 0, sql: 'COMMIT', sub: 'qulf bo\'shadi', st: { rows: ['id=1: 850 (B, commit qilinmagan)'], undo: ['id=1: 900 edi (B uchun)'], lock: ['id=1: B ushlab turibdi'], see: ['A ko\'radi: 900', 'B ko\'radi: 850'] }, s: `A commit qildi va qulfni bo'shatdi. B ning UPDATE i davom etdi va qatorning JORIY commit qilingan qiymatidan (900) hisobladi: 850. Oracle yozish uchun doim joriy versiyani oladi, eski nusxani emas.` },
+        { l: 1, sql: 'COMMIT', sub: 'natija: 850', st: { rows: ['id=1: 850 (commit qilingan)'], undo: ['id=1: 900'], lock: ['qulf yo\'q'], see: ['A ko\'radi: 850', 'B ko\'radi: 850'] }, s: `Ikkala yechish ham hisobga olindi: 1000 − 100 − 50 = 850. Hisob SQL ichida (qoldiq = qoldiq − :s) bo'lgani uchun lost update bo'lmadi.` }
+      ] },
+      { t: 'Lost update (ilovada)', steps: [
+        { l: 0, sql: 'SELECT qoldiq FROM hisob WHERE id = 1', sub: 'ilova xotirasida: 1000', st: { rows: ['id=1: 1000'], undo: ['—'], lock: ['qulf yo\'q'], see: ['A ilovasi: 1000', 'B ilovasi: —'] }, s: `A ning ilovasi qoldiqni o'qib, o'zida saqladi.` },
+        { l: 1, sql: 'SELECT qoldiq FROM hisob WHERE id = 1', sub: 'ilova xotirasida: 1000', st: { rows: ['id=1: 1000'], undo: ['—'], lock: ['qulf yo\'q'], see: ['A ilovasi: 1000', 'B ilovasi: 1000'] }, s: `B ning ilovasi ham 1000 ni o'qidi. O'qish qulf olmaydi.` },
+        { l: 0, sql: 'UPDATE hisob SET qoldiq = 900 WHERE id = 1; COMMIT', sub: '1000 − 100 ilovada hisoblandi', st: { rows: ['id=1: 900'], undo: ['id=1: 1000 edi'], lock: ['qulf yo\'q'], see: ['A ilovasi: 900', 'B ilovasi: 1000 (eskirgan)'] }, s: `A ilovada 1000 − 100 = 900 ni hisoblab, tayyor qiymatni yozdi.` },
+        { l: 1, sql: 'UPDATE hisob SET qoldiq = 950 WHERE id = 1; COMMIT', sub: '1000 − 50, eskirgan qiymatdan', bad: 1, st: { rows: ['id=1: 950  (to\'g\'risi 850!)'], undo: ['id=1: 900 edi'], lock: ['qulf yo\'q'], see: ['A ning 100 yechishi yo\'qoldi', ''] }, s: `B eskirgan 1000 dan 950 ni hisoblab yozdi. Baza hech qanday qoidani buzmadi, lekin A ning yechishi yo'qoldi: bank 100 yo'qotdi. Bu ilova mantiqining xatosi.` },
+        { l: 1, sql: 'Yechim: SELECT ... FOR UPDATE yoki SET qoldiq = qoldiq − :s', sub: 'yoki: WHERE id = :id AND versiya = :v', st: { rows: ['id=1: 850 (to\'g\'ri)'], undo: ['—'], lock: ['FOR UPDATE: B, A tugashini kutadi'], see: ['versiya: 0 qator bo\'lsa qayta urinish', ''] }, s: `Uch yo'l: hisobni SQL ichida qilish (eng sodda); SELECT ... FOR UPDATE bilan o'qish, shunda B ning SELECT i A tugashini kutadi va 900 ni oladi; yoki optimistik: versiya ustuni bo'yicha tekshirib yozish, 0 qator yangilansa qayta o'qish.` }
+      ] },
+      { t: 'Deadlock', steps: [
+        { l: 0, sql: 'UPDATE hisob SET qoldiq = qoldiq - 100 WHERE id = 1', sub: 'A: 1 → 2 o\'tkazma, debet', st: { rows: ['id=1: 900 (A)', 'id=2: 500'], undo: ['id=1: 1000'], lock: ['id=1: A'], see: ['', ''] }, s: `A 1-hisobdan 2-hisobga o'tkazmani boshladi: avval debet, 1-hisob A ning qulfi ostida.` },
+        { l: 1, sql: 'UPDATE hisob SET qoldiq = qoldiq - 50 WHERE id = 2', sub: 'B: 2 → 1 o\'tkazma, debet', st: { rows: ['id=1: 900 (A)', 'id=2: 450 (B)'], undo: ['id=1: 1000', 'id=2: 500'], lock: ['id=1: A', 'id=2: B'], see: ['', ''] }, s: `Shu paytda B teskari o'tkazmani boshladi: 2-hisobdan debet, 2-hisob B ning qulfi ostida.` },
+        { l: 0, sql: 'UPDATE hisob SET qoldiq = qoldiq + 100 WHERE id = 2', sub: 'KUTYAPTI: 2-hisob B da', bad: 1, st: { rows: ['id=1: 900 (A)', 'id=2: 450 (B)'], undo: ['id=1: 1000', 'id=2: 500'], lock: ['id=1: A', 'id=2: B, kutmoqda: A'], see: ['', ''] }, s: `A kreditni yozmoqchi, lekin 2-hisob B da: A kutadi. Hali deadlock emas, B tugasa A davom etadi.` },
+        { l: 1, sql: 'UPDATE hisob SET qoldiq = qoldiq + 50 WHERE id = 1', sub: 'ORA-00060: deadlock detected', bad: 1, st: { rows: ['id=1: 900 (A)', 'id=2: 450 (B)'], undo: ['id=1: 1000', 'id=2: 500'], lock: ['id=1: A, kutmoqda: B', 'id=2: B, kutmoqda: A  → aylana'], see: ['Oracle B ning shu buyrug\'ini qaytardi', 'B ning debeti hali tranzaksiyada!'] }, s: `B 1-hisobni kutmoqchi, 1-hisob esa A da, A esa B ni kutyapti: aylana. Bir necha sekundda Oracle buni aniqlaydi va bir sessiyaning (bu yerda B ning) joriy buyrug'ini ORA-00060 bilan qaytaradi. B ning tranzaksiyasi tugamagan: 2-hisob hali B ning qulfida, A hali kutyapti.` },
+        { l: 1, sql: 'ROLLBACK', sub: 'B qulfni bo\'shatdi, A davom etdi', st: { rows: ['id=1: 900 (A)', 'id=2: 600 (A)'], undo: ['id=1: 1000', 'id=2: 500'], lock: ['id=1: A', 'id=2: A'], see: ['A commit qilishi mumkin', 'B o\'tkazmani qayta urinadi'] }, s: `B to'liq ROLLBACK qildi: 2-hisob bo'shadi, A ning kredit buyrug'i bajarildi. Oldini olish: ikkala o'tkazma ham hisoblarni ID tartibida qulflasa (avval 1, keyin 2), B 1-hisobda A ni kutardi va hech qanday aylana bo'lmasdi.` }
+      ] },
+      { t: 'FOR UPDATE: NOWAIT va SKIP LOCKED', steps: [
+        { l: 0, sql: 'SELECT id FROM navbat WHERE holat = \'YANGI\' FOR UPDATE SKIP LOCKED', sub: 'oldi: 1, 2 (birinchi 2 tasi)', st: { rows: ['navbat 1, 2: A da', 'navbat 3, 4: bo\'sh'], undo: ['qulf qatorning o\'zida (ITL)', 'ma\'lumot hali o\'zgarmagan'], lock: ['1, 2: A'], see: ['A: 1, 2 ni ishlayapti', ''] }, s: `A ishchi navbatdan YANGI vazifalarni oldi va ularni qulfladi (FETCH bilan ikkitasini olib).` },
+        { l: 1, sql: 'SELECT id FROM navbat WHERE holat = \'YANGI\' FOR UPDATE SKIP LOCKED', sub: 'oldi: 3, 4 (1, 2 o\'tkazildi)', st: { rows: ['navbat 1, 2: A da', 'navbat 3, 4: B da'], undo: ['qulf qatorning o\'zida (ITL)', 'ma\'lumot hali o\'zgarmagan'], lock: ['1, 2: A', '3, 4: B'], see: ['A: 1, 2', 'B: 3, 4'] }, s: `B xuddi shu so'rovni yubordi. SKIP LOCKED qulflangan qatorlarni kutmasdan o'tkazib, bo'shlarini qaytardi. Ishchilar bir-birini kutmaydi va bitta vazifani ikki marta olmaydi.` },
+        { l: 1, sql: 'SELECT * FROM navbat WHERE id = 1 FOR UPDATE NOWAIT', sub: 'ORA-00054: resource busy', bad: 1, st: { rows: ['navbat 1, 2: A da', 'navbat 3, 4: B da'], undo: ['qulf qatorning o\'zida (ITL)', 'ma\'lumot hali o\'zgarmagan'], lock: ['1, 2: A', '3, 4: B'], see: ['B: darhol xato, kutmadi', ''] }, s: `B aniq 1-vazifani so'radi, NOWAIT bilan: qator band, kutish o'rniga darhol ORA-00054. Ilova foydalanuvchiga «hozir boshqa operator ishlayapti» deydi. WAIT 5: 5 sekund kutib, keyin shu xato.` },
+        { l: 0, sql: 'UPDATE navbat SET holat = \'BAJARILDI\' ...; COMMIT', sub: '1, 2 qulfdan chiqdi', st: { rows: ['navbat 1, 2: BAJARILDI', 'navbat 3, 4: B da'], undo: ['qulf qatorning o\'zida (ITL)', 'ma\'lumot hali o\'zgarmagan'], lock: ['3, 4: B'], see: ['', ''] }, s: `A ishni tugatib commit qildi: 1 va 2 bo'shadi va endi YANGI emas, keyingi SKIP LOCKED so'rovi ularni olmaydi.` }
+      ] }
+    ];
+    var setT = tabs('txT', SC.map(function (s) { return s.t; }), function (i) { sc = i; st = 0; build(); draw(); });
+    var setS;
+    function build() { setS = tabs('txS', SC[sc].steps.map(function (s, i) { return 'Qadam ' + (i + 1); }), function (i) { st = i; draw(); }); }
+    function wrap(t, n) { if (t.length <= n) return [t]; var k = t.lastIndexOf(' ', n); return [t.slice(0, k), t.slice(k + 1)]; }
+    function draw() {
+      var s = SC[sc], cs = s.steps[st]; setT(sc); setS(st); svg.textContent = ''; marker(svg, 'txmk');
+      group(svg, 14, 14, 384, 472, 'Sessiya A');
+      group(svg, 410, 14, 384, 472, 'Sessiya B');
+      s.steps.forEach(function (p, i) {
+        if (i > st) return;
+        var x = p.l ? 424 : 28, y = 50 + i * 86, cls = i === st ? (p.bad ? 'bad' : 'on') : (p.bad ? 'dead' : '');
+        S(svg, 'rect', { x: x, y: y, width: 356, height: 76, rx: 5, 'class': 'box ' + cls });
+        var ls = wrap(p.sql, 40);
+        ls.forEach(function (l, j) { S(svg, 'text', { x: x + 12, y: y + 22 + j * 18, 'class': 'code' }, l); });
+        S(svg, 'text', { x: x + 12, y: y + 64, 'class': 'sub' }, (i + 1) + '. ' + p.sub);
+      });
+      var t = cs.st;
+      group(svg, 810, 14, 416, 472, 'Baza holati');
+      boxL(svg, 824, 50, 388, 100, 'Jadval qatorlari', t.rows, cs.bad ? 'bad' : 'on');
+      boxL(svg, 824, 164, 388, 90, 'Undo', t.undo, 'live');
+      boxL(svg, 824, 268, 388, 100, 'Qulflar (TX)', t.lock, /kutmoqda/.test(t.lock.join(' ')) ? 'bad' : '');
+      boxL(svg, 824, 382, 388, 90, 'Ko\'rinish', t.see, '');
+      say.textContent = (st + 1) + '/' + s.steps.length + '. ' + cs.s; say.className = 'say' + (cs.bad ? ' bad' : '');
+    }
+    build(); draw();
+  })();
+
+  // ---------- Izolyatsiya ----------
+  (function () {
+    var svg = $('iso'), say = $('isoSay'), cur = 0;
+    var L = [
+      { t: 'READ COMMITTED (sukut)', q1: 'SUM = 5 000', q2: 'SUM = 5 200', h1: 'hisob 1 = 900', ok: 0, s: `Har buyruq o'z boshidagi lahzani ko'radi. Ikkinchi SUM T2 ning commit qilingan o'zgarishlarini ko'rdi: hisob 1 dan yechilgan 100 va yangi 300 lik hisob (phantom). Bitta tranzaksiyadagi ikki so'rov bir-biriga mos kelmaydi. Lekin har biri o'z ichida izchil: hech biri o'tkazmaning yarmini ko'rmaydi.` },
+      { t: 'SERIALIZABLE', q1: 'SUM = 5 000', q2: 'SUM = 5 000', h1: 'hisob 1 = 1 000', ok: 1, s: `Butun T1 o'z boshidagi lahzani ko'radi: T2 commit qilgan bo'lsa ham, ikkinchi so'rov ham 5 000 va 1 000. Ko'p so'rovli hisobot bir-biriga mos. Lekin agar T1 endi hisob 1 ni UPDATE qilmoqchi bo'lsa: ORA-08177, chunki u boshqa tranzaksiya o'zgartirgan qatorni o'zgartirmoqchi.` },
+      { t: 'READ ONLY', q1: 'SUM = 5 000', q2: 'SUM = 5 000', h1: 'hisob 1 = 1 000', ok: 1, s: `SET TRANSACTION READ ONLY: SERIALIZABLE kabi bitta lahza, lekin DML taqiqlangan, shuning uchun ORA-08177 ham yo'q. Bir nechta so'rovdan iborat izchil hisobot uchun eng sodda yo'l. Muqobil: har so'rovga AS OF SCN :s.` }
+    ];
+    var setT = tabs('isoT', L.map(function (l) { return l.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var l = L[cur]; setT(cur); svg.textContent = ''; marker(svg, 'ismk');
+      S(svg, 'path', { d: 'M150 40H1210', 'class': 'arr', 'marker-end': 'url(#ismk)' });
+      S(svg, 'text', { x: 1210, y: 30, 'text-anchor': 'end', 'class': 'lbl' }, 'vaqt');
+      S(svg, 'text', { x: 20, y: 90, 'class': 'ttl' }, 'T1 hisobot');
+      S(svg, 'text', { x: 20, y: 170, 'class': 'ttl' }, 'T2 o\'tkazma');
+      box(svg, 150, 60, 260, 56, '10:00 SELECT SUM(qoldiq)', l.q1, 'on');
+      box(svg, 420, 140, 360, 56, '10:01 UPDATE hisob 1: −100', 'INSERT yangi hisob: 300; COMMIT', 'live');
+      box(svg, 800, 60, 410, 56, '10:05 SELECT SUM(qoldiq), hisob 1', l.q2 + ', ' + l.h1, l.ok ? 'on' : 'bad');
+      S(svg, 'path', { d: 'M600 140V122H800', 'class': 'arr dash' });
+      S(svg, 'text', { x: 610, y: 116, 'class': 'lbl' }, l.ok ? 'T1 bu o\'zgarishni ko\'rmaydi' : 'T1 ning ikkinchi so\'rovi buni ko\'radi');
+      group(svg, 20, 230, 1200, 220, 'Standart darajalar va anomaliyalar');
+      var cols = ['', 'Dirty read', 'Non-repeatable read', 'Phantom', 'Oracle\'da'], cx = [40, 370, 580, 830, 1000];
+      cols.forEach(function (c, i) { S(svg, 'text', { x: cx[i], y: 284, 'class': 'ttl' }, c); });
+      var rows = [['READ UNCOMMITTED', 'mumkin', 'mumkin', 'mumkin', 'yo\'q'], ['READ COMMITTED', 'yo\'q', 'mumkin', 'mumkin', 'bor (sukut)'], ['REPEATABLE READ', 'yo\'q', 'yo\'q', 'mumkin', 'yo\'q'], ['SERIALIZABLE', 'yo\'q', 'yo\'q', 'yo\'q', 'bor (snapshot)']];
+      rows.forEach(function (r, i) {
+        var y = 300 + i * 36, hl = (cur === 0 && i === 1) || (cur > 0 && i === 3);
+        S(svg, 'rect', { x: 30, y: y, width: 1176, height: 30, rx: 4, 'class': 'box' + (hl ? ' on' : '') });
+        r.forEach(function (c, j) { S(svg, 'text', { x: cx[j], y: y + 20, 'class': j ? 'sub' : 'mono' }, c); });
+      });
+      say.textContent = l.s; say.className = 'say';
+    }
+    draw();
+  })();
+
+  // ---------- Avtonom ----------
+  (function () {
+    var svg = $('auto'), say = $('autoSay'), cur = 0;
+    var setT = tabs('autoT', ['Oddiy log protsedura', 'PRAGMA AUTONOMOUS_TRANSACTION'], function (i) { cur = i; draw(); });
+    function draw() {
+      setT(cur); svg.textContent = ''; marker(svg, 'atmk');
+      group(svg, 20, 20, 400, 260, 'Asosiy tranzaksiya');
+      var st = ['1. UPDATE hisob SET qoldiq = qoldiq - 100', '2. log_yoz(\'debet bajarildi\')', '3. UPDATE hisob ... -> xato', '4. ROLLBACK'];
+      st.forEach(function (t, i) { box(svg, 36, 54 + i * 54, 368, 44, t, '', i === 2 ? 'bad' : (i === 1 ? 'live' : '')); });
+      S(svg, 'path', { d: 'M404 130H458', 'class': 'arr', 'marker-end': 'url(#atmk)' });
+      group(svg, 460, 20, 360, 260, cur ? 'log_yoz: avtonom' : 'log_yoz: oddiy');
+      var code = cur ? ['PRAGMA AUTONOMOUS_TRANSACTION;', 'BEGIN', '  INSERT INTO xato_log ...;', '  COMMIT;  -- faqat o\'zini', 'END;'] : ['BEGIN', '  INSERT INTO xato_log ...;', '  -- COMMIT yo\'q', 'END;', ''];
+      code.forEach(function (c, i) { S(svg, 'text', { x: 480, y: 76 + i * 24, 'class': 'code' }, c); });
+      S(svg, 'text', { x: 480, y: 220, 'class': 'sub' }, cur ? 'alohida tranzaksiya: o\'zi commit qiladi' : 'chaqiruvchining tranzaksiyasida');
+      S(svg, 'text', { x: 480, y: 242, 'class': 'sub' }, cur ? 'chaqiruvchining o\'zgarishini ko\'rmaydi' : 'INSERT asosiy ish bilan birga turadi');
+      group(svg, 860, 20, 360, 260, 'ROLLBACK dan keyin');
+      boxL(svg, 876, 56, 328, 90, 'hisob', ['qoldiq qaytdi: 1000', 'to\'g\'ri'], 'on');
+      boxL(svg, 876, 166, 328, 90, 'xato_log', cur ? ['yozuv QOLDI', 'nima bo\'lganini bilamiz'] : ['yozuv ham YO\'QOLDI', 'xato izsiz ketdi'], cur ? 'on' : 'bad');
+      say.textContent = cur ? `Log protsedurasi o'z tranzaksiyasida ishladi va o'zini commit qildi. Asosiy tranzaksiya ROLLBACK qilinganda hisob o'zgarishi qaytdi, jurnal yozuvi esa qoldi: ertalab nima bo'lganini ko'rish mumkin. Bu avtonom tranzaksiyaning to'g'ri ishlatilishi. Asosiy ishni (hisobni) avtonom qilish esa xato bo'lardi.` : `Log yozuvi asosiy tranzaksiyaning bir qismi. Xatodan keyin ROLLBACK hammasini qaytardi, jurnal yozuvini ham: xato izsiz yo'qoldi. Ichida COMMIT qo'yish esa yanada yomon: u asosiy ishning yarmini (1-qadam) ham saqlab qo'yardi.`;
+      say.className = 'say' + (cur ? '' : ' bad');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoTx', [
+    { name: `Tranzaksiya nazariyasi`, years: `1970–1983`, art: `<rect x="20" y="30" width="80" height="40" class="acc"/><path d="M20 50h80"/>`,
+      how: `IBM System R va Jim Gray: tranzaksiya, jurnal (log), ikki fazali qulflash (2PL), izolyatsiya darajalari. 1983: Härder va Reuter ACID atamasini kiritadi.`,
+      better: `«Yarim bajarilgan ish» va «bir-birining ustidan yozish» nazariy jihatdan hal qilindi.`,
+      pain: `Ko'p tizimlarda o'qish ham qulf oladi: hisobot ishlayotganda kassalar to'xtaydi.`,
+      ex: `Jim Gray 1998-yilda Turing mukofotini oldi.` },
+    { name: `Oracle 6: qator qulfi va izchil o'qish`, years: `1988`, art: `<rect x="20" y="20" width="36" height="60"/><rect x="64" y="20" width="36" height="60" class="acc"/>`,
+      how: `Qator darajasidagi qulflar (blokda saqlanadi, escalation yo'q), undo (rollback segmentlar) dan multiversion read consistency, redo bilan tiklanish.`,
+      better: `O'quvchi yozuvchini kutmaydi: OLTP va hisobotlar bir bazada.`,
+      pain: `Rollback segmentlarini DBA qo'lda sozlaydi; ORA-01555 odatiy hol.`,
+      ex: `Oracle'ning bozordagi asosiy ustunligiga aylandi.` },
+    { name: `7–8i: 2PC, SERIALIZABLE, avtonom`, years: `1992–1999`, art: `<circle cx="40" cy="50" r="18"/><circle cx="80" cy="50" r="18" class="acc"/>`,
+      how: `7: taqsimlangan tranzaksiyalar va avtomatik 2PC, SERIALIZABLE izolyatsiyasi, SET TRANSACTION READ ONLY. 8i: avtonom tranzaksiyalar, SELECT FOR UPDATE ... NOWAIT rivoji.`,
+      better: `Bir necha baza bo'ylab tranzaksiya; xato jurnali asosiy ishdan mustaqil.`,
+      pain: `Avtonom tranzaksiyalar biznes mantiqqa ham ishlatila boshlandi va nomuvofiqlik tug'dirdi.`,
+      ex: `PRAGMA AUTONOMOUS_TRANSACTION.` },
+    { name: `9i–11g: avtomatik undo va flashback`, years: `2001–2007`, art: `<path d="M90 50A30 30 0 1 1 60 20" class="acc"/><path d="M60 10v20h20"/>`,
+      how: `9i: automatic undo management (UNDO_TABLESPACE, UNDO_RETENTION), flashback query (AS OF). 10g: flashback table, versions query, flashback database, retention guarantee; 10gR2 COMMIT WRITE NOWAIT. 11g: SKIP LOCKED hujjatlashtirildi, DDL_LOCK_TIMEOUT, flashback data archive.`,
+      better: `ORA-01555 kamaydi, xato bilan o'chirilgan ma'lumotni zaxirasiz qaytarish mumkin.`,
+      pain: `Juda uzoq so'rovlar uchun undo hajmini rejalashtirish hali ham kerak.`,
+      ex: `SELECT * FROM tolovlar AS OF TIMESTAMP SYSTIMESTAMP - INTERVAL '10' MINUTE.` },
+    { name: `12c–23ai: yangi qulf modellari`, years: `2013–2024`, art: `<rect x="20" y="40" width="80" height="20" class="acc"/><path d="M30 40V26h60v14"/>`,
+      how: `12c: GTT uchun temporary undo. 21c: blockchain va immutable jadvallar. 23ai: lock-free reservations (qoldiq kabi ustunni qulfsiz kamaytirish, commit paytida tekshirish), priority transactions (past ustuvorlikdagi tranzaksiya yuqorisini uzoq bloklasa avtomatik qaytariladi).`,
+      better: `Qizg'in hisoblagich va qoldiqlarda qulf kutishlari kamayadi.`,
+      pain: `Ko'p bank tizimlari hali 19c da: klassik qoidalar asosiy.`,
+      ex: `Bir xil tartibda qulflash qoidasi o'zgarmagan.` }
+  ]);
+})();
+</script>
+</body>
+</html>
