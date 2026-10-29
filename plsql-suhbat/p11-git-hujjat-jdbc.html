@@ -1,0 +1,571 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P11. Git, hujjat, integratsiya</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P11. Git, hujjatlashtirish va ilova bilan integratsiya (Java, JDBC)</h1>
+<p class="lead">Savol: PL/SQL kodi bazada yashaydi, unda «kim, qachon, nimani o'zgartirdi» qayerda yoziladi? Ikki dasturchi bitta paketni o'zgartirsa nima bo'ladi? Kod test bazasidan prodga qanday yetib boradi? Va Java ilova bazaga qanday ulanadi, protsedurani qanday chaqiradi, xatoni qanday ushlaydi, tranzaksiyani kim boshqaradi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Git</strong>: versiyalarni boshqarish tizimi. Har o'zgarish (commit) muallifi, vaqti va izohi bilan saqlanadi, istalgan eski holatga qaytish mumkin, ko'p odam bir vaqtda parallel ishlaydi. <strong>Hujjatlashtirish</strong>: kod nima qilishi, nega shunday qilingani va qanday ishlatilishini yozib qoldirish. <strong>JDBC</strong> (Java Database Connectivity): Java dan bazaga ulanish, SQL yuborish va PL/SQL chaqirishning standart yo'li.</p>
+    <p>O'xshatish: Git — kitobning har bir tahririni saqlaydigan nashriyot arxivi, kim qaysi sahifani qachon o'zgartirgani bilan. Hujjat — kitobning mundarijasi va so'zboshisi. JDBC — kutubxonaga telefon liniyasi: Java qo'ng'iroq qiladi (ulanish), savol beradi (SQL), javobni qism-qism oladi (ResultSet), oxirida go'shakni qo'yadi (close).</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Har kungi ish:</strong> paket o'zgartirish, branch, pull request, kod review, test va prod ga chiqarish.</li>
+      <li><strong>Ilova qavati:</strong> veb-ekranlar, mobil shlyuz va servislar bazadagi API paketlarini JDBC orqali chaqiradi (P10 dagi qavatlar).</li>
+      <li><strong>Jamoa:</strong> yangi xodim kodni hujjat va commit tarixi orqali tushunadi; auditor «bu o'zgarish qachon va kimning topshirig'i bilan» deb so'raydi.</li>
+      <li><strong>Suhbatda:</strong> vakansiyada «Git, hujjatlashtirish, Java bilan integratsiya» talablari bor; bu dars shularga javob.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>Git ning asosiy tushunchalarini (commit, branch, merge, konflikt, pull request, teg) PL/SQL ishida ko'rsatish;</li>
+      <li>baza kodini fayl sifatida saqlash, migratsiya skriptlari va yetkazish (deploy) jarayoni;</li>
+      <li>yaxshi hujjat: paket spec izohlari, COMMENT ON, README, o'zgarishlar jurnali;</li>
+      <li>JDBC: ulanishlar puli, PreparedStatement, CallableStatement, fetch size, batch, tranzaksiya va xatolar.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, ilova va PL/SQL qavatlari ajratilgan"></svg></div>
+  <figcaption>Bu dars ikki eng yuqori qavat chegarasida: ilova PL/SQL ni qanday chaqiradi, va PL/SQL kodining o'zi qanday boshqariladi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Git: repository, commit, branch, merge, rebase, konflikt, pull request, teg, .gitignore</li>
+      <li>Baza kodi faylda: spec va body alohida fayl, migratsiya skriptlari, Flyway va Liquibase g'oyasi</li>
+      <li>Deploy: CI, test sxema, utPLSQL, invalid obyektlar, ORA-04068, rollback rejasi</li>
+      <li>Hujjat: spec izohlari, COMMENT ON TABLE va COLUMN, README, CHANGELOG, qaror yozuvi</li>
+      <li>JDBC: Connection, ulanishlar puli, PreparedStatement, CallableStatement, REF CURSOR, ResultSet, fetch size, batch</li>
+      <li>Tranzaksiya Java da: autocommit, commit va rollback, kim chegarani belgilaydi; SQLException va ORA kodlari</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Java tilining o'zi, Spring va Hibernate batafsil</li>
+      <li>Git ning ichki tuzilishi (obyektlar, packfile) batafsil</li>
+      <li>CI serverlarni sozlash (Jenkins, GitLab CI) batafsil</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Kod bazada, tarix esa hech qayerda</h3>
+<p>PL/SQL kodi bazada saqlanadi: <span class="num">CREATE OR REPLACE PACKAGE BODY</span> eski versiyani so'zsiz almashtiradi. Bazaning o'zi «kecha bu paket qanday edi» degan savolga javob bermaydi. Git bo'lmagan jamoada odatda shunday bo'ladi:</p>
+<ul>
+  <li>ikki dasturchi dev bazada bitta paketni ochadi, birinchisi saqlaydi, ikkinchisi o'z nusxasini saqlaganda birinchining ishi jim o'chadi;</li>
+  <li>prod dagi paket test dagidan farq qiladi, lekin qaysi qatorlari va nega, hech kim bilmaydi («drift»);</li>
+  <li>chiqarishdan keyin xato chiqdi, qaytarish kerak, lekin oldingi versiya faqat kimningdir kompyuteridagi «pkg_kredit_final_2_yangi.sql» faylida.</li>
+</ul>
+<p>Ilova tomonda ham o'z og'rig'i bor. Har so'rovda yangi ulanish ochish (tarmoq, autentifikatsiya, sessiya yaratish) o'nlab millisekund oladi va baza minglab sessiyadan qiynaladi. SQL ni satr ulab yasash SQL injection ga va har so'rovda hard parse ga olib keladi (P6). Yopilmagan ulanish puldan «oqib ketadi», va bir kun ilova «ulanish yo'q» deb to'xtaydi. Java da autocommit odatda yoqilgan: ikki protsedura chaqiruvi ikki alohida tranzaksiya bo'lib qoladi, va ikkinchisi xato bersa birinchisi allaqachon saqlangan. Bu dars aynan shu muammolarning yechimlari haqida.</p>
+
+<h3><span class="part">2. Ichkarida</span>Git, deploy, hujjat, JDBC</h3>
+
+<p class="beat">Git asoslari</p>
+<p><strong>Repository</strong> (repo): loyihaning barcha fayllari va butun o'zgarishlar tarixi. Har dasturchida repo ning to'liq nusxasi bor (Git <strong>taqsimlangan</strong> tizim), markaziy nusxa esa serverda (GitLab, GitHub, Bitbucket). <strong>Commit</strong>: bir paytdagi holatning surati: qaysi fayllar qanday o'zgargani, muallif, vaqt va izoh. <strong>Branch</strong> (tarmoq): commitlar zanjiriga ko'rsatkich; asosiy branch odatda <span class="num">main</span>, har vazifa uchun alohida branch ochiladi va tayyor bo'lganda qaytib qo'shiladi (<strong>merge</strong>). Ikki branch bitta faylning bitta qatorini turlicha o'zgartirsa, Git o'zi hal qila olmaydi: <strong>konflikt</strong>, uni dasturchi qo'lda hal qiladi. <strong>Pull request</strong> (GitLab da merge request): «mening branchimni main ga qo'shing» degan so'rov, unda boshqalar o'zgarishni ko'rib chiqadi (review) va avtomatik tekshiruvlar ishlaydi. <strong>Teg</strong>: muayyan commitga doimiy nom, odatda versiya raqami (v1.4). Qadamlarni bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="git" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Git tarmoqlari: main, vazifa branchi va hotfix; commit, merge, konflikt, pull request, teg"></svg></div>
+  <figcaption>Chapda branchlar, doiralar commitlar, chiziqlar ota-bola bog'lanishi. O'ngda shu qadamdagi buyruqlar. Misol: kredit foiz paketida kunlar sonini o'zgartirish vazifasi.</figcaption>
+  <div class="evo-tabs" id="gitT" style="margin-top:0.9rem"></div>
+  <p class="say" id="gitSay" aria-live="polite"></p>
+</figure>
+
+<p>Ikki muhim tushuncha. <strong>Merge</strong> ikki tarixni birlashtiruvchi yangi commit yaratadi, tarix rost qoladi, lekin chiziqlar chalkashadi. <strong>Rebase</strong> sizning commitlaringizni main ning oxiriga «ko'chirib» qayta yozadi: tarix to'g'ri chiziq, lekin commitlar yangi identifikator oladi. Qoida: rebase faqat o'zingizning, hali hech kim olmagan branchingizda; umumiy branchda tarixni qayta yozmang (<span class="num">push --force</span> hamkasblarning ishini buzadi). Yaxshi commit kichik, bitta mantiqiy o'zgarish va tushunarli izoh bilan: «KR-112: kunlik foizda kunlar soni 365 ga o'tkazildi», «tuzatishlar» emas.</p>
+
+<p class="beat">Baza kodi fayl sifatida</p>
+<p>Git fayllar bilan ishlaydi, shuning uchun bazadagi har obyekt repoda faylga aylanadi. Odatiy tuzilma:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">repo/
+├── packages/
+│   ├── kredit_foiz.pks          -- paket spec (interfeys)
+│   └── kredit_foiz.pkb          -- paket body (amalga oshirish)
+├── views/      triggers/      types/
+├── migrations/                  -- jadval va ma'lumot o'zgarishlari, tartib bilan
+│   ├── V1.4.0_01__kredit_stavka_kun_soni.sql
+│   └── V1.4.0_02__lugat_yangi_tur.sql
+├── tests/                       -- utPLSQL testlari
+├── docs/       README.md       CHANGELOG.md
+└── .gitignore</pre>
+<p>Ikki turdagi kod farqli boshqariladi. <strong>Qayta yaratiladigan</strong> obyektlar (paket, view, trigger, funksiya): fayl doim obyektning to'liq joriy holati, <span class="num">CREATE OR REPLACE</span> bilan, istalgan marta ishlatsa bo'ladi. <strong>Holatli</strong> obyektlar (jadval, indeks, ma'lumot): ularni «qayta yaratib» bo'lmaydi, chunki ichida ma'lumot bor. Ular uchun <strong>migratsiya skriptlari</strong>: har biri bitta o'zgarish (<span class="num">ALTER TABLE ... ADD</span>), tartib raqami bilan, bir marta qo'llanadi. Flyway va Liquibase kabi vositalar bazada jurnal jadvali yuritadi: qaysi skript qachon qo'llangan, uning nazorat summasi, va har yetkazishda faqat yangilarini ishga tushiradi. Skriptlarni iloji boricha <strong>idempotent</strong> yozish foydali: ikkinchi marta ishga tushsa xato bermaydi (ustun allaqachon bormi, avval tekshiradi).</p>
+
+<p class="beat">Kodni prodga yetkazish</p>
+<p>Yetkazish (deploy) yo'li bir necha darvozadan o'tadi, va har darvoza xatoni prod dan oldin ushlash uchun. Qadamlarni bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="dep" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Yetkazish yo'li: dasturchi, Git, CI, release paketi, test baza, prod baza, rollback"></svg></div>
+  <figcaption>Yuqorida asosiy yo'l chapdan o'ngga, pastda har bosqichda bazada nima bo'lishi. Qadamni tanlang.</figcaption>
+  <div class="evo-tabs" id="depT" style="margin-top:0.9rem"></div>
+  <p class="say" id="depSay" aria-live="polite"></p>
+</figure>
+
+<p>Baza kodini yetkazishning o'ziga xos xavflari bor. <strong>DDL avtomatik COMMIT</strong> qiladi (P8): migratsiya o'rtasida xato bo'lsa, oldingi DDL lar qaytmaydi, shuning uchun har skript kichik va rollback skripti oldindan yozilgan bo'lishi kerak. Paket body o'zgarganda unga bog'liq obyektlar <strong>INVALID</strong> bo'lishi mumkin; yetkazishdan keyin qayta kompilyatsiya qilinadi va invalid obyektlar ro'yxati nolga tushganini tekshiriladi. Paket holati (global o'zgaruvchilar) bo'lsa, ulanishlar pulidagi eski sessiyalar keyingi chaqiruvda <strong>ORA-04068</strong> oladi (P4): shuning uchun paketlarni iloji boricha holatsiz yozish, yoki ilova bu xatoda bir marta qayta urinishi kerak. To'xtovsiz ishlash kerak bo'lgan tizimlar uchun Oracle da <strong>Edition-Based Redefinition</strong> bor: yangi kod yangi «edition» da, eski sessiyalar eski versiyada ishlab turadi.</p>
+
+<p class="beat">Hujjatlashtirish: kim uchun va qayerda</p>
+<p>Hujjatning uch o'quvchisi bor: kodni chaqiradigan dasturchi (nima qiladi, qanday chaqiriladi), kodni o'zgartiradigan dasturchi (nega shunday yozilgan), va biznes yoki auditor (qaysi qoida qayerda). Har biriga o'z joyi:</p>
+<ul>
+  <li><strong>Paket spec</strong>: interfeys hujjati. Har ochiq protsedura ustida qisqa izoh: vazifasi, parametrlari, qaytaradigan qiymat, qaysi xatolarni chiqaradi, COMMIT qiladimi.</li>
+  <li><strong>Body ichida</strong>: «nima» emas, «nega»: «365 kun, chunki Markaziy bank yo'riqnomasi bo'yicha», «bu yerda FOR UPDATE NOWAIT, chunki kartoteka jobi bilan to'qnashuv bo'lgan».</li>
+  <li><strong>Lug'at izohlari</strong>: <span class="num">COMMENT ON TABLE</span> va <span class="num">COMMENT ON COLUMN</span>. Ular bazaning o'zida, ALL_TAB_COMMENTS va ALL_COL_COMMENTS dan o'qiladi va hisobot yoki DWH tahlilchilari uchun eng foydali hujjat.</li>
+  <li><strong>Repo da</strong>: README (modul nima, qanday o'rnatiladi, qanday test qilinadi), CHANGELOG (har versiyada nima o'zgardi), qaror yozuvlari (nega shunday arxitektura tanlangan), ER chizmasi.</li>
+  <li><strong>Commit va pull request izohlari</strong>: vazifa raqami bilan. Bir yildan keyin «nega bu qator shunday» degan savolga <span class="num">git blame</span> commitni, commit esa vazifani ko'rsatadi.</li>
+</ul>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE OR REPLACE PACKAGE kredit_foiz AS
+  -- Kredit bo'yicha kunlik foizni hisoblaydi va provodka uchun tayyorlaydi.
+  -- p_kredit_id  : kredit shartnomasi identifikatori
+  -- p_sana       : operatsion kun (NULL bo'lsa joriy kun)
+  -- Qaytaradi    : hisoblangan foiz summasi, tiyinda
+  -- Xatolar      : -20101 shartnoma topilmadi, -20102 shartnoma yopiq
+  -- Tranzaksiya  : COMMIT qilmaydi, chaqiruvchi boshqaradi
+  FUNCTION hisobla(p_kredit_id IN NUMBER, p_sana IN DATE DEFAULT NULL) RETURN NUMBER;
+END kredit_foiz;
+/
+COMMENT ON TABLE  kredit_stavka          IS 'Kredit shartnomasi foiz stavkalari tarixi';
+COMMENT ON COLUMN kredit_stavka.kun_soni IS 'Yildagi kunlar soni: 360 yoki 365';</pre>
+
+<p class="beat">JDBC: Java bazaga qanday ulanadi</p>
+<p>JDBC bir nechta interfeysdan iborat, ularni Oracle drayveri (ojdbc jar) amalga oshiradi. <strong>Connection</strong>: bazadagi bitta sessiya. <strong>PreparedStatement</strong>: <span class="num">?</span> belgili SQL, qiymatlar alohida bind qilinadi. <strong>CallableStatement</strong>: PL/SQL protsedura yoki funksiyani chaqirish, IN, OUT va REF CURSOR parametrlari bilan. <strong>ResultSet</strong>: so'rov natijasi, qatorlar tarmoq orqali bo'lak-bo'lak keladi. Ulanishni har so'rovda ochmaslik uchun <strong>ulanishlar puli</strong> (connection pool: HikariCP, Oracle UCP) ishlatiladi: ilova ishga tushganda bir nechta ulanish ochiladi va ular qayta-qayta «ijaraga» beriladi. Bitta chaqiruvning yo'lini qadam-baqadam ko'ring:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="jdbc" style="width:1240px;height:480px" viewBox="0 0 1240 480" role="img" aria-label="JDBC yo'li: so'rov oqimi, ulanishlar puli, DAO, tarmoq, listener, sessiya, shared pool, PL/SQL paket, jadvallar, COMMIT va xato"></svg></div>
+  <figcaption>Chapda Java ilova, o'ngda Oracle bazasi, o'rtada tarmoq. Pul kvadratlari: to'q rang band ulanish. Qadamni tanlang.</figcaption>
+  <div class="evo-tabs" id="jdbcT" style="margin-top:0.9rem"></div>
+  <p class="say" id="jdbcSay" aria-live="polite"></p>
+</figure>
+
+<p>Kodda bu shunday ko'rinadi. <span class="num">try (...)</span> (try-with-resources) ulanish, statement va ResultSet ni xato bo'lsa ham avtomatik yopadi, puldan olingan ulanish esa «yopilganda» aslida pulga qaytadi:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">String sql = "SELECT hisob, qoldiq FROM hisoblar WHERE filial = ? AND mijoz_id = ?";
+try (Connection c = dataSource.getConnection();            // puldan olish
+     PreparedStatement ps = c.prepareStatement(sql)) {
+    ps.setString(1, filial);                                // bind: matn bir xil, qiymat har xil
+    ps.setLong(2, mijozId);
+    ps.setFetchSize(500);                                   // bitta borishda 500 qator
+    try (ResultSet rs = ps.executeQuery()) {
+        while (rs.next()) {
+            royxat.add(new Hisob(rs.getString("hisob"), rs.getBigDecimal("qoldiq")));
+        }
+    }
+}                                                           // ulanish pulga qaytadi</pre>
+<p>PL/SQL protsedurani chaqirish, OUT parametr va REF CURSOR bilan. Tranzaksiya chegarasini Java belgilaydi:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">try (Connection c = dataSource.getConnection()) {
+    c.setAutoCommit(false);                                 // ikki chaqiruv = bitta tranzaksiya
+    try (CallableStatement cs = c.prepareCall("{ call kredit_api.berish(?, ?, ?, ?) }")) {
+        cs.setLong(1, arizaId);
+        cs.setBigDecimal(2, summa);
+        cs.registerOutParameter(3, Types.NUMERIC);          // OUT: yangi kredit id
+        cs.registerOutParameter(4, OracleTypes.CURSOR);     // OUT: grafik, REF CURSOR
+        cs.execute();
+        long kreditId = cs.getLong(3);
+        try (ResultSet g = (ResultSet) cs.getObject(4)) { /* grafikni o'qish */ }
+        c.commit();
+    } catch (SQLException e) {
+        c.rollback();
+        if (e.getErrorCode() == 20102) throw new BiznesXato("Shartnoma yopiq");   // ORA-20102
+        throw e;
+    }
+}</pre>
+
+<p class="beat">Fetch size va tarmoqqa borishlar</p>
+<p>ResultSet qatorlarni bir yo'la emas, bo'laklab oladi: har bo'lak bitta tarmoq «borib kelishi» (round trip). Oracle JDBC drayverida standart <strong>fetch size 10</strong>. 100 ming qatorli hisobot 10 ming marta borib keladi, va har biri tarmoqda kamida millisekund. Qator sonini o'zgartiring:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="rt" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Fetch size ga qarab tarmoqqa borishlar soni va vaqti"></svg></div>
+  <figcaption>Har satr bitta fetch size qiymati: chiziq uzunligi borib kelishlar soni. Hisob: borishlar = qatorlar / fetch size (yuqoriga yaxlitlangan), har borish 1 ms deb olingan.</figcaption>
+  <div class="slider">
+    <label for="rtN">Qatorlar soni:</label>
+    <input class="numin" id="rtN" type="number" value="100000" min="1" max="100000000" style="width:10rem">
+    <button type="button" data-rn="200">200</button>
+    <button type="button" data-rn="100000">100 000</button>
+    <button type="button" data-rn="2000000">2 000 000</button>
+  </div>
+  <p class="say" id="rtSay" aria-live="polite"></p>
+</figure>
+<p>Yozishda ham xuddi shu g'oya: <strong>batch</strong>. Ming qatorni ming marta <span class="num">executeUpdate()</span> bilan emas, <span class="num">addBatch()</span> bilan yig'ib, bitta <span class="num">executeBatch()</span> da yuboriladi. Bu Java tomondagi FORALL (P5). Juda katta hajmda esa ma'lumotni Java ga olib kelmasdan, bitta PL/SQL chaqiruvi bazaning o'zida qayta ishlaydi: ma'lumotga yaqinlik (P10).</p>
+
+<p class="beat">Turlar mosligi va ORM</p>
+<ul>
+  <li><span class="num">NUMBER</span> → <span class="num">BigDecimal</span>. Pul uchun hech qachon <span class="num">double</span> emas: 0.1 + 0.2 ikkilik kasrda aniq emas.</li>
+  <li><span class="num">DATE</span> → <span class="num">LocalDateTime</span> yoki <span class="num">Timestamp</span>: Oracle DATE da vaqt ham bor (P1).</li>
+  <li><span class="num">VARCHAR2</span> → <span class="num">String</span>; <span class="num">CLOB</span> va <span class="num">BLOB</span> oqim (stream) sifatida; REF CURSOR → ResultSet; Oracle kolleksiya turlari → massiv (ARRAY), ular bilan bitta chaqiruvda ko'p qator yuborish mumkin.</li>
+  <li>NULL: <span class="num">getLong()</span> NULL uchun 0 qaytaradi; farqlash uchun <span class="num">wasNull()</span> yoki <span class="num">getObject()</span>.</li>
+</ul>
+<p>Ko'p Java loyihalarida JDBC ustida qatlam bor: Spring <strong>JdbcTemplate</strong> (ulanish va yopishni o'zi boshqaradi) yoki <strong>JPA va Hibernate</strong> (ORM: jadval qatorini Java obyektiga avtomatik moslash). ORM oddiy CRUD uchun qulay, lekin murakkab hisobot va katta hajmda u yasagan SQL ni nazorat qilish kerak (N+1 muammosi: ro'yxatdagi har obyekt uchun alohida so'rov). Bank yadrosida odatda biznes mantiq PL/SQL da, Java esa uni CallableStatement yoki JdbcTemplate orqali chaqiradi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Versiyalar boshqaruvi qanday rivojlangan</h3>
+<div class="bench" id="evoGit"></div>
+<p>Ilova va baza orasidagi ulanish ham o'z yo'lini bosib o'tgan:</p>
+<div class="bench" id="evoJdbc"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Repository (repo)</dt><dd>Loyiha fayllari va to'liq o'zgarishlar tarixi.</dd>
+  <dt>Commit</dt><dd>O'zgarishlar surati: fayllar, muallif, vaqt, izoh, ota commit.</dd>
+  <dt>Branch</dt><dd>Commitlar zanjiriga ko'chuvchi ko'rsatkich; parallel ish yo'li.</dd>
+  <dt>Merge, merge commit</dt><dd>Ikki branch tarixini birlashtirish.</dd>
+  <dt>Rebase</dt><dd>Commitlarni boshqa asosning ustiga qayta yozish; tarix to'g'ri chiziq bo'ladi.</dd>
+  <dt>Konflikt</dt><dd>Ikki branch bir joyni turlicha o'zgartirgan, qo'lda hal qilinadi.</dd>
+  <dt>Pull request, merge request</dt><dd>Branchni qo'shish so'rovi: review va avtomatik tekshiruvlar joyi.</dd>
+  <dt>Teg (tag)</dt><dd>Commitga doimiy nom, odatda versiya.</dd>
+  <dt>Hotfix</dt><dd>Prod dagi shoshilinch xato uchun chiqarilgan versiyadan ochilgan tuzatish.</dd>
+  <dt>.gitignore</dt><dd>Git kuzatmaydigan fayllar ro'yxati (parollar, vaqtinchalik fayllar).</dd>
+  <dt>Migratsiya skripti</dt><dd>Jadval yoki ma'lumotdagi bitta o'zgarish, tartib raqami bilan, bir marta qo'llanadi.</dd>
+  <dt>Idempotent</dt><dd>Qayta ishga tushirilsa ham natija o'zgarmaydigan amal.</dd>
+  <dt>CI, CD</dt><dd>Har o'zgarishda avtomatik build va test; avtomatik yetkazish.</dd>
+  <dt>utPLSQL</dt><dd>PL/SQL uchun unit test freymvorki.</dd>
+  <dt>Drift</dt><dd>Bazadagi kod repo dagidan farq qilib qolishi.</dd>
+  <dt>Edition-Based Redefinition</dt><dd>Eski va yangi kod versiyasini bir vaqtda ushlab, to'xtovsiz yangilash.</dd>
+  <dt>JDBC, drayver</dt><dd>Java ning bazaga ulanish standarti; Oracle uchun ojdbc.</dd>
+  <dt>Connection, ulanishlar puli</dt><dd>Bazadagi sessiya; tayyor ulanishlarni qayta ishlatish.</dd>
+  <dt>PreparedStatement, CallableStatement</dt><dd>Bind li SQL; PL/SQL chaqiruvi.</dd>
+  <dt>ResultSet, fetch size</dt><dd>So'rov natijasi; bitta borishda olinadigan qatorlar soni.</dd>
+  <dt>Batch</dt><dd>Ko'p DML ni bitta borishda yuborish.</dd>
+  <dt>Autocommit</dt><dd>Har buyruqdan keyin avtomatik COMMIT; JDBC da standart yoqilgan.</dd>
+  <dt>SQL injection</dt><dd>Foydalanuvchi matni SQL ning bir qismi bo'lib bajarilishi.</dd>
+  <dt>ORM, N+1</dt><dd>Qatorlarni obyektlarga moslovchi qatlam; har element uchun alohida so'rov muammosi.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: to'g'ridan-to'g'ri bazada tahrirlash</b>
+  <p>Dasturchi xatoni prod da IDE orqali paket body ni o'zgartirib tuzatdi. Repo da eski versiya qoldi. Keyingi chiqarishda repo dagi versiya yetkazildi va tuzatish jim yo'qoldi, xato qaytdi.</p>
+  <p class="why">To'g'risi: yagona manba repo; har o'zgarish branch va commit orqali, shoshilinch bo'lsa ham hotfix branchi bilan. Muntazam drift tekshiruvi: bazadagi kod repo bilan solishtiriladi.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: satr ulab SQL yasash</b>
+  <p><span class="num">"... WHERE hisob = '" + hisob + "'"</span>. Har qiymat yangi SQL matni: shared pool to'ladi, har so'rov hard parse (P6). Foydalanuvchi <span class="num">' OR '1'='1</span> kiritsa, so'rov hamma qatorni qaytaradi.</p>
+  <p class="why">To'g'risi: PreparedStatement va bind (<span class="num">?</span>). Jadval yoki ustun nomi o'zgaruvchi bo'lsa, ruxsat etilgan ro'yxatdan tekshirish (PL/SQL da DBMS_ASSERT, P5).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: yopilmagan ulanish</b>
+  <p>Xato yo'lida <span class="num">close()</span> chaqirilmaydi. Har xatoda puldan bitta ulanish yo'qoladi, bir necha soatdan keyin pul bo'sh, ilova «Connection is not available, request timed out» bilan to'xtaydi, bazada esa sessiyalar ochiq qolgan.</p>
+  <p class="why">To'g'risi: har doim try-with-resources; pulda oqish aniqlash (leak detection) sozlamasi; bazada V$SESSION da uzoq «INACTIVE» sessiyalarni kuzatish.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: autocommit yoqilgan holda bir necha chaqiruv</b>
+  <p>Java ketma-ket ikki protsedurani chaqirdi: hisobdan yechish va boshqa hisobga yozish. Autocommit yoqilgan: birinchisi darhol saqlandi, ikkinchisi xato berdi, pul «yo'lda» qoldi.</p>
+  <p class="why">To'g'risi: <span class="num">setAutoCommit(false)</span> (yoki Spring da @Transactional) va bitta commit; yaxshisi, ikkala amalni bitta PL/SQL API protsedurasiga birlashtirish.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: standart fetch size bilan katta hisobot</b>
+  <p>Hisobot 2 million qator o'qiydi, fetch size 10: 200 ming borib kelish. Bazada so'rov 5 soniyada tugadi, foydalanuvchi esa 4 daqiqa kutdi; AWR da «SQL*Net message from client» kutishi.</p>
+  <p class="why">To'g'risi: katta o'qishda fetch size 500 dan 1000 gacha (xotiraga mos), juda katta hajmni esa Java ga olib kelmasdan bazada qayta ishlash.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching.</p>
+<details><summary>PL/SQL kodini qanday versiyalaysiz?</summary>
+<p>Repo yagona manba. Har paket spec va body alohida faylda, view, trigger, tur ham fayllarda, <span class="num">CREATE OR REPLACE</span> bilan. Jadval va ma'lumot o'zgarishlari esa tartib raqamli migratsiya skriptlarida, chunki jadvalni qayta yaratib bo'lmaydi; ularni Flyway yoki Liquibase kabi vosita yoki o'z jurnal jadvalimiz bilan qo'llaymiz. Har vazifa uchun branch, pull request va review, keyin main ga merge va versiya tegi. Bazada to'g'ridan-to'g'ri tahrir qilinmaydi, va vaqti-vaqti bilan bazadagi kod repo bilan solishtiriladi.</p></details>
+<details><summary>Merge va rebase farqi nima?</summary>
+<p>Merge ikki tarixni birlashtiruvchi yangi commit qo'shadi: tarix rost, kim qachon nimani qo'shgani ko'rinadi, lekin grafik chalkashadi. Rebase mening commitlarimni asos branchning oxiriga qayta yozadi: tarix to'g'ri chiziq, lekin commitlar yangi identifikator oladi. Shuning uchun rebase faqat o'z, hali push qilinmagan yoki faqat menda bo'lgan branchda; umumiy branchda tarixni qayta yozmayman.</p></details>
+<details><summary>Konfliktni qanday hal qilasiz?</summary>
+<p>Avval main ni o'z branchimga olib kelaman (merge yoki rebase). Git konfliktli joylarni <span class="num">&lt;&lt;&lt;&lt;&lt;&lt;&lt;</span>, <span class="num">=======</span>, <span class="num">&gt;&gt;&gt;&gt;&gt;&gt;&gt;</span> belgilari bilan ko'rsatadi. Ikkala o'zgarishning maqsadini tushunaman, kerak bo'lsa hamkasb bilan gaplashaman, to'g'ri variantni qoldiraman, paketni test bazada kompilyatsiya qilib testlarni ishga tushiraman, keyin commit. Konfliktlarni kamaytirish uchun: kichik va tez-tez birlashtiriladigan branchlar, va main ni o'z branchimga muntazam olib kelish.</p></details>
+<details><summary>Baza o'zgarishini prodga qanday chiqarasiz? Xato bo'lsa nima qilasiz?</summary>
+<p>Chiqarish paketi: tartiblangan migratsiya skriptlari va o'zgargan obyektlar, har biri uchun rollback skripti, va qo'llash tartibi. Avval test bazada aynan shu paket qo'llanadi va tekshiriladi. Prod da kelishilgan oynada, DBA bilan: skriptlar, qayta kompilyatsiya, invalid obyektlar nolmi, tutun testi (asosiy ekran va job ishlaydimi). Xato bo'lsa rollback rejasi: paketlar oldingi versiyaga (repo dagi oldingi teg), jadval o'zgarishlari teskari skript bilan. DDL avtomatik commit qilishini hisobga olib, skriptlar kichik bo'ladi. Paket holati bo'lsa ORA-04068 ni oldindan ilova jamoasi bilan kelishaman.</p></details>
+<details><summary>Yaxshi hujjat qanday bo'ladi?</summary>
+<p>O'quvchiga qarab. Chaqiruvchi uchun paket spec da har protsedura ustida: vazifasi, parametrlar, qaytadigan qiymat, xato kodlari, COMMIT qiladimi. O'zgartiruvchi uchun body da «nega»: biznes qoida yoki nozik joy sababi. Tahlilchi uchun bazada COMMENT ON TABLE va COLUMN. Jamoa uchun repo da README, CHANGELOG va arxitektura qarorlari. Va commit izohlarida vazifa raqami. Eskirgan hujjat hujjatsizlikdan yomon, shuning uchun hujjat kod bilan bitta pull request da yangilanadi.</p></details>
+<details><summary>Java dan PL/SQL protsedurani qanday chaqirasiz?</summary>
+<p>CallableStatement: <span class="num">{ call paket.protsedura(?, ?, ?) }</span>, funksiya uchun <span class="num">{ ? = call paket.funksiya(?) }</span>. IN parametrlar set metodlari bilan, OUT lar <span class="num">registerOutParameter</span> bilan oldindan ro'yxatga olinadi, <span class="num">execute()</span> dan keyin get bilan o'qiladi. Ro'yxat qaytarish uchun REF CURSOR OUT parametri, Java da ResultSet bo'lib keladi. Ko'p qatorni yuborish uchun Oracle kolleksiya turi va ARRAY. Xatoni SQLException orqali olaman, <span class="num">getErrorCode()</span> ORA raqamini beradi: masalan RAISE_APPLICATION_ERROR(-20102) dan 20102, uni biznes xatoga aylantiraman.</p></details>
+<details><summary>Ulanishlar puli nima uchun kerak va qanday sozlanadi?</summary>
+<p>Fizik ulanish ochish qimmat: TCP, autentifikatsiya, sessiya va server jarayoni yaratish. Pul ilova boshlanganda bir nechta ulanish ochadi va ularni so'rovlarga ijaraga beradi, ulanish «yopilganda» pulga qaytadi. Asosiy sozlamalar: maksimal hajm (baza ko'tara oladigan sessiyalar va ilova oqimlari soniga qarab, odatda katta emas: o'nlab), minimal hajm, kutish vaqti (ulanish bo'lmasa qancha kutish), ulanishni tekshirish, maksimal yashash vaqti, va oqish aniqlash. Pul juda katta bo'lsa baza ko'p parallel sessiyadan qulflar va latch larda qiynaladi.</p></details>
+<details><summary>Java va PL/SQL o'rtasida tranzaksiyani kim boshqaradi?</summary>
+<p>Eng tashqi chaqiruvchi, odatda Java servis qavati. PL/SQL API protseduralari COMMIT qilmaydi, shunda Java bir nechta chaqiruvni bitta tranzaksiyaga birlashtira oladi. JDBC da autocommit standart yoqilgan, shuning uchun uni o'chirib, oxirida commit, xatoda rollback qilinadi; Spring da @Transactional buni o'zi qiladi. Istisno: audit va xato jurnali avtonom tranzaksiyada (P8), asosiy tranzaksiya qaytsa ham saqlansin.</p></details>
+<details><summary>Fetch size va batch nima beradi?</summary>
+<p>Ikkalasi ham tarmoqqa borib kelishlarni kamaytiradi. Fetch size: bitta borishda nechta qator olinadi, Oracle drayverida standart 10; katta o'qishda 500 dan 1000 gacha qilinsa, borishlar soni 50 dan 100 martagacha kamayadi. Batch: ko'p INSERT yoki UPDATE ni yig'ib, bitta borishda yuborish, bu Java dagi FORALL. Juda katta hajmda esa ma'lumotni Java ga umuman olib kelmay, bazada bitta SQL yoki PL/SQL chaqiruvi bilan qayta ishlash afzal.</p></details>
+<details><summary>Java dasturchilar bilan qanday hamkorlik qilasiz?</summary>
+<p>Kelishuv API paketining spec ida: nomlar, parametrlar va turlar, xato kodlari ro'yxati, COMMIT qiladimi, qaytariladigan kursorning ustunlari. Spec o'zgarishi alohida kelishiladi, chunki u ikki tomonni ham buzadi; iloji bo'lsa yangi parametr DEFAULT bilan qo'shiladi, eski chaqiruvlar ishlab turadi. Xatolar uchun yagona diapazon (masalan -20100 dan -20199 kredit moduli) va hujjat. Ularga test baza va namunaviy chaqiruv beraman, sekin chaqiruvlarda esa AWR yoki V$SQL dan SQL_ID va rejani birga ko'ramiz.</p></details>
+<details><summary>Kod review da PL/SQL kodida nimalarga qaraysiz?</summary>
+<p>Bind ishlatilganmi, satr ulangan dinamik SQL yo'qmi. Sikl ichida SQL yo'qmi (BULK yoki bitta SQL bo'lishi kerakmi). WHEN OTHERS THEN NULL kabi xatoni yutish yo'qmi, xato kodi va kontekst saqlanadimi. API ichida COMMIT yo'qmi. Indekslar va partitsiya kalitlari shartda ishlatiladimi, rejasi tekshirilganmi. Qulflar tartibi va NOWAIT yoki timeout. Migratsiya skripti va rollback bormi, idempotentmi. Spec izohlari va CHANGELOG yangilanganmi. Va testlar.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>Siz va hamkasb bitta paket body ni o'zgartirdingiz. U birinchi bo'lib main ga birlashtirdi. Siz nima qilasiz, qaysi buyruqlar bilan, va konflikt chiqsa uni qanday tekshirasiz?</li>
+  <li>Yangi vazifa: hisoblar jadvaliga «yopilish sababi» ustuni va uni to'ldiradigan paket o'zgarishi. Repo da qaysi fayllar paydo bo'ladi yoki o'zgaradi, qanday tartibda qo'llanadi, rollback qanday?</li>
+  <li>Java kodida: <span class="num">stmt.executeQuery("SELECT * FROM mijozlar WHERE inn = '" + inn + "'")</span>. Uchta muammoni ayting va tuzatilgan variantni yozing.</li>
+  <li>Prod ga chiqarishdan keyin bir necha daqiqa ilova loglarida ORA-04068 chiqdi, keyin yo'qoldi. Nima bo'ldi, nega o'zi yo'qoldi, keyingi safar qanday oldini olasiz?</li>
+  <li>Java servisi ikki protsedurani chaqiradi: kredit berish va pulni mijoz hisobiga o'tkazish. Tranzaksiyani to'g'ri qilib yozing (psevdokod yetarli) va xato kodi -20102 ni biznes xatoga aylantiring.</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Branch strategiyalari</summary>
+<p><strong>Trunk-based</strong>: hamma qisqa branchlarni tez-tez main ga birlashtiradi, main doim chiqarishga tayyor. <strong>Git Flow</strong>: main (prod), develop (keyingi versiya), feature, release va hotfix branchlari. Bank kabi kamdan-kam va rejali chiqarishlar bo'ladigan joylarda release va hotfix branchlari keng tarqalgan; shoshilinch tuzatish chiqarilgan versiya tegidan ochiladi va keyin main ga ham qaytariladi, aks holda keyingi versiyada xato qaytadi.</p></details>
+<details><summary>utPLSQL bilan test</summary>
+<p>Test paketi annotatsiyalar bilan yoziladi. Har test oldidan ma'lumot tayyorlanadi, test oxirida avtomatik rollback (test bazani ifloslamaydi):</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE OR REPLACE PACKAGE test_kredit_foiz AS
+  --%suite(Kredit foizi)
+  --%test(365 kunlik yilda bir kunlik foiz)
+  PROCEDURE bir_kunlik_foiz;
+END;
+/
+CREATE OR REPLACE PACKAGE BODY test_kredit_foiz AS
+  PROCEDURE bir_kunlik_foiz IS
+  BEGIN
+    -- 10 000 000 so'm, 24% yillik, 365 kun: 6 575.34
+    ut.expect(kredit_foiz.hisobla_summa(1000000000, 24, 365)).to_equal(657534);
+  END;
+END;
+/
+EXEC ut.run('test_kredit_foiz');</pre></details>
+<details><summary>Ulanish tarmog'i: listener, xizmat nomi, URL</summary>
+<p>JDBC URL: <span class="num">jdbc:oracle:thin:@//host:1521/xizmat_nomi</span>. «thin» drayver to'liq Java da, mijoz dasturi kerak emas. Listener 1521 portda tinglaydi va so'rovni xizmat nomiga qarab baza instansiyasiga uzatadi, keyin sessiya va server jarayoni yaratiladi. RAC da bir nechta instansiya bitta xizmat nomi ostida, ulanishlar ular orasida taqsimlanadi. Parollar kodda yoki repo da emas, sozlama yoki maxfiy saqlagichda.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Pro Git (Scott Chacon, Ben Straub), git-scm.com da bepul. Oracle Database JDBC Developer's Guide. Oracle Universal Connection Pool Developer's Guide. utPLSQL hujjatlari (utplsql.org). Flyway va Liquibase hujjatlari. Oracle Database Development Guide: Edition-Based Redefinition.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Repo yagona manba: paketlar fayl sifatida, jadval o'zgarishlari tartibli migratsiya skriptlarida. Branch, pull request, review, teg; rebase faqat o'z branchida. Deploy: CI, test baza, invalid obyektlar, ORA-04068, rollback rejasi. Hujjat o'quvchiga qarab: spec izohlari, COMMENT ON, README, CHANGELOG. JDBC: puldan ulanish, PreparedStatement va bind, CallableStatement va REF CURSOR, fetch size va batch, autocommit o'chirilib bitta commit, getErrorCode bilan ORA xatolari.</p>
+  <p><strong>Keyingi dars.</strong> P12. Xulosa: barcha atamalar bir joyda, butun kurs bo'yicha test va suhbat savollari ro'yxati.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p10-iabs.html">Oldingi: P10. iABS yadro tizimi</a><span>Keyingi: P12. Xulosa va test (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekranlar, servislar: P11', ex: 'CallableStatement, ulanishlar puli', link: 'API paketini chaqiradi' },
+    { title: 'PL/SQL', sub: 'Paketlar, Git da fayl: P3–P5, P11', ex: 'spec izohlari, migratsiyalar', link: 'SQL ni chaqiradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'bind li so\'rovlar', link: 'reja tanlanadi' },
+    { title: 'Optimizator va reja', sub: 'Statistika, reja: P6–P7', ex: 'soft parse, bind', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'autocommit, commit, rollback', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'migratsiya skriptlari', link: '' }
+  ], [0, 1], 'Shu dars');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function boxL(svg, x, y, w, h, title, lines, cls) {
+    S(svg, 'rect', { x: x, y: y, width: w, height: h, rx: 5, 'class': 'box' + (cls ? ' ' + cls : '') });
+    S(svg, 'text', { x: x + 14, y: y + 26, 'class': 'ttl' }, title);
+    (lines || []).forEach(function (l, i) { S(svg, 'text', { x: x + 14, y: y + 46 + i * 18, 'class': 'sub' }, l); });
+  }
+
+  // ---------- Git ----------
+  (function () {
+    var svg = $('git'), say = $('gitSay'), cur = 0;
+    var LY = { m: 100, f: 200, h: 300 };
+    var N = {
+      c1: [190, 'm', 0, 'boshlang\'ich'], c2: [270, 'm', 0, 'v1.3'],
+      f1: [350, 'f', 1, 'foiz: 365'], f2: [430, 'f', 1, 'test'],
+      c3: [480, 'm', 2, 'hamkasb'], fm: [570, 'f', 3, 'merge + hal'],
+      c4: [670, 'm', 5, 'merge'], h1: [760, 'h', 6, 'fix'], c5: [850, 'm', 6, 'merge']
+    };
+    var E = [['c1', 'c2', 0], ['c2', 'f1', 1], ['f1', 'f2', 1], ['c2', 'c3', 2], ['f2', 'fm', 3], ['c3', 'fm', 3], ['c3', 'c4', 5], ['fm', 'c4', 5], ['c4', 'h1', 6], ['h1', 'c5', 6], ['c4', 'c5', 6]];
+    var ST = [
+      { t: 'Commit', cmd: ['git clone <repo-url>', 'git add packages/kredit_foiz.pkb', 'git commit -m "KR-100: ..."', 'git push'], s: `Repo nusxalanadi (clone). O'zgargan fayl tayyorlanadi (add) va commit qilinadi: surat, muallif, vaqt va izoh bilan. Push uni serverdagi umumiy repo ga yuboradi. main da ikki commit: boshlang'ich va v1.3.` },
+      { t: 'Branch', cmd: ['git switch -c feature/KR-112', '# paket body: 360 -> 365', 'git commit -am "KR-112: ..."', 'git push -u origin feature/KR-112'], s: `Yangi vazifa uchun alohida branch: main ga tegmasdan ishlaysiz. Ikki commit: foizda kunlar soni o'zgardi va test qo'shildi. Push qilingan branchni boshqalar ko'radi, lekin main hali o'zgarmagan.` },
+      { t: 'Parallel o\'zgarish', cmd: ['# hamkasb o\'z vazifasini', '# main ga birlashtirdi:', '# o\'sha paket, o\'sha qator', 'git fetch origin'], s: `Shu orada hamkasb boshqa vazifada o'sha paket body ning o'sha qatorini o'zgartirib, main ga birlashtirdi. Endi main va sizning branchingiz ikki tomonga ketdi. fetch serverdagi yangi commitlarni oladi, lekin fayllaringizga tegmaydi.` },
+      { t: 'Konflikt', cmd: ['git merge origin/main', 'CONFLICT: kredit_foiz.pkb', '<<<<<<< HEAD', '  v_kun := 365;', '=======', '  v_kun := p_kun_soni;', '>>>>>>> origin/main', '# hal, kompilyatsiya, test, commit'], s: `main ni o'z branchingizga olib kelasiz. Ikkalangiz bir qatorni turlicha o'zgartirgansiz: Git o'zi tanlay olmaydi. Belgilar orasida ikkala variant. Maqsadni tushunib, to'g'risini qoldirasiz (bu yerda hamkasbning parametri va sizning standart qiymatingiz), paketni test bazada kompilyatsiya qilib, testlardan keyin commit.` },
+      { t: 'Pull request', cmd: ['# PR: feature/KR-112 -> main', '# review: diff va izohlar', '# migratsiya va rollback bormi?', '# CI: kompilyatsiya, utPLSQL'], s: `Pull request ochiladi: «branchimni main ga qo'shing». Hamkasblar diff ni ko'radi va izoh yozadi, CI avtomatik ravishda paketlarni toza test sxemada kompilyatsiya qilib, testlarni ishga tushiradi. Hammasi yashil va kamida bitta tasdiq bo'lgach, birlashtirish mumkin.` },
+      { t: 'Merge va teg', cmd: ['git switch main', 'git merge --no-ff feature/KR-112', 'git tag v1.4', 'git push origin main --tags'], s: `Branch main ga birlashtirildi (merge commit) va chiqariladigan holatga v1.4 tegi qo'yildi. Teg doimiy: bir yildan keyin ham «prod dagi v1.4 da aynan qaysi kod edi» degan savolga aniq javob beradi.` },
+      { t: 'Hotfix', cmd: ['git switch -c hotfix/1.4.1 v1.4', 'git commit -am "KR-130: ..."', 'git tag v1.4.1', 'git switch main', 'git merge hotfix/1.4.1'], s: `Prod da shoshilinch xato. Tuzatish main dan emas (unda hali chiqarilmagan ishlar bo'lishi mumkin), chiqarilgan v1.4 tegidan ochiladi. Tuzatish v1.4.1 bo'lib chiqadi va albatta main ga ham qaytariladi, aks holda keyingi versiyada xato qaytadi.` }
+    ];
+    var setT = tabs('gitT', ST.map(function (s) { return s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = ST[cur]; setT(cur); svg.textContent = ''; marker(svg, 'gtmk');
+      [['m', 'main'], ['f', 'feature/KR-112'], ['h', 'hotfix/1.4.1']].forEach(function (l) {
+        S(svg, 'text', { x: 20, y: LY[l[0]] + 5, 'class': 'mono' }, l[1]);
+        S(svg, 'path', { d: 'M160 ' + LY[l[0]] + 'H880', 'class': 'arr dash' });
+      });
+      if (cur >= 4) {
+        S(svg, 'rect', { x: 320, y: 158, width: 312, height: 92, rx: 6, 'class': 'grp' });
+        S(svg, 'text', { x: 330, y: 272, 'class': 'lbl' }, 'Pull request: review va CI');
+      }
+      E.forEach(function (e) {
+        if (e[2] > cur) return;
+        var a = N[e[0]], b = N[e[1]], x1 = a[0], y1 = LY[a[1]], x2 = b[0], y2 = LY[b[1]];
+        var dx = x2 - x1, dy = y2 - y1, L = Math.sqrt(dx * dx + dy * dy), ux = dx / L, uy = dy / L;
+        S(svg, 'path', { d: 'M' + (x1 + ux * 15) + ' ' + (y1 + uy * 15) + 'L' + (x2 - ux * 17) + ' ' + (y2 - uy * 17), 'class': 'arr' + (e[2] < cur ? ' dash' : ''), 'marker-end': 'url(#gtmk)' });
+      });
+      Object.keys(N).forEach(function (k) {
+        var n = N[k]; if (n[2] > cur) return;
+        var cls = n[2] === cur ? 'on' : '';
+        if (k === 'fm' && cur === 3) cls = 'bad';
+        S(svg, 'circle', { cx: n[0], cy: LY[n[1]], r: 14, 'class': 'box ' + cls });
+        S(svg, 'text', { x: n[0], y: LY[n[1]] + (n[1] === 'm' ? -24 : 34), 'class': 'lbl', 'text-anchor': 'middle' }, n[3]);
+      });
+      if (cur >= 5) { S(svg, 'rect', { x: 646, y: 26, width: 48, height: 22, rx: 4, 'class': 'box live' }); S(svg, 'text', { x: 670, y: 42, 'class': 'lbl', 'text-anchor': 'middle' }, 'v1.4'); }
+      if (cur >= 6) { S(svg, 'rect', { x: 820, y: 26, width: 60, height: 22, rx: 4, 'class': 'box live' }); S(svg, 'text', { x: 850, y: 42, 'class': 'lbl', 'text-anchor': 'middle' }, 'v1.4.1'); }
+      S(svg, 'rect', { x: 910, y: 30, width: 316, height: 340, rx: 5, 'class': 'box' });
+      S(svg, 'text', { x: 926, y: 58, 'class': 'ttl' }, 'Buyruqlar');
+      c.cmd.forEach(function (l, i) { S(svg, 'text', { x: 926, y: 88 + i * 24, 'class': 'code' }, l); });
+      say.textContent = (cur + 1) + '/' + ST.length + '. ' + c.s;
+    }
+    draw();
+  })();
+
+  // ---------- Deploy ----------
+  (function () {
+    var svg = $('dep'), say = $('depSay'), cur = 0;
+    var B = {
+      dev: [20, 40, 170, 100, 'Dasturchi', ['dev baza, IDE,', 'branch']],
+      git: [220, 40, 170, 100, 'Git repo', ['pull request,', 'review, teg']],
+      ci: [420, 40, 200, 100, 'CI server', ['kompilyatsiya,', 'utPLSQL, tekshiruv']],
+      rel: [650, 40, 180, 100, 'Release paketi', ['skriptlar tartibi,', 'rollback skriptlari']],
+      test: [860, 40, 170, 100, 'Test baza', ['bank testi,', 'regressiya']],
+      prod: [1060, 40, 160, 100, 'Prod baza', ['kelishilgan oyna']],
+      cit: [420, 200, 200, 110, 'Toza test sxema', ['har build da noldan,', 'testdan keyin rollback']],
+      mig: [650, 200, 180, 110, 'Migratsiya jurnali', ['qaysi skript, qachon,', 'nazorat summasi']],
+      inv: [860, 200, 170, 110, 'Kompilyatsiya', ['invalid obyektlar = 0?', 'ORA-04068 xavfi']],
+      dba: [1060, 200, 160, 110, 'DBA va tasdiq', ['o\'zgarish so\'rovi,', 'tutun testi']]
+    };
+    var ST = [
+      { t: 'Kod fayl sifatida', hl: ['dev', 'git'], p: ['M190 90H218'], s: `Dasturchi o'z dev bazasida yoki sxemasida ishlaydi, lekin natija repo dagi faylga yoziladi: paket spec va body, migratsiya skripti, test. Branch va commit, keyin pull request. Bazadagi holat emas, repo dagi fayl haqiqat manbai.` },
+      { t: 'CI: kompilyatsiya va test', hl: ['git', 'ci', 'cit'], p: ['M390 90H418', 'M520 140V198'], s: `Har pull request da CI toza test sxemani yaratadi, barcha migratsiyalarni va paketlarni qo'llaydi, kompilyatsiya xatolari va invalid obyektlarni tekshiradi, utPLSQL testlarini ishga tushiradi. Xato bo'lsa birlashtirib bo'lmaydi: xato prod ga emas, dasturchining o'ziga qaytadi.` },
+      { t: 'Release paketi', hl: ['ci', 'rel', 'mig'], p: ['M620 90H648', 'M740 140V198'], s: `Teg qo'yilgan versiyadan chiqarish paketi yig'iladi: qo'llash tartibi, har migratsiya va uning rollback skripti, o'zgargan paketlar. Flyway yoki Liquibase bazadagi jurnal jadvaliga qarab faqat hali qo'llanmagan skriptlarni ishga tushiradi.` },
+      { t: 'Test bazaga', hl: ['rel', 'test', 'inv'], p: ['M830 90H858', 'M945 140V198'], s: `Aynan shu paket avval test bazaga qo'llanadi (prod ga o'xshash ma'lumot hajmi bilan). Qayta kompilyatsiya, invalid obyektlar ro'yxati, keyin bank testchilari va regressiya testlari. Bu yerda ORA-04068 va sekin so'rovlar ham ko'rinadi.` },
+      { t: 'Prod ga', hl: ['test', 'prod', 'dba'], p: ['M1030 90H1058', 'M1140 140V198'], s: `Prod da kelishilgan oynada, o'zgarish so'rovi tasdiqlangach, ko'pincha DBA bilan birga. Skriptlar, qayta kompilyatsiya, invalid obyektlar nolmi, tutun testi: asosiy ekranlar va joblar ishlaydimi. DDL avtomatik commit qiladi, shuning uchun har qadam natijasi tekshiriladi.` },
+      { t: 'Rollback', hl: ['rel', 'prod', 'dba'], p: ['M1140 40V20H740V38'], dash: true, s: `Xato chiqsa, oldindan tayyorlangan rejaga qaytiladi: paketlar oldingi teg dagi versiyaga, jadval o'zgarishlari teskari skript bilan (qo'shilgan ustun olib tashlanadi, ma'lumot zaxira jadvaldan). Rejasiz rollback tunda va shoshilinchda yoziladi, va o'zi yangi xato manbai bo'ladi.` }
+    ];
+    var setT = tabs('depT', ST.map(function (s) { return s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = ST[cur]; setT(cur); svg.textContent = ''; marker(svg, 'dpmk');
+      Object.keys(B).forEach(function (k) { var b = B[k]; boxL(svg, b[0], b[1], b[2], b[3], b[4], b[5], c.hl.indexOf(k) >= 0 ? 'on' : ''); });
+      ['M190 90H218', 'M390 90H418', 'M620 90H648', 'M830 90H858', 'M1030 90H1058'].forEach(function (d) { if (c.p.indexOf(d) < 0) S(svg, 'path', { d: d, 'class': 'arr dash', 'marker-end': 'url(#dpmk)' }); });
+      c.p.forEach(function (d) { S(svg, 'path', { d: d, 'class': 'arr' + (c.dash ? ' dash' : ''), 'marker-end': 'url(#dpmk)', style: 'stroke-width:2.4' }); });
+      if (c.dash) S(svg, 'text', { x: 760, y: 16, 'class': 'lbl' }, 'oldingi teg va teskari skriptlar');
+      say.textContent = (cur + 1) + '/' + ST.length + '. ' + c.s;
+    }
+    draw();
+  })();
+
+  // ---------- JDBC ----------
+  (function () {
+    var svg = $('jdbc'), say = $('jdbcSay'), cur = 0;
+    var B = {
+      req: [30, 50, 220, 80, 'So\'rov oqimi', ['HTTP so\'rov, thread']],
+      dao: [30, 150, 220, 100, 'DAO, servis', ['PreparedStatement,', 'CallableStatement']],
+      pool: [290, 50, 220, 200, 'Ulanishlar puli', ['HikariCP yoki UCP,', 'tayyor ulanishlar:']],
+      rs: [30, 280, 220, 90, 'ResultSet', ['fetch size qatordan', 'bo\'laklab keladi']],
+      tx: [290, 280, 220, 90, 'Tranzaksiya', ['autocommit, commit,', 'rollback']],
+      ex: [30, 390, 480, 60, 'SQLException', ['getErrorCode() = 20102, getMessage()']],
+      lsn: [720, 50, 230, 80, 'Listener', ['1521 port, xizmat nomi']],
+      ses: [980, 50, 230, 80, 'Sessiya', ['server jarayoni, PGA']],
+      sp: [720, 160, 230, 90, 'Shared pool', ['kursor: SQL matni', 'va reja (P6)']],
+      pkg: [980, 160, 230, 90, 'PL/SQL paket', ['API protsedurasi,', 'OUT va REF CURSOR']],
+      tbl: [720, 280, 230, 90, 'Jadvallar', ['buffer cache, undo,', 'qulflar (P8)']],
+      err: [980, 280, 230, 90, 'Xato', ['RAISE_APPLICATION_ERROR', '(-20102, ...)']],
+      redo: [720, 390, 490, 60, 'COMMIT', ['redo diskka yoziladi, qulflar bo\'shaydi (P8)']]
+    };
+    var ST = [
+      { t: 'Ulanish olish', hl: ['req', 'pool', 'lsn', 'ses'], busy: 1, p: ['M250 90H288', 'M510 90H718', 'M950 90H978'], s: `Ilova ishga tushganda pul bir nechta fizik ulanish ochadi: TCP, listener orqali xizmat nomi, autentifikatsiya, sessiya va server jarayoni. Bu o'nlab millisekund. Keyin har so'rov tayyor ulanishni puldan mikrosekundlarda oladi.` },
+      { t: 'PreparedStatement', hl: ['dao', 'pool', 'sp'], busy: 1, p: ['M250 200H288', 'M510 205H718'], s: `SQL matni ? belgilari bilan, qiymatlar bind qilinadi. Matn har doim bir xil, shuning uchun shared pool da kursor topiladi (soft parse, P6), reja qayta tuzilmaydi. Drayverdagi statement cache esa hatto parse chaqiruvini ham tejaydi. SQL injection ham bo'lmaydi.` },
+      { t: 'CallableStatement', hl: ['dao', 'pool', 'pkg'], busy: 1, p: ['M250 200H288', 'M510 235H620V265H1095V252'], s: `PL/SQL API protsedurasi chaqiriladi: { call kredit_api.berish(?, ?, ?, ?) }. IN qiymatlar yuboriladi, OUT parametrlar oldindan ro'yxatga olingan. Ro'yxat REF CURSOR orqali qaytadi va Java da ResultSet bo'ladi. Biznes mantiq bazada, Java faqat chaqiradi (P10).` },
+      { t: 'Fetch size', hl: ['tbl', 'rs'], busy: 1, p: ['M718 300H700V270H140V278'], s: `Natija qatorlari bo'laklab keladi: har rs.next() tarmoqqa bormaydi, faqat bo'lak tugaganda. Standart fetch size 10. Katta o'qishda uni 500 dan 1000 gacha qilish borib kelishlarni 50 dan 100 martagacha kamaytiradi (pastdagi chizma).` },
+      { t: 'Batch', hl: ['dao', 'tbl'], busy: 1, p: ['M250 230H270V262H835V278'], s: `Ko'p INSERT yoki UPDATE: har biri uchun executeUpdate emas, addBatch bilan yig'ib bitta executeBatch. Ming qator bitta yoki bir nechta borishda yetadi. Bu Java tomondagi FORALL (P5).` },
+      { t: 'COMMIT yoki ROLLBACK', hl: ['tx', 'redo'], busy: 1, p: ['M510 325H600V420H718'], s: `JDBC da autocommit standart yoqilgan: har buyruq alohida tranzaksiya. Bir nechta chaqiruv bitta tranzaksiya bo'lishi uchun setAutoCommit(false), oxirida commit, xatoda rollback. PL/SQL API o'zi COMMIT qilmaydi: chegarani Java servisi belgilaydi.` },
+      { t: 'Xato', hl: ['err', 'ex', 'pkg'], busy: 1, p: ['M980 325H962V378H600V420H512'], s: `PL/SQL RAISE_APPLICATION_ERROR(-20102, 'Shartnoma yopiq') bilan xato chiqaradi. Java da SQLException keladi: getErrorCode() 20102 ni, getMessage() ORA- matnni beradi. Kod bo'yicha biznes xatoga aylantiriladi va foydalanuvchiga tushunarli xabar, tranzaksiya esa rollback.` },
+      { t: 'Ulanishni qaytarish', hl: ['pool', 'req'], busy: 0, p: ['M290 110H252'], s: `try-with-resources oxirida ResultSet, statement va ulanish yopiladi. Puldagi ulanish uchun «yopish» aslida pulga qaytarish: sessiya ochiq qoladi va keyingi so'rovga beriladi. Agar close unutilsa, ulanish puldan oqib ketadi.` }
+    ];
+    var setT = tabs('jdbcT', ST.map(function (s) { return s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = ST[cur]; setT(cur); svg.textContent = ''; marker(svg, 'jdmk');
+      group(svg, 14, 14, 512, 452, 'Java ilova');
+      group(svg, 704, 14, 522, 452, 'Oracle bazasi');
+      S(svg, 'text', { x: 540, y: 40, 'class': 'lbl' }, 'tarmoq, TCP');
+      Object.keys(B).forEach(function (k) { var b = B[k]; boxL(svg, b[0], b[1], b[2], b[3], b[4], b[5], c.hl.indexOf(k) >= 0 ? 'on' : ''); });
+      for (var i = 0; i < 5; i++) S(svg, 'rect', { x: 306 + i * 38, y: 150, width: 28, height: 28, rx: 3, 'class': 'box' + (i < c.busy ? ' on' : '') });
+      S(svg, 'text', { x: 304, y: 204, 'class': 'sub' }, c.busy ? '1 band, 4 bo\'sh' : '5 bo\'sh');
+      c.p.forEach(function (d) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#jdmk)', style: 'stroke-width:2.4' }); });
+      say.textContent = (cur + 1) + '/' + ST.length + '. ' + c.s;
+    }
+    draw();
+  })();
+
+  // ---------- Fetch size ----------
+  (function () {
+    var svg = $('rt'), say = $('rtSay');
+    var F = [10, 100, 500, 1000, 5000];
+    function fmt(n) { return String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' '); }
+    function draw() {
+      var n = parseInt($('rtN').value, 10); if (isNaN(n) || n < 1) n = 1; if (n > 100000000) n = 100000000;
+      svg.textContent = '';
+      var max = Math.ceil(n / F[0]);
+      S(svg, 'text', { x: 20, y: 26, 'class': 'ttl' }, fmt(n) + ' qator');
+      F.forEach(function (f, i) {
+        var y = 48 + i * 50, rt = Math.ceil(n / f), w = Math.max(3, 640 * rt / max);
+        S(svg, 'text', { x: 20, y: y + 22, 'class': 'mono' }, 'fetchSize ' + f);
+        S(svg, 'rect', { x: 200, y: y + 4, width: w, height: 26, rx: 3, 'class': i === 0 ? 'box bad' : (f === 500 || f === 1000 ? 'box on' : 'bar') });
+        var ms = rt, tt = ms >= 60000 ? (ms / 60000).toFixed(1) + ' daqiqa' : ms >= 1000 ? (ms / 1000).toFixed(1) + ' s' : ms + ' ms';
+        S(svg, 'text', { x: 200 + w + 12, y: y + 22, 'class': 'val' }, fmt(rt) + ' borish, ≈ ' + tt);
+      });
+      S(svg, 'text', { x: 20, y: 318, 'class': 'sub' }, 'Qizil: drayver standarti (10). Ko\'k: katta o\'qish uchun odatiy tanlov. Juda katta fetch size ilova xotirasini oshiradi.');
+      say.textContent = fmt(n) + ' qator: fetch size 10 bilan ' + fmt(Math.ceil(n / 10)) + ' marta borib kelish, 500 bilan ' + fmt(Math.ceil(n / 500)) + ' marta. Bazadagi ish bir xil, farq faqat tarmoq kutishida.';
+    }
+    $('rtN').addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-rn]'), function (b) { b.addEventListener('click', function () { $('rtN').value = b.getAttribute('data-rn'); draw(); }); });
+    draw();
+  })();
+
+  window.evoStepper('evoGit', [
+    { name: `Fayl nusxalari`, years: `1970–80-yillar`, art: `<rect x="20" y="24" width="30" height="40"/><rect x="40" y="34" width="30" height="40"/><rect x="60" y="44" width="30" height="40" class="acc"/>`,
+      how: `Kod papkalarda, versiyalar fayl nomida: final, final2, yangi. Lokal tizimlar (SCCS, RCS) bitta faylning tarixini saqlardi, faylni «qulflab» bitta odam tahrirlardi.`,
+      better: `Hech bo'lmasa eski nusxa bor.`,
+      pain: `Ko'p fayl va ko'p odam bilan ishlab bo'lmaydi; kim nimani o'zgartirgani noma'lum.`,
+      ex: `pkg_kredit_final_2_yangi.sql` },
+    { name: `Markaziy tizimlar: CVS, SVN`, years: `1990–2000-yillar`, art: `<circle cx="60" cy="30" r="14" class="acc"/><path d="M60 44v12M30 70l24-16M90 70L66 54"/><circle cx="30" cy="78" r="8"/><circle cx="90" cy="78" r="8"/>`,
+      how: `Bitta markaziy server barcha tarixni saqlaydi, dasturchilar undan oladi va unga yozadi. SVN (2000) atomar commit va papkalar tarixini qo'shdi.`,
+      better: `Butun loyiha tarixi bitta joyda; ko'p odam parallel.`,
+      pain: `Server bo'lmasa ishlab bo'lmaydi; branch va merge og'ir va qo'rqinchli, shuning uchun kam ishlatilardi.`,
+      ex: `Bank jamoalari uzoq yillar SVN da ishlagan.` },
+    { name: `Git: taqsimlangan`, years: `2005`, art: `<circle cx="30" cy="50" r="10" class="acc"/><circle cx="60" cy="30" r="10"/><circle cx="90" cy="50" r="10"/><circle cx="60" cy="74" r="10"/><path d="M38 44l14-8M68 36l14 8M82 58l-14 10M52 68l-14-10"/>`,
+      how: `Linus Torvalds Linux yadrosi uchun yaratgan. Har dasturchida to'liq repo; branch arzon va tez, merge kuchli; tarix kriptografik xesh bilan himoyalangan.`,
+      better: `Oflayn ishlash, har vazifa uchun branch, tez merge.`,
+      pain: `O'rganish qiyinroq; jamoa ishi uchun qoidalar va platforma kerak.`,
+      ex: `git switch -c feature/KR-112` },
+    { name: `Platforma: PR va review`, years: `2008–2012`, art: `<rect x="16" y="24" width="88" height="52"/><path d="M28 40h40M28 52h56M28 64h30" class="acc"/>`,
+      how: `GitHub (2008), keyin GitLab va Bitbucket: pull request, kod review, izohlar, vazifalar bilan bog'lanish, ruxsatlar.`,
+      better: `Har o'zgarish ko'rib chiqiladi; bilim jamoada tarqaladi; tarix vazifaga bog'langan.`,
+      pain: `Testlar qo'lda bo'lsa review sekin va xatolar baribir o'tadi.`,
+      ex: `«Kamida bitta tasdiq va yashil CI».` },
+    { name: `CI/CD va baza migratsiyalari`, years: `2010-yillar–hozir`, art: `<path d="M16 50h22M50 50h22M84 50h20"/><rect x="38" y="38" width="12" height="24" class="acc"/><rect x="72" y="38" width="12" height="24" class="acc"/>`,
+      how: `Har push da avtomatik build va test (Jenkins, GitLab CI). Baza uchun: migratsiya vositalari (Flyway 2010, Liquibase 2006), utPLSQL, toza sxemada tekshirish, Edition-Based Redefinition (Oracle 11gR2).`,
+      better: `Baza kodi ham ilova kodi kabi: tarix, test va takrorlanadigan yetkazish.`,
+      pain: `Holatli jadval o'zgarishlari baribir ehtiyotkorlik va rollback rejasini talab qiladi.`,
+      ex: `V1.4.0_01__kredit_stavka_kun_soni.sql` }
+  ]);
+  window.evoStepper('evoJdbc', [
+    { name: `Mijoz-server va ODBC`, years: `1990-yillar`, art: `<rect x="14" y="34" width="34" height="32"/><rect x="72" y="34" width="34" height="32" class="acc"/><path d="M48 50h24"/>`,
+      how: `Desktop dastur (Delphi, Oracle Forms) to'g'ridan-to'g'ri bazaga ulanadi, har foydalanuvchi o'z sessiyasi bilan. ODBC (1992) har xil bazaga yagona C interfeysi.`,
+      better: `Bitta dastur turli bazalar bilan.`,
+      pain: `Har kompyuterda mijoz dasturi va drayver; minglab foydalanuvchi = minglab sessiya.`,
+      ex: `Filialdagi har kompyuterda o'rnatilgan dastur.` },
+    { name: `JDBC`, years: `1997`, art: `<rect x="14" y="34" width="34" height="32" class="acc"/><rect x="72" y="34" width="34" height="32"/><path d="M48 50h24"/><path d="M24 44h14M24 56h14"/>`,
+      how: `Java uchun standart: Connection, Statement, PreparedStatement, CallableStatement, ResultSet. Oracle «thin» drayveri to'liq Java da, mijoz dasturisiz.`,
+      better: `Veb-ilova serveri bazaga ulanadi, foydalanuvchida faqat brauzer.`,
+      pain: `Har so'rovda ulanish ochish qimmat; resurslarni qo'lda yopish, xatolarda oqish.`,
+      ex: `DriverManager.getConnection(url, user, pwd)` },
+    { name: `Ulanishlar puli`, years: `2000-yillar`, art: `<rect x="20" y="30" width="80" height="40"/><rect x="30" y="40" width="14" height="20" class="acc"/><rect x="52" y="40" width="14" height="20"/><rect x="74" y="40" width="14" height="20"/>`,
+      how: `Ilova serverlari (WebLogic, Tomcat) DataSource va pul berdi; keyin HikariCP, Oracle UCP. Java 7 (2011) try-with-resources qo'shdi.`,
+      better: `Bir necha o'nlab ulanish minglab foydalanuvchiga xizmat qiladi; yopish avtomatik.`,
+      pain: `Ko'p qo'lda yoziladigan kod: har so'rov uchun bir xil shablon.`,
+      ex: `dataSource.getConnection()` },
+    { name: `Spring va ORM`, years: `2005–hozir`, art: `<rect x="16" y="20" width="40" height="26"/><rect x="64" y="20" width="40" height="26"/><rect x="40" y="58" width="40" height="26" class="acc"/><path d="M36 46l14 12M84 46L70 58"/>`,
+      how: `Spring JdbcTemplate shablon kodni olib tashladi, @Transactional tranzaksiyani deklarativ qildi. Hibernate va JPA qatorlarni obyektlarga moslaydi.`,
+      better: `Kam kod, yagona tranzaksiya boshqaruvi.`,
+      pain: `ORM yasagan SQL ko'rinmaydi: N+1 va sekin so'rovlar; bank yadrosida mantiq baribir PL/SQL da qoladi.`,
+      ex: `jdbcTemplate.query(sql, mapper, filial)` }
+  ]);
+})();
+</script>
+</body>
+</html>
