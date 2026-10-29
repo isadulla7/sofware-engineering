@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P9. Bazani loyihalash</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P9. Bazani loyihalash: normallashtirish, kalitlar, cheklovlar, partitsiyalash, katta jadvallar</h1>
+<p class="lead">Savol: yangi modul uchun jadvallarni qanday loyihalaysiz? Mijozning telefoni qayerda saqlanishi kerak, pul summasi qaysi tipda, nega qoldiq alohida jadvalda turadi, va milliardlab qatorli jadval bilan yillar davomida qanday ishlash mumkin?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Ma'lumotlar modeli</strong> bu qaysi jadvallar, ularda qaysi ustunlar, qaysi kalitlar va ular orasida qanday bog'lanishlar bo'lishi. <strong>Normallashtirish</strong> har faktni bir joyda saqlash qoidalari. <strong>Partitsiyalash</strong> bitta katta jadvalni ichkarida bo'laklarga bo'lish, tashqaridan esa u bitta jadval bo'lib qoladi.</p>
+    <p>O'xshatish: bank arxivi. Har mijozning manzili har bir to'lov blankida yozilsa, mijoz ko'chganda minglab blankni tuzatish kerak (va ba'zisi tuzatilmay qoladi). To'g'risi: mijoz kartochkasi bitta, blankda faqat mijoz raqami. Arxiv xonasi esa yillar bo'yicha javonlarga bo'lingan: 2019-yil hujjatini qidirganda boshqa javonlarga qaralmaydi, eski javonni esa butunlay boshqa binoga ko'chirish mumkin.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Yangi modul va integratsiya:</strong> yangi mahsulot, yangi hisobot, tashqi tizim bilan almashinuv jadvallari.</li>
+      <li><strong>Mavjud tizimni tushunish:</strong> yadro bank tizimida minglab jadval: qaysi biri asosiy, qaysi biri lug'at, qaysi biri tarix, qaysi biri yig'ma.</li>
+      <li><strong>Tezlik va saqlash:</strong> tranzaksiya jadvallari yiliga yuzlab million qator o'sadi: partitsiya, arxivlash, siqish.</li>
+      <li><strong>Suhbatda:</strong> «normallashtirishni tushuntiring», «denormallashtirish qachon», «partitsiya turlari», «local va global indeks» klassik savollar.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>ER model: obyekt, atribut, 1:1, 1:N, M:N bog'lanishlar;</li>
+      <li>1NF, 2NF, 3NF, BCNF ni misol bilan ko'rsatish va anomaliyalarni aytish;</li>
+      <li>natural va surrogate kalit, cheklovlar, to'g'ri tiplar (pul, sana, kodlar);</li>
+      <li>denormallashtirish qachon to'g'ri: qoldiqlar, tarix, hisobot jadvallari;</li>
+      <li>partitsiya turlari, partition pruning, local va global indeks, arxivlash.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, saqlash qavati ajratilgan"></svg></div>
+  <figcaption>Bu dars eng pastki qavat haqida: ma'lumot qanday tuzilmada saqlanadi. Yuqoridagi hamma qavat shu loyihaga tayanadi: yomon model hech qanday indeks yoki PL/SQL bilan to'liq tuzalmaydi.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>ER model, kardinallik, M:N uchun oraliq jadval</li>
+      <li>Normal formalar: 1NF, 2NF, 3NF, BCNF; update, insert, delete anomaliyalari</li>
+      <li>Kalitlar: primary, unique, foreign, natural, surrogate, composite; sequence va identity</li>
+      <li>Cheklovlar: NOT NULL, CHECK, FK va ON DELETE; deferrable</li>
+      <li>Tiplar: NUMBER va pul, DATE va TIMESTAMP, VARCHAR2 va CHAR, kodlar</li>
+      <li>Denormallashtirish, yig'ma va tarix jadvallari, audit ustunlari</li>
+      <li>Partitsiyalash: range, interval, list, hash, composite, reference; pruning; local va global indeks</li>
+      <li>Katta jadvallar: arxivlash, partition exchange, siqish</li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Indeks ichki tuzilishi: P7-darsda</li>
+      <li>Yadro bank tizimining aniq jadvallari: P10-darsda umumiy arxitektura</li>
+      <li>DWH va yulduz sxema batafsil: faqat qisqacha</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Bitta katta jadval va ko'p nusxa</h3>
+<p>1960-yillarda ma'lumot fayllarda yoki ierarxik bazalarda (IBM IMS) saqlanardi: dastur ma'lumotga qanday yo'l bilan borishni (qaysi yozuvdan qaysi yozuvga) o'zi bilishi kerak edi. Tuzilma o'zgarsa, hamma dastur qayta yozilardi. Ko'pincha hamma narsa bitta katta yozuvga (to'lov, mijoz, filial ma'lumotlari birga) yig'ilardi, va bu uch xil anomaliyani tug'dirardi:</p>
+<ul>
+  <li><strong>Update anomaliyasi</strong>: mijozning familiyasi 5000 ta to'lov yozuvida takrorlangan. Familiya o'zgarsa, hammasini tuzatish kerak; bittasi tushib qolsa, bitta mijozning ikki xil familiyasi.</li>
+  <li><strong>Insert anomaliyasi</strong>: yangi filial ochildi, lekin unda hali to'lov yo'q: filial nomini hech qayerga yozib bo'lmaydi.</li>
+  <li><strong>Delete anomaliyasi</strong>: filialning oxirgi to'lovi o'chirilsa, filial haqidagi ma'lumot ham yo'qoladi.</li>
+</ul>
+<p>1970-yilda IBM da Edgar Codd <strong>relyatsion modelni</strong> taklif qildi: ma'lumot jadvallarda (relation), bog'lanish qiymatlar orqali (kalit), dastur esa «qanday borish» emas, «nima kerak» deb so'raydi (SQL). 1971–1974-yillarda Codd va Boyce normal formalarni ta'rifladi: anomaliyalarni yo'qotadigan qoidalar. Keyinchalik jadvallar shunchalik katta bo'ldiki, yangi muammo paydo bo'ldi: bitta jadvalni boshqarish (zaxira, tozalash, qidiruv) imkonsiz. Oracle 8 (1997) bunga <strong>partitsiyalash</strong> bilan javob berdi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Modeldan jismoniy jadvalgacha</h3>
+
+<p class="beat">ER model: obyektlar va bog'lanishlar</p>
+<p>Loyiha jadvallardan emas, biznes obyektlaridan boshlanadi (entity): mijoz, hisob, karta, to'lov, provodka, filial, valyuta. Har birining atributlari va boshqalar bilan bog'lanishi (relationship) bor, va har bog'lanishning <strong>kardinalligi</strong>: 1:1 (mijoz va uning pasport ma'lumoti), 1:N (bitta mijozning ko'p hisobi), M:N (bitta hisobga bir nechta ishonchli shaxs, bitta shaxs bir nechta hisobga). Jadvalda 1:N bog'lanish «ko'p» tomonidagi foreign key ustun bilan, M:N esa alohida <strong>oraliq jadval</strong> (junction table) bilan ifodalanadi. Obyektni bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="er" style="width:1240px;height:460px" viewBox="0 0 1240 460" role="img" aria-label="Bank modelining soddalashtirilgan ER diagrammasi: filial, mijoz, hisob, ishonchnoma, valyuta, to'lov, provodka, qoldiq"></svg></div>
+  <figcaption>Soddalashtirilgan bank modeli. Chiziqlarda kardinallik: 1 va N. Tanlangan obyekt va uning bog'lanishlari ajratilgan, pastda uning kalitlari va cheklovlari.</figcaption>
+  <div class="evo-tabs" id="erT" style="margin-top:0.9rem"></div>
+  <p class="say" id="erSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Normallashtirish qadam-baqadam</p>
+<p>Normal formalar ketma-ket: har biri oldingisini talab qiladi. Qisqa qoida (Bill Kent iborasi): har atribut «kalitga, butun kalitga va faqat kalitga» bog'liq bo'lishi kerak.</p>
+<ul>
+  <li><strong>1NF</strong>: har katakda bitta atomar qiymat, takrorlanuvchi guruhlar yo'q (<span class="num">telefon1, telefon2, telefon3</span> yoki «90..., 93...» bitta katakda emas), har qatorni aniqlaydigan kalit bor.</li>
+  <li><strong>2NF</strong>: 1NF va har kalit bo'lmagan atribut <strong>butun</strong> kalitga bog'liq, uning bir qismiga emas. Faqat composite kalitli jadvallarda ahamiyatli.</li>
+  <li><strong>3NF</strong>: 2NF va kalit bo'lmagan atribut boshqa kalit bo'lmagan atributga bog'liq emas (tranzitiv bog'liqlik yo'q): <span class="num">filial_nomi</span> <span class="num">filial_kod</span> ga bog'liq, demak u filiallar jadvalida.</li>
+  <li><strong>BCNF</strong>: har determinant (boshqa ustunni aniqlaydigan ustun yoki guruh) kalit bo'lishi kerak. 3NF ning qat'iyroq varianti, bir nechta bir-biriga kirishgan kandidat kalitlar bo'lganda farq qiladi.</li>
+</ul>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="norm" style="width:1240px;height:340px" viewBox="0 0 1240 340" role="img" aria-label="Normallashtirish: bitta to'lovlar jadvali 1NF, 2NF va 3NF ga qadam-baqadam ajratiladi"></svg></div>
+  <figcaption>Har qadamda jadvallar, kalit ustunlar (PK) va takrorlanayotgan ma'lumot (qizil kataklar). Qadamni tanlang.</figcaption>
+  <div class="evo-tabs" id="normT" style="margin-top:0.9rem"></div>
+  <p class="say" id="normSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Kalitlar va cheklovlar</p>
+<ul>
+  <li><strong>Natural kalit</strong>: biznesda mavjud identifikator: hisob raqami (20 xonali), JShShIR, ISO valyuta kodi. <strong>Surrogate kalit</strong>: ma'nosiz texnik raqam (sequence yoki <span class="num">GENERATED AS IDENTITY</span>, 12c). Amaliy qoida: primary key surrogate (o'zgarmaydi, qisqa, foreign key lar arzon), natural kalitga esa <span class="num">UNIQUE</span> cheklov. Natural kalit «o'zgarmaydi» deb o'ylangan narsalar ham o'zgaradi: hisob raqami formati, pasport seriyasi. Valyuta kodi kabi standart va hech qachon o'zgarmaydigan lug'at kalitlari natural bo'lishi mumkin.</li>
+  <li><strong>Composite kalit</strong>: bir necha ustunli. Oraliq jadvallarda tabiiy (<span class="num">hisob_id, shaxs_id</span>), lekin uni ko'p jadvallar foreign key qilib olsa, surrogate qulayroq.</li>
+  <li><strong>NOT NULL</strong> va <strong>CHECK</strong>: <span class="num">CHECK (summa &gt; 0)</span>, <span class="num">CHECK (holat IN ('OCHIQ', 'YOPIQ', 'BLOK'))</span>, <span class="num">CHECK (yopilgan_sana IS NULL OR yopilgan_sana &gt;= ochilgan_sana)</span>. Cheklov bazada bo'lsa, uni hech bir ilova chetlab o'ta olmaydi va optimizator undan foydalanadi (NOT NULL bo'lsa indeksni COUNT(*) uchun ishlatadi).</li>
+  <li><strong>Foreign key</strong>: bola qatori mavjud ota qatoriga ishora qilishini kafolatlaydi. <span class="num">ON DELETE CASCADE</span> (bolalar ham o'chiriladi) yoki <span class="num">ON DELETE SET NULL</span>; sukut: ota o'chirilmaydi (ORA-02292). Moliyaviy ma'lumotda CASCADE deyarli ishlatilmaydi: o'chirish emas, holat o'zgartirish. Foreign key ga indeks (P7). <span class="num">DEFERRABLE INITIALLY DEFERRED</span>: tekshiruv COMMIT da, aylanma bog'lanishlarni yuklash uchun.</li>
+  <li>Ba'zi yadro tizimlarida foreign key lar tezlik uchun bazada yo'q va butunlik PL/SQL API orqali saqlanadi. Bu ongli qaror bo'lishi mumkin, lekin narxi bor: «yetim» qatorlar va optimizator uchun kamroq ma'lumot. Suhbatda ikkala tomonni aytish kerak.</li>
+</ul>
+
+<p class="beat">To'g'ri tiplar</p>
+<ul>
+  <li><strong>Pul</strong>: <span class="num">NUMBER(20, 2)</span> yoki tiyinda butun son (<span class="num">NUMBER(20)</span>). Hech qachon <span class="num">FLOAT</span> yoki <span class="num">BINARY_DOUBLE</span>: ikkilik kasr 0,1 ni aniq ifodalay olmaydi, va yaxlitlash xatolari millionlab operatsiyada tiyinlarni yo'qotadi. Java'da <span class="num">BigDecimal</span>, <span class="num">double</span> emas. Valyuta ustuni summa bilan birga.</li>
+  <li><strong>Sana</strong>: <span class="num">DATE</span> (sekundgacha, ichida vaqt ham bor!), <span class="num">TIMESTAMP</span> (sekund kasrlari), <span class="num">TIMESTAMP WITH TIME ZONE</span> (bir necha mintaqali tizimlar). Operatsion kun (bank kuni) va haqiqiy vaqt alohida ustunlar: kechqurun 23:50 dagi to'lov ertangi operatsion kunga tegishli bo'lishi mumkin.</li>
+  <li><strong>Kodlar va raqamlar</strong>: hisob raqami, karta raqami, INN, telefon: <span class="num">VARCHAR2</span>, son emas. Ular ustida arifmetika yo'q, boshidagi nollar muhim, va son tipi bilan solishtirish yashirin konvertatsiya va indeks muammosini tug'diradi (P7). <span class="num">CHAR(n)</span> bo'sh joy bilan to'ldiriladi va solishtirishda chalkashlik beradi: deyarli har doim <span class="num">VARCHAR2</span>.</li>
+  <li><strong>Mantiqiy</strong>: 23ai gacha SQL da <span class="num">BOOLEAN</span> yo'q: <span class="num">NUMBER(1) CHECK (x IN (0, 1))</span> yoki <span class="num">CHAR(1) CHECK (x IN ('Y', 'N'))</span>, butun tizim bo'ylab bir xil.</li>
+</ul>
+
+<p class="beat">Denormallashtirish: qachon va qanday</p>
+<p>Normallashtirilgan model to'g'ri, lekin ba'zi so'rovlar uchun qimmat. Hisob qoldig'i haqiqatda shu hisobning barcha provodkalari yig'indisi. Har qoldiq so'rovida yillar davomidagi millionlab provodkani qo'shish mumkin emas. Shuning uchun yadro tizimlarida <strong>qoldiq alohida saqlanadi</strong> (ko'pincha kun bo'yicha: «hisob, sana, kirim, chiqim, qoldiq»), va har provodka bilan birga, bitta tranzaksiyada yangilanadi. Bu ongli denormallashtirish, uch shart bilan:</p>
+<ul>
+  <li>Bitta haqiqat manbai aniq (provodkalar), denormallashtirilgan nusxa undan hisoblanadi.</li>
+  <li>Nusxa manba bilan bitta tranzaksiyada yangilanadi (PL/SQL API orqali, triggersiz yoki ehtiyotkor trigger bilan) va hech kim uni to'g'ridan-to'g'ri o'zgartirmaydi.</li>
+  <li>Muntazam solishtiruv: qoldiq = provodkalar yig'indisi. Bank kun yopishining bir qismi.</li>
+</ul>
+<p>Boshqa odatiy holatlar: tarix jadvallari (mijoz ma'lumotlari o'zgarishi: <span class="num">amal_boshi</span>, <span class="num">amal_oxiri</span> ustunlari), hisobot va DWH jadvallari (yulduz sxema: markazda faktlar jadvali, atrofida o'lchov jadvallari), materialized view (so'rov natijasi saqlangan va yangilanadigan jadval). Har jadvalga audit ustunlari: kim va qachon yaratgan, kim va qachon oxirgi marta o'zgartirgan. Moliyaviy yozuvlar o'chirilmaydi: holat (<span class="num">BEKOR</span>) va storno provodka.</p>
+
+<p class="beat">Partitsiyalash</p>
+<p>Partitsiyali jadval tashqaridan bitta jadval: so'rovlar, DML va ilovalar o'zgarmaydi. Ichkarida esa har partitsiya alohida segment: o'z bloklari, o'z joyi (tablespace), alohida tozalanadi va zaxiralanadi. Uch asosiy foyda:</p>
+<ul>
+  <li><strong>Partition pruning</strong>: so'rov shartida partitsiya kaliti bo'lsa, Oracle faqat kerakli partitsiyalarni o'qiydi. 5 yillik tranzaksiyalar jadvalidan bitta oyni o'qish: 60 dan bitta partitsiya.</li>
+  <li><strong>Boshqarish</strong>: eski oyni o'chirish <span class="num">DELETE</span> bilan soatlab undo va redo emas, <span class="num">ALTER TABLE ... DROP PARTITION</span> bilan bir sekund. Arxivlash: <span class="num">EXCHANGE PARTITION</span> (partitsiyani oddiy jadval bilan bir lahzada almashtirish, ma'lumot ko'chirilmaydi). Eski partitsiyalarni siqish va arzon diskka ko'chirish.</li>
+  <li><strong>Mavjudlik va parallellik</strong>: bitta partitsiyani qayta tashkil qilish boshqalarga tegmaydi; parallel so'rovlar partitsiyalar bo'yicha bo'linadi; partition-wise join.</li>
+</ul>
+<p>Turlari va pruning ni sinab ko'ring: partitsiya turini, keyin so'rov yoki amalni tanlang. Pastki qator indeksni ko'rsatadi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="part" style="width:1240px;height:420px" viewBox="0 0 1240 420" role="img" aria-label="Partitsiya turlari, partition pruning va local yoki global indeks"></svg></div>
+  <figcaption>Tepada to'lovlar jadvalining partitsiyalari, o'qiladiganlari rangli. O'rtada indeks: local (har partitsiyaga alohida) yoki global (bitta umumiy). Pastda natija.</figcaption>
+  <div class="evo-tabs" id="partT" style="margin-top:0.9rem"></div>
+  <div class="evo-tabs" id="partQ" style="margin-top:0.5rem"></div>
+  <div class="evo-tabs" id="partI" style="margin-top:0.5rem"></div>
+  <p class="say" id="partSay" aria-live="polite"></p>
+</figure>
+<ul>
+  <li><strong>Range</strong>: qiymat diapazoni bo'yicha, odatda sana: har oy yoki har kun. Tarixiy ma'lumot uchun eng ko'p ishlatiladi. <strong>Interval</strong> (11g): range ning avtomatik varianti: yangi oy uchun partitsiya birinchi qator kelganda o'zi yaratiladi.</li>
+  <li><strong>List</strong>: aniq qiymatlar ro'yxati bo'yicha: filial, mintaqa, mahsulot turi. Ba'zi yadro tizimlarida asosiy jadvallar filial kodi bo'yicha partitsiyalangan: har filialning kun yopishi o'z partitsiyasida ishlaydi.</li>
+  <li><strong>Hash</strong>: kalitning hash qiymati bo'yicha teng bo'laklar (2 ning darajasi: 8, 16, 32). Tabiiy diapazon yo'q, lekin qizg'in yozuvni tarqatish yoki katta jadvallarni partition-wise join qilish kerak bo'lganda. Pruning faqat tenglik shartida.</li>
+  <li><strong>Composite</strong>: ikki daraja, masalan range (oy) va ichida list (filial) yoki hash. <strong>Reference</strong> (11g): bola jadval ota jadvalning partitsiyalashini foreign key orqali meros oladi (provodkalar to'lovlar bilan bir xil oylarga).</li>
+</ul>
+<p><strong>Local indeks</strong> har partitsiyaga alohida bo'linadi va jadval bilan bir xil kalit bo'yicha: partitsiyani o'chirish yoki almashtirish indeksga zarar qilmaydi. Lekin so'rovda partitsiya kaliti bo'lmasa, har partitsiyaning indeksini alohida tekshirish kerak (60 ta kichik qidiruv). <strong>Global indeks</strong> butun jadval uchun bitta (yoki o'z kaliti bo'yicha bo'lingan): partitsiya kalitisiz qidiruvga tez (hisob raqami bo'yicha), lekin partitsiya o'chirilsa yoki almashtirilsa <span class="num">UNUSABLE</span> bo'ladi, agar <span class="num">UPDATE GLOBAL INDEXES</span> bilan bajarilmasa (u esa sekinroq). Unique indeks partitsiya kalitini o'z ichiga olmasa, faqat global bo'la oladi. Partitsiyalash Enterprise Edition ning alohida litsenziyali opsiyasi.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Modeldan partitsiyagacha</h3>
+<div class="bench" id="evoDm"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Entity, atribut, relationship</dt><dd>Biznes obyekti (jadval), uning xususiyati (ustun), ular orasidagi bog'lanish.</dd>
+  <dt>Kardinallik: 1:1, 1:N, M:N</dt><dd>Bog'lanishda har tomondan nechta qator qatnashadi.</dd>
+  <dt>Oraliq jadval (junction)</dt><dd>M:N ni ikki 1:N ga ajratadigan jadval.</dd>
+  <dt>Funksional bog'liqlik</dt><dd>A ning qiymati B ni yagona aniqlaydi: A → B.</dd>
+  <dt>1NF, 2NF, 3NF, BCNF</dt><dd>Atomar qiymatlar; butun kalitga bog'liqlik; tranzitiv bog'liqlik yo'q; har determinant kalit.</dd>
+  <dt>Update, insert, delete anomaliyasi</dt><dd>Takrorlangan ma'lumot tufayli nomuvofiq yangilash, kiritib bo'lmaslik, keraksiz yo'qotish.</dd>
+  <dt>Primary, unique, foreign key</dt><dd>Qatorning asosiy identifikatori; takrorlanmas qiymat; boshqa jadvalga havola.</dd>
+  <dt>Natural, surrogate, composite kalit</dt><dd>Biznes identifikatori; ma'nosiz texnik raqam; bir necha ustunli kalit.</dd>
+  <dt>Sequence, identity column</dt><dd>Takrorlanmas raqamlar generatori; 12c dan ustunga bog'langan avtomatik raqam.</dd>
+  <dt>CHECK, NOT NULL, ON DELETE CASCADE, DEFERRABLE</dt><dd>Qiymat sharti; majburiy qiymat; ota bilan birga bolalarni o'chirish; tekshiruvni COMMIT gacha kechiktirish.</dd>
+  <dt>Denormallashtirish</dt><dd>Tezlik uchun ongli takrorlash: qoldiqlar, yig'ma, tarix jadvallari.</dd>
+  <dt>Materialized view</dt><dd>Saqlangan va yangilanadigan so'rov natijasi.</dd>
+  <dt>Yulduz sxema (star schema)</dt><dd>DWH modeli: faktlar jadvali va o'lchov jadvallari.</dd>
+  <dt>SCD (slowly changing dimension)</dt><dd>O'zgarib turadigan atributlar tarixini saqlash usuli (amal boshi va oxiri).</dd>
+  <dt>Partitsiya, partitsiya kaliti, segment</dt><dd>Jadvalning ichki bo'lagi; qaysi bo'lakka tushishni belgilovchi ustun; jismoniy saqlash birligi.</dd>
+  <dt>Range, interval, list, hash, composite, reference</dt><dd>Partitsiyalash usullari.</dd>
+  <dt>Partition pruning</dt><dd>So'rov faqat kerakli partitsiyalarni o'qishi.</dd>
+  <dt>Local va global indeks</dt><dd>Jadval bilan bir xil bo'lingan indeks; butun jadval uchun umumiy indeks.</dd>
+  <dt>DROP, TRUNCATE, EXCHANGE, SPLIT, MERGE PARTITION</dt><dd>Partitsiyani o'chirish; tozalash; jadval bilan almashtirish; bo'lish; birlashtirish.</dd>
+  <dt>Table compression</dt><dd>Bloklarni siqish (basic, advanced, Exadata da hybrid columnar): eski ma'lumot uchun.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: pul uchun FLOAT</b>
+  <p>Foiz hisoblash ustuni <span class="num">BINARY_DOUBLE</span>, Java'da <span class="num">double</span>. Har kun millionlab hisobda kasr qoldiqlari: oy oxirida bank va mijozlar hisobi tiyinlarda farq qiladi, solishtiruv yopilmaydi.</p>
+  <p class="why">To'g'risi: <span class="num">NUMBER(p, s)</span> va <span class="num">BigDecimal</span>; yaxlitlash qoidasi (qaysi bosqichda, qanday usulda) biznes bilan kelishilgan va bitta funksiyada.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: EAV «universal» jadval</b>
+  <p>«Moslashuvchan bo'lsin» deb hamma atribut bitta jadvalda: <span class="num">obyekt_id, atribut_nomi, qiymat VARCHAR2</span>. Har so'rov o'nlab self-join, tiplar va cheklovlar yo'q, optimizator kardinallikni baholay olmaydi.</p>
+  <p class="why">To'g'risi: asosiy atributlar oddiy ustunlar; haqiqatan dinamik qo'shimcha parametrlar uchun cheklangan EAV yoki JSON ustun (<span class="num">IS JSON</span> cheklovi bilan, 21c dan JSON tipi).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: partitsiya kaliti so'rovlarda yo'q</b>
+  <p>Jadval oy bo'yicha partitsiyalandi, lekin asosiy ekran hisob raqami bo'yicha qidiradi va sanani bermaydi. Local indeks bilan har qidiruv 60 ta partitsiyaning indeksiga boradi: partitsiyadan oldingidan ham sekinroq.</p>
+  <p class="why">To'g'risi: partitsiya kalitini asosiy so'rovlar va boshqaruv ehtiyoji (arxivlash) bo'yicha tanlash; partitsiya kalitisiz tez-tez qidiriladigan ustunga global indeks; ekranlarda sana oralig'ini majburiy qilish.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: eski ma'lumotni DELETE bilan tozalash</b>
+  <p>Har oy 5 yildan eski 30 million qator <span class="num">DELETE</span> qilinadi: soatlab ishlaydi, undo tablespace to'ladi, Data Guard ga ulkan redo ketadi, jadvalda bo'sh joy qoladi, lekin segment kichraymaydi.</p>
+  <p class="why">To'g'risi: sana bo'yicha range yoki interval partitsiya va <span class="num">DROP PARTITION</span> yoki arxiv jadval bilan <span class="num">EXCHANGE PARTITION</span>, global indekslar uchun <span class="num">UPDATE GLOBAL INDEXES</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: hisob raqami NUMBER tipida</b>
+  <p>20 xonali hisob raqami <span class="num">NUMBER</span> da saqlandi. Boshidagi nol yo'qoladi, Excel ga eksportda ilmiy formatga aylanadi (2,02E+19), va matn sifatida qidiriladigan joylarda indeks ishlamaydi.</p>
+  <p class="why">To'g'risi: <span class="num">VARCHAR2(20)</span> va format <span class="num">CHECK</span> (uzunlik, faqat raqamlar: <span class="num">REGEXP_LIKE(raqam, '^\d{20}$')</span>).</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda doskaga kichik model chizib berish (mijoz, hisob, to'lov) ko'pincha so'raladi.</p>
+<details><summary>Normallashtirish nima va nima uchun kerak?</summary>
+<p>Har faktni bir joyda saqlash uchun jadvallarni ajratish qoidalari. Maqsad: takrorlanishni va undan kelib chiqadigan anomaliyalarni yo'qotish: update (bir nusxa yangilanib, boshqasi qolishi), insert (bog'liq bo'lmagan ma'lumotni kiritib bo'lmasligi), delete (bir narsani o'chirganda boshqasi ham yo'qolishi). 1NF: atomar qiymatlar, takroriy guruhlar yo'q. 2NF: hamma atribut butun kalitga bog'liq. 3NF: kalit bo'lmagan atributlar bir-biriga bog'liq emas. Misol: to'lovda mijoz familiyasini saqlash o'rniga mijoz_id, familiya mijozlar jadvalida. OLTP odatda 3NF gacha normallashtiriladi.</p></details>
+<details><summary>2NF va 3NF farqini misol bilan tushuntiring.</summary>
+<p>2NF composite kalitli jadvalda qisman bog'liqlikni yo'qotadi: (to'lov_id, qator_no) kalitli to'lov qatorlari jadvalida to'lov sanasi faqat to'lov_id ga bog'liq, demak u to'lovlar jadvalida bo'lishi kerak. 3NF tranzitiv bog'liqlikni yo'qotadi: hisoblar jadvalida filial_kod va filial_nomi bo'lsa, filial_nomi hisobga emas, filial_kod ga bog'liq: hisob → filial_kod → filial_nomi. Filial nomi filiallar jadvaliga ko'chadi. Qisqasi: 2NF «kalitning bir qismiga emas», 3NF «kalitga, boshqa ustun orqali emas».</p></details>
+<details><summary>Denormallashtirish qachon to'g'ri?</summary>
+<p>O'qish narxi juda yuqori bo'lganda va takrorlanish ongli boshqarilganda. Bankdagi asosiy misol: qoldiq. Qoldiq provodkalar yig'indisi, lekin har so'rovda millionlab qatorni qo'shish mumkin emas, shuning uchun qoldiq jadvali saqlanadi va provodka bilan bitta tranzaksiyada yangilanadi. Shartlar: haqiqat manbai aniq, nusxa faqat bitta API orqali o'zgaradi, muntazam solishtiruv bor. Boshqa holatlar: hisobot va DWH jadvallari, materialized view lar, tarix jadvallari. «Join sekin» degani o'z-o'zidan sabab emas: avval indeks va so'rovni tekshirish kerak.</p></details>
+<details><summary>Natural yoki surrogate kalit?</summary>
+<p>Odatda primary key surrogate (sequence yoki identity): qisqa, o'zgarmaydi, foreign key lar va indekslar arzon, biznes qoidasi o'zgarsa ham bog'lanishlar buzilmaydi. Natural kalitga (hisob raqami, JShShIR) UNIQUE cheklov qo'yiladi, chunki biznes darajasida takrorlanmasligi baribir kerak. Natural kalit primary key bo'lishi mumkin bo'lgan holat: kichik standart lug'atlar (valyuta kodi, mamlakat kodi), ular haqiqatan o'zgarmaydi va qisqa. Muhimi: faqat surrogate qo'yib, natural kalitga unique ni unutmaslik, aks holda bir mijoz ikki marta yaratiladi.</p></details>
+<details><summary>Pulni qaysi tipda saqlaysiz?</summary>
+<p>NUMBER aniq o'nlik kasr bilan: NUMBER(20, 2) yoki tiyinlarda butun son. FLOAT, BINARY_DOUBLE, Java'da double emas: ikkilik kasr 0,1 ni aniq ifodalay olmaydi va yaxlitlash xatolari yig'iladi. Java tomonida BigDecimal. Summa yonida valyuta kodi, va oraliq hisoblarda (foiz, konvertatsiya) qancha xona saqlash va qachon yaxlitlash bitta joyda aniqlangan bo'lishi kerak.</p></details>
+<details><summary>Partitsiyalash nima beradi va qanday turlari bor?</summary>
+<p>Katta jadvalni ichkarida bo'laklarga bo'lish, ilova uchun u bitta jadval. Foydalar: partition pruning (so'rov faqat kerakli partitsiyani o'qiydi), boshqarish (eski oyni DROP yoki EXCHANGE PARTITION bilan bir lahzada o'chirish yoki arxivlash, siqish, alohida tablespace), mavjudlik va parallellik. Turlari: range (sana bo'yicha, tarix uchun), interval (avtomatik range), list (filial, mintaqa), hash (teng tarqatish), composite (masalan oy va ichida filial), reference (bola jadval ota jadval partitsiyasini meros oladi). Kalit asosiy so'rovlar va arxivlash ehtiyojiga qarab tanlanadi.</p></details>
+<details><summary>Local va global indeks farqi?</summary>
+<p>Local indeks jadval bilan bir xil bo'lingan: har partitsiyaning o'z indeksi. Partitsiyani o'chirish, almashtirish yoki qayta tashkil qilish faqat o'sha indeks bo'lagiga tegadi, boshqarish oson. Lekin so'rovda partitsiya kaliti bo'lmasa, hamma bo'laklarni tekshirish kerak. Global indeks butun jadval uchun bitta: partitsiya kalitisiz qidiruvga tez, lekin partitsiya amallaridan keyin UNUSABLE bo'ladi, agar UPDATE GLOBAL INDEXES ishlatilmasa. Unique cheklov partitsiya kalitini o'z ichiga olmasa, faqat global indeks bilan. Odatiy tanlov: partitsiya kaliti bilan qidiriladigan ustunlarga local, boshqa unique va qizg'in qidiruvlarga global.</p></details>
+<details><summary>Foreign key bazada bo'lishi kerakmi yoki ilovada tekshirish yetarlimi?</summary>
+<p>Bazada bo'lgani yaxshi: uni hech bir ilova, skript yoki qo'lda yozilgan UPDATE chetlab o'ta olmaydi, va optimizator undan foydalanadi (masalan keraksiz join ni olib tashlash). Narxi: har INSERT da ota qatorini tekshirish va ota o'chirilganda bola tekshiruvi (shuning uchun FK ga indeks). Ba'zi katta tizimlarda FK lar tezlik va yuklash qulayligi uchun ataylab qo'yilmaydi va butunlik PL/SQL API orqali saqlanadi; bunda muntazam «yetim qatorlar» tekshiruvi kerak. Men sukut bo'yicha FK qo'yaman va istisnoni asoslayman.</p></details>
+<details><summary>Mijoz ma'lumotlarining o'zgarish tarixini qanday saqlaysiz?</summary>
+<p>Bir necha usul. Tarix jadvali: asosiy jadvalda joriy holat, alohida jadvalda har o'zgarishdagi eski versiya (trigger yoki API yozadi), amal_boshi va amal_oxiri ustunlari bilan: «sana bo'yicha holat» so'rovi oson. Versiyali jadval: hamma versiyalar bitta jadvalda, joriysi amal_oxiri = NULL yoki katta sana bilan. Oracle vositalari: flashback data archive (11g), u avtomatik tarix saqlaydi. Muhimi: tarixni o'zgartirib bo'lmaydigan qilish va qidiruv uchun (id, amal_boshi) indeks.</p></details>
+<details><summary>Yangi modul uchun jadvallarni loyihalashni qanday boshlaysiz?</summary>
+<p>Biznes jarayonidan: qaysi obyektlar, qaysi operatsiyalar, qaysi hisobotlar va qanday hajm. ER model: obyektlar, kalitlar, kardinallik. 3NF gacha normallashtirish. Mavjud lug'atlar va jadvallardan qayta foydalanish (yangi valyuta jadvali emas). Tiplar va cheklovlar (NOT NULL, CHECK, FK, UNIQUE natural kalitga). Asosiy so'rovlar uchun indekslar va FK indekslari. Hajm katta bo'lsa partitsiya va arxivlash rejasi. Audit ustunlari, holatlar (o'chirish o'rniga). Nomlash standartiga rioya. Va hamma narsani hujjatlashtirish: COMMENT ON TABLE va COLUMN, model diagrammasi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>Kredit moduli uchun model chizing: mijoz, kredit shartnomasi, to'lov jadvali (grafik), haqiqiy to'lovlar, garov, kafillar. Kalitlar va kardinalliklarni ko'rsating.</li>
+  <li>Jadval: <span class="num">karta_operatsiya(karta_raqam, sana_vaqt, summa, mijoz_fio, mijoz_telefon, filial_kod, filial_nomi, terminal_id, terminal_manzil)</span>. Qaysi normal formalar buzilgan va qanday ajratasiz?</li>
+  <li>Kunlik qoldiqlar jadvali va provodkalar orasida farq chiqdi. Qanday tekshiruv so'rovini yozasiz va bunday farq qayerdan paydo bo'lishi mumkin?</li>
+  <li>Tranzaksiyalar jadvali kuniga 2 million qator, 7 yil saqlanadi, operatorlar asosan oxirgi 3 oy bo'yicha va hisob raqami bilan qidiradi, Markaziy bankka oylik hisobot. Partitsiya va indekslarni qanday tanlaysiz?</li>
+  <li>Bitta mijozga bir nechta telefon raqami, ulardan bittasi asosiy (SMS uchun). Jadvalni va «faqat bitta asosiy» qoidasini qanday ifodalaysiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>«Faqat bitta asosiy» kabi shartli unique</summary>
+<p>Function-based unique indeks NULL larni indekslamasligidan foydalanish: <span class="num">CREATE UNIQUE INDEX ... ON telefonlar (CASE WHEN asosiy = 1 THEN mijoz_id END)</span>. Asosiy bo'lmaganlarda ifoda NULL, indeksga tushmaydi; asosiylarda mijoz_id, va ikkinchisi unique ni buzadi. Trigger yoki ilova tekshiruvisiz, parallel sessiyalarda ham ishonchli.</p></details>
+<details><summary>Virtual ustunlar va ular bo'yicha partitsiya</summary>
+<p>11g dan <span class="num">oy AS (TRUNC(sana, 'MM'))</span> kabi virtual ustun: saqlanmaydi, so'rovda hisoblanadi, indekslanadi va partitsiya kaliti bo'la oladi. Hisob raqamining bir qismi (masalan balans hisobi kodi) bo'yicha list partitsiya uchun qulay.</p></details>
+<details><summary>Online o'zgartirishlar</summary>
+<p>12c dan <span class="num">ALTER TABLE ... MOVE PARTITION ... ONLINE</span>, 12.2 dan oddiy jadvalni partitsiyali jadvalga online aylantirish (<span class="num">MODIFY PARTITION BY ... ONLINE</span>), 11g dan sukut qiymatli <span class="num">NOT NULL</span> ustun qo'shish darhol (metama'lumot darajasida). Kattaroq o'zgarishlar uchun <span class="num">DBMS_REDEFINITION</span>: jadvalni ishlab turgan holda qayta tuzish. Bank tizimida «ish to'xtamasin» talabi uchun muhim.</p></details>
+<details><summary>Nomlash va hujjatlashtirish</summary>
+<p>Katta tizimlarda modul prefiksi (masalan kredit jadvallari bir xil prefiks bilan), bir xil qo'shimchalar (<span class="num">_ID</span>, <span class="num">_DATE</span>, <span class="num">_CODE</span>), cheklov va indeks nomlari qoidasi (<span class="num">_PK</span>, <span class="num">_UK</span>, <span class="num">_FK1</span>, <span class="num">_IX1</span>). <span class="num">COMMENT ON TABLE</span> va <span class="num">COMMENT ON COLUMN</span>: ma'lumotlar lug'ati bazaning o'zida, <span class="num">USER_TAB_COMMENTS</span> va <span class="num">USER_COL_COMMENTS</span> dan o'qiladi. Yangi dasturchi uchun eng foydali hujjat.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>E. F. Codd, «A Relational Model of Data for Large Shared Data Banks» (1970). P. Chen, «The Entity-Relationship Model» (1976). W. Kent, «A Simple Guide to Five Normal Forms in Relational Database Theory» (1983). Oracle Database VLDB and Partitioning Guide. Oracle Database Concepts: Tables and Table Clusters, Data Integrity.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Loyiha biznes obyektlaridan boshlanadi: ER model, kardinallik, M:N uchun oraliq jadval. 3NF: kalitga, butun kalitga va faqat kalitga. Surrogate PK, natural kalitga UNIQUE. Cheklovlar bazada. Pul NUMBER da, kodlar VARCHAR2 da, DATE ichida vaqt bor. Denormallashtirish ongli: bitta manba, bitta API, solishtiruv (qoldiqlar). Partitsiya pruning va boshqarish uchun: kalit so'rovlar va arxivlashga qarab; local indeks boshqarishga oson, global qidiruvga tez; eski ma'lumot DROP yoki EXCHANGE PARTITION bilan.</p>
+  <p><strong>Keyingi dars.</strong> P10. iABS: bank yadro tizimining umumiy tuzilishi: qavatlar, modullar, hisoblar va qoldiqlar, provodka qanday yuradi, operatsion kun, va bularning hammasi oldingi darslardagi mavzularga qanday bog'lanadi.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p8-tranzaksiya-qulflar.html">Oldingi: P8. Tranzaksiya va qulflar</a><span>Keyingi: P10. iABS (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'BigDecimal', link: 'API chaqiradi' },
+    { title: 'PL/SQL', sub: 'Blok, protsedura, paket: P3–P5', ex: 'qoldiqni provodka bilan yangilash', link: 'SQL ni chaqiradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'JOIN mijoz, hisob, provodka', link: 'reja tanlanadi' },
+    { title: 'Optimizator va reja', sub: 'Statistika, reja, pruning: P6–P7', ex: 'PARTITION RANGE SINGLE', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'FK tekshiruvi', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'PK, FK, CHECK, partitsiya', link: '' }
+  ], [5], 'Model va saqlash');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    root.textContent = '';
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function boxL(svg, x, y, w, h, title, lines, cls) {
+    S(svg, 'rect', { x: x, y: y, width: w, height: h, rx: 5, 'class': 'box' + (cls ? ' ' + cls : '') });
+    S(svg, 'text', { x: x + 14, y: y + 26, 'class': 'ttl' }, title);
+    (lines || []).forEach(function (l, i) { S(svg, 'text', { x: x + 14, y: y + 46 + i * 18, 'class': 'sub' }, l); });
+  }
+
+  // ---------- ER ----------
+  (function () {
+    var svg = $('er'), say = $('erSay'), cur = 2;
+    var E = {
+      fil: [820, 360, 240, 80, 'Filial', 'kod (PK), nomi'],
+      mij: [40, 200, 220, 80, 'Mijoz', 'id (PK), JShShIR (UK)'],
+      val: [40, 360, 220, 80, 'Valyuta', 'kod (PK), nomi'],
+      his: [420, 200, 240, 80, 'Hisob', 'id (PK), raqam (UK)'],
+      ish: [420, 40, 240, 80, 'Ishonchnoma', '(hisob_id, shaxs_id) PK'],
+      qol: [420, 360, 240, 80, 'Kunlik qoldiq', '(hisob_id, sana) PK'],
+      tol: [820, 40, 240, 80, 'To\'lov', 'id (PK), tashqi_id (UK)'],
+      pro: [820, 200, 240, 80, 'Provodka', 'id (PK)']
+    };
+    var R = [
+      ['fil', 'his', 'M818 400H620V284', [800, 392, '1'], [628, 302, 'N']],
+      ['mij', 'his', 'M260 240H418', [270, 232, '1'], [400, 232, 'N']],
+      ['val', 'his', 'M260 400H330V260H418', [270, 392, '1'], [400, 252, 'N']],
+      ['his', 'ish', 'M540 200V122', [548, 192, '1'], [548, 140, 'N']],
+      ['mij', 'ish', 'M150 198V80H418', [160, 190, '1'], [400, 72, 'N']],
+      ['his', 'qol', 'M540 280V358', [548, 296, '1'], [548, 350, 'N']],
+      ['his', 'pro', 'M660 240H818', [672, 232, '1 (debet)'], [790, 232, 'N']],
+      ['his', 'pro', 'M660 262H740V270H818', [672, 278, '1 (kredit)'], [790, 286, 'N']],
+      ['tol', 'pro', 'M940 120V198', [948, 140, '1'], [948, 192, 'N']]
+    ];
+    var K = ['fil', 'mij', 'his', 'ish', 'tol', 'pro', 'qol', 'val'];
+    var T = {
+      fil: `Filial: lug'at jadvali. Kalit natural bo'lishi mumkin (filial kodi standart va o'zgarmaydi). Bitta filialda ko'p hisob (1:N): hisob jadvalida filial_kod foreign key.`,
+      mij: `Mijoz: PK surrogate (id), JShShIR yoki STIR ga UNIQUE cheklov: bir mijoz ikki marta yaratilmasin. Bitta mijozning ko'p hisobi (1:N). Ishonchnoma orqali boshqa hisoblarga ham bog'lanadi (M:N). Telefonlar alohida jadvalda (1NF).`,
+      his: `Hisob: modelning markazi. PK surrogate id, 20 xonali raqam VARCHAR2(20) va UNIQUE. FK: mijoz_id, filial_kod, valyuta_kod (hammasi NOT NULL va indeksli). CHECK: holat ro'yxati, yopilgan sana ochilgandan keyin. Provodkalar bilan ikki bog'lanish: debet hisobi va kredit hisobi sifatida.`,
+      ish: `Ishonchnoma: M:N oraliq jadval. Bitta hisobga bir nechta ishonchli shaxs, bitta shaxs bir nechta hisobga. Kalit (hisob_id, shaxs_id) yoki surrogate id + shu juftlikka UNIQUE. Qo'shimcha atributlar: amal muddati, huquqlar.`,
+      tol: `To'lov: biznes hujjati (mijoz nima so'radi). Tashqi tizimdan kelgan so'rov ID siga UNIQUE: bitta to'lov ikki marta yuborilsa, ikkinchisi cheklovga uriladi (idempotentlik). Bitta to'lov bir nechta provodka hosil qilishi mumkin: asosiy summa, komissiya, QQS.`,
+      pro: `Provodka: buxgalteriya yozuvi, haqiqat manbai. Debet hisobi va kredit hisobi (ikkalasi hisob jadvaliga FK), summa NUMBER, operatsion kun, to'lovga FK. O'chirilmaydi, xato bo'lsa storno. Eng katta jadval: operatsion kun bo'yicha partitsiyalanadi.`,
+      qol: `Kunlik qoldiq: ongli denormallashtirish. Kalit (hisob_id, sana). Har provodka bilan bitta tranzaksiyada yangilanadi, shuning uchun qoldiq so'rovi bitta qator o'qish. Kun yopishda provodkalar yig'indisi bilan solishtiriladi.`,
+      val: `Valyuta: ISO 4217 kodlari, natural kalit (000, 840, 978 yoki UZS, USD). Kichik va o'zgarmaydigan lug'at. Kurslar alohida jadvalda: (valyuta, sana) kalit bilan, tarix saqlanadi.`
+    };
+    var NM = { fil: 'Filial', mij: 'Mijoz', his: 'Hisob', ish: 'Ishonchnoma', tol: 'To\'lov', pro: 'Provodka', qol: 'Kunlik qoldiq', val: 'Valyuta' };
+    var setT = tabs('erT', K.map(function (k) { return NM[k]; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var k = K[cur]; setT(cur); svg.textContent = ''; marker(svg, 'ermk');
+      R.forEach(function (r) {
+        var on = r[0] === k || r[1] === k;
+        S(svg, 'path', { d: r[2], 'class': 'arr' + (on ? '' : ' dash'), style: on ? 'stroke-width:2.4' : '' });
+        S(svg, 'text', { x: r[3][0], y: r[3][1], 'class': 'lbl' }, r[3][2]);
+        S(svg, 'text', { x: r[4][0], y: r[4][1], 'class': 'lbl' }, r[4][2]);
+      });
+      Object.keys(E).forEach(function (n) {
+        var e = E[n], rel = R.some(function (r) { return (r[0] === k && r[1] === n) || (r[1] === k && r[0] === n); });
+        boxL(svg, e[0], e[1], e[2], e[3], e[4], [e[5]], n === k ? 'on' : (rel ? 'live' : ''));
+      });
+      boxL(svg, 1100, 40, 120, 400, 'Belgi', ['1 — N:', 'bitta va ko\'p', '', 'uzuq chiziq:', 'boshqa', 'bog\'lanish', '', 'ko\'k: tanlangan', 'sariq: bog\'liq'], '');
+      say.textContent = T[k];
+    }
+    draw();
+  })();
+
+  // ---------- Normallashtirish ----------
+  (function () {
+    var svg = $('norm'), say = $('normSay'), cur = 0;
+    var ST = [
+      { t: '0. Bitta jadval', tabs: [
+        { n: 'tolov', pk: [0], c: ['tolov_id', 'sana', 'mijoz_id', 'mijoz_fio', 'telefonlar', 'hisob', 'filial_kod', 'filial_nomi', 'summa'],
+          r: [['501', '01.10', '17', 'Karimov A.', '90.., 93..', '2020..01', '0450', 'Chilonzor', '200 000'], ['501', '01.10', '17', 'Karimov A.', '90.., 93..', '2020..07', '0450', 'Chilonzor', '15 000'], ['502', '01.10', '17', 'Karimov A.', '90.., 93..', '2020..01', '0450', 'Chilonzor', '80 000'], ['503', '02.10', '21', 'Usmonova D.', '97..', '2020..33', '0450', 'Chilonzor', '1 000 000']],
+          bad: [[0, 3], [1, 3], [2, 3], [0, 4], [1, 4], [2, 4], [0, 7], [1, 7], [2, 7], [3, 7], [1, 0]] } ],
+        s: `Hammasi bitta jadvalda. Bitta katakda bir necha telefon (atomar emas), bitta to'lov ikki qatorda (asosiy summa va komissiya) va tolov_id endi kalit emas. Mijoz familiyasi, telefonlari va filial nomi har qatorda takrorlanadi: familiya o'zgarsa hamma qatorni tuzatish kerak (update anomaliyasi), to'lovi yo'q yangi filialni kiritib bo'lmaydi (insert), oxirgi to'lov o'chsa mijoz haqidagi ma'lumot ham yo'qoladi (delete).` },
+      { t: '1NF', tabs: [
+        { n: 'tolov_qator', pk: [0, 1], c: ['tolov_id', 'qator_no', 'sana', 'mijoz_id', 'mijoz_fio', 'hisob', 'filial_kod', 'filial_nomi', 'summa'],
+          r: [['501', '1', '01.10', '17', 'Karimov A.', '2020..01', '0450', 'Chilonzor', '200 000'], ['501', '2', '01.10', '17', 'Karimov A.', '2020..07', '0450', 'Chilonzor', '15 000'], ['502', '1', '01.10', '17', 'Karimov A.', '2020..01', '0450', 'Chilonzor', '80 000']],
+          bad: [[1, 2], [1, 3], [1, 4], [2, 4], [1, 7], [2, 7]] },
+        { n: 'mijoz_telefon', pk: [0, 1], c: ['mijoz_id', 'telefon'], r: [['17', '90..'], ['17', '93..'], ['21', '97..']], bad: [] } ],
+        s: `Telefonlar alohida jadvalga, har biri alohida qatorda: har katak atomar. To'lov qatorlarining kaliti composite: (tolov_id, qator_no). Lekin sana, mijoz_id va mijoz_fio faqat tolov_id ga bog'liq, qator_no ga emas: kalitning bir qismiga bog'liqlik. Ular har qatorda takrorlanadi: 2NF buzilgan.` },
+      { t: '2NF', tabs: [
+        { n: 'tolov', pk: [0], c: ['tolov_id', 'sana', 'mijoz_id', 'mijoz_fio'], r: [['501', '01.10', '17', 'Karimov A.'], ['502', '01.10', '17', 'Karimov A.'], ['503', '02.10', '21', 'Usmonova D.']], bad: [[1, 3]] },
+        { n: 'tolov_qator', pk: [0, 1], c: ['tolov_id', 'qator_no', 'hisob', 'filial_kod', 'filial_nomi', 'summa'], r: [['501', '1', '2020..01', '0450', 'Chilonzor', '200 000'], ['501', '2', '2020..07', '0450', 'Chilonzor', '15 000'], ['502', '1', '2020..01', '0450', 'Chilonzor', '80 000']], bad: [[1, 4], [2, 4], [2, 3]] },
+        { n: 'mijoz_telefon', pk: [0, 1], c: ['mijoz_id', 'telefon'], r: [['17', '90..'], ['17', '93..']], bad: [] } ],
+        s: `To'lov sarlavhasi (bir marta) va to'lov qatorlari ajratildi: endi har atribut o'z jadvalining butun kalitiga bog'liq. Lekin tranzitiv bog'liqliklar qoldi: tolov da mijoz_fio mijoz_id ga bog'liq (tolov_id → mijoz_id → mijoz_fio), tolov_qator da filial_kod va filial_nomi hisobga bog'liq (hisob → filial_kod → filial_nomi). Ular hali takrorlanadi: 3NF buzilgan.` },
+      { t: '3NF', tabs: [
+        { n: 'mijoz', pk: [0], c: ['mijoz_id', 'fio'], r: [['17', 'Karimov A.'], ['21', 'Usmonova D.']], bad: [] },
+        { n: 'mijoz_telefon', pk: [0, 1], c: ['mijoz_id', 'telefon'], r: [['17', '90..'], ['17', '93..']], bad: [] },
+        { n: 'filial', pk: [0], c: ['kod', 'nomi'], r: [['0450', 'Chilonzor'], ['0451', 'Yunusobod']], bad: [] },
+        { n: 'hisob', pk: [0], c: ['raqam', 'mijoz_id', 'filial_kod'], r: [['2020..01', '17', '0450'], ['2020..07', '17', '0450']], bad: [] },
+        { n: 'tolov', pk: [0], c: ['tolov_id', 'sana', 'mijoz_id'], r: [['501', '01.10', '17'], ['502', '01.10', '17']], bad: [] },
+        { n: 'tolov_qator', pk: [0, 1], c: ['tolov_id', 'qator_no', 'hisob', 'summa'], r: [['501', '1', '2020..01', '200 000'], ['501', '2', '2020..07', '15 000']], bad: [] } ],
+        s: `Har fakt bir joyda: familiya mijoz da, filial nomi filial da, hisobning filiali hisob da. Familiya o'zgarsa bitta qator. Yangi filialni to'lovsiz kiritish mumkin, oxirgi to'lov o'chsa ham mijoz qoladi. Qiymat ustunlari (mijoz_id, filial_kod, hisob) endi foreign key. Narxi: to'liq hisobot uchun 4–5 jadvalni JOIN qilish. OLTP uchun bu to'g'ri muvozanat.` }
+    ];
+    var setT = tabs('normT', ST.map(function (s) { return s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var st = ST[cur]; setT(cur); svg.textContent = '';
+      var x = 20, y = 20, rowH = 0, CW = 7.8;
+      st.tabs.forEach(function (tb) {
+        var ws = tb.c.map(function (c, j) { var m = c.length; tb.r.forEach(function (r) { m = Math.max(m, r[j].length); }); return Math.round(m * CW + 22); });
+        var W = ws.reduce(function (a, b) { return a + b; }, 0), H = 34 + 28 + tb.r.length * 28;
+        if (x + W > 1222) { x = 20; y += rowH + 24; rowH = 0; }
+        S(svg, 'rect', { x: x, y: y, width: W, height: H, rx: 4, 'class': 'grp' });
+        S(svg, 'rect', { x: x, y: y, width: tb.n.length * 8.4 + 22, height: 24, 'class': 'tab' });
+        S(svg, 'text', { x: x + 10, y: y + 17, 'class': 'tabt' }, tb.n);
+        var cx = x;
+        tb.c.forEach(function (c, j) {
+          var isPk = tb.pk.indexOf(j) >= 0;
+          S(svg, 'rect', { x: cx, y: y + 34, width: ws[j], height: 28, 'class': 'box' + (isPk ? ' on' : '') });
+          S(svg, 'text', { x: cx + 8, y: y + 53, 'class': 'mono', style: 'font-size:13px;font-weight:600' }, c);
+          tb.r.forEach(function (r, i) {
+            var b = tb.bad.some(function (q) { return q[0] === i && q[1] === j; });
+            S(svg, 'rect', { x: cx, y: y + 62 + i * 28, width: ws[j], height: 28, 'class': 'box' + (b ? ' bad' : '') });
+            S(svg, 'text', { x: cx + 8, y: y + 81 + i * 28, 'class': 'mono', style: 'font-size:13px' }, r[j]);
+          });
+          cx += ws[j];
+        });
+        x += W + 24; rowH = Math.max(rowH, H);
+      });
+      S(svg, 'text', { x: 20, y: 326, 'class': 'sub' }, 'Ko\'k sarlavha: kalit ustun (PK). Qizil katak: boshqa joyda ham saqlanayotgan, takrorlangan ma\'lumot.');
+      say.textContent = st.s;
+    }
+    draw();
+  })();
+
+  // ---------- Partitsiya ----------
+  (function () {
+    var svg = $('part'), say = $('partSay'), pt = 0, q = 0, ix = 0;
+    var PT = [
+      { t: 'Range: oy bo\'yicha', parts: ['2026-01', '2026-02', '2026-03', '2026-04', '2026-05', '2026-06', '2026-07', '2026-08', '2026-09', '2026-10', '2026-11', '2026-12'] },
+      { t: 'List: filial bo\'yicha', parts: ['0450', '0451', '0452', '0460', '0470', '0480', 'DEFAULT'] },
+      { t: 'Hash: hisob_id, 8 ta', parts: ['H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'H7', 'H8'] }
+    ];
+    var Q = ['sana = 15.10.2026', 'filial = \'0451\'', 'hisob_id = 9001', 'sana oktyabr, filial yo\'q', 'Eski oyni o\'chirish'];
+    var setP = tabs('partT', PT.map(function (p) { return p.t; }), function (i) { pt = i; draw(); });
+    var setQ = tabs('partQ', Q, function (i) { q = i; draw(); });
+    var setI = tabs('partI', ['Indeks: local', 'Indeks: global'], function (i) { ix = i; draw(); });
+    function hit() {
+      var n = PT[pt].parts.length, all = [], i; for (i = 0; i < n; i++) all.push(i);
+      if (pt === 0) { if (q === 0 || q === 3) return [9]; if (q === 4) return [0]; return all; }
+      if (pt === 1) { if (q === 1) return [1]; if (q === 4) return all; return all; }
+      if (q === 2) return [3]; return all;
+    }
+    function draw() {
+      setP(pt); setQ(q); setI(ix); svg.textContent = ''; marker(svg, 'ptmk');
+      var P = PT[pt].parts, n = P.length, h = hit(), W = Math.floor((1180 - (n - 1) * 8) / n);
+      S(svg, 'text', { x: 20, y: 28, 'class': 'mono' }, q === 4 ? 'ALTER TABLE tolovlar DROP PARTITION ...' : 'SELECT * FROM tolovlar WHERE ' + Q[q].replace('sana oktyabr, filial yo\'q', 'sana BETWEEN 01.10 AND 31.10'));
+      group(svg, 20, 44, 1200, 120, 'Jadval: tolovlar (' + n + ' partitsiya)');
+      P.forEach(function (p, i) {
+        var x = 30 + i * (W + 8), on = h.indexOf(i) >= 0, cls = on ? (q === 4 ? 'bad' : 'on') : 'freed';
+        if (q === 4 && pt !== 0) cls = 'live';
+        S(svg, 'rect', { x: x, y: 82, width: W, height: 70, rx: 4, 'class': 'box ' + cls });
+        S(svg, 'text', { x: x + W / 2, y: 122, 'text-anchor': 'middle', 'class': 'mono', style: 'font-size:13px' }, p);
+      });
+      group(svg, 20, 184, 1200, 90, ix ? 'Global indeks: hisob raqami bo\'yicha, butun jadval uchun bitta' : 'Local indeks: har partitsiyaga alohida');
+      var gUnus = ix === 1 && q === 4 && pt === 0;
+      if (ix) {
+        S(svg, 'rect', { x: 30, y: 218, width: 1180, height: 44, rx: 4, 'class': 'box ' + (gUnus ? 'bad' : (q === 2 || q === 1 || q === 3 ? 'on' : 'live')) });
+        S(svg, 'text', { x: 46, y: 245, 'class': 'sub' }, gUnus ? 'UNUSABLE: partitsiya o\'chdi, indeksda yo\'q qatorlar ROWID lari qoldi (UPDATE GLOBAL INDEXES siz)' : 'bitta B-tree, hamma partitsiyalarning qatorlari');
+      } else {
+        P.forEach(function (p, i) {
+          var x = 30 + i * (W + 8), on = h.indexOf(i) >= 0;
+          S(svg, 'rect', { x: x, y: 218, width: W, height: 44, rx: 4, 'class': 'box ' + (on ? (q === 4 && pt === 0 ? 'freed' : 'on') : '') });
+        });
+      }
+      var res, s;
+      if (q === 4) {
+        if (pt === 0) { res = 'Bir lahza: 2026-01 segmenti o\'chdi, undo va redo deyarli yo\'q'; s = ix ? `DROP PARTITION metama'lumot amali: millionlab qator bir sekundda ketdi. Lekin global indeksda o'sha qatorlarning yozuvlari qoldi: indeks UNUSABLE, unga tayanadigan so'rovlar xato yoki full scan. Yechim: ... DROP PARTITION ... UPDATE GLOBAL INDEXES (sekinroq, lekin indeks ishlaydi) yoki keyin REBUILD.` : `DROP PARTITION metama'lumot amali: eng eski oy bir sekundda ketdi, DELETE ning soatlab undo va redo si yo'q. Local indeksning o'sha bo'lagi ham birga ketdi, qolganlari tegilmagan. Arxivlash kerak bo'lsa: avval EXCHANGE PARTITION bilan arxiv jadvaliga almashtirish.`; }
+        else { res = 'Sana bo\'yicha partitsiya yo\'q: eski ma\'lumot har partitsiyada'; s = `Partitsiya kaliti filial yoki hash bo'lsa, eski oy hamma partitsiyalarda sochilgan: uni faqat DELETE bilan o'chirish mumkin, har partitsiyada. Arxivlash kerak bo'lsa, birinchi daraja sana bo'lgan composite partitsiya (range-list yoki interval-hash) tanlanadi.`; }
+      } else {
+        var k = h.length;
+        res = 'O\'qiladi: ' + k + ' / ' + n + ' partitsiya' + (k === 1 ? ' (pruning)' : (k === n ? ' (pruning yo\'q)' : ''));
+        if (pt === 0 && (q === 0 || q === 3)) s = `Shartda partitsiya kaliti (sana) bor: Oracle faqat oktyabr partitsiyasini o'qiydi, qolgan 11 tasiga umuman qaramaydi. Rejada PARTITION RANGE SINGLE. Oylik hisobotlar va kun yopish shunday tezlashadi.`;
+        else if (pt === 1 && q === 1) s = `List partitsiya va filial bo'yicha shart: faqat 0451 filial partitsiyasi. Har filialning kun yopishi o'z partitsiyasida ishlaydi va boshqalarga xalaqit bermaydi.`;
+        else if (pt === 2 && q === 2) s = `Hash partitsiya: hisob_id = 9001 tengligi uchun Oracle hash ni hisoblab, bitta partitsiyani topadi. Lekin diapazon (hisob_id BETWEEN) yoki boshqa ustun bo'yicha pruning yo'q.`;
+        else s = `Shartda partitsiya kaliti yo'q (yoki bu tur uchun yaramaydi): hamma partitsiyalar o'qiladi. ` + (ix ? `Global indeks bu yerda yordam beradi: bitta B-tree qidiruvi, partitsiyalardan qat'i nazar.` : `Local indeks bilan har partitsiyaning indeksi alohida tekshiriladi: ${n} ta kichik qidiruv. Bunday so'rov tez-tez bo'lsa, shu ustunga global indeks kerak.`);
+      }
+      box(svg, 20, 296, 1200, 100, res, ix ? 'Global: partitsiya kalitisiz qidiruvga tez, partitsiya amallaridan keyin qayta qurish yoki UPDATE GLOBAL INDEXES' : 'Local: partitsiya amallari indeksga zarar qilmaydi, lekin kalitsiz so\'rovda hamma bo\'laklar tekshiriladi', q === 4 && (pt !== 0 || ix) ? 'live' : 'on');
+      say.textContent = s;
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoDm', [
+    { name: `Relyatsion model`, years: `1970`, art: `<rect x="20" y="24" width="80" height="52"/><path d="M20 40h80M20 56h80M46 24v52M72 24v52" class="acc"/>`,
+      how: `Edgar Codd (IBM): ma'lumot jadvallarda, bog'lanish qiymatlar orqali, so'rov deklarativ. Undan oldin ierarxik (IMS) va tarmoq (CODASYL) bazalar: dastur yozuvdan yozuvga yo'lni o'zi bilardi.`,
+      better: `Ma'lumot tuzilmasi dasturlardan ajraldi; bir xil ma'lumotga har xil savol berish mumkin.`,
+      pain: `Qaysi jadvallarga ajratish kerakligi haqida qoida yo'q: takrorlanish va anomaliyalar.`,
+      ex: `1979: Oracle birinchi tijoriy SQL bazasi bo'lib chiqdi.` },
+    { name: `Normal formalar va ER`, years: `1971–1976`, art: `<circle cx="34" cy="50" r="14" class="acc"/><circle cx="86" cy="50" r="14"/><path d="M48 50h24"/>`,
+      how: `Codd: 1NF, 2NF, 3NF (1971). Boyce va Codd: BCNF (1974). Peter Chen: ER model va diagrammalar (1976). Keyinroq 4NF, 5NF.`,
+      better: `Loyihalash qoidalari va umumiy til: biznes bilan model ustida gaplashish mumkin.`,
+      pain: `To'liq normallashtirilgan model hisobotlar uchun ko'p JOIN talab qiladi.`,
+      ex: `«The key, the whole key, and nothing but the key» (Bill Kent, 1983).` },
+    { name: `DWH va denormallashtirish`, years: `1990-yillar`, art: `<rect x="48" y="38" width="24" height="24" class="acc"/><path d="M60 38V20M60 62v18M48 50H24M72 50h24"/>`,
+      how: `Inmon va Kimball: ma'lumotlar ombori, yulduz sxema, faktlar va o'lchovlar. Oracle 8i: materialized view va query rewrite, bitmap indekslar rivoji.`,
+      better: `OLTP normallashtirilgan, hisobotlar uchun alohida denormallashtirilgan model.`,
+      pain: `Jadvallar milliardlab qatorga yetdi: zaxira, tozalash, qidiruv qiyinlashdi.`,
+      ex: `Bank DWH: kunlik faktlar jadvali va mijoz, hisob, sana o'lchovlari.` },
+    { name: `Oracle 8–9i: partitsiyalash`, years: `1997–2002`, art: `<rect x="16" y="30" width="26" height="40" class="acc"/><rect x="47" y="30" width="26" height="40"/><rect x="78" y="30" width="26" height="40"/>`,
+      how: `8.0 (1997): range partitsiya, local va global indekslar. 8i: hash va range-hash composite. 9i: list va range-list.`,
+      better: `Eski ma'lumot bir lahzada o'chadi, so'rov faqat kerakli bo'lakni o'qiydi.`,
+      pain: `Har yangi oy uchun partitsiyani oldindan qo'lda qo'shish kerak; unutsa INSERT xato beradi.`,
+      ex: `ALTER TABLE ... ADD PARTITION p_2026_11 VALUES LESS THAN (...)` },
+    { name: `11g–19c: avtomatik va online`, years: `2007–2019`, art: `<path d="M20 50h80" class="acc"/><path d="M30 40v20M50 40v20M70 40v20M90 40v20"/>`,
+      how: `11g: interval, reference, virtual column va system partitsiya, ko'proq composite turlar. 12c: identity ustunlar, partial indekslar, online partitsiya ko'chirish. 12.2: auto-list, ko'p ustunli list, oddiy jadvalni online partitsiyalash. 19c: hybrid partitsiyali jadvallar (bir qismi tashqi fayllarda).`,
+      better: `Partitsiyalar o'zi yaratiladi, katta o'zgarishlar ish to'xtamasdan.`,
+      pain: `Noto'g'ri tanlangan partitsiya kalitini keyin o'zgartirish baribir og'ir loyiha.`,
+      ex: `PARTITION BY RANGE (sana) INTERVAL (NUMTOYMINTERVAL(1, 'MONTH'))` }
+  ]);
+})();
+</script>
+</body>
+</html>
