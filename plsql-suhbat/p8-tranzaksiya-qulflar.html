@@ -418,7 +418,7 @@
       box(svg, 420, 140, 360, 56, '10:01 UPDATE hisob 1: −100', 'INSERT yangi hisob: 300; COMMIT', 'live');
       box(svg, 800, 60, 410, 56, '10:05 SELECT SUM(qoldiq), hisob 1', l.q2 + ', ' + l.h1, l.ok ? 'on' : 'bad');
       S(svg, 'path', { d: 'M600 140V122H800', 'class': 'arr dash' });
-      S(svg, 'text', { x: 610, y: 116, 'class': 'lbl' }, l.ok ? 'T1 bu o\'zgarishni ko\'rmaydi' : 'T1 ning ikkinchi so\'rovi buni ko\'radi');
+      S(svg, 'text', { x: 812, y: 140, 'class': 'lbl' }, l.ok ? 'T1 bu o\'zgarishni ko\'rmaydi' : 'T1 ning ikkinchi so\'rovi buni ko\'radi');
       group(svg, 20, 230, 1200, 220, 'Standart darajalar va anomaliyalar');
       var cols = ['', 'Dirty read', 'Non-repeatable read', 'Phantom', 'Oracle\'da'], cx = [40, 370, 580, 830, 1000];
       cols.forEach(function (c, i) { S(svg, 'text', { x: cx[i], y: 284, 'class': 'ttl' }, c); });
