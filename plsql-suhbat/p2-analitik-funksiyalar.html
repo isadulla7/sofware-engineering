@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P2. Analitik funksiyalar</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P2. Analitik funksiyalar va murakkab so'rovlar: ROW_NUMBER, RANK, LAG/LEAD, WITH, CONNECT BY, MERGE</h1>
+<p class="lead">Savol: qatorlarni guruhlab yo'qotmasdan, har bir qator yonida uning guruhdagi o'rni, oldingi qiymati yoki yig'ma jamisini qanday hisoblash mumkin? Ierarxiya qanday o'qiladi, va «bor bo'lsa yangila, yo'q bo'lsa qo'sh» ishi bitta buyruqda qanday qilinadi?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Analitik funksiya</strong> (boshqa bazalarda <strong>window function</strong>, «oyna funksiyasi») har bir qator uchun shu qatorning atrofidagi qatorlar «oynasi» bo'yicha qiymat hisoblaydi va qatorni o'z joyida qoldiradi. Agregat esa ko'p qatorni bitta qatorga siqadi.</p>
+    <p>O'xshatish: sinf jurnali. <span class="num">GROUP BY</span> «har sinfning o'rtacha bahosi»ni beradi va o'quvchilar ro'yxati yo'qoladi. Analitik funksiya esa har bir o'quvchining yoniga «sinfdagi o'rni» va «sinf o'rtachasi»ni yozib qo'yadi.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Hisobotlar:</strong> har filialdagi eng katta 3 to'lov, oy boshidan yig'ma aylanma, kunlik qoldiq o'zgarishi.</li>
+      <li><strong>Ma'lumot tozalash:</strong> takrorlarni topib, har guruhdan bittasini qoldirish.</li>
+      <li><strong>Ierarxiya:</strong> balans hisoblari rejasi, filiallar daraxti, xodim va rahbar (<span class="num">CONNECT BY</span>).</li>
+      <li><strong>Yuklash:</strong> tashqi fayldan kelgan ma'lumotni jadvalga «bor bo'lsa yangila, yo'q bo'lsa qo'sh» qilib yozish (<span class="num">MERGE</span>).</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li><span class="num">OVER (PARTITION BY ... ORDER BY ... ROWS ...)</span> ning uch qismi nima qiladi;</li>
+      <li><span class="num">ROW_NUMBER</span>, <span class="num">RANK</span>, <span class="num">DENSE_RANK</span> farqi va top-N guruh bo'yicha;</li>
+      <li><span class="num">LAG</span>, <span class="num">LEAD</span>, yig'ma jami, <span class="num">ROWS</span> va <span class="num">RANGE</span>, <span class="num">LAST_VALUE</span> tuzog'i;</li>
+      <li><span class="num">WITH</span>, rekursiv <span class="num">WITH</span> va <span class="num">CONNECT BY</span>;</li>
+      <li><span class="num">MERGE</span>, <span class="num">PIVOT</span>, <span class="num">LISTAGG</span>.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, SQL qavati ajratilgan"></svg></div>
+  <figcaption>Bu dars ham SQL qavatida: P1 ning davomi, murakkabroq so'rovlar.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>Analitik funksiyalar qaysi og'riqdan paydo bo'lgan</li>
+      <li>Oyna: <span class="num">PARTITION BY</span>, <span class="num">ORDER BY</span>, ramka (<span class="num">ROWS</span>, <span class="num">RANGE</span>)</li>
+      <li>Reyting, siljish (<span class="num">LAG</span>, <span class="num">LEAD</span>), yig'ma va sirpanuvchi agregatlar, <span class="num">FIRST_VALUE</span>, <span class="num">LAST_VALUE</span>, <span class="num">KEEP</span></li>
+      <li><span class="num">WITH</span> (CTE), <span class="num">MATERIALIZE</span>, rekursiv <span class="num">WITH</span></li>
+      <li><span class="num">CONNECT BY</span>: <span class="num">LEVEL</span>, <span class="num">PRIOR</span>, <span class="num">START WITH</span>, <span class="num">SYS_CONNECT_BY_PATH</span>, sikllar</li>
+      <li><span class="num">MERGE</span>, <span class="num">PIVOT</span>, <span class="num">UNPIVOT</span>, <span class="num">LISTAGG</span></li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Saralash xotirada qanday bajariladi (PGA, TEMP): P6-darsda</li>
+      <li>Analitik so'rovning rejasi (<span class="num">WINDOW SORT</span>) va indeks: P7-darsda</li>
+      <li>PL/SQL ichida <span class="num">MERGE</span> va katta yuklashlar: P5-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Guruhlasang qatorlar yo'qoladi, guruhlamasang hisoblab bo'lmaydi</h3>
+<p>P1 dagi asboblar bilan ikkita savolga javob berish og'ir edi.</p>
+<ul>
+  <li><strong>«Har bir to'lov va uning filialdagi o'rni».</strong> <span class="num">GROUP BY</span> filial bo'yicha bitta qator beradi, to'lovlar yo'qoladi. Har to'lovning o'rnini hisoblash uchun korrelyatsiyalangan subquery yoziladi: «shu filialda mendan katta to'lovlar soni + 1». Har qator uchun alohida qidiruv: 1 million to'lovda 1 million marta.</li>
+  <li><strong>«Kecha bilan bugungi qoldiq farqi».</strong> SQL qatorlarni to'plam deb biladi, «oldingi qator» degan tushuncha yo'q. Jadvalni o'zi bilan «kun = kun − 1» sharti bilan JOIN qilish kerak edi, dam olish kunlari esa bu shartni buzardi.</li>
+  <li><strong>Yig'ma jami.</strong> «Oy boshidan bugungacha aylanma» uchun yana self join: har kun o'zidan oldingi hamma kunlar bilan ulanadi. N kun uchun N² / 2 juft.</li>
+</ul>
+<p>Bunday hisobotlar uchun ma'lumotni dasturga yuklab, Java yoki COBOL siklida hisoblashardi. Kerak bo'lgan narsa: qatorni joyida qoldirib, unga «qo'shnilari» bo'yicha qiymat qo'shadigan, va bitta saralashda hammasini hisoblaydigan vosita. Oracle buni 1999-yilda, standartdan oldin, 8i versiyasida qo'shdi.</p>
+
+<h3><span class="part">2. Ichkarida</span>Analitik funksiya qanday ishlaydi</h3>
+
+<p class="beat">Oyna: uch savol</p>
+<p>Har bir analitik funksiya <span class="num">OVER (...)</span> bilan yoziladi. Qavs ichida uchta savolga javob beriladi:</p>
+<ol>
+  <li><strong><span class="num">PARTITION BY hisob</span></strong>: qatorlar qaysi guruhlarga bo'linadi? Har guruh alohida hisoblanadi, chegaradan o'tilmaydi. Yozilmasa, butun natija bitta guruh. Bu <span class="num">GROUP BY</span> ga o'xshaydi, lekin qatorlar siqilmaydi.</li>
+  <li><strong><span class="num">ORDER BY kun</span></strong>: guruh ichida qatorlar qaysi tartibda? Reyting va <span class="num">LAG</span> uchun majburiy. Bu natijani saralamaydi: natija tartibi uchun so'rov oxirida alohida <span class="num">ORDER BY</span> kerak.</li>
+  <li><strong>Ramka</strong> (<span class="num">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW</span>): hozirgi qator uchun guruhning qaysi qismi hisobga olinadi? Faqat agregat-analitiklar (<span class="num">SUM</span>, <span class="num">AVG</span>, <span class="num">LAST_VALUE</span>...) uchun.</li>
+</ol>
+<p>P1 dagi bajarilish tartibida analitik funksiyalar <span class="num">SELECT</span> bosqichida hisoblanadi: <span class="num">WHERE</span>, <span class="num">GROUP BY</span> va <span class="num">HAVING</span> dan keyin, <span class="num">ORDER BY</span> dan oldin. Shuning uchun ularni <span class="num">WHERE</span> da ishlatib bo'lmaydi, va <span class="num">GROUP BY</span> bor so'rovda ular allaqachon guruhlangan qatorlar ustida ishlaydi (<span class="num">RANK() OVER (ORDER BY SUM(summa) DESC)</span> mumkin).</p>
+<p>Pastdagi chizmada ikki hisobning yetti to'lovi bor. Funksiyani tanlang, keyin jadvaldagi qatorni bosing: shu qator uchun oynaga qaysi qatorlar kirgani ajratiladi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="win" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Analitik funksiya: guruhlar, tartib, tanlangan qator uchun ramka va natija ustuni"></svg></div>
+  <figcaption>Chap jadval: guruh (PARTITION) va undagi tartib (ORDER BY). Ko'k qator: siz tanlagan qator. Sariq: shu qator uchun oynaga kirgan qatorlar. O'ng ustun: funksiya natijasi. Qatorni bosing.</figcaption>
+  <div class="evo-tabs" id="winT" style="margin-top:0.9rem"></div>
+  <p class="say" id="winSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">Reyting: ROW_NUMBER, RANK, DENSE_RANK</p>
+<p>Uchalasi ham guruh ichidagi o'rinni beradi, farqi teng qiymatlarda (ingliz tilida <em>ties</em>):</p>
+<ul>
+  <li><span class="num">ROW_NUMBER</span>: 1, 2, 3, 4. Tenglarga ham har xil raqam, qaysi biriga qaysi raqam tushishi tasodifiy. Natija barqaror bo'lishi uchun <span class="num">ORDER BY</span> ga noyob ustun qo'shiladi: <span class="num">ORDER BY summa DESC, id</span>.</li>
+  <li><span class="num">RANK</span>: 1, 1, 3, 4. Tenglar bir xil o'rin oladi, keyingi o'rin «sakraydi». Sport musobaqasidagidek: ikki kishi birinchi bo'lsa, ikkinchi o'rin yo'q.</li>
+  <li><span class="num">DENSE_RANK</span>: 1, 1, 2, 3. Tenglar bir xil, sakrash yo'q. «Uchinchi eng katta summa» degan savolga shu kerak.</li>
+</ul>
+<p>Eng ko'p uchraydigan ishlatilishi: <strong>guruh bo'yicha top-N</strong> va <strong>takrorlarni olib tashlash</strong>. Ikkalasida ham analitik funksiya inline view ichida hisoblanadi va tashqarida filtrlanadi, chunki <span class="num">WHERE</span> uni ko'rmaydi:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- har filialdagi eng katta 3 to'lov
+SELECT * FROM (
+  SELECT t.*, ROW_NUMBER() OVER (PARTITION BY filial ORDER BY summa DESC, id) AS rn
+  FROM tolovlar t
+) WHERE rn &lt;= 3;
+
+-- takrorlarni o'chirish: har (hisob, kun) dan eng birinchi yozilganini qoldirish
+DELETE FROM qoldiqlar WHERE ROWID IN (
+  SELECT rid FROM (
+    SELECT ROWID AS rid, ROW_NUMBER() OVER (PARTITION BY hisob, kun ORDER BY yaratilgan) AS rn
+    FROM qoldiqlar)
+  WHERE rn &gt; 1);</pre>
+
+<p class="beat">Siljish: LAG va LEAD</p>
+<p><span class="num">LAG(summa)</span> oldingi qatorning, <span class="num">LEAD(summa)</span> keyingi qatorning qiymatini beradi (guruh ichida, <span class="num">ORDER BY</span> tartibida). Ikkinchi argument necha qator (<span class="num">LAG(summa, 2)</span>), uchinchisi qator bo'lmasa nima qaytarish (<span class="num">LAG(summa, 1, 0)</span>). Bank misollari: kunlik qoldiq o'zgarishi (<span class="num">qoldiq − LAG(qoldiq)</span>), hujjat raqamlaridagi bo'shliqlar (<span class="num">LEAD(raqam) − raqam &gt; 1</span>), mijozning ikki to'lovi orasidagi vaqt (antifrod uchun: «5 daqiqada 10 ta to'lov»).</p>
+
+<p class="beat">Ramka: ROWS va RANGE</p>
+<p>Agregat <span class="num">OVER</span> bilan yozilganda (<span class="num">SUM(summa) OVER (...)</span>) ramka qaysi qatorlar qo'shilishini belgilaydi:</p>
+<ul>
+  <li><span class="num">ORDER BY</span> yo'q: ramka butun guruh. <span class="num">SUM(summa) OVER (PARTITION BY hisob)</span>: har qator yonida hisobning jami. Ulushni hisoblash uchun: <span class="num">summa / SUM(summa) OVER (PARTITION BY hisob)</span> yoki <span class="num">RATIO_TO_REPORT(summa) OVER (...)</span>.</li>
+  <li><span class="num">ORDER BY</span> bor, ramka yozilmagan: sukut bo'yicha <span class="num">RANGE BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW</span>, ya'ni yig'ma jami.</li>
+  <li><span class="num">ROWS</span> qatorlarni sanaydi: <span class="num">ROWS BETWEEN 2 PRECEDING AND CURRENT ROW</span> «oxirgi uch qator», sirpanuvchi o'rtacha.</li>
+  <li><span class="num">RANGE</span> qiymatlar bo'yicha: <span class="num">ORDER BY</span> qiymati teng bo'lgan qatorlar bitta «nuqta» deb olinadi. Bir kunda ikki to'lov bo'lsa, <span class="num">RANGE</span> bilan yig'ma jami ikkalasida ham ikkalasining yig'indisini ko'rsatadi, <span class="num">ROWS</span> bilan esa birinchisida faqat o'zini. <span class="num">RANGE BETWEEN INTERVAL '7' DAY PRECEDING AND CURRENT ROW</span> esa «oxirgi 7 kun», qator soniga qaramay.</li>
+</ul>
+<p>Bundan <span class="num">LAST_VALUE</span> tuzog'i chiqadi: <span class="num">LAST_VALUE(summa) OVER (PARTITION BY hisob ORDER BY kun)</span> «oxirgi to'lov» emas, joriy qatorning o'zini qaytaradi, chunki sukut ramkasi joriy qatorda tugaydi. To'g'risi: <span class="num">ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</span>, yoki <span class="num">FIRST_VALUE</span> ni teskari tartib bilan.</p>
+<p>Oracle'ning qisqa yo'li, guruhlangan so'rovda «oxirgi kundagi qiymat»: <span class="num">MAX(qoldiq) KEEP (DENSE_RANK LAST ORDER BY kun)</span>. Bu «kun bo'yicha oxirgi qatorlarni ol, ular ichidan MAX» degani, va u oddiy <span class="num">GROUP BY hisob</span> bilan ishlaydi: P1 dagi korrelyatsiyalangan «oxirgi qoldiq» so'rovining bitta o'tishli varianti.</p>
+
+<p class="beat">WITH: so'rov qismlariga nom berish</p>
+<p><span class="num">WITH</span> (CTE, Common Table Expression, «umumiy jadval ifodasi») so'rov boshida yordamchi so'rovlarga nom beradi. Murakkab hisobot bitta ulkan ichma-ich so'rov emas, ketma-ket qadamlar bo'lib o'qiladi: «avval kunlik aylanma, keyin unga reyting, keyin filtr».</p>
+<pre class="code" style="margin:0.5rem 0 1rem">WITH kunlik AS (
+       SELECT hisob, TRUNC(sana) kun, SUM(summa) aylanma
+       FROM   tolovlar GROUP BY hisob, TRUNC(sana)),
+     reyting AS (
+       SELECT k.*, DENSE_RANK() OVER (PARTITION BY kun ORDER BY aylanma DESC) o_rin
+       FROM   kunlik k)
+SELECT * FROM reyting WHERE o_rin &lt;= 10;</pre>
+<p>Optimizator <span class="num">WITH</span> ni ikki xil bajarishi mumkin: inline view kabi joyiga qo'yib (merge), yoki bir marta hisoblab, vaqtinchalik jadvalga yozib (materialize). Bir necha marta ishlatilgan og'ir qism odatda materialize qilinadi. Majburlash uchun <span class="num">/*+ MATERIALIZE */</span> va <span class="num">/*+ INLINE */</span> hintlari bor (hujjatlashtirilmagan, lekin keng ishlatiladi). 12c dan <span class="num">WITH</span> ichida PL/SQL funksiya ham e'lon qilish mumkin.</p>
+
+<p class="beat">Ierarxiya: CONNECT BY va rekursiv WITH</p>
+<p>Ko'p bank ma'lumotlari daraxt: filial va uning ota filiali, balans hisobi va uning guruhi, xodim va rahbari. Jadvalda bu bitta ustun bilan saqlanadi: <span class="num">ota_id</span>. Daraxtni butun chuqurligi bilan o'qish uchun Oracle 1980-yillardan beri o'z sintaksisiga ega:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT LEVEL, LPAD(' ', 2 * (LEVEL - 1)) || nomi AS daraxt,
+       SYS_CONNECT_BY_PATH(nomi, ' / ') AS yol
+FROM   filiallar
+START WITH ota_id IS NULL          -- qayerdan boshlash: ildiz
+CONNECT BY PRIOR id = ota_id       -- qanday yurish: ota (PRIOR) id si = bola ota_id si
+ORDER SIBLINGS BY nomi;</pre>
+<ul>
+  <li><span class="num">START WITH</span>: ildiz qatorlar. <span class="num">CONNECT BY</span>: ota va bola qanday bog'langan. <span class="num">PRIOR</span> «oldingi qadamdagi», ya'ni ota qator ustunini bildiradi. <span class="num">PRIOR</span> ni tenglikning boshqa tomoniga o'tkazsangiz, yo'nalish teskari: bargdan ildizga.</li>
+  <li><span class="num">LEVEL</span>: chuqurlik (ildiz 1). <span class="num">SYS_CONNECT_BY_PATH</span>: ildizdan yo'l. <span class="num">CONNECT_BY_ROOT nomi</span>: shu qator qaysi ildizdan. <span class="num">CONNECT_BY_ISLEAF</span>: barg ekani.</li>
+  <li>Daraxt chuqurlik bo'yicha (depth-first) chiqadi: ota, uning birinchi bolasi, uning bolalari, keyin ikkinchi bola. <span class="num">ORDER SIBLINGS BY</span> shu tartibni buzmasdan aka-ukalarni saralaydi. Oddiy <span class="num">ORDER BY</span> esa daraxt tartibini buzadi.</li>
+  <li>Ma'lumotda sikl bo'lsa (A ning otasi B, B ning otasi A): <span class="num">ORA-01436: CONNECT BY loop in user data</span>. <span class="num">CONNECT BY NOCYCLE</span> va <span class="num">CONNECT_BY_ISCYCLE</span> siklni topadi.</li>
+</ul>
+<p>Mashhur hiyla: jadvalsiz qatorlar yasash. <span class="num">SELECT DATE '2026-10-01' + LEVEL - 1 AS kun FROM dual CONNECT BY LEVEL &lt;= 31</span> oktyabrning 31 kunini beradi. Bu bilan «to'lov bo'lmagan kunlarni ham nol bilan ko'rsatish» hisobotlari yoziladi: kunlar ro'yxatiga to'lovlar LEFT JOIN qilinadi.</p>
+<p>Standart yo'l, 11g R2 dan: <strong>rekursiv WITH</strong>. Birinchi qism ildiz, <span class="num">UNION ALL</span> dan keyingisi o'ziga murojaat qilib keyingi qavatni qo'shadi. U boshqa bazalarga ko'chiriladi va murakkab hisob-kitobni (masalan, yo'l bo'yicha summa) yozish oson. Chizmada ikkalasini solishtiring.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="tree" style="width:1240px;height:510px" viewBox="0 0 1240 510" role="img" aria-label="Filiallar daraxti va CONNECT BY so'rovi qaysi tugunlardan qaysi tartibda o'tishi"></svg></div>
+  <figcaption>Chapda filiallar daraxti (strelka otadan bolaga). Raqamlar natijada qator qaysi tartibda chiqishini ko'rsatadi, L esa LEVEL. O'ngda natija. So'rovni tanlang.</figcaption>
+  <div class="evo-tabs" id="treeT" style="margin-top:0.9rem"></div>
+  <p class="say" id="treeSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">MERGE: «bor bo'lsa yangila, yo'q bo'lsa qo'sh»</p>
+<p>Har kecha tashqi tizimdan kurslar, mijozlar yoki karta ma'lumotlari fayli keladi. Bir qismi jadvalda bor (yangilash kerak), bir qismi yangi (qo'shish kerak). <span class="num">MERGE</span> gacha bu PL/SQL siklida qilinardi: har qator uchun <span class="num">UPDATE</span>, <span class="num">SQL%ROWCOUNT = 0</span> bo'lsa <span class="num">INSERT</span>. Bu sekin va ikki sessiya bir vaqtda ishlasa, xavfli. <span class="num">MERGE</span> (Oracle 9i, SQL:2003) buni bitta buyruqda qiladi:</p>
+<pre class="code" style="margin:0.5rem 0 1rem">MERGE INTO kurslar k
+USING (SELECT valyuta, kurs FROM kurs_fayli) f
+ON (k.valyuta = f.valyuta)
+WHEN MATCHED THEN
+  UPDATE SET k.kurs = f.kurs, k.yangilangan = SYSDATE
+  DELETE WHERE f.kurs IS NULL                -- 10g dan: yangilangandan keyin o'chirish
+WHEN NOT MATCHED THEN
+  INSERT (valyuta, kurs, yangilangan) VALUES (f.valyuta, f.kurs, SYSDATE);</pre>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="mrg" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="MERGE: manba qatorlari maqsad jadvaliga qanday amal bilan tushadi"></svg></div>
+  <figcaption>Chapda manba (USING), o'rtada har qator uchun tanlangan amal, o'ngda MERGE dan keyingi maqsad jadval. Holatni tanlang.</figcaption>
+  <div class="evo-tabs" id="mrgT" style="margin-top:0.9rem"></div>
+  <p class="say" id="mrgSay" aria-live="polite"></p>
+</figure>
+<ul>
+  <li><span class="num">ON</span> dagi ustunlarni <span class="num">UPDATE SET</span> da o'zgartirib bo'lmaydi: <span class="num">ORA-38104</span>.</li>
+  <li>Manbada bitta maqsad qatoriga ikki qator mos kelsa: <span class="num">ORA-30926: unable to get a stable set of rows</span>. Oracle qaysi qiymat oxirgisi bo'lishini bilmaydi. Yechim: manbani oldindan takrorsiz qilish (<span class="num">ROW_NUMBER</span> bilan oxirgisini olish).</li>
+  <li>10g dan har ikki qism ixtiyoriy (faqat <span class="num">WHEN NOT MATCHED</span> ham bo'ladi) va har biriga <span class="num">WHERE</span> qo'shish mumkin: «faqat kurs o'zgargan bo'lsa yangila».</li>
+  <li><span class="num">MERGE</span> ham oddiy DML: triggerlar ishlaydi, qatorlar qulflanadi, <span class="num">COMMIT</span> siz saqlanmaydi.</li>
+</ul>
+
+<p class="beat">PIVOT, UNPIVOT va LISTAGG</p>
+<p><span class="num">PIVOT</span> (11g) qatorlarni ustunlarga aylantiradi: valyuta bo'yicha qatorlar o'rniga har valyuta alohida ustun. <span class="num">UNPIVOT</span> teskari. Undan oldin bu <span class="num">SUM(CASE WHEN valyuta = 'USD' THEN summa END)</span> bilan yozilardi, va bu usul hali ham keng tarqalgan va ko'pincha tushunarliroq.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT * FROM (SELECT filial, valyuta, summa FROM tolovlar)
+PIVOT (SUM(summa) FOR valyuta IN ('UZS' AS uzs, 'USD' AS usd, 'EUR' AS eur));
+
+SELECT mijoz_id, LISTAGG(raqam, ', ') WITHIN GROUP (ORDER BY raqam) AS hisoblar
+FROM hisoblar GROUP BY mijoz_id;          -- 1 | 101, 102</pre>
+<p><span class="num">LISTAGG</span> (11g R2) guruhdagi qiymatlarni bitta satrga teradi. Natija 4000 baytdan (yoki <span class="num">MAX_STRING_SIZE=EXTENDED</span> da 32767) oshsa <span class="num">ORA-01489</span>; 12c R2 dan <span class="num">ON OVERFLOW TRUNCATE</span>, 19c dan <span class="num">LISTAGG(DISTINCT ...)</span>.</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>Analitik SQL tarixi</h3>
+<div class="bench" id="evoAn"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Analitik (window) funksiya</dt><dd>Qatorni siqmasdan, uning oynasidagi qatorlar bo'yicha qiymat hisoblaydigan funksiya. <span class="num">OVER</span> bilan yoziladi.</dd>
+  <dt>PARTITION BY</dt><dd>Oynani guruhlarga bo'lish. Hisob guruh chegarasidan o'tmaydi.</dd>
+  <dt>Ramka (window frame)</dt><dd>Joriy qator uchun guruhning hisobga olinadigan qismi: <span class="num">ROWS</span> yoki <span class="num">RANGE BETWEEN ... AND ...</span>.</dd>
+  <dt>UNBOUNDED PRECEDING, CURRENT ROW, n FOLLOWING</dt><dd>Ramka chegaralari: guruh boshi, joriy qator, joriy qatordan n ta keyin.</dd>
+  <dt>ROWS va RANGE</dt><dd>Qatorlarni sanash; ORDER BY qiymati bo'yicha oraliq (tenglar birga olinadi). ORDER BY bor va ramka yozilmasa: RANGE UNBOUNDED PRECEDING.</dd>
+  <dt>ROW_NUMBER, RANK, DENSE_RANK</dt><dd>Tenglarga ham har xil raqam; tenglarga bir xil, keyin sakrash; tenglarga bir xil, sakrashsiz.</dd>
+  <dt>NTILE(n)</dt><dd>Guruhni n ta teng bo'lakka bo'lib, har qatorga bo'lak raqami: «mijozlarni qoldiq bo'yicha 4 ta chorakka».</dd>
+  <dt>LAG, LEAD</dt><dd>Guruh ichida oldingi va keyingi qator qiymati.</dd>
+  <dt>FIRST_VALUE, LAST_VALUE, NTH_VALUE</dt><dd>Ramkadagi birinchi, oxirgi, n-chi qiymat. LAST_VALUE sukut ramkasida joriy qatorni beradi.</dd>
+  <dt>KEEP (DENSE_RANK FIRST / LAST)</dt><dd>Oracle'ga xos: guruhdagi birinchi yoki oxirgi o'rindagi qatorlar bo'yicha agregat.</dd>
+  <dt>RATIO_TO_REPORT</dt><dd>Qiymatning oyna jamisidagi ulushi.</dd>
+  <dt>Top-N guruh bo'yicha</dt><dd>Har guruhdan eng yaxshi N qator: inline view ichida ROW_NUMBER, tashqarida filtr.</dd>
+  <dt>CTE (WITH)</dt><dd>So'rov boshida nom berilgan yordamchi so'rov. Merge yoki materialize qilinadi.</dd>
+  <dt>Rekursiv WITH</dt><dd>O'ziga murojaat qiladigan CTE: ildiz qism UNION ALL rekursiv qism. 11g R2 dan.</dd>
+  <dt>CONNECT BY, START WITH, PRIOR, LEVEL</dt><dd>Oracle'ning ierarxik so'rovi: qanday bog'langan, qayerdan boshlanadi, ota qator ustuni, chuqurlik.</dd>
+  <dt>SYS_CONNECT_BY_PATH, CONNECT_BY_ROOT, CONNECT_BY_ISLEAF, NOCYCLE</dt><dd>Ildizdan yo'l; ildiz qiymati; barg belgisi; sikl bo'lsa to'xtamasdan davom etish.</dd>
+  <dt>MERGE</dt><dd>Bitta buyruqda UPDATE, DELETE va INSERT: manba qatori maqsadda topilsa yangilash, topilmasa qo'shish. Boshqa nomi upsert.</dd>
+  <dt>PIVOT, UNPIVOT</dt><dd>Qatorlarni ustunlarga va teskari aylantirish.</dd>
+  <dt>LISTAGG</dt><dd>Guruh qiymatlarini ajratgich bilan bitta satrga terish.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: analitik funksiyani WHERE da ishlatish</b>
+  <p><span class="num">WHERE ROW_NUMBER() OVER (...) = 1</span> yoki <span class="num">WHERE rn = 1</span> (xuddi shu so'rovda) xato beradi: <span class="num">ORA-30483: window functions are not allowed here</span> yoki <span class="num">ORA-00904</span>. Analitik funksiya SELECT bosqichida hisoblanadi.</p>
+  <p class="why">To'g'risi: inline view yoki WITH ichida hisoblash, tashqarida filtrlash. Boshqa bazalardagi <span class="num">QUALIFY</span> Oracle'da yo'q.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: tenglarda ROW_NUMBER tasodifiy</b>
+  <p>Ikki to'lov summasi teng bo'lsa, <span class="num">ROW_NUMBER() OVER (ORDER BY summa DESC)</span> har ishga tushganda ularga har xil raqam berishi mumkin. Hisobot ikki marta ishlatilsa, har xil natija; sahifalashda bitta qator ikki sahifada chiqadi, boshqasi hech birida.</p>
+  <p class="why">To'g'risi: <span class="num">ORDER BY</span> ni noyob qilish: <span class="num">ORDER BY summa DESC, id</span>. Yoki tenglar hammasi kerak bo'lsa, <span class="num">RANK</span> yoki <span class="num">DENSE_RANK</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: LAST_VALUE va sukut ramkasi</b>
+  <p><span class="num">LAST_VALUE(qoldiq) OVER (PARTITION BY hisob ORDER BY kun)</span> har qatorda shu qatorning qoldig'ini beradi. Test ma'lumotida bir qator bo'lsa, xato ko'rinmaydi.</p>
+  <p class="why">To'g'risi: ramkani aniq yozish: <span class="num">ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</span>. Yoki <span class="num">FIRST_VALUE(qoldiq) OVER (PARTITION BY hisob ORDER BY kun DESC)</span>, yoki <span class="num">KEEP (DENSE_RANK LAST ORDER BY kun)</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: yig'ma jamida RANGE va bir kundagi ikki to'lov</b>
+  <p><span class="num">SUM(summa) OVER (ORDER BY kun)</span> sukut bo'yicha RANGE. Bir kunda ikki to'lov bo'lsa, ikkala qatorda ham ikkalasi qo'shilgan jami chiqadi, «qadamma-qadam» o'sish ko'rinmaydi. Bu ba'zan to'g'ri (kun oxiridagi qoldiq), ba'zan noto'g'ri (har operatsiyadan keyingi qoldiq).</p>
+  <p class="why">To'g'risi: har operatsiyadan keyingi qoldiq uchun <span class="num">ORDER BY sana, id ROWS UNBOUNDED PRECEDING</span>. ROWS odatda tezroq ham.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: MERGE manbasida takror</b>
+  <p>Kurs fayliga USD ikki marta tushib qoldi: tungi yuklash <span class="num">ORA-30926</span> bilan yiqildi. Yoki undan yomoni: Oracle ba'zi holatlarda xato bermay, ikkala qatorni ham INSERT qiladi (maqsadda hali yo'q bo'lsa), va keyin jadvalda takror.</p>
+  <p class="why">To'g'risi: manbani <span class="num">USING</span> ichida takrorsiz qilish (<span class="num">ROW_NUMBER() OVER (PARTITION BY valyuta ORDER BY vaqt DESC) = 1</span>) va maqsad jadvalda <span class="num">ON</span> ustunlariga UNIQUE cheklov.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: CONNECT BY ga filtrni noto'g'ri joyga yozish</b>
+  <p><span class="num">WHERE</span> dagi shart daraxt qurilgandan keyin qatorlarni tashlaydi, lekin ularning bolalari qoladi. <span class="num">CONNECT BY ... AND holat = 'ochiq'</span> esa yopiq tugunda yurishni to'xtatadi va uning butun shoxi tushib qoladi. Bu ikki xil savol.</p>
+  <p class="why">To'g'risi: qaysi biri kerakligini aniqlash: «yopiq filiallarni ko'rsatma» (WHERE) yoki «yopiq filial va uning hamma bo'limlarini ko'rsatma» (CONNECT BY).</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching.</p>
+<details><summary>Analitik funksiya agregat funksiyadan nimasi bilan farq qiladi?</summary>
+<p>Agregat (GROUP BY bilan) ko'p qatorni bitta qatorga siqadi. Analitik funksiya har qator uchun qiymat hisoblaydi va qatorlar soni o'zgarmaydi: har to'lov yonida uning filialdagi o'rni yoki filial jami. U <span class="num">OVER</span> bilan yoziladi: <span class="num">PARTITION BY</span> guruhlarni, <span class="num">ORDER BY</span> guruh ichidagi tartibni, ramka esa hisobga olinadigan qatorlarni belgilaydi. Bajarilish tartibida u SELECT bosqichida, WHERE, GROUP BY, HAVING dan keyin hisoblanadi, shuning uchun WHERE da ishlatilmaydi. Ko'p korrelyatsiyalangan subquery va self join'larni bitta saralash bilan almashtiradi.</p></details>
+<details><summary>ROW_NUMBER, RANK va DENSE_RANK farqi?</summary>
+<p>Summalar 500, 500, 300 bo'lsa: ROW_NUMBER 1, 2, 3 (tenglarga ham har xil, qaysi biri birinchi tasodifiy); RANK 1, 1, 3 (tenglar bir xil, keyin sakraydi); DENSE_RANK 1, 1, 2 (sakrashsiz). Takrorlarni o'chirish va sahifalashda ROW_NUMBER (noyob ustun bilan barqaror qilib), «N-chi eng katta qiymat» savolida DENSE_RANK, musobaqa uslubidagi o'rinda RANK.</p></details>
+<details><summary>Har bir filialdagi eng katta 3 ta to'lovni qanday olasiz?</summary>
+<p>Inline view ichida <span class="num">ROW_NUMBER() OVER (PARTITION BY filial ORDER BY summa DESC, id) rn</span>, tashqarida <span class="num">WHERE rn &lt;= 3</span>. Teng summalar hammasi kerak bo'lsa, RANK yoki DENSE_RANK. 12c dan muqobil: <span class="num">CROSS APPLY</span> bilan har filial uchun <span class="num">FETCH FIRST 3 ROWS</span>, filiallar kam va indeks bo'lsa tez. Analitik funksiyani to'g'ridan-to'g'ri WHERE ga yozib bo'lmaydi.</p></details>
+<details><summary>Jadvaldagi takrorlarni bitta so'rov bilan qanday o'chirasiz?</summary>
+<p><span class="num">ROW_NUMBER() OVER (PARTITION BY takror_ustunlar ORDER BY qaysi_qolsin)</span> ni ROWID bilan birga inline view'da hisoblab, <span class="num">rn &gt; 1</span> bo'lgan ROWID larni DELETE qilish. ORDER BY qaysi nusxa qolishini belgilaydi: birinchi yozilgani yoki oxirgisi. Katta jadvalda ko'p qator o'chirilsa, yangi jadvalga <span class="num">CREATE TABLE AS SELECT ... WHERE rn = 1</span> qilib almashtirish tezroq bo'lishi mumkin. Keyin UNIQUE cheklov qo'yish kerak.</p></details>
+<details><summary>Hisob bo'yicha yig'ma jamini (running total) qanday hisoblaysiz? ROWS va RANGE farqi?</summary>
+<p><span class="num">SUM(summa) OVER (PARTITION BY hisob ORDER BY sana, id ROWS UNBOUNDED PRECEDING)</span>. ORDER BY bor, ramka yozilmasa sukut RANGE UNBOUNDED PRECEDING: ORDER BY qiymati teng qatorlar birga hisoblanadi, ya'ni bir kundagi ikki to'lovda ikkalasida ham kun jami. ROWS qatorlarni sanaydi va har operatsiyadan keyingi jamini beradi. RANGE qiymat oralig'i bilan ham ishlaydi: <span class="num">RANGE BETWEEN INTERVAL '30' DAY PRECEDING AND CURRENT ROW</span> oxirgi 30 kun.</p></details>
+<details><summary>LAG va LEAD qayerda ishlatiladi? Misol keltiring.</summary>
+<p>Guruh ichida oldingi yoki keyingi qator qiymatini olish uchun, self join'siz. Kunlik qoldiq o'zgarishi: <span class="num">qoldiq − LAG(qoldiq) OVER (PARTITION BY hisob ORDER BY kun)</span>. Hujjat raqamlaridagi bo'shliqlar: <span class="num">LEAD(raqam) OVER (ORDER BY raqam) − raqam &gt; 1</span>. Antifrod: bir mijozning ketma-ket to'lovlari orasidagi vaqt. Uchinchi argument birinchi qatorda NULL o'rniga beriladigan qiymat: <span class="num">LAG(qoldiq, 1, 0)</span>.</p></details>
+<details><summary>LAST_VALUE nega kutilganini bermaydi?</summary>
+<p>ORDER BY bor oynada sukut ramkasi «guruh boshidan joriy qatorgacha». Shu ramkadagi oxirgi qator joriy qatorning o'zi. Guruhning haqiqiy oxirgi qiymati uchun ramkani <span class="num">ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING</span> qilish, yoki teskari tartibda FIRST_VALUE ishlatish kerak.</p></details>
+<details><summary>Har bir hisobning oxirgi kundagi qoldig'ini eng samarali qanday olasiz?</summary>
+<p>Bir necha usul: (1) <span class="num">GROUP BY hisob</span> va <span class="num">MAX(qoldiq) KEEP (DENSE_RANK LAST ORDER BY kun)</span>, jadvaldan bir o'tishda; (2) <span class="num">ROW_NUMBER() OVER (PARTITION BY hisob ORDER BY kun DESC) = 1</span> inline view orqali; (3) korrelyatsiyalangan <span class="num">kun = (SELECT MAX(kun) ...)</span>, (hisob, kun) indeksi bilan oz hisob uchun yaxshi. Hamma hisob kerak bo'lsa 1 yoki 2, bitta hisob kerak bo'lsa indeks bo'yicha 3 yoki <span class="num">ORDER BY kun DESC FETCH FIRST 1 ROW</span>. Qaysi biri tezligini reja va ma'lumot hajmi hal qiladi.</p></details>
+<details><summary>WITH nima uchun kerak? U tezlikni oshiradimi?</summary>
+<p>WITH so'rov qismlariga nom beradi: o'qish va tuzatish oson, bitta qism bir necha marta ishlatiladi. Tezlikka ta'siri optimizatorga bog'liq: u CTE ni joyiga qo'yib (inline) yoki bir marta hisoblab vaqtinchalik jadvalga (materialize) bajaradi. Bir necha marta ishlatilgan og'ir qism materialize qilinsa tezlashadi, lekin filtr CTE ichiga kira olmay qolsa sekinlashishi mumkin. MATERIALIZE va INLINE hintlari bilan boshqariladi. Rekursiv WITH esa ierarxiya va ketma-ket hisoblar uchun.</p></details>
+<details><summary>CONNECT BY qanday ishlaydi? LEVEL va PRIOR nima?</summary>
+<p>START WITH ildiz qatorlarni tanlaydi, CONNECT BY esa bola qatorni ota qatorga qanday ulashni aytadi. PRIOR ota (oldingi qadam) qatorining ustuni: <span class="num">CONNECT BY PRIOR id = ota_id</span> pastga yuradi, <span class="num">CONNECT BY id = PRIOR ota_id</span> yuqoriga. LEVEL chuqurlik, ildiz 1. Natija chuqurlik bo'yicha tartibda chiqadi, ORDER SIBLINGS BY shu tartibni saqlab saralaydi. SYS_CONNECT_BY_PATH yo'lni, CONNECT_BY_ROOT ildizni, CONNECT_BY_ISLEAF bargni beradi. Sikl bo'lsa ORA-01436, NOCYCLE bilan aylanib o'tiladi. Bundan tashqari <span class="num">CONNECT BY LEVEL &lt;= N</span> bilan N ta qator yasash mumkin, masalan oy kunlari.</p></details>
+<details><summary>CONNECT BY va rekursiv WITH farqi?</summary>
+<p>CONNECT BY Oracle'ga xos, qisqa, LEVEL, PATH, ISLEAF kabi tayyor yordamchilari bor. Rekursiv WITH standart (11g R2 dan), boshqa bazalarga ko'chiriladi, va har qadamda ixtiyoriy hisob qilish mumkin, masalan ildizdan yo'l bo'yicha foizlarni ko'paytirish. Unda chuqurlik va sikl uchun <span class="num">SEARCH DEPTH FIRST BY</span> va <span class="num">CYCLE</span> bandlari bor. Ustunlar ro'yxati majburiy: <span class="num">WITH t (id, ota_id, lvl) AS (...)</span>.</p></details>
+<details><summary>MERGE nima va qanday xatolar bo'ladi?</summary>
+<p>Manba qatorini maqsad jadval bilan ON sharti bo'yicha solishtiradi: topilsa UPDATE (va ixtiyoriy DELETE WHERE), topilmasa INSERT. Bitta buyruq, bitta o'tish, sikl va UPDATE-keyin-INSERT dan tez va xavfsizroq. Xatolar: ON dagi ustunni yangilab bo'lmaydi (ORA-38104); bitta maqsad qatoriga manbadan ikki qator mos kelsa ORA-30926, shuning uchun manba takrorsiz bo'lishi kerak. Triggerlar va qulflar oddiy DML dagidek. Ikki sessiya bir vaqtda bir xil yangi kalitni qo'shsa, biri UNIQUE xatosini oladi: MERGE atomar upsert kafolati emas.</p></details>
+<details><summary>Qatorlarni ustunga qanday aylantirasiz?</summary>
+<p>11g dan PIVOT: <span class="num">PIVOT (SUM(summa) FOR valyuta IN ('UZS' AS uzs, 'USD' AS usd))</span>. Qiymatlar ro'yxati oldindan ma'lum bo'lishi kerak (oddiy SQL da dinamik ustunlar yo'q; buning uchun dinamik SQL). Klassik usul: <span class="num">SUM(CASE WHEN valyuta = 'USD' THEN summa END)</span> va GROUP BY, u har qanday versiyada ishlaydi va bir nechta agregatni moslashuvchan yozadi. Teskari amal UNPIVOT. Bir ustundagi qiymatlarni satrga terish uchun LISTAGG.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing. Jadvallar: <span class="num">tolovlar(id, hisob, filial, sana, summa)</span>, <span class="num">qoldiqlar(hisob, kun, qoldiq)</span>, <span class="num">filiallar(id, ota_id, nomi)</span>.</p>
+<ol class="check">
+  <li>Har bir filialda summasi bo'yicha 2-o'rindagi to'lovni (teng summalarni hisobga olib) chiqaring.</li>
+  <li>Har bir hisob uchun kunlik qoldiq va uning kechagi kunga nisbatan o'zgarishini chiqaring. Birinchi kunda o'zgarish 0 bo'lsin.</li>
+  <li>Har bir to'lov uchun shu hisobning oy boshidan shu to'lovgacha bo'lgan yig'ma summasini chiqaring.</li>
+  <li>Bir mijoz 10 daqiqa ichida 5 tadan ko'p to'lov qilgan holatlarni toping (bitta usul analitik funksiya bilan).</li>
+  <li>Andijon viloyat filialining barcha quyi bo'limlarini yo'li bilan chiqaring. Keyin teskari: Asaka bo'limidan bosh ofisgacha yo'l.</li>
+  <li>Kurslar faylini kurslar jadvaliga MERGE qiling: faqat kurs o'zgargan qatorlar yangilansin. Faylda takror bo'lsa nima qilasiz?</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>«Bo'shliqlar va orollar» (gaps and islands)</summary>
+<p>Ketma-ket kunlar guruhini topish masalasi: «mijoz necha kun ketma-ket kredit to'lovini kechiktirgan». Hiyla: <span class="num">kun − ROW_NUMBER() OVER (PARTITION BY mijoz ORDER BY kun)</span> ketma-ket kunlar uchun bir xil qiymat beradi. Shu qiymat bo'yicha GROUP BY qilinsa, har «orol»ning boshlanishi, oxiri va uzunligi chiqadi. 12c dan bunday masalalar uchun <span class="num">MATCH_RECOGNIZE</span> ham bor: qatorlar ketma-ketligida naqsh qidirish.</p></details>
+<details><summary>Analitik so'rov qanday bajariladi</summary>
+<p>Oracle har bir har xil <span class="num">PARTITION BY ... ORDER BY</span> kombinatsiyasi uchun ma'lumotni bir marta saralaydi (rejada <span class="num">WINDOW SORT</span>), keyin bir o'tishda hisoblaydi. Bitta so'rovda bir xil oynali ko'p funksiya bitta saralashni bo'lishadi. Saralash xotiraga (PGA) sig'masa, vaqtinchalik joyga (TEMP) yoziladi: P6. Mos indeks bo'lsa saralash umuman kerak bo'lmasligi mumkin (<span class="num">WINDOW NOSORT</span>): P7.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database SQL Language Reference: Analytic Functions, Hierarchical Queries, MERGE, PIVOT and UNPIVOT, LISTAGG. Oracle Database Data Warehousing Guide: «SQL for Analysis and Reporting». ISO/IEC 9075:2003 (OLAP funksiyalari). Tom Kyte, «Expert Oracle Database Architecture» va asktom.oracle.com dagi analitik funksiyalar bo'yicha javoblar.</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Analitik funksiya qatorni siqmaydi: <span class="num">PARTITION BY</span> guruh, <span class="num">ORDER BY</span> tartib, ramka qaysi qatorlar. ROW_NUMBER, RANK, DENSE_RANK tenglarda farq qiladi. LAG, LEAD self join o'rnida. ORDER BY bor oynada sukut ramkasi RANGE va joriy qatorda tugaydi, shuning uchun LAST_VALUE aldaydi. Analitik funksiya WHERE da emas, tashqi so'rovda filtrlanadi. WITH so'rovni qadamlarga bo'ladi, CONNECT BY va rekursiv WITH daraxtni o'qiydi, MERGE upsert qiladi, lekin manbada takror bo'lmasligi kerak.</p>
+  <p><strong>Keyingi dars.</strong> P3. PL/SQL asoslari: nega SQL yetmay qoldi, blok tuzilishi, o'zgaruvchilar va tiplar, %TYPE va %ROWTYPE, kursorlar, exceptionlar.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p1-sql-poydevori.html">Oldingi: P1. SQL poydevori</a><span>Keyingi: P3. PL/SQL asoslari (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'CallableStatement, connection pool', link: 'SQL yoki PL/SQL chaqiradi' },
+    { title: 'PL/SQL dasturlar', sub: 'Paket, protsedura, trigger: P3–P5', ex: 'PKG_TOLOV.Otkazish(...)', link: 'ichida SQL bajaradi' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'OVER (PARTITION BY ...), CONNECT BY, MERGE', link: 'optimizatorga beriladi' },
+    { title: 'Optimizator va reja', sub: 'Parse, bind, reja, indeks: P6–P7', ex: 'WINDOW SORT, INDEX RANGE SCAN', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'SELECT ... FOR UPDATE', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'segment, blok, partitsiya', link: '' }
+  ], [2], 'SQL: murakkab so\'rovlar');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function show(v) { return v === null ? 'NULL' : String(v); }
+  function grid(svg, x, y, ws, head, rows, title, onRow) {
+    var W = ws.reduce(function (a, b) { return a + b; }, 0), H = 26;
+    if (title) S(svg, 'text', { x: x, y: y - 10, 'class': 'ttl' }, title);
+    S(svg, 'rect', { x: x, y: y, width: W, height: H, 'class': 'box on' });
+    var cx = x; head.forEach(function (h, i) { S(svg, 'text', { x: cx + 8, y: y + 18, 'class': 'mono' }, h); cx += ws[i]; });
+    rows.forEach(function (r, j) {
+      var ry = y + H * (j + 1), g = S(svg, 'g', onRow ? { role: 'button', tabindex: 0, style: 'cursor:pointer', 'aria-label': 'qator ' + (j + 1) } : {});
+      S(svg, 'rect', { x: x, y: ry, width: W, height: H, 'class': 'box' + (r.k ? ' ' + r.k : '') }, null, g);
+      var cx2 = x; r.c.forEach(function (v, i) { S(svg, 'text', { x: cx2 + 8, y: ry + 18, 'class': 'mono', style: r.k === 'freed' ? 'opacity:0.45' : '' }, show(v), g); cx2 += ws[i]; });
+      if (r.k === 'freed') S(svg, 'line', { x1: x + 4, y1: ry + 13, x2: x + W - 4, y2: ry + 13, 'class': 'arr', style: 'opacity:0.6' }, null, g);
+      if (onRow) { g.addEventListener('click', function () { onRow(j); }); g.addEventListener('keydown', function (e) { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onRow(j); } }); }
+    });
+  }
+
+  // ---------- Oyna ----------
+  (function () {
+    var svg = $('win'), say = $('winSay'), cur = 0, sel = 2;
+    var D = [['A', '01.10', 500, 1], ['A', '02.10', 300, 2], ['A', '03.10', 500, 3], ['A', '04.10', 200, 4], ['B', '01.10', 700, 5], ['B', '03.10', 100, 6], ['B', '05.10', 400, 7]];
+    function parts(byAmt) {
+      var P = {}; D.forEach(function (r) { (P[r[0]] = P[r[0]] || []).push(r); });
+      Object.keys(P).forEach(function (k) { P[k].sort(byAmt ? function (a, b) { return b[2] - a[2] || a[3] - b[3]; } : function (a, b) { return a[3] - b[3]; }); });
+      return [].concat(P.A, P.B);
+    }
+    function rnd(v) { return Math.round(v * 100) / 100; }
+    var F = [
+      { t: 'ROW_NUMBER', e: 'ROW_NUMBER() OVER (PARTITION BY hisob ORDER BY summa DESC, id)', amt: true, f: function (p, i) { return i + 1; }, fr: null,
+        s: `Har guruhda 1 dan boshlab raqam. A hisobida ikkita 500 bor, ularga 1 va 2 berildi: qaysi biri birinchi ekanini ORDER BY dagi id hal qildi. id yozilmasa, bu tasodifiy bo'lardi.` },
+      { t: 'RANK', e: 'RANK() OVER (PARTITION BY hisob ORDER BY summa DESC)', amt: true, f: function (p, i) { var v = p[i][2]; return p.filter(function (r) { return r[2] > v; }).length + 1; }, fr: null,
+        s: `Ikkala 500 ham 1-o'rin, keyingisi 3-o'rin: 2-o'rin yo'q. RANK = mendan kattalar soni + 1.` },
+      { t: 'DENSE_RANK', e: 'DENSE_RANK() OVER (PARTITION BY hisob ORDER BY summa DESC)', amt: true, f: function (p, i) { var v = p[i][2], u = []; p.forEach(function (r) { if (r[2] > v && u.indexOf(r[2]) < 0) u.push(r[2]); }); return u.length + 1; }, fr: null,
+        s: `Ikkala 500 ham 1, keyingi 300 esa 2: sakrash yo'q. «Hisobdagi ikkinchi eng katta summa» savoliga shu funksiya to'g'ri javob beradi: DENSE_RANK = 2.` },
+      { t: 'LAG', e: 'LAG(summa) OVER (PARTITION BY hisob ORDER BY kun)', amt: false, f: function (p, i) { return i > 0 ? p[i - 1][2] : null; }, fr: function (i) { return i > 0 ? [i - 1, i - 1] : [-1, -2]; },
+        s: `Oldingi qatorning summasi. Har guruhning birinchi qatorida oldingi yo'q: NULL. Guruh chegarasidan o'tilmaydi, B ning birinchi qatori A ning oxirgisini ko'rmaydi. LAG(summa, 1, 0) yozilsa, NULL o'rniga 0.` },
+      { t: 'LEAD', e: 'LEAD(summa) OVER (PARTITION BY hisob ORDER BY kun)', amt: false, f: function (p, i, n) { return i < n - 1 ? p[i + 1][2] : null; }, fr: function (i, n) { return i < n - 1 ? [i + 1, i + 1] : [-1, -2]; },
+        s: `Keyingi qatorning summasi. Oxirgi qatorda NULL. Hujjat raqamlaridagi bo'shliqni topish: LEAD(raqam) − raqam > 1.` },
+      { t: 'SUM: guruh jami', e: 'SUM(summa) OVER (PARTITION BY hisob)', amt: false, f: function (p) { return p.reduce(function (a, r) { return a + r[2]; }, 0); }, fr: function (i, n) { return [0, n - 1]; },
+        s: `ORDER BY yo'q, shuning uchun ramka butun guruh: har qatorda hisob jami. GROUP BY dan farqi: qatorlar joyida qoldi. Ulush: summa / SUM(summa) OVER (PARTITION BY hisob).` },
+      { t: 'SUM: yig\'ma jami', e: 'SUM(summa) OVER (PARTITION BY hisob ORDER BY kun ROWS UNBOUNDED PRECEDING)', amt: false, f: function (p, i) { return p.slice(0, i + 1).reduce(function (a, r) { return a + r[2]; }, 0); }, fr: function (i) { return [0, i]; },
+        s: `Ramka: guruh boshidan joriy qatorgacha. Har qatorda shu kungacha bo'lgan jami. Bu yerda kunlar har xil, shuning uchun ROWS va sukut RANGE bir xil natija beradi; bir kunda ikki qator bo'lsa, farq qiladi.` },
+      { t: 'AVG: oxirgi 3 qator', e: 'AVG(summa) OVER (PARTITION BY hisob ORDER BY kun ROWS 2 PRECEDING)', amt: false, f: function (p, i) { var s = p.slice(Math.max(0, i - 2), i + 1); return rnd(s.reduce(function (a, r) { return a + r[2]; }, 0) / s.length); }, fr: function (i) { return [Math.max(0, i - 2), i]; },
+        s: `Sirpanuvchi o'rtacha: joriy qator va undan oldingi ikkitasi. Guruh boshida ramka kichikroq: birinchi qatorda faqat o'zi. Qatorni bosib, ramka qanday siljishini ko'ring.` },
+      { t: 'LAST_VALUE: tuzoq', e: 'LAST_VALUE(summa) OVER (PARTITION BY hisob ORDER BY kun)', amt: false, f: function (p, i) { return p[i][2]; }, fr: function (i) { return [0, i]; },
+        s: `Tuzoq. «Hisobning oxirgi to'lovi» kutilgan edi (A uchun 200), lekin har qatorda o'zining summasi chiqdi. Sabab: ORDER BY bor va ramka yozilmagan, sukut ramkasi guruh boshidan JORIY qatorgacha, uning oxirgisi esa joriy qatorning o'zi.` },
+      { t: 'LAST_VALUE: to\'g\'ri', e: 'LAST_VALUE(summa) OVER (PARTITION BY hisob ORDER BY kun ROWS BETWEEN UNBOUNDED PRECEDING AND UNBOUNDED FOLLOWING)', amt: false, f: function (p, i, n) { return p[n - 1][2]; }, fr: function (i, n) { return [0, n - 1]; },
+        s: `Ramka butun guruh, shuning uchun oxirgi qiymat hamma qatorda bir xil: A uchun 200, B uchun 400. Shu natijani FIRST_VALUE(summa) OVER (PARTITION BY hisob ORDER BY kun DESC) ham beradi.` }
+    ];
+    var setT = tabs('winT', F.map(function (f) { return f.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var f = F[cur]; setT(cur); svg.textContent = ''; marker(svg, 'wnmk');
+      var rows = parts(f.amt), byP = { A: rows.filter(function (r) { return r[0] === 'A'; }), B: rows.filter(function (r) { return r[0] === 'B'; }) };
+      var s = rows[sel], P = byP[s[0]], pi = P.indexOf(s), fr = f.fr ? f.fr(pi, P.length) : null;
+      S(svg, 'text', { x: 20, y: 24, 'class': 'mono' }, f.e);
+      var out = rows.map(function (r) { var p = byP[r[0]], i = p.indexOf(r); return [r[0], r[1], r[2], r[3], f.f(p, i, p.length)]; });
+      var gr = out.map(function (r, j) {
+        var k = '';
+        if (j === sel) k = 'on'; else if (rows[j][0] === s[0]) { var i2 = P.indexOf(rows[j]); if (fr ? (i2 >= fr[0] && i2 <= fr[1]) : true) k = 'live'; }
+        return { c: [r[0], r[1], r[2], r[3]], k: k };
+      });
+      grid(svg, 20, 70, [80, 90, 90, 60], ['hisob', 'kun', 'summa', 'id'], gr, 'Oyna: ' + (f.amt ? 'summa DESC tartibida' : 'kun tartibida'), function (j) { sel = j; draw(); });
+      grid(svg, 340, 70, [180], [f.t.split(':')[0]], out.map(function (r, j) { return { c: [r[4]], k: j === sel ? 'on' : '' }; }), 'Natija ustuni');
+      S(svg, 'rect', { x: 14, y: 70 + 26 * 5 - 2, width: 552, height: 4, 'class': 'mk' });
+      S(svg, 'text', { x: 580, y: 70 + 26 * 3, 'class': 'lbl' }, 'A guruhi');
+      S(svg, 'text', { x: 580, y: 70 + 26 * 6.6, 'class': 'lbl' }, 'B guruhi');
+      box(svg, 700, 50, 520, 150, 'Tanlangan qator: ' + s[0] + ', ' + s[1] + ', ' + s[2], 'natija: ' + show(out[sel][4]), 'on');
+      var ftxt = f.fr ? (fr[0] > fr[1] ? 'oynada qator yo\'q (guruh chekkasi)' : 'oynada ' + (fr[1] - fr[0] + 1) + ' qator, sariq') : 'reyting: butun guruh tartibi ishlatiladi';
+      S(svg, 'text', { x: 716, y: 128, 'class': 'sub' }, ftxt);
+      S(svg, 'text', { x: 716, y: 154, 'class': 'sub' }, 'Guruh: hisob = \'' + s[0] + '\', ' + P.length + ' qator. Boshqa guruh hisobga kirmaydi.');
+      S(svg, 'text', { x: 716, y: 180, 'class': 'sub' }, 'Boshqa qatorni bosing: oyna o\'zgaradi.');
+      say.textContent = f.s; say.className = 'say' + (cur === 8 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Daraxt ----------
+  (function () {
+    var svg = $('tree'), say = $('treeSay'), cur = 0;
+    var N = { 1: { n: 'Bosh ofis', p: null, x: 380, y: 20 }, 2: { n: 'Toshkent sh.', p: 1, x: 130, y: 130 }, 3: { n: 'Andijon vil.', p: 1, x: 630, y: 130 }, 4: { n: 'Chilonzor', p: 2, x: 20, y: 240 }, 5: { n: 'Yunusobod', p: 2, x: 240, y: 240 }, 6: { n: 'Andijon sh.', p: 3, x: 520, y: 240 }, 7: { n: 'Asaka', p: 3, x: 740, y: 240 } };
+    function kids(id) { return Object.keys(N).map(Number).filter(function (k) { return N[k].p === id; }).sort(function (a, b) { return N[a].n < N[b].n ? -1 : 1; }); }
+    function down(root) { var out = []; (function walk(id, l, path) { var pp = path + ' / ' + N[id].n; out.push({ id: id, l: l, path: pp }); kids(id).forEach(function (k) { walk(k, l + 1, pp); }); })(root, 1, ''); return out; }
+    function up(leaf) { var out = [], id = leaf, l = 1, pp = ''; while (id) { pp += ' / ' + N[id].n; out.push({ id: id, l: l, path: pp }); id = N[id].p; l++; } return out; }
+    var Q = [
+      { t: 'Butun daraxt', q: ['START WITH ota_id IS NULL', 'CONNECT BY PRIOR id = ota_id', 'ORDER SIBLINGS BY nomi'], r: function () { return down(1); }, s: `Ildizdan (ota_id bo'sh) boshlanadi va PRIOR id = ota_id bo'yicha pastga yuradi. Tartib chuqurlik bo'yicha: Bosh ofis, keyin Andijon viloyati va uning hamma bo'limlari, keyin Toshkent. ORDER SIBLINGS BY aka-ukalarni nomi bo'yicha saraladi, lekin daraxt tartibini buzmadi.` },
+      { t: 'Faqat Andijon shoxi', q: ['START WITH nomi = \'Andijon vil.\'', 'CONNECT BY PRIOR id = ota_id'], r: function () { return down(3); }, s: `START WITH boshqa tugunni tanladi: endi u ildiz va LEVEL 1. Shu filialning barcha quyi bo'limlari chiqdi. «Viloyat filiali va uning bo'limlari bo'yicha hisobot» shunday yoziladi.` },
+      { t: 'Bargdan yuqoriga', q: ['START WITH nomi = \'Asaka\'', 'CONNECT BY id = PRIOR ota_id'], r: function () { return up(7); }, s: `PRIOR tenglikning boshqa tomoniga o'tdi: endi «oldingi qatorning ota_id si = mening id im», ya'ni yuqoriga yuriladi. Asakadan bosh ofisgacha yo'l. Hisob yoki bo'lim qaysi viloyatga, qaysi bosh tashkilotga tegishli ekanini topish uchun.` },
+      { t: 'Rekursiv WITH', q: ['WITH t (id, nomi, lvl) AS (', '  SELECT id, nomi, 1 FROM filiallar WHERE ota_id IS NULL', '  UNION ALL', '  SELECT f.id, f.nomi, t.lvl + 1', '  FROM filiallar f JOIN t ON f.ota_id = t.id)', 'SEARCH DEPTH FIRST BY nomi SET tartib', 'SELECT * FROM t ORDER BY tartib'], r: function () { return down(1); }, s: `Standart yo'l. Birinchi qism ildizni beradi, ikkinchi qism avvalgi qadam natijasi (t) bilan JOIN qilib keyingi qavatni qo'shadi, yangi qator chiqmay qolganda to'xtaydi. SEARCH DEPTH FIRST CONNECT BY dagi tartibni beradi, SEARCH BREADTH FIRST esa qavatma-qavat.` }
+    ];
+    var setT = tabs('treeT', Q.map(function (q) { return q.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var q = Q[cur], res = q.r(); setT(cur); svg.textContent = ''; marker(svg, 'trmk');
+      var ord = {}; res.forEach(function (r, i) { ord[r.id] = { i: i + 1, l: r.l }; });
+      Object.keys(N).forEach(function (k) { var n = N[k]; if (n.p) { var p = N[n.p]; arrow(svg, 'trmk', 'M' + (p.x + 90) + ' ' + (p.y + 64) + 'L' + (n.x + 90) + ' ' + (n.y - 2)); } });
+      Object.keys(N).forEach(function (k) { var n = N[k], o = ord[k]; box(svg, n.x, n.y, 180, 64, n.n, o ? (o.i + '-qator, L = ' + o.l) : 'natijada yo\'q', o ? (o.i === 1 ? 'on' : 'live') : 'freed'); });
+      S(svg, 'text', { x: 20, y: 342, 'class': 'ttl' }, 'So\'rov');
+      q.q.forEach(function (l, i) { S(svg, 'text', { x: 20, y: 366 + i * 20, 'class': 'mono', style: 'white-space:pre' }, l); });
+      group(svg, 960, 20, 260, 300, 'Natija tartibi');
+      res.forEach(function (r, i) { S(svg, 'text', { x: 976, y: 70 + i * 30, 'class': 'mono', style: 'white-space:pre' }, (i + 1) + '. ' + '  '.repeat(r.l - 1) + N[r.id].n); });
+      say.textContent = q.s;
+    }
+    draw();
+  })();
+
+  // ---------- MERGE ----------
+  (function () {
+    var svg = $('mrg'), say = $('mrgSay'), cur = 0;
+    var TGT = [['USD', 12650], ['EUR', 13700], ['RUB', 155]];
+    var C = [
+      { t: 'Oddiy MERGE', src: [['USD', 12700], ['EUR', 13700], ['GBP', 16900]], del: false, s: `USD va EUR jadvalda bor: UPDATE. GBP yo'q: INSERT. EUR kursi o'zgarmagan bo'lsa ham yangilandi: buni oldini olish uchun WHEN MATCHED THEN UPDATE ... WHERE k.kurs <> f.kurs. RUB faylda yo'q, unga tegilmadi: MERGE manbada yo'q qatorlarni o'chirmaydi.` },
+      { t: 'DELETE WHERE bilan', src: [['USD', 12700], ['EUR', null], ['GBP', 16900]], del: true, s: `EUR faylda kurssiz keldi: avval UPDATE qilinadi, keyin DELETE WHERE f.kurs IS NULL sharti bilan o'chiriladi. DELETE faqat shu MERGE yangilagan qatorlarga ta'sir qiladi. Bu bandni 10g qo'shgan.` },
+      { t: 'Manbada takror', src: [['USD', 12700], ['USD', 12720], ['GBP', 16900]], del: false, s: `Faylda USD ikki marta: bitta maqsad qatoriga ikki manba qatori mos keldi. Oracle qaysi kurs oxirgi bo'lishini bilmaydi va butun MERGE ni bekor qiladi: ORA-30926. Yechim: USING ichida ROW_NUMBER bilan har valyutadan bittasini olish.` }
+    ];
+    var setT = tabs('mrgT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'mgmk');
+      grid(svg, 20, 60, [90, 110], ['valyuta', 'kurs'], c.src.map(function (r) { return { c: r, k: '' }; }), 'Manba: kurs_fayli');
+      var dup = c.src.filter(function (r) { return r[0] === 'USD'; }).length > 1;
+      var res = TGT.map(function (r) { return { c: r.slice(), k: '' }; });
+      c.src.forEach(function (r, i) {
+        var t = null; res.forEach(function (x) { if (x.c[0] === r[0]) t = x; });
+        var act, cls;
+        if (dup && r[0] === 'USD') { act = i === 0 ? 'UPDATE ?' : 'UPDATE ? (ikkinchi marta)'; cls = 'bad'; }
+        else if (t) { if (c.del && r[1] === null) { act = 'UPDATE, keyin DELETE'; cls = 'bad'; t.k = 'freed'; t.c[1] = null; } else { act = 'UPDATE'; cls = 'on'; t.c[1] = r[1]; t.k = 'live'; } }
+        else { act = 'INSERT'; cls = 'live'; res.push({ c: r.slice(), k: 'live' }); }
+        box(svg, 300, 70 + i * 66, 300, 56, act, 'ON (k.valyuta = \'' + r[0] + '\')', cls);
+        arrow(svg, 'mgmk', 'M220 ' + (60 + 26 * (i + 1) + 13) + 'L298 ' + (98 + i * 66));
+      });
+      if (dup) { box(svg, 700, 60, 520, 120, 'ORA-30926', 'unable to get a stable set of rows', 'bad'); S(svg, 'text', { x: 716, y: 150, 'class': 'sub' }, 'Butun MERGE bekor qilindi, jadval o\'zgarmadi.'); }
+      else grid(svg, 700, 60, [90, 110], ['valyuta', 'kurs'], res, 'Maqsad: kurslar (MERGE dan keyin)');
+      S(svg, 'text', { x: 700, y: 300, 'class': 'sub' }, dup ? '' : 'Sariq: yangilangan yoki qo\'shilgan. O\'chirilgan: chizilgan.');
+      say.textContent = c.s; say.className = 'say' + (dup ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  window.evoStepper('evoAn', [
+    { name: `Self join va subquery davri`, years: `1980–1998`, art: `<rect x="14" y="24" width="40" height="52" rx="3"/><rect x="66" y="24" width="40" height="52" rx="3"/><path d="M54 40h12M54 60h12" class="acc"/>`,
+      how: `Reyting, oldingi qator, yig'ma jami korrelyatsiyalangan subquery yoki jadvalni o'zi bilan JOIN qilib hisoblanadi. Ierarxiya uchun Oracle'ning CONNECT BY si bor.`,
+      better: `Hammasi SQL ichida, dastur siklisiz.`,
+      pain: `N² ish: har qator uchun guruhning hamma qatori qayta o'qiladi. Katta hisobotlar soatlab ishlaydi yoki ma'lumot dasturga yuklanadi.`,
+      ex: `«Mendan katta to'lovlar soni + 1» ko'rinishidagi reyting so'rovlari.` },
+    { name: `Oracle 8i: analitik funksiyalar`, years: `1999`, art: `<path d="M14 80h92"/><path d="M20 70l20-20 20 10 20-30 20 15" class="acc"/>`,
+      how: `Oracle 8.1.6 OVER (PARTITION BY ... ORDER BY ...) sintaksisini qo'shadi: RANK, ROW_NUMBER, LAG, LEAD, yig'ma va sirpanuvchi agregatlar. Ma'lumot bir marta saralanadi va bir o'tishda hisoblanadi.`,
+      better: `N² o'rniga bitta saralash. Ma'lumot omborlari va hisobotlar uchun katta sakrash.`,
+      pain: `Oracle'ga xos edi, standart hali yo'q.`,
+      ex: `Taklif IBM bilan birga ANSI ga yuborilgan va SQL:2003 dagi OLAP funksiyalarining asosiga aylangan.` },
+    { name: `9i va 10g: WITH, MERGE`, years: `2001–2003`, art: `<rect x="14" y="20" width="44" height="60" rx="3"/><rect x="62" y="20" width="44" height="60" rx="3"/><path d="M58 50h4" class="acc"/>`,
+      how: `9i: WITH (subquery factoring), MERGE, ANSI JOIN. 10g: MERGE da DELETE bandi, ixtiyoriy qismlar va WHERE, CONNECT BY da NOCYCLE, CONNECT_BY_ROOT, ISLEAF.`,
+      better: `Upsert bitta buyruq; murakkab so'rovlar nomlangan qadamlarga bo'linadi.`,
+      pain: `Rekursiya hali ham faqat CONNECT BY bilan, satrga terish uchun yordamchi funksiyalar yoziladi.`,
+      ex: `SQL:2003 standarti window funksiyalari va MERGE ni rasmiylashtiradi.` },
+    { name: `11g: PIVOT, LISTAGG, rekursiv WITH`, years: `2007–2009`, art: `<rect x="20" y="20" width="80" height="60" rx="3"/><path d="M20 40h80M47 20v60M74 20v60" class="acc"/>`,
+      how: `11g R1: PIVOT va UNPIVOT. 11g R2: LISTAGG, NTH_VALUE, rekursiv WITH (SEARCH, CYCLE bandlari bilan).`,
+      better: `Hisobot shakli SQL ichida, standart rekursiya.`,
+      pain: `LISTAGG 4000 bayt chegarasida yiqiladi.`,
+      ex: `Undan oldin satrga terish uchun WM_CONCAT (hujjatlashtirilmagan) yoki SYS_CONNECT_BY_PATH hiylasi ishlatilardi.` },
+    { name: `12c–21c: naqsh va ramka`, years: `2013–2021`, art: `<path d="M14 50h20l10-20 10 40 10-20h42" class="acc"/>`,
+      how: `12c: MATCH_RECOGNIZE (qatorlar ketma-ketligida naqsh), WITH ichida funksiya, FETCH FIRST. 12c R2: LISTAGG ON OVERFLOW. 19c: LISTAGG DISTINCT. 21c: WINDOW bandi (oynaga nom berish), GROUPS ramkasi, EXCLUDE.`,
+      better: `Antifrod va «ketma-ket hodisalar» kabi masalalar SQL da yoziladi.`,
+      pain: `Ko'p bank bazalari 12c yoki 19c da, 21c imkoniyatlari ishlatilmaydi.`,
+      ex: `23ai va 26ai da bu sohadagi asosiy qo'shimchalar sun'iy intellekt va vektor qidiruv tomonda.` }
+  ]);
+})();
+</script>
+</body>
+</html>
