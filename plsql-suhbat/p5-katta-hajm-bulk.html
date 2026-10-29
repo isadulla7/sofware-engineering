@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>P5. Katta hajmdagi ma'lumot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>P5. Katta hajmdagi ma'lumot: kolleksiyalar, BULK COLLECT, FORALL, LIMIT, dinamik SQL</h1>
+<p class="lead">Savol: million qatorni PL/SQL da qayta ishlash nega sekin, va uni qanday tezlashtirish mumkin? Kolleksiya xotirada qanday tuzilgan, xato bergan bitta qator butun yuklashni qanday to'xtatmaydi, va dinamik SQL qachon xavfli?</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p><strong>Kolleksiya</strong> PL/SQL dagi massiv: bir xil tipdagi elementlar ro'yxati, sessiya xotirasida. <strong>BULK COLLECT</strong> so'rov natijasini bitta murojaatda kolleksiyaga to'plab oladi, <strong>FORALL</strong> esa kolleksiyadagi hamma elementlar uchun bitta DML buyrug'ini bir murojaatda bajaradi.</p>
+    <p>O'xshatish: ombordan tovar tashish. Qatorma-qator ishlash bu har bir qutini alohida olib chiqish: har safar eshik ochiladi, imzo qo'yiladi. BULK bu aravaga 1000 quti yuklab, bir marta olib chiqish. <span class="num">LIMIT</span> arava hajmi: juda kichik bo'lsa, safar ko'p; juda katta bo'lsa, arava eshikdan sig'maydi (xotira tugaydi).</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Kun yopish va tungi jarayonlar:</strong> millionlab hisob bo'yicha foiz hisoblash, qoldiqlarni ko'chirish, arxivlash.</li>
+      <li><strong>Yuklash va eksport:</strong> protsessing fayllari, Markaziy bankka hisobotlar, boshqa tizimlar bilan almashinuv.</li>
+      <li><strong>Dinamik SQL:</strong> jadval yoki ustun nomi ish paytida ma'lum bo'lganda: partitsiya bo'yicha ishlash, umumiy hisobot generatori, DDL.</li>
+      <li><strong>Suhbatda:</strong> vakansiyadagi «katta hajmdagi ma'lumot» va «optimizatsiya» talablari aynan shu mavzu.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Bu darsning maqsadi</h3>
+    <ul>
+      <li>kontekst almashinuvi narxini va BULK uni qanday kamaytirishini hisoblab bera olish;</li>
+      <li>uch xil kolleksiya va ularning metodlari, siyrak kolleksiya tuzog'i;</li>
+      <li><span class="num">BULK COLLECT ... LIMIT</span> siklini to'g'ri yozish;</li>
+      <li><span class="num">FORALL</span>, <span class="num">SAVE EXCEPTIONS</span>, <span class="num">INDICES OF</span>, va SQL ning o'z vositalari: <span class="num">LOG ERRORS</span>, direct-path, parallel;</li>
+      <li><span class="num">EXECUTE IMMEDIATE</span>, <span class="num">DBMS_SQL</span>, bind o'zgaruvchilar va SQL injection.</li>
+    </ul>
+  </div>
+</div>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="where" role="img" aria-label="Bo'lim qavatlari, PL/SQL va SQL qavatlari ajratilgan"></svg></div>
+  <figcaption>Bu dars PL/SQL va SQL qavatlari orasidagi chegara haqida: ular orasida ma'lumotni qanday katta bo'laklarda tashish.</figcaption>
+</figure>
+
+<div class="scope">
+  <div>
+    <h4>Bu dars qamraydi</h4>
+    <ul>
+      <li>«Slow by slow»: qatorma-qator ishlashning narxi</li>
+      <li>Kolleksiyalar: associative array, nested table, VARRAY; metodlar; siyraklik</li>
+      <li><span class="num">BULK COLLECT</span>, <span class="num">LIMIT</span>, xotira (PGA)</li>
+      <li><span class="num">FORALL</span>, <span class="num">SQL%BULK_ROWCOUNT</span>, <span class="num">SAVE EXCEPTIONS</span>, <span class="num">INDICES OF</span>, <span class="num">VALUES OF</span></li>
+      <li><span class="num">TABLE()</span> operatori, pipelined funksiyalar</li>
+      <li>SQL ning o'zi bilan: <span class="num">INSERT /*+ APPEND */</span>, CTAS, <span class="num">LOG ERRORS</span>, parallel DML, <span class="num">DBMS_PARALLEL_EXECUTE</span></li>
+      <li>Dinamik SQL: <span class="num">EXECUTE IMMEDIATE</span>, <span class="num">USING</span>, <span class="num">OPEN FOR</span>, <span class="num">DBMS_SQL</span>, SQL injection, <span class="num">DBMS_ASSERT</span></li>
+    </ul>
+  </div>
+  <div>
+    <h4>Bu darsga kirmaydi</h4>
+    <ul>
+      <li>Parse va bind ichkaridan, shared pool: P6-darsda</li>
+      <li>Direct-path, redo va undo ichkaridan: P8-darsda</li>
+      <li>Partitsiyalash: P9-darsda</li>
+    </ul>
+  </div>
+</div>
+
+<h3><span class="part">1. Og'riq</span>Million qator, million safar</h3>
+<p>P3 dagi kursorli sikl va P4 dagi paketlar bilan har qanday mantiqni yozish mumkin edi. Lekin 1990-yillarning oxirida bank va telekom bazalari o'nlab millionlab qatorga yetdi va bir muammo yaqqol bo'ldi.</p>
+<ul>
+  <li><strong>Har qator uchun ikki safar.</strong> <span class="num">FOR r IN c LOOP UPDATE ... WHERE id = r.id; END LOOP</span>: har bir FETCH va har bir UPDATE PL/SQL dvigatelidan SQL dvigateliga o'tish. 10 million qatorda 20 million almashinuv. Har biri mikrosekundlar, jami esa o'nlab daqiqalar faqat «chegarani kesib o'tish»ga.</li>
+  <li><strong>Har UPDATE alohida buyruq.</strong> SQL dvigateli har birini alohida bajaradi: indeksni har safar qaytadan topadi, blokni har safar qaytadan oladi.</li>
+  <li><strong>Bitta yomon qator hammasini to'xtatadi.</strong> 10 million qatorli yuklashning 9 milliondan keyingi bittasi cheklovni buzdi: hammasi bekor, qaytadan boshlash.</li>
+</ul>
+<p>Kerak bo'lgan narsa: ma'lumotni chegaradan bitta-bitta emas, to'plab o'tkazish. Oracle 8i (1999) PL/SQL ga <span class="num">BULK COLLECT</span> va <span class="num">FORALL</span> ni qo'shdi, 9i esa xato bergan qatorlarni chetga yozib davom etishni (<span class="num">SAVE EXCEPTIONS</span>).</p>
+
+<h3><span class="part">2. Ichkarida</span>To'plab ishlash qanday ishlaydi</h3>
+
+<p class="beat">Kontekst almashinuvining narxi</p>
+<p>P3 dagi ikki dvigatelni eslang. Pastdagi chizmada 1 million qatorni o'qib, har birini yangilashning to'rt usuli. <span class="num">LIMIT</span> qiymatini o'zgartirib, almashinuvlar soni va xotira qanday o'zgarishini ko'ring. Vaqt ustuni taxminiy nisbat: aniq son har bazada boshqacha, lekin tartib shunday.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="bulk" style="width:1240px;height:380px" viewBox="0 0 1240 380" role="img" aria-label="Qatorma-qator, FOR sikl, BULK va bitta SQL: kontekst almashinuvlari, xotira va taxminiy vaqt"></svg></div>
+  <figcaption>Tepada PL/SQL va SQL dvigatellari va ular orasidagi har bir safar (bitta strelka ko'p safarni bildiradi). Pastda hisob: almashinuvlar, kolleksiya uchun xotira, taxminiy nisbiy vaqt.</figcaption>
+  <div class="evo-tabs" id="bulkT" style="margin-top:0.9rem"></div>
+  <div class="slider">
+    <label for="bulkL">LIMIT:</label>
+    <input class="numin" id="bulkL" type="number" value="1000" min="1" max="1000000" style="width:9rem">
+    <button type="button" data-bl="10">10</button>
+    <button type="button" data-bl="100">100</button>
+    <button type="button" data-bl="1000">1000</button>
+    <button type="button" data-bl="10000">10 000</button>
+    <button type="button" data-bl="1000000">LIMIT siz</button>
+  </div>
+  <p class="say" id="bulkSay" aria-live="polite"></p>
+</figure>
+<p>Uch xulosa. Birinchisi: eng tez yo'l odatda PL/SQL siz bitta SQL. Agar ishni <span class="num">UPDATE ... SET ... WHERE</span>, <span class="num">MERGE</span> yoki <span class="num">INSERT ... SELECT</span> bilan yozish mumkin bo'lsa, shunday yozing. Ikkinchisi: mantiq murakkab bo'lsa (har qator uchun boshqa paketni chaqirish, tashqi qoida), BULK COLLECT va FORALL. Uchinchisi: <span class="num">LIMIT</span> siz BULK COLLECT butun natijani xotiraga yuklaydi. 1 million qator × 200 bayt = 200 MB sessiya xotirasi (PGA), va bunday sessiyadan o'nta bo'lsa, server xotirasi tugaydi. 100 dan 1000 gacha LIMIT odatda yetarli: shundan keyin almashinuvlar soni deyarli ahamiyatsiz.</p>
+
+<p class="beat">Kolleksiyalar: uch xil massiv</p>
+<ul>
+  <li><strong>Associative array</strong> (<span class="num">TYPE t IS TABLE OF NUMBER INDEX BY PLS_INTEGER</span> yoki <span class="num">INDEX BY VARCHAR2(30)</span>): kalit-qiymat lug'ati, Java'dagi <span class="num">HashMap</span> ga o'xshash, lekin kalitlar tartiblangan. Faqat PL/SQL da, jadvalda saqlanmaydi. Ishga tushirish kerak emas, kalitlar istalgan va siyrak: <span class="num">t(5) := 1; t(1000) := 2;</span>. Kesh uchun ideal: <span class="num">kurs('USD')</span>.</li>
+  <li><strong>Nested table</strong> (<span class="num">TYPE t IS TABLE OF NUMBER</span>): cheklanmagan ro'yxat, indeks 1 dan. Konstruktor bilan yaratiladi (<span class="num">t := t_tip(10, 20, 30)</span>), <span class="num">EXTEND</span> bilan o'sadi. O'rtadan <span class="num">DELETE</span> qilinsa siyrak bo'ladi. SQL tipi sifatida (<span class="num">CREATE TYPE</span>) e'lon qilinsa, jadval ustuni bo'la oladi va <span class="num">TABLE()</span> bilan SQL da o'qiladi. <span class="num">MULTISET UNION</span>, <span class="num">MULTISET EXCEPT</span>, <span class="num">MEMBER OF</span> kabi to'plam amallari bor.</li>
+  <li><strong>VARRAY</strong> (<span class="num">TYPE t IS VARRAY(12) OF NUMBER</span>): eng ko'pi bilan N ta element, doim zich (o'rtadan o'chirib bo'lmaydi, faqat oxiridan <span class="num">TRIM</span>). Oz va tartibli ma'lumot uchun: «yilning 12 oyi».</li>
+</ul>
+<p>Metodlar: <span class="num">COUNT</span> (mavjud elementlar soni), <span class="num">FIRST</span> va <span class="num">LAST</span> (eng kichik va eng katta indeks), <span class="num">NEXT(i)</span> va <span class="num">PRIOR(i)</span> (keyingi va oldingi mavjud indeks), <span class="num">EXISTS(i)</span>, <span class="num">EXTEND(n)</span>, <span class="num">TRIM(n)</span>, <span class="num">DELETE(i)</span> yoki <span class="num">DELETE</span> (hammasi), <span class="num">LIMIT</span> (VARRAY ning chegarasi). Siyrak kolleksiyada <span class="num">COUNT</span> va <span class="num">LAST</span> farq qiladi, va bu eng ko'p uchraydigan xato. Ketma-ket bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="coll" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Nested table elementlari, metodlar natijasi va sikl qaysi elementda yiqilishi"></svg></div>
+  <figcaption>Tepada nested table'ning indekslari va qiymatlari. O'ngda metodlar natijasi. Pastda ikki xil sikl: FOR 1..COUNT va NEXT bilan yurish.</figcaption>
+  <div class="evo-tabs" id="collT" style="margin-top:0.9rem"></div>
+  <p class="say" id="collSay" aria-live="polite"></p>
+</figure>
+
+<p class="beat">BULK COLLECT va LIMIT</p>
+<pre class="code" style="margin:0.5rem 0 1rem">DECLARE
+  CURSOR c IS SELECT id, qoldiq, stavka FROM depozitlar WHERE holat = 'OCHIQ';
+  TYPE t_rows IS TABLE OF c%ROWTYPE;
+  l_rows t_rows;
+  TYPE t_num IS TABLE OF NUMBER INDEX BY PLS_INTEGER;
+  l_id t_num; l_foiz t_num;
+BEGIN
+  OPEN c;
+  LOOP
+    FETCH c BULK COLLECT INTO l_rows LIMIT 1000;    -- bitta safarda 1000 tagacha
+    EXIT WHEN l_rows.COUNT = 0;                     -- %NOTFOUND emas! pastga qarang
+    FOR i IN 1 .. l_rows.COUNT LOOP                 -- hisob PL/SQL da, xotirada
+      l_id(i)   := l_rows(i).id;
+      l_foiz(i) := ROUND(l_rows(i).qoldiq * l_rows(i).stavka / 100 / 365, 2);
+    END LOOP;
+    FORALL i IN 1 .. l_rows.COUNT                   -- bitta safarda 1000 ta UPDATE
+      UPDATE depozitlar SET hisoblangan = hisoblangan + l_foiz(i) WHERE id = l_id(i);
+  END LOOP;
+  CLOSE c;
+END;</pre>
+<p><strong><span class="num">%NOTFOUND</span> tuzog'i.</strong> 2500 qator bor, LIMIT 1000. Uchinchi FETCH 500 qator beradi va <span class="num">c%NOTFOUND</span> allaqachon TRUE, chunki so'ralgan 1000 tadan kam keldi. <span class="num">EXIT WHEN c%NOTFOUND</span> FETCH dan darhol keyin yozilsa, oxirgi 500 qator qayta ishlanmaydi va hech qanday xato chiqmaydi. To'g'risi: <span class="num">EXIT WHEN l_rows.COUNT = 0</span> FETCH dan keyin, yoki <span class="num">EXIT WHEN c%NOTFOUND</span> sikl oxirida, qayta ishlashdan keyin.</p>
+<p>BULK COLLECT kursorsiz ham: <span class="num">SELECT ... BULK COLLECT INTO l_rows FROM ...</span> (LIMIT siz, faqat kichik natija uchun). Natija bo'sh bo'lsa, <span class="num">NO_DATA_FOUND</span> chiqmaydi: kolleksiya shunchaki bo'sh. DML dan ham: <span class="num">DELETE ... RETURNING id BULK COLLECT INTO l_ids</span>.</p>
+
+<p class="beat">FORALL: bitta buyruq, ko'p qiymat</p>
+<p><span class="num">FORALL</span> sikl emas. U SQL dvigateliga bitta DML buyrug'ini va qiymatlar massivini bir martada yuboradi: «shu UPDATE ni 1000 ta qiymat to'plami bilan bajar». Shuning uchun uning ichida faqat bitta DML bo'ladi, boshqa PL/SQL kodi yo'q. Natijalar: <span class="num">SQL%ROWCOUNT</span> (jami), <span class="num">SQL%BULK_ROWCOUNT(i)</span> (i-element nechta qatorga ta'sir qildi). Kolleksiya siyrak bo'lsa, <span class="num">FORALL i IN 1 .. l.COUNT</span> mavjud bo'lmagan elementga uriladi; <span class="num">INDICES OF l</span> faqat mavjudlari bo'yicha yuradi, <span class="num">VALUES OF l_idx</span> esa boshqa kolleksiyada sanab o'tilgan indekslar bo'yicha.</p>
+<p>Bitta element xato bersa nima bo'ladi? Holatni tanlang:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="fa" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="FORALL beshta element, uchinchisi xato: SAVE EXCEPTIONS siz, bilan va LOG ERRORS"></svg></div>
+  <figcaption>Besh elementli INSERT, 3-elementda UNIQUE cheklov buziladi. Har element uchun natija va oxirida chaqiruvchi nimani ko'radi.</figcaption>
+  <div class="evo-tabs" id="faT" style="margin-top:0.9rem"></div>
+  <p class="say" id="faSay" aria-live="polite"></p>
+</figure>
+<pre class="code" style="margin:0.5rem 0 1rem">BEGIN
+  FORALL i IN 1 .. l.COUNT SAVE EXCEPTIONS
+    INSERT INTO tolovlar VALUES l(i);
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE = -24381 THEN                         -- ORA-24381: error(s) in array DML
+      FOR j IN 1 .. SQL%BULK_EXCEPTIONS.COUNT LOOP
+        log_xato(l(SQL%BULK_EXCEPTIONS(j).ERROR_INDEX).id,
+                 SQLERRM(-SQL%BULK_EXCEPTIONS(j).ERROR_CODE));
+      END LOOP;
+    ELSE RAISE; END IF;
+END;</pre>
+
+<p class="beat">Ba'zan PL/SQL umuman kerak emas</p>
+<p>Katta hajm uchun SQL ning o'z vositalari ko'pincha PL/SQL dagi eng yaxshi BULK siklidan ham tez:</p>
+<ul>
+  <li><strong>Direct-path insert</strong>: <span class="num">INSERT /*+ APPEND */ INTO arxiv SELECT ...</span>. Ma'lumot bufer keshini chetlab, to'g'ridan-to'g'ri jadval oxiriga (yuqori suv belgisidan keyin) yoziladi, undo deyarli yo'q, <span class="num">NOLOGGING</span> jadvalda redo ham kam. Narxi: <span class="num">COMMIT</span> gacha jadval shu sessiya uchun qulflangan va shu sessiya uni o'qiy olmaydi (<span class="num">ORA-12838</span>).</li>
+  <li><strong>CTAS</strong>: <span class="num">CREATE TABLE yangi AS SELECT ...</span>, keyin nom almashtirish. 50 million qatordan 40 millionini o'chirgandan ko'ra, qoladigan 10 millionni yangi jadvalga ko'chirish ancha tez.</li>
+  <li><strong>DML error logging</strong> (10g R2): <span class="num">INSERT INTO t SELECT ... LOG ERRORS INTO err$_t REJECT LIMIT UNLIMITED</span>. Xato bergan qatorlar sababi bilan alohida jadvalga yoziladi, qolganlari kiradi: bitta SQL bilan SAVE EXCEPTIONS ning ishi. Jadval <span class="num">DBMS_ERRLOG.CREATE_ERROR_LOG</span> bilan yaratiladi.</li>
+  <li><strong>Parallel</strong>: <span class="num">ALTER SESSION ENABLE PARALLEL DML</span> va <span class="num">/*+ PARALLEL(8) */</span>: bitta buyruq bir nechta jarayonda bajariladi. Kuchli, lekin server resurslarini boshqa foydalanuvchilardan oladi.</li>
+  <li><strong><span class="num">DBMS_PARALLEL_EXECUTE</span></strong> (11g R2): katta jadvalni ROWID yoki kalit oraliqlari bo'yicha bo'laklarga bo'lib, har bo'lakni alohida job'da, alohida tranzaksiyada bajaradi. Yiqilgan bo'lakni qayta ishga tushirish mumkin. Kun yopishdagi «hamma hisoblar bo'yicha» ishlar uchun.</li>
+  <li><strong>Pipelined funksiya</strong>: <span class="num">FUNCTION f RETURN t_tab PIPELINED</span>, ichida <span class="num">PIPE ROW(...)</span>. Natijani to'liq yig'masdan, qatorma-qator so'rovga uzatadi: <span class="num">SELECT * FROM TABLE(f(...))</span>. Murakkab PL/SQL o'zgartirishni SQL ichida «jadval» kabi ishlatish va xotirani tejash uchun (ETL).</li>
+</ul>
+
+<p class="beat">Dinamik SQL</p>
+<p><strong>Statik SQL</strong> PL/SQL kodiga to'g'ridan-to'g'ri yozilgan va kompilyatsiyada tekshiriladi: jadval bor-yo'qligi, ustun tiplari, huquqlar. <strong>Dinamik SQL</strong> satr sifatida ish paytida yasaladi va bajariladi. U kerak bo'ladi, qachonki:</p>
+<ul>
+  <li>jadval, ustun yoki partitsiya nomi ish paytida ma'lum: <span class="num">'SELECT ... FROM tolovlar PARTITION (p_' || v_oy || ')'</span>;</li>
+  <li>DDL: <span class="num">EXECUTE IMMEDIATE 'TRUNCATE TABLE vaqtinchalik'</span>. PL/SQL da DDL ni statik yozib bo'lmaydi. DDL dan oldin va keyin Oracle yashirin <span class="num">COMMIT</span> qiladi: tranzaksiyadagi saqlanmagan o'zgarishlar ham saqlanadi;</li>
+  <li>WHERE shartlari foydalanuvchi tanlagan filtrlarga qarab yig'iladi (qidiruv ekrani).</li>
+</ul>
+<pre class="code" style="margin:0.5rem 0 1rem">EXECUTE IMMEDIATE 'UPDATE ' || DBMS_ASSERT.SQL_OBJECT_NAME(p_jadval) ||
+                  ' SET holat = :h WHERE id = :id'
+  USING 'YOPIQ', p_id;                                       -- qiymatlar faqat bind orqali
+
+EXECUTE IMMEDIATE 'SELECT qoldiq FROM hisoblar WHERE raqam = :r' INTO v_q USING p_raqam;
+
+OPEN v_cur FOR 'SELECT * FROM tolovlar WHERE filial = :f' USING p_filial;   -- REF CURSOR</pre>
+<p><strong>Native dinamik SQL</strong> (<span class="num">EXECUTE IMMEDIATE</span>, <span class="num">OPEN FOR</span>, 8i dan) qisqa va tez. <strong><span class="num">DBMS_SQL</span></strong> paketi (Oracle 7 dan) uzunroq, lekin ustunlar soni va tipi oldindan noma'lum bo'lganda kerak: ixtiyoriy so'rov natijasini CSV ga yozadigan umumiy eksport. 11g dan ikkalasi orasida o'tish mumkin: <span class="num">DBMS_SQL.TO_REFCURSOR</span> va <span class="num">TO_CURSOR_NUMBER</span>.</p>
+<p><strong>SQL injection.</strong> Foydalanuvchi kiritgan qiymat satrga ulansa, u qiymat emas, SQL kodining bir qismiga aylanadi. Bu dinamik SQL ning eng katta xavfi va suhbatda albatta so'raladi. Qiymatni yozib ko'ring:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="inj" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Foydalanuvchi kiritgan qiymat satrga ulanganda va bind qilinganda Oracle nimani bajaradi"></svg></div>
+  <figcaption>Chapda foydalanuvchi kiritgan matn, o'rtada Oracle'ga boradigan SQL, o'ngda natija. Qiymatni o'zgartiring va usulni tanlang.</figcaption>
+  <div class="evo-tabs" id="injT" style="margin-top:0.9rem"></div>
+  <div class="slider">
+    <label for="injV">Kiritilgan raqam:</label>
+    <input class="numin" id="injV" type="text" value="20208000100000000001" style="width:22rem">
+    <button type="button" data-iv="20208000100000000001">oddiy</button>
+    <button type="button" data-iv="x' OR '1'='1">OR '1'='1'</button>
+    <button type="button" data-iv="x' UNION SELECT parol, NULL FROM foydalanuvchilar --">UNION</button>
+  </div>
+  <p class="say" id="injSay" aria-live="polite"></p>
+</figure>
+<p>Himoya: <strong>qiymatlar doim bind o'zgaruvchi bilan</strong> (<span class="num">USING</span>). Bind qilingan qiymat hech qachon SQL kodi sifatida o'qilmaydi. Bind bilan ifodalab bo'lmaydigan narsalar (jadval, ustun nomi, <span class="num">ORDER BY</span> yo'nalishi) uchun: ruxsat etilgan qiymatlar ro'yxati bilan solishtirish yoki <span class="num">DBMS_ASSERT</span> (<span class="num">SIMPLE_SQL_NAME</span>, <span class="num">SQL_OBJECT_NAME</span>, <span class="num">ENQUOTE_LITERAL</span>). Va definer rights paketidagi dinamik SQL ayniqsa xavfli: u paket egasining huquqlari bilan bajariladi. Bindning ikkinchi foydasi tezlik: bir xil matnli so'rov bir marta parse qilinadi (P6).</p>
+
+<h3><span class="part">3. Yaratilishi va o'zgarishi</span>To'plab ishlash va dinamik SQL tarixi</h3>
+<div class="bench" id="evoBk"></div>
+
+<h3><span class="part">4. Atamalar</span></h3>
+<dl class="terms">
+  <dt>Row by row («slow by slow»)</dt><dd>Qatorlarni siklda bitta-bitta qayta ishlash. Har qator uchun kontekst almashinuvi va alohida SQL.</dd>
+  <dt>Kolleksiya</dt><dd>PL/SQL dagi bir xil tipli elementlar to'plami: associative array, nested table, VARRAY.</dd>
+  <dt>Associative array (INDEX BY)</dt><dd>Kalit-qiymat lug'ati, kalit son yoki satr, siyrak, ishga tushirish kerak emas, faqat PL/SQL da.</dd>
+  <dt>Nested table</dt><dd>Cheklanmagan, 1 dan indekslangan ro'yxat. Konstruktor va EXTEND kerak, DELETE dan keyin siyrak bo'ladi. SQL tipi bo'la oladi.</dd>
+  <dt>VARRAY</dt><dd>Eng ko'pi N elementli, doim zich massiv.</dd>
+  <dt>Zich va siyrak</dt><dd>1 dan LAST gacha hamma indeks bor; orada bo'shliqlar bor. Siyrakda COUNT va LAST farq qiladi.</dd>
+  <dt>COUNT, FIRST, LAST, NEXT, PRIOR, EXISTS, EXTEND, TRIM, DELETE</dt><dd>Kolleksiya metodlari.</dd>
+  <dt>BULK COLLECT</dt><dd>So'rov natijasini bitta murojaatda kolleksiyaga olish.</dd>
+  <dt>LIMIT</dt><dd>Bitta BULK FETCH da eng ko'pi bilan nechta qator. Xotirani nazorat qiladi.</dd>
+  <dt>FORALL</dt><dd>Bitta DML ni kolleksiyadagi barcha qiymatlar bilan bitta murojaatda bajarish. Sikl emas.</dd>
+  <dt>SQL%BULK_ROWCOUNT, SQL%BULK_EXCEPTIONS</dt><dd>FORALL ning har elementi ta'sir qilgan qatorlar soni; SAVE EXCEPTIONS da yig'ilgan xatolar (ERROR_INDEX, ERROR_CODE).</dd>
+  <dt>SAVE EXCEPTIONS, ORA-24381</dt><dd>FORALL da xato bergan elementlarni o'tkazib davom etish; oxirida yig'ma xato.</dd>
+  <dt>INDICES OF, VALUES OF</dt><dd>FORALL ni siyrak kolleksiyaning mavjud indekslari yoki boshqa kolleksiyada sanalgan indekslar bo'yicha bajarish.</dd>
+  <dt>TABLE() operatori</dt><dd>Kolleksiyani SQL da jadval kabi o'qish.</dd>
+  <dt>Pipelined funksiya</dt><dd>Natijani PIPE ROW bilan qatorma-qator uzatadigan jadval funksiyasi.</dd>
+  <dt>Direct-path insert (APPEND)</dt><dd>Bufer keshini chetlab, jadval oxiriga to'g'ridan-to'g'ri yozish. Undo kam, jadval COMMIT gacha qulflangan.</dd>
+  <dt>CTAS</dt><dd>CREATE TABLE ... AS SELECT: so'rov natijasidan yangi jadval.</dd>
+  <dt>DML error logging (LOG ERRORS)</dt><dd>Xato bergan qatorlarni alohida jadvalga yozib, buyruqni davom ettirish.</dd>
+  <dt>DBMS_PARALLEL_EXECUTE</dt><dd>Katta DML ni bo'laklarga bo'lib, parallel job'larda bajarish.</dd>
+  <dt>Statik va dinamik SQL</dt><dd>Kodda yozilgan va kompilyatsiyada tekshiriladigan; ish paytida satrdan yasaladigan.</dd>
+  <dt>EXECUTE IMMEDIATE, USING, OPEN FOR</dt><dd>Native dinamik SQL: bajarish; bind qiymatlarini berish; dinamik so'rov uchun REF CURSOR ochish.</dd>
+  <dt>DBMS_SQL</dt><dd>Ustunlari oldindan noma'lum so'rovlar uchun dinamik SQL paketi.</dd>
+  <dt>SQL injection</dt><dd>Kiritilgan qiymat SQL kodiga aylanib, so'rov ma'nosini o'zgartirishi. Himoya: bind va DBMS_ASSERT.</dd>
+</dl>
+
+<h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
+<div class="rule">
+  <b>Tuzoq: LIMIT siz BULK COLLECT</b>
+  <p>Test bazasida 10 ming qator, hammasi yaxshi. Prodda 30 million qator: sessiya bir necha gigabayt PGA oldi, server xotirasi tugadi va boshqa sessiyalar ham sekinlashdi yoki <span class="num">ORA-04030: out of process memory</span> oldi.</p>
+  <p class="why">To'g'risi: katta yoki o'sib boradigan natija uchun doim <span class="num">LIMIT</span> bilan sikl (100–1000).</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: EXIT WHEN c%NOTFOUND FETCH dan darhol keyin</b>
+  <p>Oxirgi to'liq bo'lmagan to'plam jimgina tashlab ketiladi. Har kecha bir necha yuz depozitga foiz hisoblanmay qoladi, va bu oy oxiridagi solishtiruvdagina ko'rinadi.</p>
+  <p class="why">To'g'risi: <span class="num">EXIT WHEN l_rows.COUNT = 0</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: siyrak kolleksiyada FOR 1 .. COUNT</b>
+  <p>Kolleksiyadan tekshiruvdan o'tmaganlar <span class="num">DELETE(i)</span> bilan olib tashlandi, keyin <span class="num">FOR i IN 1 .. l.COUNT LOOP ... l(i)</span>: birinchi o'chirilgan indeksda <span class="num">NO_DATA_FOUND</span>, oxirgi elementlar esa umuman ko'rilmaydi. <span class="num">FORALL i IN 1 .. l.COUNT</span> da <span class="num">ORA-22160: element at index does not exist</span>.</p>
+  <p class="why">To'g'risi: <span class="num">i := l.FIRST; WHILE i IS NOT NULL LOOP ... i := l.NEXT(i); END LOOP;</span> va <span class="num">FORALL i IN INDICES OF l</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: satrga ulangan qiymatlar</b>
+  <p><span class="num">EXECUTE IMMEDIATE 'SELECT ... WHERE raqam = ''' || p_raqam || ''''</span>. Xavfsizlik teshigi (yuqoridagi chizma), va har xil qiymat uchun yangi SQL matni: shared pool minglab bir martalik so'rovga to'ladi va har biri qattiq parse qilinadi (P6).</p>
+  <p class="why">To'g'risi: <span class="num">... WHERE raqam = :r' USING p_raqam</span>.</p>
+</div>
+<div class="rule">
+  <b>Tuzoq: tranzaksiya ichida EXECUTE IMMEDIATE bilan DDL</b>
+  <p>Protsedura avval 1000 qatorni yangiladi, keyin vaqtinchalik jadvalni <span class="num">TRUNCATE</span> qildi, keyin xato berdi. Ilova <span class="num">ROLLBACK</span> qildi, lekin 1000 qatorlik yangilanish qaytmadi: DDL undan oldin yashirin COMMIT qilgan edi.</p>
+  <p class="why">To'g'risi: DDL ni biznes tranzaksiyasidan tashqarida qilish, vaqtinchalik ma'lumot uchun DDL siz yechim: global temporary table (<span class="num">ON COMMIT DELETE ROWS</span>) yoki kolleksiya.</p>
+</div>
+
+<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda raqamlar bilan gapirish (necha qator, qancha vaqt, qancha xotira) kuchli taassurot qoldiradi.</p>
+<details><summary>BULK COLLECT va FORALL nima va nega tezroq?</summary>
+<p>PL/SQL va SQL alohida dvigatellar, har o'tish kontekst almashinuvi. Qatorma-qator siklda har FETCH va har DML bitta almashinuv: million qatorda ikki million. BULK COLLECT so'rov natijasini bitta murojaatda kolleksiyaga oladi, FORALL bitta DML ni kolleksiyaning barcha qiymatlari bilan bitta murojaatda bajaradi. LIMIT 1000 bilan million qator uchun mingta FETCH va mingta FORALL: almashinuvlar ming baravar kam. SQL dvigateli ham massiv bilan ishlab, bloklarni samaraliroq oladi. Lekin undan ham tez variant ko'pincha PL/SQL siz bitta SQL.</p></details>
+<details><summary>LIMIT nima uchun kerak va qanday qiymat tanlaysiz?</summary>
+<p>LIMIT siz BULK COLLECT butun natijani sessiya xotirasiga (PGA) yuklaydi: millionlab qatorda gigabaytlar va ORA-04030 xavfi, boshqa sessiyalarga ham ta'sir. LIMIT bitta FETCH dagi qatorlar sonini cheklaydi. 100 dan 1000 gacha odatda optimal: almashinuvlar allaqachon kam, xotira esa kichik. Juda katta LIMIT tezlikni deyarli oshirmaydi, faqat xotirani yeydi. Qator keng bo'lsa (ko'p ustun, CLOB) kichikroq.</p></details>
+<details><summary>BULK COLLECT LIMIT siklida qanday xato qilish mumkin?</summary>
+<p>EXIT WHEN c%NOTFOUND ni FETCH dan darhol keyin yozish: oxirgi to'plam LIMIT dan kichik bo'lsa, %NOTFOUND allaqachon TRUE va bu qatorlar qayta ishlanmaydi. To'g'risi EXIT WHEN kolleksiya.COUNT = 0 yoki %NOTFOUND ni sikl oxirida tekshirish. Yana: LIMIT siz BULK COLLECT, va siyrak kolleksiya ustidan 1..COUNT bilan yurish.</p></details>
+<details><summary>Kolleksiya turlari va farqlari?</summary>
+<p>Associative array (INDEX BY): kalit-qiymat, kalit PLS_INTEGER yoki VARCHAR2, siyrak, ishga tushirish kerak emas, faqat PL/SQL da; kesh va lug'at uchun. Nested table: cheklanmagan, konstruktor va EXTEND bilan, DELETE dan keyin siyrak bo'ladi, SQL tipi bo'lishi va jadval ustunida saqlanishi mumkin, MULTISET amallari bor; BULK COLLECT uchun ko'p ishlatiladi. VARRAY: belgilangan maksimal o'lcham, doim zich, tartib saqlanadi; kichik qat'iy ro'yxatlar uchun. BULK COLLECT uchchalasiga ham ishlaydi.</p></details>
+<details><summary>FORALL ning ichida bitta element xato bersa nima bo'ladi? SAVE EXCEPTIONS nima?</summary>
+<p>SAVE EXCEPTIONS siz FORALL xato bergan elementda to'xtaydi va xatoni ko'taradi. Undan oldingi elementlarning o'zgarishlari bekor qilinmaydi: ular tranzaksiyada qoladi, va chaqiruvchi ROLLBACK yoki COMMIT ni o'zi hal qiladi. SAVE EXCEPTIONS bilan xato bergan elementlar o'tkazib yuboriladi, qolganlari bajariladi, oxirida ORA-24381 ko'tariladi, va SQL%BULK_EXCEPTIONS da har xatoning ERROR_INDEX va ERROR_CODE i bor. Muqobil: bitta INSERT ... SELECT ... LOG ERRORS INTO, xatolar jadvalga yoziladi.</p></details>
+<details><summary>Million qatorni yangilash kerak. Qanday yondashasiz?</summary>
+<p>Birinchi savol: buni bitta SQL bilan qilish mumkinmi (UPDATE, MERGE)? Mumkin bo'lsa, shunday, kerak bo'lsa parallel DML bilan. Qatorlarning katta qismi o'zgarsa yoki o'chirilsa, CTAS bilan yangi jadval yasab almashtirish. Mantiq murakkab bo'lsa: BULK COLLECT LIMIT va FORALL. Uzoq jarayon bo'lsa: bo'laklarga bo'lish (DBMS_PARALLEL_EXECUTE), har bo'lakda COMMIT, qayta ishga tushirishda davom eta olish. Va har doim: reja (indeks bormi, to'liq o'qish kerakmi), undo va redo hajmi, boshqa sessiyalarga qulf ta'siri, ish oynasi.</p></details>
+<details><summary>Statik va dinamik SQL farqi? Dinamik SQL qachon kerak?</summary>
+<p>Statik SQL kompilyatsiyada tekshiriladi (obyektlar, ustunlar, huquqlar), bog'liqliklar kuzatiladi, va avtomatik bind. Dinamik SQL ish paytida satrdan yasaladi va faqat bajarilganda tekshiriladi. Kerak bo'ladi: jadval yoki ustun nomi ish paytida ma'lum, DDL, o'zgaruvchan WHERE shartlari, ustunlari noma'lum so'rovlar (DBMS_SQL). Narxi: kompilyatsiya tekshiruvi yo'q, bog'liqliklar ko'rinmaydi, SQL injection xavfi. Imkon bo'lsa statik.</p></details>
+<details><summary>EXECUTE IMMEDIATE va DBMS_SQL farqi?</summary>
+<p>EXECUTE IMMEDIATE va OPEN FOR (native dinamik SQL) qisqa, tez, BULK COLLECT va RETURNING bilan ishlaydi, lekin bind o'zgaruvchilar soni va natija ustunlari kompilyatsiyada ma'lum bo'lishi kerak. DBMS_SQL uzunroq (OPEN_CURSOR, PARSE, BIND_VARIABLE, DEFINE_COLUMN, EXECUTE, FETCH_ROWS), lekin ustunlar soni va tipini ish paytida aniqlaydi (DESCRIBE_COLUMNS) va bitta parse qilingan kursorni ko'p marta bajaradi. 11g dan ular orasida konvertatsiya bor.</p></details>
+<details><summary>SQL injection nima va PL/SQL da qanday himoyalanasiz?</summary>
+<p>Kiritilgan qiymat satrga ulanib, SQL kodining bir qismiga aylanishi: <span class="num">' OR '1'='1</span> filtrni yo'q qiladi, <span class="num">UNION SELECT</span> boshqa jadvalni o'qiydi. Himoya: qiymatlarni faqat bind (USING) bilan berish; obyekt nomlari va SQL qismlarini oq ro'yxat yoki DBMS_ASSERT bilan tekshirish; definer rights paketlarida dinamik SQL ni minimal qilish va eng kam huquq. Bind ning qo'shimcha foydasi: bitta SQL matni, bitta parse.</p></details>
+<details><summary>DDL ni PL/SQL ichida bajarish mumkinmi? Nimaga e'tibor berish kerak?</summary>
+<p>Faqat dinamik SQL bilan: EXECUTE IMMEDIATE 'CREATE ...'. DDL dan oldin va keyin yashirin COMMIT bo'ladi: tranzaksiyadagi saqlanmagan o'zgarishlar saqlanadi va ROLLBACK ularni qaytarmaydi. DDL bog'liq obyektlarni INVALID qiladi va ochiq sessiyalarda ORA-04068 tug'dirishi mumkin. Ish paytida jadval yaratish odatda noto'g'ri loyiha belgisi: vaqtinchalik ma'lumot uchun global temporary table yoki kolleksiya.</p></details>
+<details><summary>Pipelined table function nima?</summary>
+<p>Kolleksiya tipini qaytaradigan, lekin natijani to'liq yig'masdan PIPE ROW bilan qatorma-qator uzatadigan funksiya. SQL da SELECT * FROM TABLE(f(...)) kabi ishlatiladi va boshqa jadvallar bilan JOIN qilinadi. Foydasi: xotira kam (hammasi bir vaqtda xotirada emas), birinchi qatorlar darhol keladi, murakkab PL/SQL o'zgartirishni ETL so'rovi ichida ishlatish mumkin, PARALLEL_ENABLE bilan parallel bajariladi.</p></details>
+
+<h3><span class="part">7. Tekshiruv</span></h3>
+<p>Javoblarni chatga yozing.</p>
+<ol class="check">
+  <li>Har kecha 5 million ochiq depozitga kunlik foiz hisoblanadi. Hozir bu qatorma-qator sikl va 3 soat ishlaydi. Qanday qayta yozasiz? Ikki variantni ayting va qaysi biri tezroq bo'lishini tushuntiring.</li>
+  <li>2350 qatorli kursor, <span class="num">LIMIT 1000</span>, sikl ichida birinchi qator <span class="num">EXIT WHEN c%NOTFOUND</span>. Nechta qator qayta ishlanadi?</li>
+  <li>Protsessing faylidagi 200 ming tranzaksiyani yuklash kerak, ularning bir qismi takror yoki noto'g'ri. Yaxshi qatorlar kirsin, yomonlari sababi bilan alohida saqlansin. Ikki usulda yozing.</li>
+  <li>Qidiruv ekrani: foydalanuvchi filial, sana oralig'i, summa oralig'i, holatdan istalganini tanlaydi. Dinamik SQL ni injection siz va bind bilan qanday yig'asiz? Tanlanmagan filtr bilan bind o'zgaruvchilar soni o'zgarsa nima qilasiz?</li>
+  <li>Siyrak associative array ning barcha elementlarini chiqaradigan siklni yozing.</li>
+</ol>
+
+<h3>Chuqurroq</h3>
+<details><summary>Kursorli FOR sikl 10g dan nega tezlashgan</summary>
+<p><span class="num">PLSQL_OPTIMIZE_LEVEL</span> 2 va undan yuqori bo'lsa (sukut), kompilyator <span class="num">FOR r IN c LOOP</span> ni ichkarida 100 qatorlik BULK FETCH ga aylantiradi. Shuning uchun faqat o'qiydigan FOR sikl oshkor BULK COLLECT dan unchalik sekin emas. Lekin sikl ichidagi DML (UPDATE, INSERT) hali ham har qator uchun alohida: uni FORALL ga o'tkazish kerak. Oshkor <span class="num">OPEN / FETCH / CLOSE</span> siklida bunday optimallashtirish yo'q.</p></details>
+<details><summary>Bind o'zgaruvchilar soni o'zgaradigan dinamik WHERE</summary>
+<p>Klassik usul: hamma filtrni doim yozish, lekin «tanlanmagan bo'lsa shart bajarilsin» ko'rinishida: <span class="num">WHERE (:f IS NULL OR filial = :f) AND (:s1 IS NULL OR summa &gt;= :s1)</span>. Bind soni doim bir xil. Kamchiligi: optimizator bitta umumiy reja tuzadi va u har kombinatsiyaga mos emas. Ikkinchi usul: faqat tanlangan shartlarni qo'shish va bind sonini <span class="num">DBMS_SQL</span> bilan yoki «<span class="num">WHERE 1 = 1 AND (1 = 1 OR :f IS NULL)</span>» hiylasi bilan bir xil saqlash. Har kombinatsiya o'z rejasini oladi.</p></details>
+<details><summary>Global temporary table va private temporary table</summary>
+<p>GTT (<span class="num">CREATE GLOBAL TEMPORARY TABLE ... ON COMMIT DELETE ROWS</span> yoki <span class="num">PRESERVE ROWS</span>): tuzilma doimiy, ma'lumot har sessiyaga xos va tranzaksiya yoki sessiya oxirida yo'qoladi. Oraliq natijalarni SQL bilan qayta ishlash uchun, DDL siz. 12c dan GTT uchun sessiyaga xos statistika va temp undo. 18c dan private temporary table (<span class="num">ORA$PTT_</span> prefiksi): jadvalning o'zi ham sessiyaga xos.</p></details>
+<details><summary>Birlamchi manbalar</summary>
+<p>Oracle Database PL/SQL Language Reference: Collections and Records, Bulk SQL and Bulk Binding, Dynamic SQL, PL/SQL Optimization and Tuning. Oracle Database SQL Language Reference: INSERT (error_logging_clause), Direct-Path Insert. DBMS_PARALLEL_EXECUTE va DBMS_ASSERT hujjatlari (PL/SQL Packages and Types Reference). Oracle oq qog'ozi «How to write SQL injection proof PL/SQL».</p></details>
+
+<div class="next">
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Qatorma-qator ishlash har qatorda kontekst almashinuvi. Avval bitta SQL, keyin BULK COLLECT LIMIT va FORALL, oxirida qatorma-qator. LIMIT xotirani himoya qiladi, chiqish sharti COUNT = 0. Siyrak kolleksiyada NEXT va INDICES OF. SAVE EXCEPTIONS yoki LOG ERRORS bitta yomon qatorni butun yuklashdan ajratadi. Katta hajmda SQL ning o'z vositalari: APPEND, CTAS, parallel, bo'laklarga bo'lish. Dinamik SQL da qiymatlar faqat bind bilan, nomlar DBMS_ASSERT bilan; DDL yashirin COMMIT qiladi.</p>
+  <p><strong>Keyingi dars.</strong> P6. Oracle ichkaridan: instance va baza, SGA (buffer cache, shared pool, redo buffer) va PGA, fon jarayonlari, so'rovning parse, bind, execute, fetch yo'li, qattiq va yumshoq parse, bind o'zgaruvchilar nega muhim.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p4-protsedura-paket-trigger.html">Oldingi: P4. Protsedura, paket, trigger</a><span>Keyingi: P6. Oracle ichkaridan (navbatda)</span></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script>DG.stack('where', [
+    { title: 'Ilova (Java, JDBC)', sub: 'Ekran, servis, integratsiya: P11', ex: 'addBatch(), executeBatch()', link: 'bitta chaqiruv' },
+    { title: 'PL/SQL dasturlar', sub: 'Kolleksiya, BULK, FORALL: P5', ex: 'FETCH ... BULK COLLECT ... LIMIT 1000', link: 'to\'plam bilan, kam safar' },
+    { title: 'SQL', sub: 'So\'rov tili: P1–P2', ex: 'INSERT /*+ APPEND */ ... SELECT', link: 'optimizatorga beriladi' },
+    { title: 'Optimizator va reja', sub: 'Parse, bind, reja, indeks: P6–P7', ex: 'bind :r, bitta parse', link: 'tranzaksiya ichida o\'qiydi va yozadi' },
+    { title: 'Tranzaksiya va qulflar', sub: 'COMMIT, undo, redo, lock: P8', ex: 'undo va redo hajmi', link: 'bloklarni diskdan oladi' },
+    { title: 'Saqlash', sub: 'Jadval, kalit, partitsiya: P9', ex: 'segment, blok, partitsiya', link: '' }
+  ], [1, 2], 'PL/SQL va SQL chegarasi');</script>
+<script src="../assets/evo.js"></script>
+<script>
+(function () {
+  var S = DG.S, marker = DG.marker, group = DG.group, box = DG.box;
+  function $(id) { return document.getElementById(id); }
+  function tabs(id, labels, onPick) {
+    var root = $(id), btns = [];
+    labels.forEach(function (t, i) { var b = document.createElement('button'); b.type = 'button'; b.textContent = t; b.addEventListener('click', function () { onPick(i); }); root.appendChild(b); btns.push(b); });
+    return function (cur) { btns.forEach(function (b, i) { b.setAttribute('aria-pressed', i === cur ? 'true' : 'false'); }); };
+  }
+  function arrow(svg, id, d, label, lx, ly, anchor) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#' + id + ')' }); if (label) S(svg, 'text', { x: lx, y: ly, 'text-anchor': anchor || 'middle', 'class': 'lbl' }, label); }
+  function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
+  function bytes(b) { return b >= 1048576 ? (Math.round(b / 104857.6) / 10) + ' MB' : b >= 1024 ? Math.round(b / 1024) + ' KB' : b + ' B'; }
+
+  // ---------- BULK ----------
+  (function () {
+    var svg = $('bulk'), say = $('bulkSay'), cur = 2, N = 1000000, ROW = 200;
+    var V = [
+      { t: 'Oshkor sikl, qatorma-qator' }, { t: 'Kursorli FOR (10g+)' }, { t: 'BULK COLLECT + FORALL' }, { t: 'Bitta UPDATE' }
+    ];
+    var setT = tabs('bulkT', V.map(function (v) { return v.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var L = parseInt($('bulkL').value, 10); if (isNaN(L) || L < 1) L = 1; if (L > N) L = N;
+      setT(cur); svg.textContent = ''; marker(svg, 'bkmk');
+      var fetch, dml, mem, rel, txt;
+      if (cur === 0) { fetch = N; dml = N; mem = ROW; }
+      else if (cur === 1) { fetch = N / 100; dml = N; mem = 100 * ROW; }
+      else if (cur === 2) { fetch = Math.ceil(N / L) + 1; dml = Math.ceil(N / L); mem = L * ROW; }
+      else { fetch = 0; dml = 1; mem = 0; }
+      var sw = fetch + dml;
+      rel = cur === 3 ? 1 : (cur === 2 ? 1.6 + 400 / L : (cur === 1 ? 6 : 12));
+      box(svg, 20, 30, 300, 120, 'PL/SQL dvigateli', cur === 3 ? 'ishlatilmaydi' : 'sikl, hisob', cur === 3 ? 'freed' : 'on');
+      box(svg, 900, 30, 320, 120, 'SQL dvigateli', 'o\'qish, UPDATE', 'on');
+      var lines = cur === 3 ? 1 : Math.min(6, Math.max(1, Math.round(Math.log(sw) / Math.log(10)) - 1));
+      for (var i = 0; i < lines; i++) { var y = 50 + i * 16; arrow(svg, 'bkmk', 'M320 ' + y + 'H898'); }
+      S(svg, 'text', { x: 610, y: 175, 'text-anchor': 'middle', 'class': 'lbl' }, cur === 3 ? 'ilova yoki blok bitta buyruq yuboradi' : 'har strelka: ko\'p safar (soni pastda)');
+      box(svg, 20, 200, 380, 70, 'Almashinuvlar: ' + fmt(sw), cur === 3 ? 'bitta buyruq' : 'FETCH ' + fmt(fetch) + ', DML ' + fmt(dml), sw > 100000 ? 'bad' : (sw > 5000 ? 'live' : 'on'));
+      box(svg, 430, 200, 380, 70, 'Kolleksiya xotirasi: ' + (cur === 3 ? '0' : bytes(mem)), cur === 2 ? 'LIMIT × ' + ROW + ' bayt' : (cur === 3 ? 'PL/SQL xotirasi kerak emas' : 'bir qator yoki 100 qator'), mem > 50 * 1048576 ? 'bad' : 'on');
+      box(svg, 840, 200, 380, 70, 'Taxminiy vaqt: ×' + (Math.round(rel * 10) / 10), 'bitta UPDATE = 1 deb olinganda', rel > 5 ? 'bad' : (rel > 2 ? 'live' : 'on'));
+      S(svg, 'rect', { x: 20, y: 300, width: Math.max(4, Math.min(1200, rel * 95)), height: 26, 'class': 'box ' + (rel > 5 ? 'bad' : 'live') });
+      S(svg, 'text', { x: 20, y: 292, 'class': 'lbl' }, 'nisbiy vaqt ×' + (Math.round(rel * 10) / 10));
+      S(svg, 'text', { x: 20, y: 356, 'class': 'sub' }, '1 000 000 qator, har biri taxminan 200 bayt. Vaqt nisbati taxminiy: aniq qiymat apparat, indeks va ma\'lumotga bog\'liq.');
+      if (cur === 0) txt = `Oshkor OPEN/FETCH sikli: har qator uchun bitta FETCH va bitta UPDATE, 2 million almashinuv. Xotira deyarli yo'q, lekin vaqtning katta qismi chegarani kesib o'tishga ketadi. Bu «slow by slow».`;
+      else if (cur === 1) txt = `10g dan kompilyator kursorli FOR siklni ichkarida 100 talab o'qiydi: FETCH lar 10 000 ga tushdi. Lekin sikl ichidagi UPDATE hali ham har qator uchun alohida: 1 million almashinuv qoldi. Faqat o'qiydigan sikl uchun bu yetarli, yozadigan sikl uchun emas.`;
+      else if (cur === 2) txt = `LIMIT ${fmt(L)}: ${fmt(Math.ceil(N / L))} ta FETCH va shuncha FORALL. ` + (L >= 100000 ? `Almashinuvlar juda kam, lekin xotira ${bytes(mem)}: o'nta shunday sessiya serverni qiynaydi. LIMIT siz esa hamma natija xotirada.` : L < 50 ? `LIMIT juda kichik: almashinuvlar hali ko'p. 100 dan 1000 gacha oling.` : `Bu oqilona oraliq: almashinuvlar qatorma-qatorga qaraganda ming baravarga yaqin kam, xotira esa kichik. LIMIT ni bundan oshirish deyarli tezlashtirmaydi.`);
+      else txt = `UPDATE depozitlar SET hisoblangan = hisoblangan + ROUND(qoldiq * stavka / 36500, 2) WHERE holat = 'OCHIQ'. PL/SQL umuman yo'q: SQL dvigateli bloklarni ketma-ket o'qib, joyida yangilaydi. Mantiq SQL ga sig'sa, eng tez yo'l shu. Kerak bo'lsa parallel DML bilan yana tezlashadi.`;
+      say.textContent = txt;
+    }
+    $('bulkL').addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-bl]'), function (b) { b.addEventListener('click', function () { $('bulkL').value = b.getAttribute('data-bl'); if (cur !== 2) cur = 2; draw(); }); });
+    draw();
+  })();
+
+  // ---------- Kolleksiya ----------
+  (function () {
+    var svg = $('coll'), say = $('collSay'), cur = 0;
+    var ST = [
+      { t: 'l := t(10,20,30,40,50)', a: { 1: 10, 2: 20, 3: 30, 4: 40, 5: 50 }, s: `Konstruktor 5 elementli zich kolleksiya yaratdi: indekslar 1 dan 5 gacha. COUNT = LAST = 5. Ikkala sikl ham bir xil ishlaydi.` },
+      { t: 'l.DELETE(2)', a: { 1: 10, 3: 30, 4: 40, 5: 50 }, s: `2-element o'chirildi, lekin uning o'rni qoldi: kolleksiya siyrak. COUNT = 4, LAST esa hali 5. FOR i IN 1..COUNT sikli i = 2 da NO_DATA_FOUND beradi, va 5-elementni umuman ko'rmagan bo'lardi. NEXT bilan yurish o'chirilgan joyni o'tkazib yuboradi.` },
+      { t: 'l.TRIM', a: { 1: 10, 3: 30, 4: 40 }, s: `TRIM oxiridagi elementni butunlay olib tashlaydi (o'rni bilan). LAST endi 4. Nested table'da DELETE va TRIM ni aralashtirish chalkashlik tug'diradi: DELETE qilingan joylar TRIM uchun ham hisoblanadi.` },
+      { t: 'l.EXTEND; l(l.LAST) := 60', a: { 1: 10, 3: 30, 4: 40, 5: 60 }, s: `EXTEND oxiriga bitta bo'sh joy qo'shdi (NULL), keyin unga 60 yozildi. EXTEND siz l(5) := 60 yozilsa, ORA-06533: subscript beyond count. Associative array da EXTEND kerak emas: l(5) := 60 shunchaki yangi kalit yaratadi.` },
+      { t: 'l.DELETE', a: {}, s: `Argumentsiz DELETE hamma elementni o'chiradi: COUNT = 0, FIRST va LAST esa NULL. Shuning uchun FOR i IN l.FIRST .. l.LAST bo'sh kolleksiyada xato beradi (NULL chegara), FOR i IN 1 .. l.COUNT esa shunchaki bajarilmaydi.` }
+    ];
+    var setT = tabs('collT', ST.map(function (s, i) { return (i + 1) + '. ' + s.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var s = ST[cur], a = s.a, keys = Object.keys(a).map(Number).sort(function (x, y) { return x - y; }); setT(cur); svg.textContent = '';
+      var maxI = cur === 0 || cur === 1 ? 5 : (cur === 4 ? 5 : (cur === 2 ? 4 : 5));
+      group(svg, 20, 20, 700, 130, 'l: nested table');
+      for (var i = 1; i <= 6; i++) {
+        var x = 40 + (i - 1) * 112, has = a.hasOwnProperty(i), hole = !has && i <= maxI && cur !== 4;
+        S(svg, 'rect', { x: x, y: 60, width: 100, height: 70, rx: 4, 'class': 'box' + (has ? ' on' : (hole ? ' bad' : ' freed')) });
+        S(svg, 'text', { x: x + 10, y: 82, 'class': 'sub' }, 'l(' + i + ')');
+        S(svg, 'text', { x: x + 10, y: 114, 'class': has ? 'val' : 'sub' }, has ? String(a[i]) : (hole ? 'o\'chirilgan' : '—'));
+      }
+      var cnt = keys.length, first = cnt ? keys[0] : null, last = cnt ? keys[cnt - 1] : null;
+      group(svg, 760, 20, 460, 130, 'Metodlar');
+      [['COUNT', cnt], ['FIRST', first], ['LAST', last], ['EXISTS(2)', a.hasOwnProperty(2) ? 'TRUE' : 'FALSE']].forEach(function (m, i) { S(svg, 'text', { x: 780 + (i % 2) * 220, y: 76 + Math.floor(i / 2) * 40, 'class': 'mono' }, m[0] + ' = ' + (m[1] === null ? 'NULL' : m[1])); });
+      var r1 = [], err = null;
+      for (var j = 1; j <= cnt; j++) { if (a.hasOwnProperty(j)) r1.push(a[j]); else { err = 'i = ' + j + ': NO_DATA_FOUND'; break; } }
+      var r2 = keys.map(function (k) { return a[k]; });
+      box(svg, 20, 170, 590, 140, 'FOR i IN 1 .. l.COUNT LOOP  l(i)', err ? err : (cnt ? 'o\'qildi: ' + r1.join(', ') : 'bajarilmadi: COUNT = 0'), err ? 'bad' : 'on');
+      if (err) S(svg, 'text', { x: 36, y: 260, 'class': 'sub' }, 'o\'qilgani: ' + (r1.length ? r1.join(', ') : 'hech narsa') + '; keyingi elementlar ko\'rilmadi');
+      box(svg, 630, 170, 590, 140, 'i := l.FIRST; WHILE i IS NOT NULL ... l.NEXT(i)', cnt ? 'o\'qildi: ' + r2.join(', ') : 'bajarilmadi: FIRST = NULL', 'live');
+      S(svg, 'text', { x: 646, y: 260, 'class': 'sub' }, 'FORALL uchun muqobili: FORALL i IN INDICES OF l');
+      say.textContent = s.s;
+    }
+    draw();
+  })();
+
+  // ---------- FORALL va xato ----------
+  (function () {
+    var svg = $('fa'), say = $('faSay'), cur = 0;
+    var C = [
+      { t: 'SAVE EXCEPTIONS siz', r: ['kiritildi', 'kiritildi', 'ORA-00001', 'bajarilmadi', 'bajarilmadi'], k: ['live', 'live', 'bad', 'freed', 'freed'], end: 'ORA-00001: unique constraint violated', bad: true, s: `FORALL 3-elementda to'xtadi va xatoni ko'tardi. 1 va 2-elementlar bekor qilinmadi: ular tranzaksiyada turibdi, chaqiruvchi ROLLBACK yoki COMMIT ni o'zi tanlaydi. 4 va 5 umuman bajarilmadi. Qaysi element xato berganini bilish uchun SQL%BULK_ROWCOUNT ga qarash kerak.` },
+      { t: 'SAVE EXCEPTIONS bilan', r: ['kiritildi', 'kiritildi', 'xato saqlandi', 'kiritildi', 'kiritildi'], k: ['live', 'live', 'bad', 'live', 'live'], end: 'ORA-24381, SQL%BULK_EXCEPTIONS(1): ERROR_INDEX = 3, ERROR_CODE = 1', bad: false, s: `Xato bergan element o'tkazildi, qolgan to'rttasi kiritildi. Oxirida ORA-24381 ko'tariladi, va EXCEPTION qismida SQL%BULK_EXCEPTIONS orqali qaysi element (ERROR_INDEX) va qanday xato (ERROR_CODE, musbat son, SQLERRM(-code) bilan matn) ekanini bilamiz. Uni ushlab, log qilib, davom etamiz.` },
+      { t: 'LOG ERRORS (SQL)', r: ['kiritildi', 'kiritildi', 'err$_tolovlar ga', 'kiritildi', 'kiritildi'], k: ['live', 'live', 'bad', 'live', 'live'], end: 'INSERT ... SELECT ... LOG ERRORS INTO err$_tolovlar REJECT LIMIT UNLIMITED', bad: false, s: `PL/SQL siz: bitta INSERT ... SELECT, xato bergan qator ORA_ERR_NUMBER$, ORA_ERR_MESG$ va qatorning o'zi bilan err$_tolovlar jadvaliga yoziladi. Log yozuvlari avtonom: asosiy buyruq ROLLBACK qilinsa ham qoladi. Cheklov: direct-path rejimida UNIQUE xatolari ushlanmaydi.` }
+    ];
+    var setT = tabs('faT', C.map(function (c) { return c.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = C[cur]; setT(cur); svg.textContent = ''; marker(svg, 'famk');
+      S(svg, 'text', { x: 20, y: 30, 'class': 'mono' }, cur === 2 ? 'INSERT INTO tolovlar SELECT * FROM fayl_qatorlari LOG ERRORS ...' : 'FORALL i IN 1 .. 5 ' + (cur ? 'SAVE EXCEPTIONS ' : '') + 'INSERT INTO tolovlar VALUES l(i);');
+      for (var i = 0; i < 5; i++) {
+        var x = 20 + i * 244;
+        box(svg, x, 60, 220, 70, (cur === 2 ? 'qator ' : 'l(') + (i + 1) + (cur === 2 ? '' : ')'), i === 2 ? 'id takror: UNIQUE buziladi' : 'id = ' + (1001 + i), i === 2 ? 'bad' : '');
+        box(svg, x, 160, 220, 60, c.r[i], '', c.k[i]);
+        arrow(svg, 'famk', 'M' + (x + 110) + ' 130V158');
+      }
+      box(svg, 20, 250, 1200, 60, 'Chaqiruvchi ko\'radi:', c.end, c.bad ? 'bad' : 'on');
+      say.textContent = c.s; say.className = 'say' + (c.bad ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- SQL injection ----------
+  (function () {
+    var svg = $('inj'), say = $('injSay'), cur = 0;
+    var setT = tabs('injT', ['Satr ulash', 'Bind o\'zgaruvchi'], function (i) { cur = i; draw(); });
+    function draw() {
+      var v = $('injV').value; setT(cur); svg.textContent = ''; marker(svg, 'inmk');
+      group(svg, 20, 20, 300, 260, 'Foydalanuvchi');
+      S(svg, 'text', { x: 40, y: 80, 'class': 'sub' }, 'Kiritdi:');
+      var vs = v.length > 30 ? [v.slice(0, 30), v.slice(30, 60)] : [v];
+      vs.forEach(function (l, i) { S(svg, 'text', { x: 40, y: 110 + i * 22, 'class': 'mono', style: 'white-space:pre' }, l); });
+      var inj = /'/.test(v), uni = /UNION/i.test(v);
+      group(svg, 360, 20, 560, 260, 'Oracle bajaradigan SQL');
+      if (cur === 0) {
+        var sql = "WHERE raqam = '" + v + "'";
+        S(svg, 'text', { x: 380, y: 70, 'class': 'mono' }, 'SELECT raqam, qoldiq FROM hisoblar');
+        var parts = sql.length > 56 ? [sql.slice(0, 56), sql.slice(56, 112)] : [sql];
+        parts.forEach(function (l, i) { S(svg, 'text', { x: 380, y: 96 + i * 22, 'class': 'mono', style: 'white-space:pre' }, l); });
+        S(svg, 'text', { x: 380, y: 170, 'class': 'sub' }, inj ? 'Qo\'shtirnoq satrni yopdi: qolgan matn SQL kodi bo\'lib o\'qildi.' : 'Matn qo\'shtirnoq ichida qoldi: oddiy qiymat.');
+        S(svg, 'text', { x: 380, y: 196, 'class': 'sub' }, 'Har yangi qiymat yangi SQL matni: har safar qattiq parse.');
+      } else {
+        S(svg, 'text', { x: 380, y: 70, 'class': 'mono' }, 'SELECT raqam, qoldiq FROM hisoblar');
+        S(svg, 'text', { x: 380, y: 96, 'class': 'mono' }, 'WHERE raqam = :r');
+        S(svg, 'text', { x: 380, y: 140, 'class': 'sub' }, ':r ga qiymat alohida beriladi (USING):');
+        vs.forEach(function (l, i) { S(svg, 'text', { x: 380, y: 166 + i * 22, 'class': 'mono', style: 'white-space:pre' }, l); });
+        S(svg, 'text', { x: 380, y: 230, 'class': 'sub' }, 'SQL matni doim bir xil: bitta parse, kod va ma\'lumot ajralgan.');
+      }
+      var res, bad = false;
+      if (cur === 1) res = inj ? '0 qator: bunday raqam yo\'q' : '1 qator: o\'sha hisob';
+      else if (uni) { res = 'parollar natijada!'; bad = true; }
+      else if (inj) { res = 'HAMMA hisoblar chiqdi'; bad = true; }
+      else res = '1 qator: o\'sha hisob';
+      box(svg, 960, 100, 260, 100, 'Natija', res, bad ? 'bad' : 'on');
+      arrow(svg, 'inmk', 'M320 150H358'); arrow(svg, 'inmk', 'M920 150H958');
+      say.textContent = cur === 0 ? (uni ? `Qo'shtirnoq satrni yopdi, UNION boshqa jadvalni qo'shdi, -- esa qolgan qismni izohga aylantirdi. Foydalanuvchi o'zi ko'rmasligi kerak bo'lgan jadvalni o'qidi. Definer rights paketida bu paket egasining huquqlari bilan bo'ladi.` : inj ? `x' OR '1'='1 kiritildi: WHERE raqam = 'x' OR '1'='1'. '1'='1' doim rost, filtr yo'qoldi va hamma hisoblar qaytdi. Qiymat kod bo'lib qoldi.` : `Oddiy qiymat: so'rov kutilgandek ishladi. Lekin xavf yo'qolmagan, shunchaki bu safar yomon qiymat kelmadi. Va har yangi raqam shared pool'da yangi SQL matni.`) : `Bind o'zgaruvchi bilan Oracle SQL matnini qiymatdan alohida oladi. Kiritilgan matn qanday bo'lmasin, u faqat raqam ustuni bilan solishtiriladigan qiymat: ${inj ? 'bunday g\'alati raqamli hisob yo\'q, natija bo\'sh.' : 'o\'sha hisob topildi.'} Injection imkonsiz, va so'rov bir marta parse qilinadi.`;
+      say.className = 'say' + (bad ? ' bad' : '');
+    }
+    $('injV').addEventListener('input', draw);
+    Array.prototype.forEach.call(document.querySelectorAll('[data-iv]'), function (b) { b.addEventListener('click', function () { $('injV').value = b.getAttribute('data-iv'); draw(); }); });
+    draw();
+  })();
+
+  window.evoStepper('evoBk', [
+    { name: `DBMS_SQL va qatorma-qator`, years: `1992–1998`, art: `<path d="M20 50h10M38 50h10M56 50h10M74 50h10M92 50h10" class="acc"/>`,
+      how: `Oracle 7: dinamik SQL faqat DBMS_SQL paketi bilan. Katta hajm qatorma-qator kursorli sikl bilan. Massiv bilan ishlash faqat mijoz tomonidagi OCI va Pro*C massivlarida.`,
+      better: `Hammasi PL/SQL ichida yoziladi.`,
+      pain: `Har qator uchun kontekst almashinuvi; dinamik SQL uzun va noqulay.`,
+      ex: `Pro*C dagi «host arrays» BULK g'oyasining ota-bobosi.` },
+    { name: `8i: BULK va native dinamik SQL`, years: `1999`, art: `<rect x="16" y="34" width="88" height="32" rx="3" class="acc"/><path d="M28 34v32M40 34v32M52 34v32M64 34v32M76 34v32M88 34v32"/>`,
+      how: `BULK COLLECT, FORALL, EXECUTE IMMEDIATE, OPEN FOR. Kolleksiyalar SQL tiplari bo'lishi mumkin (8.0 dan).`,
+      better: `Million qatorli ishlar bir necha baravar tezlashdi, dinamik SQL bir qatorda yoziladi.`,
+      pain: `Bitta xato butun FORALL ni to'xtatadi; BULK COLLECT yozuvlar kolleksiyasiga ishlamaydi.`,
+      ex: `Kursor atributlari SQL%BULK_ROWCOUNT.` },
+    { name: `9i–10g: xatolar va siyraklik`, years: `2001–2005`, art: `<rect x="16" y="34" width="20" height="32"/><rect x="50" y="34" width="20" height="32" class="acc"/><rect x="84" y="34" width="20" height="32"/>`,
+      how: `9i: SAVE EXCEPTIONS, BULK COLLECT yozuvlar kolleksiyasiga, VARCHAR2 kalitli associative array. 10g: INDICES OF va VALUES OF, kursorli FOR siklning avtomatik 100 talik o'qishi, MULTISET amallari. 10g R2: DML error logging.`,
+      better: `Yomon qatorlar yuklashni to'xtatmaydi; siyrak kolleksiyalar FORALL da ishlaydi.`,
+      pain: `Katta jadvalni bo'laklarga bo'lib parallel ishlatish qo'lda yoziladi.`,
+      ex: `LOG ERRORS bilan PL/SQL siz xatolarni ajratish.` },
+    { name: `11g–12c: parallel va integratsiya`, years: `2007–2013`, art: `<path d="M20 30h80M20 50h80M20 70h80" class="acc"/>`,
+      how: `11g: dinamik SQL CLOB matn bilan (32K dan uzun), DBMS_SQL va REF CURSOR orasida o'tish. 11g R2: DBMS_PARALLEL_EXECUTE. 12c: PL/SQL tiplarini (associative array ham) TABLE() va bind da ishlatish.`,
+      better: `Kun yopish kabi katta ishlar bo'laklarga bo'linib, qayta ishga tushiriladi.`,
+      pain: `Eski kodda qatorma-qator sikllar ko'p qolgan.`,
+      ex: `18c: kolleksiyalar uchun qualified expressions: t_tip(1 =&gt; 'a', 2 =&gt; 'b').` }
+  ]);
+})();
+</script>
+</body>
+</html>
