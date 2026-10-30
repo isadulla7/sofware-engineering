@@ -35,7 +35,8 @@
       <li>protsedura va funksiya, parametr rejimlari, <span class="num">NOCOPY</span>, SQL dan chaqiriladigan funksiya talablari;</li>
       <li>paket spetsifikatsiyasi va tanasi, bog'liqliklar va <span class="num">INVALID</span>, paket holati, <span class="num">ORA-04068</span>;</li>
       <li>definer va invoker huquqlari;</li>
-      <li>trigger turlari, bajarilish tartibi, <span class="num">:NEW</span> va <span class="num">:OLD</span>, mutating table, compound trigger.</li>
+      <li>trigger turlari, bajarilish tartibi, <span class="num">:NEW</span> va <span class="num">:OLD</span>, mutating table, compound trigger;</li>
+      <li>joblar: protsedurani jadval bo'yicha avtomatik ishga tushirish (<span class="num">DBMS_SCHEDULER</span>).</li>
     </ul>
   </div>
 </div>
@@ -55,6 +56,7 @@
       <li>Bog'liqliklar, <span class="num">INVALID</span>, qayta kompilyatsiya, <span class="num">ORA-04068</span></li>
       <li><span class="num">AUTHID DEFINER</span> va <span class="num">CURRENT_USER</span>, <span class="num">ACCESSIBLE BY</span></li>
       <li>Triggerlar: DML (BEFORE, AFTER, ROW, STATEMENT), <span class="num">INSTEAD OF</span>, DDL va tizim triggerlari, compound, <span class="num">FOLLOWS</span></li>
+      <li>Joblar: <span class="num">DBMS_SCHEDULER</span>, program, schedule, job, <span class="num">repeat_interval</span>, kuzatish, eski <span class="num">DBMS_JOB</span></li>
     </ul>
   </div>
   <div>
@@ -63,8 +65,7 @@
       <li>Kolleksiya parametrlari va <span class="num">BULK</span>: P5-darsda</li>
       <li>Paket xotirasi (UGA, PGA, shared pool) ichkaridan: P6-darsda</li>
       <li>Triggerdagi avtonom tranzaksiya va qulflar: P8-darsda</li>
-      <li><span class="num">DBMS_SCHEDULER</span> va joblar: P11-darsda qisqacha</li>
-    </ul>
+          </ul>
   </div>
 </div>
 
@@ -193,6 +194,46 @@ COMPOUND TRIGGER
 END;</pre>
 <p>Triggerlar haqida umumiy qoidalar: trigger ichida <span class="num">COMMIT</span> yoki <span class="num">ROLLBACK</span> qilib bo'lmaydi (u chaqirgan buyruqning tranzaksiyasi ichida); triggerdagi xato butun buyruqni bekor qiladi; bitta hodisaga bir nechta trigger bo'lsa, tartib 11g gacha kafolatlanmagan edi, endi <span class="num">FOLLOWS</span> bilan beriladi; <span class="num">ALTER TRIGGER ... DISABLE</span> katta yuklashda o'chirib turish uchun. 12c dan identifikator uchun trigger va sequence o'rniga <span class="num">GENERATED AS IDENTITY</span> ustun yoki <span class="num">DEFAULT seq.NEXTVAL</span>.</p>
 
+<p class="beat">Job: protsedurani jadval bo'yicha ishga tushirish</p>
+<p>Trigger hodisaga javob beradi: «qator o'zgardi». Lekin bankda ko'p ish hodisaga emas, <strong>vaqtga</strong> bog'liq: har kecha kunlik foiz hisoblash, har 5 daqiqada kartotekadan avtoto'lov, oy oxirida hisobotlar, har soatda protsessing faylini yuklash. Buni operator qo'lda bosmasligi uchun bazaning o'zida <strong>job</strong> (vazifa) bor: «shu protsedurani, shu jadval bo'yicha, o'zing ishga tushir». O'xshatish: telefondagi budilnik. Siz bir marta sozlaysiz (qachon, nima qilsin), keyin u har kuni o'zi chalinadi, va «qachon chalindi, o'chirdingizmi» tarixi qoladi.</p>
+<p>Oracle da buning vositasi <span class="num">DBMS_SCHEDULER</span> paketi (10g dan). Undan oldin oddiyroq <span class="num">DBMS_JOB</span> bor edi; u eskirgan (12.2 dan), 19c da esa uning joblari ham ichkarida scheduler joblariga aylantiriladi. Scheduler uchta tushunchani ajratadi, shunda ularni qayta ishlatish mumkin:</p>
+<ul>
+  <li><strong>Program</strong>: nima bajariladi. PL/SQL protsedura, anonim blok yoki tashqi skript, parametrlari bilan.</li>
+  <li><strong>Schedule</strong>: qachon. Boshlanish vaqti va takrorlanish qoidasi <span class="num">repeat_interval</span>, masalan <span class="num">'FREQ=DAILY; BYHOUR=23; BYMINUTE=30'</span> (har kuni 23:30) yoki <span class="num">'FREQ=MINUTELY; INTERVAL=5'</span>.</li>
+  <li><strong>Job</strong>: program va schedule ni bog'laydi, yoqiladi yoki o'chiriladi. Oddiy holatda hammasi bitta <span class="num">CREATE_JOB</span> chaqiruvida beriladi.</li>
+</ul>
+<p>Ishga tushirishni fon jarayoni, <strong>koordinator</strong> (CJQ0) boshqaradi: vaqti kelgan joblarni topib, ularni <strong>job slave</strong> jarayonlariga (Jnnn) beradi. Har job alohida sessiyada va o'z tranzaksiyasida ishlaydi, shuning uchun u eng tashqi chaqiruvchi: tranzaksiya chegarasini (COMMIT) job chaqiradigan protsedura aniq belgilaydi. Bir vaqtda nechta job ishlashini <span class="num">JOB_QUEUE_PROCESSES</span> parametri cheklaydi. Qadamlarni bosing:</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="job" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="Job hayoti: program, schedule va job ta'rifi, koordinator, job slave, protsedura, jurnal va xato"></svg></div>
+  <figcaption>Chapda lug'atdagi ta'riflar, o'rtada ishga tushiruvchi jarayonlar, o'ngda bajariladigan kod va natija jurnali. Misol: har kecha filial bo'yicha kunlik foiz hisoblash.</figcaption>
+  <div class="evo-tabs" id="jobT" style="margin-top:0.9rem"></div>
+  <p class="say" id="jobSay" aria-live="polite"></p>
+</figure>
+<pre class="code" style="margin:0.5rem 0 1rem">BEGIN
+  DBMS_SCHEDULER.CREATE_JOB(
+    job_name        =&gt; 'KUNLIK_FOIZ_JOB',
+    job_type        =&gt; 'STORED_PROCEDURE',
+    job_action      =&gt; 'kredit_foiz.hamma_filiallar',     -- nima
+    start_date      =&gt; SYSTIMESTAMP,
+    repeat_interval =&gt; 'FREQ=DAILY; BYHOUR=23; BYMINUTE=30', -- qachon
+    enabled         =&gt; TRUE,
+    comments        =&gt; 'Kunlik foiz hisoblash, kun yopishdan oldin');
+END;
+/
+-- qo'lda ishga tushirish, to'xtatish, o'chirib turish
+EXEC DBMS_SCHEDULER.RUN_JOB('KUNLIK_FOIZ_JOB', use_current_session =&gt; FALSE);
+EXEC DBMS_SCHEDULER.STOP_JOB('KUNLIK_FOIZ_JOB');
+EXEC DBMS_SCHEDULER.DISABLE('KUNLIK_FOIZ_JOB');
+
+-- kuzatish: holat, keyingi ishga tushish, oxirgi natijalar
+SELECT job_name, state, last_start_date, next_run_date, failure_count
+FROM   user_scheduler_jobs;
+SELECT log_date, status, run_duration, error#, additional_info
+FROM   user_scheduler_job_run_details
+WHERE  job_name = 'KUNLIK_FOIZ_JOB' ORDER BY log_date DESC;</pre>
+<p>Kattaroq imkoniyatlar: <strong>chain</strong> (zanjir: «A tugasa B va C parallel, ikkalasi tugasa D», kun yopish bosqichlari uchun), <strong>window</strong> va <strong>job class</strong> (tungi oynada resurslarni og'ir joblarga berish), hodisaga asoslangan joblar (fayl kelganda yoki navbatga xabar tushganda). Katta ishni bir nechta parallel bo'lakka bo'lish uchun esa <span class="num">DBMS_PARALLEL_EXECUTE</span> (P5): u ham ichkarida scheduler joblaridan foydalanadi.</p>
+
 <h3><span class="part">3. Yaratilishi va o'zgarishi</span>Saqlanadigan kod tarixi</h3>
 <div class="bench" id="evoPk"></div>
 
@@ -221,6 +262,12 @@ END;</pre>
   <dt>Mutating table, ORA-04091</dt><dd>Row trigger o'zgarayotgan jadvalni o'qishi yoki o'zgartirishi taqiqlangan holat.</dd>
   <dt>Compound trigger</dt><dd>To'rt vaqt nuqtasini va umumiy o'zgaruvchilarni bitta triggerda birlashtiradi. 11g dan.</dd>
   <dt>FOLLOWS, PRECEDES</dt><dd>Bir hodisadagi triggerlarning tartibini berish.</dd>
+  <dt>Job, DBMS_SCHEDULER</dt><dd>Bazada jadval bo'yicha avtomatik ishga tushadigan vazifa; uni boshqaradigan paket (10g dan).</dd>
+  <dt>Program, schedule</dt><dd>Nima bajarilishi va qachon bajarilishi: job ulardan yig'iladi va ularni qayta ishlatadi.</dd>
+  <dt>repeat_interval</dt><dd>Takrorlanish qoidasi kalendar sintaksisida: <span class="num">FREQ</span>, <span class="num">INTERVAL</span>, <span class="num">BYHOUR</span>, <span class="num">BYDAY</span>.</dd>
+  <dt>Koordinator, job slave, JOB_QUEUE_PROCESSES</dt><dd>Vaqti kelgan joblarni topadigan fon jarayoni; jobni bajaradigan jarayon; bir vaqtdagi joblar chegarasi.</dd>
+  <dt>Chain</dt><dd>Joblar zanjiri: qadamlar va ularning shartli ketma-ketligi.</dd>
+  <dt>DBMS_JOB</dt><dd>Eski, oddiyroq job paketi; 12.2 dan eskirgan.</dd>
 </dl>
 
 <h3><span class="part">5. Amaliyotda</span>Tuzoqlar</h3>
@@ -248,6 +295,12 @@ END;</pre>
   <b>Tuzoq: statement triggerdagi «har qator uchun» mantiq</b>
   <p>Audit triggeri <span class="num">FOR EACH ROW</span> siz yozilgan: UPDATE 1000 qatorni o'zgartirsa ham, audit jadvalida bitta yozuv, va unda <span class="num">:NEW</span> yo'q. Yoki aksincha: 0 qator o'zgargan UPDATE ham statement triggerni ishga tushiradi.</p>
   <p class="why">To'g'risi: qator ma'lumoti kerak bo'lsa row trigger yoki compound trigger, buyruq haqidagi fakt kerak bo'lsa statement trigger.</p>
+</div>
+
+<div class="rule">
+  <b>Tuzoq: jobning xatosi hech kimga ko'rinmaydi</b>
+  <p>Tungi foiz hisoblash jobi bir hafta davomida har kecha ORA- xato bilan tugadi. Ekranda hech narsa ko'rinmadi, kuzatuvchi yo'q edi; xato oy oxiridagi solishtiruvda, mijozlar foizi hisoblanmagani bilinganda topildi.</p>
+  <p class="why">To'g'risi: job protsedurasi o'z jurnal jadvaliga natija va xatoni yozadi (WHEN OTHERS da log va RAISE, P3), <span class="num">USER_SCHEDULER_JOB_RUN_DETAILS</span> muntazam tekshiriladi yoki ogohlantirish sozlanadi, va qayta ishga tushirsa ikki marta hisoblamaydigan qilib yoziladi (qaysi kun va filial bajarilgani belgilanadi).</p>
 </div>
 
 <h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
@@ -279,6 +332,11 @@ END;</pre>
 <details><summary>Paketda bir xil nomli ikki protsedura bo'lishi mumkinmi?</summary>
 <p>Ha, overloading: parametrlar soni, tartibi yoki tip oilasi har xil bo'lsa. Faqat nomi yoki rejimi (IN va OUT) farq qilsa, yoki faqat NUMBER va INTEGER kabi bir oiladagi tiplar farq qilsa, chaqiruv noaniq bo'ladi va PLS-00307 xatosi beradi. Funksiyalarni faqat qaytish tipi bilan farqlab bo'lmaydi. Overloading faqat paket ichida yoki ichki blokda, mustaqil protseduralarda yo'q.</p></details>
 
+<details><summary>Oracle da muntazam vazifani (masalan tungi hisob) qanday avtomatlashtirasiz?</summary>
+<p><span class="num">DBMS_SCHEDULER.CREATE_JOB</span> bilan: nima (protsedura, <span class="num">job_action</span>), qachon (<span class="num">start_date</span> va <span class="num">repeat_interval</span>, masalan <span class="num">'FREQ=DAILY; BYHOUR=23'</span>), va yoqish. Ko'p job bir xil kod yoki jadvaldan foydalansa, program va schedule alohida obyekt qilinadi. Bosqichli jarayon (kun yopish) uchun chain. Job alohida sessiyada ishlaydi, shuning uchun protsedura o'z tranzaksiyasini o'zi tugatadi, xatoni jurnalga yozadi va qayta ishga tushirishga chidamli bo'ladi. Kuzatish: <span class="num">USER_SCHEDULER_JOBS</span> (holat, keyingi vaqt, xatolar soni) va <span class="num">USER_SCHEDULER_JOB_RUN_DETAILS</span> (har ishga tushish natijasi, davomiyligi, xato kodi).</p></details>
+<details><summary>DBMS_JOB va DBMS_SCHEDULER farqi nima?</summary>
+<p><span class="num">DBMS_JOB</span> eski va oddiy: job raqam bilan, takrorlanish satrdagi ifoda (<span class="num">'SYSDATE + 1/24'</span>), jurnal va boshqaruv kam; u job yaratishni joriy tranzaksiyaga bog'laydi (COMMIT bo'lmaguncha job ishga tushmaydi). <span class="num">DBMS_SCHEDULER</span> (10g) nom bilan joblar, kalendar sintaksisi, program va schedule ni ajratish, batafsil jurnal, zanjirlar, oynalar va job klasslari, tashqi skriptlar. DBMS_JOB 12.2 dan eskirgan, yangi kodda faqat scheduler.</p></details>
+
 <h3><span class="part">7. Tekshiruv</span></h3>
 <p>Javoblarni chatga yozing.</p>
 <ol class="check">
@@ -287,6 +345,7 @@ END;</pre>
   <li><span class="num">hisoblar</span> jadvalidagi har bir qoldiq o'zgarishini tarix jadvaliga yozadigan trigger yozing: kim, qachon, eski va yangi qiymat. Row yoki statement? BEFORE yoki AFTER?</li>
   <li>Trigger «mijozning barcha hisoblari bo'yicha qoldiqlar jami limitdan oshmasin» ni tekshirishi kerak. Oddiy row triggerda nima bo'ladi va qanday yozasiz?</li>
   <li><span class="num">SELECT ... , kurs_ol(valyuta, sana) FROM tolovlar</span> 10 million qatorda sekin ishlayapti. Uch xil tezlashtirish yo'lini ayting.</li>
+  <li>Har 5 daqiqada kartotekadagi to'lanmagan hujjatlarni to'laydigan job kerak. CREATE_JOB ni yozing, va ikki narsani ayting: job oldingi ishga tushish tugamay qolsa nima bo'ladi, va ikki parallel ishchi bitta hujjatni ikki marta to'lamasligi uchun nima qilasiz (P8).</li>
   <li>Ish joyingizdagi biror modulni oling: API, ichki mantiq va yordamchi paketlar qanday bo'lingan, va ekran qaysi paketni chaqiradi?</li>
 </ol>
 
@@ -301,7 +360,7 @@ END;</pre>
 <p>Oracle Database PL/SQL Language Reference: Subprograms, Packages, Triggers, PL/SQL Optimization and Tuning. Oracle Database Development Guide: Using Edition-Based Redefinition. Steven Feuerstein, «Oracle PL/SQL Best Practices». Tom Kyte maqolasi «The Trouble with Triggers» (Oracle Magazine, 2008).</p></details>
 
 <div class="next">
-  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Saqlanadigan kod mantiqni bir joyda, huquqni EXECUTE orqali beradi. Funksiya qiymat qaytaradi va SQL da DML siz ishlaydi, protsedura amal bajaradi. OUT va IN OUT nusxa bilan, NOCOPY havola bilan. Paket: spec interfeys, body amalga oshirish; chaqiruvchilar faqat specga bog'liq; paket o'zgaruvchilari sessiyaga xos va qayta kompilyatsiyada ORA-04068. Trigger tartibi: BEFORE STATEMENT, har qator uchun BEFORE ROW va AFTER ROW, AFTER STATEMENT. Row trigger o'z jadvalini o'qisa mutating table; yechim protsedura yoki compound trigger. Cheklov bilan yoziladigan qoida trigger bilan yozilmaydi.</p>
+  <p><strong>Bu darsdan olib ketadigan narsa.</strong> Saqlanadigan kod mantiqni bir joyda, huquqni EXECUTE orqali beradi. Funksiya qiymat qaytaradi va SQL da DML siz ishlaydi, protsedura amal bajaradi. OUT va IN OUT nusxa bilan, NOCOPY havola bilan. Paket: spec interfeys, body amalga oshirish; chaqiruvchilar faqat specga bog'liq; paket o'zgaruvchilari sessiyaga xos va qayta kompilyatsiyada ORA-04068. Trigger tartibi: BEFORE STATEMENT, har qator uchun BEFORE ROW va AFTER ROW, AFTER STATEMENT. Row trigger o'z jadvalini o'qisa mutating table; yechim protsedura yoki compound trigger. Cheklov bilan yoziladigan qoida trigger bilan yozilmaydi. Vaqtga bog'liq ish job orqali: DBMS_SCHEDULER, program, schedule, repeat_interval, natijasi jurnalda kuzatiladi.</p>
   <p><strong>Keyingi dars.</strong> P5. Katta hajmdagi ma'lumot: kolleksiyalar, BULK COLLECT va LIMIT, FORALL va SAVE EXCEPTIONS, pipelined funksiyalar, dinamik SQL va SQL injection.</p>
 </div>
 <nav class="pager" aria-label="Darslar orasida"><a href="p3-plsql-asoslari.html">Oldingi: P3. PL/SQL asoslari</a><a href="p5-katta-hajm-bulk.html">Keyingi: P5. Katta hajmdagi ma'lumot</a></nav>
@@ -414,6 +473,42 @@ END;</pre>
       else if (cur === 2) box(svg, 20, 270, 1200, 64, 'AFTER STATEMENT: FOR i IN 1 .. ids.COUNT LOOP tekshir_limit(ids(i)); END LOOP;', 'jadval endi izchil: o\'qish mumkin', 'live');
       else box(svg, 20, 270, 1200, 64, ':OLD va :NEW faqat ROW qismlarida', 'BEFORE ROW da :NEW ni o\'zgartirish mumkin, AFTER ROW da yo\'q', '');
       say.textContent = c.s; say.className = 'say' + (cur === 1 ? ' bad' : '');
+    }
+    draw();
+  })();
+
+  // ---------- Job ----------
+  (function () {
+    var svg = $('job'), say = $('jobSay'), cur = 0;
+    function boxL(x, y, w, h, title, lines, cls) {
+      S(svg, 'rect', { x: x, y: y, width: w, height: h, rx: 5, 'class': 'box' + (cls ? ' ' + cls : '') });
+      S(svg, 'text', { x: x + 14, y: y + 26, 'class': 'ttl' }, title);
+      lines.forEach(function (l, i) { S(svg, 'text', { x: x + 14, y: y + 46 + i * 18, 'class': 'sub' }, l); });
+    }
+    var B = {
+      prog: [34, 50, 366, 90, 'Program: nima', ['kredit_foiz.hamma_filiallar', 'protsedura va parametrlar']],
+      sch: [34, 160, 366, 90, 'Schedule: qachon', ['FREQ=DAILY; BYHOUR=23;', 'BYMINUTE=30']],
+      job: [34, 270, 366, 100, 'Job: KUNLIK_FOIZ_JOB', ['program + schedule,', 'yoqilgan, holati, tarixi']],
+      coord: [480, 50, 300, 100, 'Koordinator (CJQ0)', ['vaqti kelgan joblarni', 'topadi va tarqatadi']],
+      slave: [480, 200, 300, 100, 'Job slave (Jnnn)', ['alohida sessiya,', 'o\'z tranzaksiyasi']],
+      proc: [840, 200, 380, 100, 'PL/SQL protsedura', ['filiallar bo\'yicha foiz,', 'COMMIT, o\'z jurnaliga yozish']],
+      log: [840, 50, 380, 100, 'Scheduler jurnali', ['USER_SCHEDULER_JOB_RUN_DETAILS:', 'holat, davomiyligi, xato']],
+      err: [480, 326, 740, 60, 'Xato bo\'lsa', ['xatolar soni oshadi, max_failures, ogohlantirish, keyingi ishga tushish']]
+    };
+    var ST = [
+      { t: 'Ta\'riflash', hl: ['prog', 'sch', 'job'], p: ['M400 95H440V300H402', 'M400 205H425V330H402'], s: `CREATE_JOB lug'atga uchta narsani yozadi: nima bajariladi (program), qachon (schedule) va ularni bog'lovchi job. Oddiy holatda hammasi bitta chaqiruvda. Job yoqilgach, keyingi ishga tushish vaqti hisoblanadi.` },
+      { t: 'Vaqti keldi', hl: ['job', 'coord'], p: ['M400 350H460V100H478'], s: `Koordinator fon jarayoni joblar jadvalini kuzatadi. Soat 23:30 bo'lganda u shu jobni ishga tushirishga tayyor deb belgilaydi. Agar bo'sh job slave bo'lmasa (JOB_QUEUE_PROCESSES chegarasi), job navbatda kutadi.` },
+      { t: 'Bajarish', hl: ['coord', 'slave', 'proc'], p: ['M630 150V198', 'M780 250H838'], s: `Koordinator ishni job slave jarayoniga beradi. U alohida sessiya ochib protsedurani chaqiradi. Bu sessiyada foydalanuvchi yo'q: job eng tashqi chaqiruvchi, shuning uchun protsedura o'z ishini o'zi COMMIT qiladi va o'z jurnal jadvaliga yozadi.` },
+      { t: 'Natija jurnalda', hl: ['proc', 'log', 'job'], p: ['M1030 200V152'], s: `Ish tugagach scheduler natijani jurnalga yozadi: boshlanish vaqti, davomiyligi, SUCCEEDED yoki FAILED, xato kodi. Job ma'lumotida oxirgi ishga tushish va keyingi vaqt yangilanadi (ertaga 23:30).` },
+      { t: 'Xato', hl: ['proc', 'err', 'log'], p: ['M1030 300V324'], s: `Protsedura xato bilan tugasa, jurnalda FAILED va xato kodi, jobning xatolar soni oshadi. max_failures dan oshsa job o'chiriladi. Xatoni kimdir ko'rishi kerak: o'z jurnal jadvali va ogohlantirish, aks holda u haftalab bilinmaydi (tuzoqlar bo'limiga qarang).` }
+    ];
+    var setT = tabs('jobT', ST.map(function (x) { return x.t; }), function (i) { cur = i; draw(); });
+    function draw() {
+      var c = ST[cur]; setT(cur); svg.textContent = ''; marker(svg, 'jbmk');
+      group(svg, 14, 14, 404, 372, 'Lug\'atdagi ta\'rif');
+      Object.keys(B).forEach(function (k) { var b = B[k]; boxL(b[0], b[1], b[2], b[3], b[4], b[5], c.hl.indexOf(k) >= 0 ? 'on' : ''); });
+      c.p.forEach(function (d) { S(svg, 'path', { d: d, 'class': 'arr', 'marker-end': 'url(#jbmk)', style: 'stroke-width:2.4' }); });
+      say.textContent = (cur + 1) + '/' + ST.length + '. ' + c.s;
     }
     draw();
   })();

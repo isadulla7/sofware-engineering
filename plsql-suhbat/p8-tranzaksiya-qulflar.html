@@ -65,7 +65,7 @@
     <ul>
       <li>SGA, LGWR va tiklanish asoslari: P6-darsda</li>
       <li>Indekssiz foreign key va bitmap ning indeks tomoni: P7-darsda</li>
-      <li>Taqsimlangan tranzaksiyalar (XA) batafsil: P11-darsda qisqacha</li>
+      <li>Taqsimlangan tranzaksiyalar (XA) Java tomondan: P11-darsda</li>
     </ul>
   </div>
 </div>
@@ -106,6 +106,9 @@
   <div class="evo-tabs" id="undoT" style="margin-top:0.9rem"></div>
   <p class="say" id="undoSay" aria-live="polite"></p>
 </figure>
+
+<p class="beat">Direct-path yozish: undo va redo kamroq</p>
+<p>Oddiy <span class="num">INSERT</span> har qator uchun buffer cache dagi blokni o'zgartiradi, undo yozadi (qaytarish uchun) va redo yozadi (ham ma'lumot, ham undo o'zgarishi uchun). P5 dagi <span class="num">INSERT /*+ APPEND */</span> va CTAS boshqacha: bloklar <strong>yuqori suv belgisidan</strong> (high water mark, jadvalning ishlatilgan qismi chegarasi) keyin yangi joyga to'g'ridan-to'g'ri diskka yoziladi. Jadval ma'lumoti uchun undo deyarli yo'q, chunki qaytarish oson: COMMIT bo'lmasa chegara eski joyida qoladi, yangi bloklar shunchaki «yo'q» hisoblanadi. Indekslar uchun esa undo va redo baribir yoziladi. Jadval <span class="num">NOLOGGING</span> bo'lsa ma'lumot redo si ham deyarli yozilmaydi: juda tez, lekin bu o'zgarishni arxiv logdan tiklab bo'lmaydi, shuning uchun yuklashdan keyin zaxira nusxa olinadi (DBA bilan kelishib). Narxi: direct-path insert jadvalni (yoki partitsiyani) eksklyuziv qulflaydi, boshqa sessiyalar unga yoza olmaydi, va COMMIT gacha shu sessiyaning o'zi ham jadvalni o'qiy olmaydi (<span class="num">ORA-12838</span>). Shuning uchun u tungi yuklashlar va oraliq jadvallar uchun, kunduzgi OLTP jadval uchun emas.</p>
 
 <p class="beat">Multiversion read consistency: o'quvchi hech kimni kutmaydi</p>
 <p>Har SELECT boshlangan paytdagi SCN ni eslab qoladi va natijani <strong>shu paytdagi</strong> holat bo'yicha qaytaradi. Agar o'qilayotgan blok undan keyin o'zgargan bo'lsa (yoki unda commit qilinmagan o'zgarish bo'lsa), server jarayoni undo dan foydalanib blokning eski nusxasini keshda yasaydi va o'shani o'qiydi. Natija uch muhim xususiyat:</p>

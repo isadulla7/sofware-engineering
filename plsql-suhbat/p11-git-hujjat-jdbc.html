@@ -54,7 +54,7 @@
       <li>Deploy: CI, test sxema, utPLSQL, invalid obyektlar, ORA-04068, rollback rejasi</li>
       <li>Hujjat: spec izohlari, COMMENT ON TABLE va COLUMN, README, CHANGELOG, qaror yozuvi</li>
       <li>JDBC: Connection, ulanishlar puli, PreparedStatement, CallableStatement, REF CURSOR, ResultSet, fetch size, batch</li>
-      <li>Tranzaksiya Java da: autocommit, commit va rollback, kim chegarani belgilaydi; SQLException va ORA kodlari</li>
+      <li>Tranzaksiya Java da: autocommit, commit va rollback, kim chegarani belgilaydi; SQLException va ORA kodlari; XA va outbox</li>
     </ul>
   </div>
   <div>
@@ -180,6 +180,9 @@ try (Connection c = dataSource.getConnection();            // puldan olish
         throw e;
     }
 }</pre>
+
+<p class="beat">Taqsimlangan tranzaksiya va XA</p>
+<p>Ba'zan bitta biznes amal ikki resursni o'zgartiradi: masalan Oracle dagi provodka va xabar navbatiga (JMS, Kafka) yuborilgan xabar, yoki ikki xil baza. Ikkalasi ham saqlanishi yoki ikkalasi ham qaytishi kerak. Buning klassik yechimi <strong>XA</strong>: two-phase commit (P8) ning standart interfeysi. Java da tranzaksiya menejeri (ilova serveri yoki Atomikos, Narayana kabi kutubxona) har resursdan avval «tayyormisan» (prepare) deb so'raydi, hammasi tayyor bo'lsa «commit». Oracle drayverida buning uchun <span class="num">OracleXADataSource</span> bor. Narxi: sekinroq, sozlash murakkab, va prepare bilan commit orasida uzilish bo'lsa «noaniq» (in-doubt) tranzaksiyalar qoladi, ularni DBA <span class="num">DBA_2PC_PENDING</span> orqali hal qiladi. Shuning uchun zamonaviy tizimlarda ko'pincha XA o'rniga <strong>outbox</strong> usuli: xabar avval o'sha Oracle tranzaksiyasida oddiy jadvalga yoziladi, alohida jarayon esa uni navbatga yuborib, yuborilgan deb belgilaydi. Bitta lokal COMMIT, qayta yuborishga esa qabul qiluvchi idempotent bo'ladi. Ikki Oracle bazasi database link orqali bog'langan bo'lsa, 2PC ni Oracle o'zi avtomatik qiladi (P8).</p>
 
 <p class="beat">Fetch size va tarmoqqa borishlar</p>
 <p>ResultSet qatorlarni bir yo'la emas, bo'laklab oladi: har bo'lak bitta tarmoq «borib kelishi» (round trip). Oracle JDBC drayverida standart <strong>fetch size 10</strong>. 100 ming qatorli hisobot 10 ming marta borib keladi, va har biri tarmoqda kamida millisekund. Qator sonini o'zgartiring:</p>
