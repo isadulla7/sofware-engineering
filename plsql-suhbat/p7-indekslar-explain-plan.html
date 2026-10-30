@@ -15,6 +15,71 @@
 <h1>P7. Indekslar va EXPLAIN PLAN: B-tree, bitmap, composite, rejani o'qish, statistika, hintlar</h1>
 <p class="lead">Savol: 50 million qatorli jadvaldan bitta hisobni Oracle qanday qilib millisekundda topadi? Indeks bor bo'lsa ham nega ba'zan ishlatilmaydi, rejani qanday o'qish kerak, va «so'rov sekin» degan shikoyatni qanday tartib bilan hal qilish kerak?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Indeks: kitob oxiridagi mundarija</h3>
+<p class="hayot">Qalin kitobda "provodka" so'zini qidirish: butun kitobni varaqlamaysiz, oxiridagi ko'rsatkichdan sahifani topasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> Indeks ustun qiymatlari va ularning qator manzili (ROWID). Oz qator kerak bo'lsa tez, ko'p qator kerak bo'lsa butun jadvalni o'qish tezroq.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE INDEX hisoblar_mijoz_ix ON hisoblar (mijoz_id);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Indeks qiymat va ROWID juftlari. Selektiv shartda tez, ko'p qatorda full scan arzonroq bo'lishi mumkin."</p>
+</div>
+
+<div class="idea">
+<h3>2. B-tree: bir necha qadamda million qatorning ichidan</h3>
+<p class="hayot">Telefon kitobi: avval harf, keyin bo'g'in, keyin ism. Uch qadamda kerakli sahifadasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> B-tree ning ildizi, oraliq va barg qavatlari bor. Katta jadvalda ham chuqurligi odatda 2–3.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT index_name, blevel, leaf_blocks FROM user_indexes WHERE table_name = 'HISOBLAR';</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "B-tree juda sayoz, shuning uchun bitta qiymatni bir necha blok o'qishda topadi."</p>
+</div>
+
+<div class="idea">
+<h3>3. Ustunga funksiya qo'yilsa indeks ishlamaydi</h3>
+<p class="hayot">Mundarija "provodka" bo'yicha tuzilgan, siz esa "PROVODKA katta harfda" qidiryapsiz: mundarija yordam bermaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> WHERE TRUNC(sana) = ..., UPPER(ism) = ... yoki matn ustunini son bilan solishtirish indeksni o'chiradi. Shartni ustunga tegmasdan yozing.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">WHERE TRUNC(sana) = DATE '2026-10-29'                              -- indeks ishlamaydi
+WHERE sana &gt;= DATE '2026-10-29' AND sana &lt; DATE '2026-10-30'     -- ishlaydi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Indeksli ustunga funksiya yoki yashirin tur almashuvi qo'ymayman; kerak bo'lsa funksiya asosidagi indeks."</p>
+</div>
+
+<div class="idea">
+<h3>4. Composite indeksda ustunlar tartibi muhim</h3>
+<p class="hayot">Telefon kitobi familiya, keyin ism bo'yicha. Faqat ism bo'yicha qidirsangiz, kitob yordam bermaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> (filial, hisob) indeksi WHERE filial = ... yoki filial va hisob bo'yicha yaxshi ishlaydi, faqat hisob bo'yicha esa yomon.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE INDEX tolov_ix ON tolovlar (hisob, sana);   -- WHERE hisob = :h AND sana &gt;= :d</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Composite indeksda tenglik shartidagi va ko'p ishlatiladigan ustun birinchi turadi."</p>
+</div>
+
+<div class="idea">
+<h3>5. EXPLAIN PLAN va haqiqiy reja</h3>
+<p class="hayot">Navigator ko'rsatgan yo'l (taxmin) va haqiqatda yurgan yo'lingiz (tirbandlik bilan) har xil bo'lishi mumkin.</p>
+<p class="qoida"><strong>Qoida:</strong> EXPLAIN PLAN taxminiy reja. Haqiqiysi: DBMS_XPLAN.DISPLAY_CURSOR, E-Rows (taxmin) va A-Rows (haqiqat) bilan. Ular juda farq qilsa, sabab shu yerda.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT /*+ GATHER_PLAN_STATISTICS */ ... ;
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Rejani DISPLAY_CURSOR bilan ko'raman va E-Rows ni A-Rows bilan solishtiraman."</p>
+</div>
+
+<div class="idea">
+<h3>6. Statistika: optimizatorning ko'zi</h3>
+<p class="hayot">Eski xarita bilan yo'l tanlash: yangi ko'prik yo'q, eski yo'l yopilgan, tanlov noto'g'ri.</p>
+<p class="qoida"><strong>Qoida:</strong> Optimizator jadval hajmi va ustun qiymatlarini statistikadan biladi. Statistika eskirsa, reja yomonlashadi. DBMS_STATS bilan yangilanadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">EXEC DBMS_STATS.GATHER_TABLE_STATS(USER, 'TOLOVLAR');</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Yomon rejaning ko'p sababi eskirgan statistika; katta yuklashdan keyin statistika yig'aman."</p>
+</div>
+
+<div class="idea">
+<h3>7. Join usullari: nested loops va hash join</h3>
+<p class="hayot">Nested loops: har mehmon uchun stulni alohida qidirasiz (mehmon kam bo'lsa yaxshi). Hash join: avval stullarni raqam bo'yicha joylab, keyin hammani bir yo'la o'tqazasiz (mehmon ko'p bo'lsa yaxshi).</p>
+<p class="qoida"><strong>Qoida:</strong> Kam qator va indeks bo'lsa nested loops, katta hajm va tenglik shartida hash join.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- rejada: NESTED LOOPS yoki HASH JOIN qatori</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Nested loops oz qatorda indeks bilan, hash join katta hajmda. Optimizator buni statistikaga qarab tanlaydi."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P7 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

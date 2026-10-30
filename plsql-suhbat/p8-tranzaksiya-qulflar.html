@@ -15,6 +15,74 @@
 <h1>P8. Tranzaksiya, qulflar va izolyatsiya: COMMIT, undo va redo, lock, deadlock, FOR UPDATE, avtonom tranzaksiya</h1>
 <p class="lead">Savol: ikki kassir bir vaqtda bitta hisobdan pul yechsa, nega qoldiq to'g'ri chiqadi? Hisobot so'rovi ishlayotgan paytda o'tkazmalar bajarilsa, hisobot nimani ko'radi? Deadlock qanday paydo bo'ladi va bank kodida undan qanday qochiladi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Tranzaksiya: hammasi yoki hech narsa</h3>
+<p class="hayot">Pul o'tkazish: bir hisobdan yechish va ikkinchisiga yozish. Yarmi bajarilib qolsa, pul "havoda" yo'qoladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Tranzaksiya bir nechta o'zgarishni bitta butun qiladi: COMMIT hammasini saqlaydi, ROLLBACK hammasini qaytaradi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">UPDATE hisoblar SET qoldiq = qoldiq - 100 WHERE hisob = :a;
+UPDATE hisoblar SET qoldiq = qoldiq + 100 WHERE hisob = :b;
+COMMIT;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Tranzaksiya ACID: atomar, izchil, izolyatsiyalangan, mustahkam. Pul harakati bitta tranzaksiyada."</p>
+</div>
+
+<div class="idea">
+<h3>2. Undo va redo: ikki xil daftar</h3>
+<p class="hayot">Undo: "o'zgarishdan oldin nima edi" daftari, qaytarish uchun. Redo: "nima o'zgardi" daftari, yiqilsa qayta tiklash uchun.</p>
+<p class="qoida"><strong>Qoida:</strong> ROLLBACK va eski versiyani o'qish undo dan. COMMIT dan keyin yo'qolmaslik redo dan.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">ROLLBACK;   -- undo dan eski qiymatlar qaytariladi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Undo qaytarish va izchil o'qish uchun, redo tiklash uchun."</p>
+</div>
+
+<div class="idea">
+<h3>3. O'quvchi yozuvchini kutmaydi</h3>
+<p class="hayot">Kitobni tahrirlayotgan muharrir bor, siz esa kutubxonadagi oxirgi chop etilgan nusxani o'qiysiz. Bir-biringizga xalaqit bermaysiz.</p>
+<p class="qoida"><strong>Qoida:</strong> Oracle da SELECT qulf qo'ymaydi va commit qilinmagan o'zgarishni ko'rmaydi: eski versiyani undo dan o'qiydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- A: UPDATE ... (commit qilmagan)
+-- B: SELECT ... -- eski qiymatni ko'radi, kutmaydi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Oracle da o'quvchi va yozuvchi bir-birini bloklamaydi: multiversion read consistency."</p>
+</div>
+
+<div class="idea">
+<h3>4. Qator qulfi: ikki kishi bitta qatorni bir vaqtda o'zgartira olmaydi</h3>
+<p class="hayot">Bitta kassada bitta mijoz. Ikkinchisi navbatda kutadi.</p>
+<p class="qoida"><strong>Qoida:</strong> UPDATE qatorni qulflaydi, COMMIT yoki ROLLBACK gacha. Boshqa sessiya o'sha qatorni o'zgartirmoqchi bo'lsa kutadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT * FROM hisoblar WHERE hisob = :h FOR UPDATE NOWAIT;   -- band bo'lsa kutmasdan xato</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Qulf qator darajasida, tranzaksiya tugaguncha. FOR UPDATE oldindan qulflaydi, NOWAIT yoki WAIT n bilan."</p>
+</div>
+
+<div class="idea">
+<h3>5. Lost update: bir o'zgarish ikkinchisini "o'chirib" yuboradi</h3>
+<p class="hayot">Ikki kassir bir hisobni ko'rdi: qoldiq 1000. Biri 100 yechdi (900 yozdi), ikkinchisi 200 yechdi (800 yozdi). Natija 800, aslida 700 bo'lishi kerak.</p>
+<p class="qoida"><strong>Qoida:</strong> Qoldiqni o'qib, Java da hisoblab, yozish xavfli. Hisobni bitta UPDATE ichida qiling yoki oldin FOR UPDATE bilan qulflang.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">UPDATE hisoblar SET qoldiq = qoldiq - :s WHERE hisob = :h AND qoldiq &gt;= :s;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Lost update dan himoya: bitta UPDATE da hisoblash, FOR UPDATE, yoki versiya ustuni bilan optimistik qulflash."</p>
+</div>
+
+<div class="idea">
+<h3>6. Deadlock: ikki kishi bir-birini kutib qoladi</h3>
+<p class="hayot">Tor yo'lakda ikki mashina yuzma-yuz: har biri ikkinchisi orqaga qaytishini kutadi.</p>
+<p class="qoida"><strong>Qoida:</strong> A hisob1 ni, B hisob2 ni qulfladi, keyin har biri ikkinchisinikini so'radi. Oracle buni sezadi va bittasiga ORA-00060 beradi. Oldini olish: qulflarni doim bir xil tartibda olish.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- har doim kichik hisob raqamini birinchi qulflash
+SELECT ... FROM hisoblar WHERE hisob IN (:a, :b) ORDER BY hisob FOR UPDATE;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Deadlock da Oracle bitta buyruqni qaytaradi. Ilova ROLLBACK qiladi; oldini olish uchun qulflarni bir xil tartibda olaman."</p>
+</div>
+
+<div class="idea">
+<h3>7. Avtonom tranzaksiya: log yozuvi baribir saqlansin</h3>
+<p class="hayot">Samolyotning "qora qutisi": samolyot qulasa ham yozuv saqlanadi.</p>
+<p class="qoida"><strong>Qoida:</strong> PRAGMA AUTONOMOUS_TRANSACTION alohida tranzaksiya ochadi. Xato jurnali uchun yaxshi, biznes ma'lumot uchun emas.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">PROCEDURE log_xato(p_matn VARCHAR2) IS PRAGMA AUTONOMOUS_TRANSACTION;
+BEGIN INSERT INTO xato_log VALUES (SYSDATE, p_matn); COMMIT; END;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Avtonom tranzaksiya faqat log va audit uchun: asosiy ish qaytsa ham yozuv qoladi."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P8 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

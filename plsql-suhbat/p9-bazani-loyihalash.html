@@ -15,6 +15,73 @@
 <h1>P9. Bazani loyihalash: normallashtirish, kalitlar, cheklovlar, partitsiyalash, katta jadvallar</h1>
 <p class="lead">Savol: yangi modul uchun jadvallarni qanday loyihalaysiz? Mijozning telefoni qayerda saqlanishi kerak, pul summasi qaysi tipda, nega qoldiq alohida jadvalda turadi, va milliardlab qatorli jadval bilan yillar davomida qanday ishlash mumkin?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Normallashtirish: har ma'lumot bir joyda</h3>
+<p class="hayot">Mijozning manzili 10 ta jadvalda yozilgan. Manzil o'zgarsa, 9 tasida yangilanib, bittasida eski qoladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Har fakt bitta joyda saqlanadi, boshqalar unga kalit orqali murojaat qiladi. Takror va qarama-qarshi ma'lumot kamayadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">mijozlar(id, ism, manzil)
+hisoblar(hisob, mijoz_id, ...)   -- manzil emas, mijoz_id</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Normallashtirish takrorni yo'qotadi va o'zgartirish anomaliyalaridan saqlaydi."</p>
+</div>
+
+<div class="idea">
+<h3>2. 1NF, 2NF, 3NF qisqacha</h3>
+<p class="hayot">1NF: bitta katakda bitta qiymat ("tel1, tel2" emas). 2NF: kalitning bir qismiga emas, butun kalitga bog'liq. 3NF: kalitga, boshqa ustun orqali emas.</p>
+<p class="qoida"><strong>Qoida:</strong> Eslab qolish: "kalit, butun kalit va faqat kalit".</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- 3NF buzilishi: hisoblar(hisob, filial_id, filial_nomi)
+-- filial_nomi filial_id ga bog'liq, hisobga emas -&gt; filiallar jadvaliga</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "3NF: har kalit bo'lmagan ustun butun kalitga va faqat kalitga bog'liq."</p>
+</div>
+
+<div class="idea">
+<h3>3. Kalitlar: primary, unique, foreign</h3>
+<p class="hayot">Pasport raqami (unique), bazadagi ichki raqam (primary), va boshqa jadvaldagi "egasi kim" degan havola (foreign).</p>
+<p class="qoida"><strong>Qoida:</strong> Primary key qatorni aniq belgilaydi, unique takrorni taqiqlaydi, foreign key bog'langan qator borligini kafolatlaydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">ALTER TABLE hisoblar ADD CONSTRAINT hisob_mijoz_fk FOREIGN KEY (mijoz_id) REFERENCES mijozlar(id);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "PK aniqlaydi, UNIQUE takrorni to'xtatadi, FK bog'lanishni kafolatlaydi."</p>
+</div>
+
+<div class="idea">
+<h3>4. Pul va hisob raqami uchun to'g'ri tur</h3>
+<p class="hayot">Pulni "taxminan" saqlab bo'lmaydi. Hisob raqami esa son emas, ism kabi: uni qo'shib yoki ko'paytirib bo'lmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Pul: NUMBER(p, s) yoki butun tiyin, FLOAT emas. Hisob raqami, INN, telefon: VARCHAR2, chunki boshidagi nollar va arifmetika ma'nosiz.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">summa NUMBER(18,2),
+hisob VARCHAR2(20)</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Pul NUMBER da, kod va raqamlar VARCHAR2 da."</p>
+</div>
+
+<div class="idea">
+<h3>5. Ongli denormallashtirish: tezlik uchun nusxa</h3>
+<p class="hayot">Hisob qoldig'ini har safar 10 yillik provodkalardan qo'shib chiqmaysiz, tayyor qoldiq yozib qo'yiladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Ba'zan hisoblangan qiymat alohida saqlanadi. Shart: u manba bilan bitta tranzaksiyada yangilansin va muntazam solishtirilsin.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">UPDATE hisoblar SET qoldiq = qoldiq + :s WHERE hisob = :h;   -- provodka bilan birga</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Qoldiq denormallashtirish: tezlik uchun alohida, lekin faqat provodka bilan birga yangilanadi."</p>
+</div>
+
+<div class="idea">
+<h3>6. Partitsiya: katta jadvalni bo'laklarga bo'lish</h3>
+<p class="hayot">Arxivda hujjatlar yillar bo'yicha papkalarda. 2026-yil hujjati kerak bo'lsa faqat shu papkani ochasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> Jadval sana (range), ro'yxat (list) yoki xesh bo'yicha bo'linadi. Shartda partitsiya kaliti bo'lsa Oracle faqat kerakli bo'lakni o'qiydi (pruning).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE TABLE tolovlar (...) PARTITION BY RANGE (sana)
+INTERVAL (NUMTOYMINTERVAL(1, 'MONTH')) (PARTITION p0 VALUES LESS THAN (DATE '2025-01-01'));</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Partitsiya katta jadvalni bo'laklaydi; pruning uchun shartda partitsiya kaliti bo'lishi kerak."</p>
+</div>
+
+<div class="idea">
+<h3>7. Eski ma'lumotni DELETE emas, partitsiya bilan tozalang</h3>
+<p class="hayot">Eski yilning papkasini butunlay olib tashlash, har varaqni alohida yirtish o'rniga.</p>
+<p class="qoida"><strong>Qoida:</strong> DELETE millionlab qator uchun ko'p undo va redo yozadi. DROP yoki TRUNCATE PARTITION bir zumda.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">ALTER TABLE tolovlar DROP PARTITION p_2019 UPDATE INDEXES;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Eski ma'lumot partitsiya amali bilan tozalanadi; local indekslar buzilmaydi."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P9 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

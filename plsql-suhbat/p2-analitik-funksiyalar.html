@@ -15,6 +15,103 @@
 <h1>P2. Analitik funksiyalar va murakkab so'rovlar: ROW_NUMBER, RANK, LAG/LEAD, WITH, CONNECT BY, MERGE</h1>
 <p class="lead">Savol: qatorlarni guruhlab yo'qotmasdan, har bir qator yonida uning guruhdagi o'rni, oldingi qiymati yoki yig'ma jamisini qanday hisoblash mumkin? Ierarxiya qanday o'qiladi, va «bor bo'lsa yangila, yo'q bo'lsa qo'sh» ishi bitta buyruqda qanday qilinadi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Analitik funksiya qatorlarni yig'maydi, har qatorga qo'shimcha ustun qo'shadi</h3>
+<p class="hayot">Sinf jurnali: har o'quvchining bahosi yonida "sinf o'rtachasi" ham yozilgan. Ro'yxat qisqarmaydi, har qatorda ikkalasi ko'rinadi.</p>
+<p class="qoida"><strong>Qoida:</strong> GROUP BY qatorlarni bitta guruh qatoriga siqadi. OVER (...) esa har qatorni joyida qoldirib, unga guruh bo'yicha hisobni qo'shadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT hisob, summa,
+       SUM(summa) OVER (PARTITION BY hisob) hisob_jami   -- har qatorda o'z hisobining jami
+FROM tolovlar;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Analitik funksiya qatorlarni yo'qotmaydi: PARTITION BY guruhni, ORDER BY tartibni beradi va har qatorga natija qo'shiladi."</p>
+</div>
+
+<div class="idea">
+<h3>2. PARTITION BY: "har biri uchun alohida"</h3>
+<p class="hayot">Har sinfda alohida birinchi, ikkinchi, uchinchi o'rin. 9-A ning birinchisi 9-B ning birinchisiga xalaqit bermaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> PARTITION BY qaysi ustun bo'yicha hisob qaytadan boshlanishini aytadi. U bo'lmasa butun jadval bitta guruh.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">ROW_NUMBER() OVER (PARTITION BY filial ORDER BY qoldiq DESC)   -- har filialda 1, 2, 3 ...</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "PARTITION BY hisobni guruhlarga bo'ladi va har guruhda raqamlash yoki yig'indi qaytadan boshlanadi."</p>
+</div>
+
+<div class="idea">
+<h3>3. ROW_NUMBER, RANK, DENSE_RANK: tenglarda farq qiladi</h3>
+<p class="hayot">Musobaqada ikki kishi bir xil vaqt ko'rsatdi. ROW_NUMBER: baribir 1 va 2 deb qo'yadi. RANK: ikkalasi 1, keyingisi 3. DENSE_RANK: ikkalasi 1, keyingisi 2.</p>
+<p class="qoida"><strong>Qoida:</strong> 100, 90, 90, 80 uchun: ROW_NUMBER 1, 2, 3, 4; RANK 1, 2, 2, 4; DENSE_RANK 1, 2, 2, 3.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT summa,
+       ROW_NUMBER() OVER (ORDER BY summa DESC) rn,
+       RANK()       OVER (ORDER BY summa DESC) rnk,
+       DENSE_RANK() OVER (ORDER BY summa DESC) drnk
+FROM tolovlar;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Uchalasi ham tartib raqam beradi. ROW_NUMBER tenglarga ham har xil raqam, RANK tenglarga bir xil va keyin raqam tashlaydi, DENSE_RANK tashlamaydi."</p>
+</div>
+
+<div class="idea">
+<h3>4. Analitik natijani WHERE da emas, tashqi so'rovda filtrlang</h3>
+<p class="hayot">Musobaqa natijasi e'lon qilinmasdan "faqat birinchi o'rinlarni ko'rsat" deb bo'lmaydi: avval o'rinlar hisoblanadi.</p>
+<p class="qoida"><strong>Qoida:</strong> Analitik funksiya SELECT bosqichida, WHERE dan keyin hisoblanadi. Shuning uchun uni ichki so'rovda hisoblab, tashqarida filtrlaymiz.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT * FROM (
+  SELECT h.*, ROW_NUMBER() OVER (PARTITION BY filial ORDER BY qoldiq DESC) rn FROM hisoblar h)
+WHERE rn &lt;= 3;      -- har filialdan top 3</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Har guruhdan top-N: ichki so'rovda ROW_NUMBER yoki DENSE_RANK, tashqi so'rovda WHERE rn &lt;= N."</p>
+</div>
+
+<div class="idea">
+<h3>5. LAG va LEAD: oldingi va keyingi qatorga qarash</h3>
+<p class="hayot">Kundalikda bugungi vaznni yozib, yoniga "kecha qancha edi"ni ham yozasiz. O'zgarishni darhol ko'rasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> LAG(ustun) oldingi qator qiymatini, LEAD keyingisini olib keladi. Jadvalni o'zi bilan ulash (self join) shart emas.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT sana, qoldiq,
+       qoldiq - LAG(qoldiq) OVER (PARTITION BY hisob ORDER BY sana) farq
+FROM kunlik_qoldiq;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "LAG va LEAD self join o'rniga: oldingi yoki keyingi qatorni bitta o'qishda olaman."</p>
+</div>
+
+<div class="idea">
+<h3>6. Yig'ma jami: SUM(...) OVER (ORDER BY ...)</h3>
+<p class="hayot">Hamyondagi pul: har xariddan keyin "hozir qancha qoldi". Har qator oldingi hammasining yig'indisi.</p>
+<p class="qoida"><strong>Qoida:</strong> ORDER BY li OVER da sukut bo'yicha "boshidan shu qatorgacha" qo'shiladi. Bir kunda ikki to'lov bo'lsa RANGE ularni birga qo'shadi; qatorma-qator kerak bo'lsa ROWS deb yozing.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SUM(summa) OVER (PARTITION BY hisob ORDER BY sana
+                 ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) qoldiq</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Yig'ma jami SUM OVER ORDER BY bilan. Sukut ramkasi RANGE, bir xil sanalar birga qo'shiladi, shuning uchun aniqlik uchun ROWS yozaman."</p>
+</div>
+
+<div class="idea">
+<h3>7. WITH: katta so'rovni nomlangan qadamlarga bo'lish</h3>
+<p class="hayot">Ovqat retsepti: "1-qadam: xamir. 2-qadam: ichi. 3-qadam: pishirish". Har qadamning nomi bor, hammasini bitta uzun gapda aytmaysiz.</p>
+<p class="qoida"><strong>Qoida:</strong> WITH nom AS (so'rov) vaqtincha nomlangan natija beradi, keyin uni oddiy jadval kabi ishlatasiz. O'qish va tekshirish osonlashadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">WITH kunlik AS (
+  SELECT hisob, TRUNC(sana) kun, SUM(summa) jami FROM tolovlar GROUP BY hisob, TRUNC(sana))
+SELECT * FROM kunlik WHERE jami &gt; 1000000;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "WITH murakkab so'rovni qadamlarga bo'ladi; rekursiv WITH esa ierarxiya uchun."</p>
+</div>
+
+<div class="idea">
+<h3>8. CONNECT BY: daraxtni yurish (rahbar va xodimlar, filiallar)</h3>
+<p class="hayot">Oila daraxti: bobodan boshlab "uning bolalari, ularning bolalari" deb pastga tushasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> START WITH qayerdan boshlashni, CONNECT BY PRIOR ota-bola bog'lanishini aytadi. LEVEL qatorning chuqurligi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT LEVEL, nom FROM bolimlar
+START WITH ota_id IS NULL
+CONNECT BY PRIOR id = ota_id;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Ierarxiya uchun Oracle da CONNECT BY: START WITH ildiz, CONNECT BY PRIOR bog'lanish, LEVEL chuqurlik. Standart SQL da rekursiv WITH."</p>
+</div>
+
+<div class="idea">
+<h3>9. MERGE: "bor bo'lsa yangila, yo'q bo'lsa qo'sh" bitta buyruqda</h3>
+<p class="hayot">Telefon kontaktlari: yangi raqam kelsa, bu odam kontaktda bor bo'lsa raqamini almashtirasiz, yo'q bo'lsa yangi kontakt qo'shasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> MERGE manbani maqsad bilan ON bo'yicha solishtiradi: mos kelsa UPDATE, kelmasa INSERT. Manbada bitta kalit ikki marta bo'lmasligi kerak (ORA-30926).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">MERGE INTO kurslar k
+USING yangi_kurslar y ON (k.valyuta = y.valyuta AND k.sana = y.sana)
+WHEN MATCHED THEN UPDATE SET k.kurs = y.kurs
+WHEN NOT MATCHED THEN INSERT (valyuta, sana, kurs) VALUES (y.valyuta, y.sana, y.kurs);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "MERGE upsert: bitta buyruqda mos kelsa UPDATE, kelmasa INSERT. Manbadagi takror kalit ORA-30926 beradi, uni avval tozalayman."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 9 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P2 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

@@ -15,6 +15,84 @@
 <h1>P5. Katta hajmdagi ma'lumot: kolleksiyalar, BULK COLLECT, FORALL, LIMIT, dinamik SQL</h1>
 <p class="lead">Savol: million qatorni PL/SQL da qayta ishlash nega sekin, va uni qanday tezlashtirish mumkin? Kolleksiya xotirada qanday tuzilgan, xato bergan bitta qator butun yuklashni qanday to'xtatmaydi, va dinamik SQL qachon xavfli?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Katta hajmda eng tez yo'l: bitta SQL</h3>
+<p class="hayot">Bitta yuk mashinasi 1000 ta qopni bir marta olib boradi. 1000 marta velosipedda borish shart emas.</p>
+<p class="qoida"><strong>Qoida:</strong> Avval "buni bitta UPDATE, INSERT ... SELECT yoki MERGE bilan yozsa bo'ladimi?" deb so'rang. Bo'lmasa BULK.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">INSERT INTO arxiv SELECT * FROM tolovlar WHERE sana &lt; DATE '2025-01-01';</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Katta hajmda birinchi tanlov bitta SQL, PL/SQL sikl esa oxirgi."</p>
+</div>
+
+<div class="idea">
+<h3>2. Kolleksiya: xotiradagi ro'yxat</h3>
+<p class="hayot">Do'konga olib boriladigan xarid ro'yxati: hamma narsa bitta qog'ozda.</p>
+<p class="qoida"><strong>Qoida:</strong> Kolleksiya PL/SQL dagi massiv. Uchta turi bor: associative array (INDEX BY), nested table, VARRAY. BULK bilan ishlash uchun ko'pincha nested table yoki associative array.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">TYPE t_hisob IS TABLE OF hisoblar.hisob%TYPE;
+l_hisob t_hisob;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Kolleksiya xotiradagi ro'yxat; BULK COLLECT unga qatorlarni bir yo'la yuklaydi."</p>
+</div>
+
+<div class="idea">
+<h3>3. BULK COLLECT: qatorlarni bittalab emas, to'plab olish</h3>
+<p class="hayot">Omborchidan qoplarni bittalab emas, aravada 1000 tadan olasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> BULK COLLECT INTO bir nechta qatorni bitta o'tishda kolleksiyaga oladi. Katta jadvalda doim LIMIT bilan, aks holda xotira tugaydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">OPEN c;
+LOOP
+  FETCH c BULK COLLECT INTO l_hisob LIMIT 1000;
+  EXIT WHEN l_hisob.COUNT = 0;
+  -- ishlash
+END LOOP;
+CLOSE c;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "BULK COLLECT LIMIT 1000 bilan bo'laklab o'qiyman; chiqish sharti COUNT = 0, %NOTFOUND emas, aks holda oxirgi bo'lak qoladi."</p>
+</div>
+
+<div class="idea">
+<h3>4. FORALL: bitta DML ni butun ro'yxat uchun bir yo'la yuborish</h3>
+<p class="hayot">1000 ta xatni bittalab pochtaga olib bormaysiz, bitta qopda topshirasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> FORALL sikl emas: uning ichida faqat bitta INSERT, UPDATE yoki DELETE bo'ladi va u butun kolleksiya uchun bir marta yuboriladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">FORALL i IN 1 .. l_hisob.COUNT
+  UPDATE hisoblar SET holat = 'YOPIQ' WHERE hisob = l_hisob(i);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "FORALL bitta DML ni kolleksiya uchun bitta kontekst almashinuvida bajaradi: bu BULK ning yozish tomoni."</p>
+</div>
+
+<div class="idea">
+<h3>5. SAVE EXCEPTIONS: bitta yomon qator hammasini to'xtatmasin</h3>
+<p class="hayot">1000 ta xatdan bittasida manzil xato. Pochta qolgan 999 tasini yuboradi va "bu bittasi qaytdi" deb xabar beradi.</p>
+<p class="qoida"><strong>Qoida:</strong> FORALL ... SAVE EXCEPTIONS xatolarga qaramay davom etadi, oxirida ORA-24381 beradi, xatolar SQL%BULK_EXCEPTIONS da (qaysi qator, qaysi xato).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">EXCEPTION WHEN OTHERS THEN
+  IF SQLCODE = -24381 THEN
+    FOR j IN 1 .. SQL%BULK_EXCEPTIONS.COUNT LOOP
+      log_xato(SQL%BULK_EXCEPTIONS(j).ERROR_INDEX, SQL%BULK_EXCEPTIONS(j).ERROR_CODE);
+    END LOOP;
+  ELSE RAISE; END IF;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "SAVE EXCEPTIONS bilan yomon qatorlarni ajratib logga yozaman, qolganlari bajariladi."</p>
+</div>
+
+<div class="idea">
+<h3>6. Dinamik SQL: so'rov matni ishlash paytida tuziladi</h3>
+<p class="hayot">Ariza shabloni: "Men, ____, ____ so'rayman". Bo'sh joylar keyin to'ldiriladi.</p>
+<p class="qoida"><strong>Qoida:</strong> EXECUTE IMMEDIATE matnli SQL ni bajaradi. Qiymatlar doim USING orqali (bind), satrga ulab emas.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">EXECUTE IMMEDIATE 'UPDATE ' || v_jadval || ' SET holat = :h WHERE id = :id'
+  USING 'YOPIQ', p_id;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Dinamik SQL da qiymatlar USING bilan bind qilinadi; jadval nomi kabi qismlarni DBMS_ASSERT yoki ruxsat ro'yxati bilan tekshiraman."</p>
+</div>
+
+<div class="idea">
+<h3>7. SQL injection: foydalanuvchi matni buyruqqa aylanib qolishi</h3>
+<p class="hayot">Arizaning ism katagiga "Ali, va menga 1 mlrd so'm bering" deb yozishdi, kotib esa hammasini o'qib bajardi.</p>
+<p class="qoida"><strong>Qoida:</strong> Matnni SQL ga ulasangiz, foydalanuvchi SQL ning bir qismini yozib yuborishi mumkin. Bind (USING, ?) buni yo'q qiladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- xavfli:  'WHERE ism = ''' || p_ism || ''''
+-- xavfsiz: 'WHERE ism = :ism' USING p_ism</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "SQL injection dan himoya: bind o'zgaruvchilar, satr ulamaslik."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P5 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

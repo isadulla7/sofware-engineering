@@ -15,6 +15,97 @@
 <h1>P3. PL/SQL asoslari: blok, o'zgaruvchilar, %TYPE va %ROWTYPE, kursorlar, exceptionlar</h1>
 <p class="lead">Savol: SQL bor ekan, nega Oracle'ga yana bir til kerak bo'ldi? PL/SQL bloki qanday tuzilgan, kursor ichkarida nima, va xato yuz berganda boshqaruv qayerga ketadi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. PL/SQL: SQL ga "agar", "takrorla" va "xato bo'lsa" qo'shilgan til</h3>
+<p class="hayot">SQL bitta buyruq: "shu hisoblarni ko'rsat". PL/SQL esa yo'riqnoma: "hisobni ol, qoldiq yetsa yech, yetmasa xato yoz".</p>
+<p class="qoida"><strong>Qoida:</strong> PL/SQL bazaning ichida ishlaydi va SQL ni o'z ichidan chaqiradi. Biznes mantiq (shartlar, sikllar, xatolar) shu yerda yoziladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">BEGIN
+  UPDATE hisoblar SET qoldiq = qoldiq - 1000 WHERE hisob = '...';
+  IF SQL%ROWCOUNT = 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Hisob topilmadi');
+  END IF;
+END;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "PL/SQL Oracle ning protsedurali tili: SQL ustiga o'zgaruvchilar, shartlar, sikllar va exception lar."</p>
+</div>
+
+<div class="idea">
+<h3>2. Blok to'rt qismdan iborat: DECLARE, BEGIN, EXCEPTION, END</h3>
+<p class="hayot">Retsept: "kerakli narsalar" (DECLARE), "tayyorlash" (BEGIN), "kuyib qolsa nima qilish" (EXCEPTION), "tayyor" (END).</p>
+<p class="qoida"><strong>Qoida:</strong> DECLARE da o'zgaruvchilar, BEGIN da ish, EXCEPTION da xatoni ushlash. Faqat BEGIN ... END majburiy.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">DECLARE
+  v_qoldiq hisoblar.qoldiq%TYPE;
+BEGIN
+  SELECT qoldiq INTO v_qoldiq FROM hisoblar WHERE hisob = :h;
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN v_qoldiq := 0;
+END;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Blok: e'lonlar, bajariladigan qism va exception qismi."</p>
+</div>
+
+<div class="idea">
+<h3>3. %TYPE: o'zgaruvchi turini jadval ustunidan olish</h3>
+<p class="hayot">Kiyimni "o'lchami 48" deb emas, "egasining o'lchamida" deb buyurtma qilish: egasi o'zgarsa ham mos keladi.</p>
+<p class="qoida"><strong>Qoida:</strong> v_summa hisoblar.qoldiq%TYPE ustun turi o'zgarsa kodni o'zi moslaydi. %ROWTYPE butun qator uchun.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">v_qator hisoblar%ROWTYPE;   -- hisoblar jadvalining bitta qatori kabi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Turni qattiq yozmay, %TYPE va %ROWTYPE bilan ustunga bog'layman: jadval o'zgarsa kod buzilmaydi."</p>
+</div>
+
+<div class="idea">
+<h3>4. SELECT INTO aniq bitta qator kutadi</h3>
+<p class="hayot">Kassirga "shu odamning pasportini bering" deysiz. Bunday odam yo'q bo'lsa ham, ikkita bo'lsa ham kassir to'xtaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Qator yo'q: NO_DATA_FOUND. Bir nechta: TOO_MANY_ROWS. Ikkalasini ham oldindan o'ylang.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT qoldiq INTO v_q FROM hisoblar WHERE mijoz_id = :m;   -- mijozning 2 ta hisobi bo'lsa TOO_MANY_ROWS</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "SELECT INTO nol qatorda NO_DATA_FOUND, ko'p qatorda TOO_MANY_ROWS beradi; ko'p qator bo'lishi mumkin bo'lsa kursor."</p>
+</div>
+
+<div class="idea">
+<h3>5. Kursor: ko'p qatorni birma-bir o'qish</h3>
+<p class="hayot">Navbatdagi odamlarni bittalab chaqirish: "keyingisi" deysiz, navbat tugaguncha.</p>
+<p class="qoida"><strong>Qoida:</strong> Eng sodda va xavfsiz yo'l: kursorli FOR sikl. U o'zi ochadi, o'qiydi va yopadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">FOR r IN (SELECT hisob, qoldiq FROM hisoblar WHERE filial = :f) LOOP
+  -- r.hisob, r.qoldiq
+END LOOP;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Ko'p qator uchun kursor, odatda kursorli FOR sikl. Katta hajmda esa BULK COLLECT (P5)."</p>
+</div>
+
+<div class="idea">
+<h3>6. Exception: xato bo'lsa nima qilish</h3>
+<p class="hayot">Elektr o'chsa nima qilish yozilgan yo'riqnoma. Yo'riqnoma bo'lmasa, hamma narsa to'xtaydi va kimdir sababni qidiradi.</p>
+<p class="qoida"><strong>Qoida:</strong> Xato EXCEPTION qismiga tushadi. U yerda ushlanmasa, chaqiruvchiga uzatiladi (yuqoriga ko'tariladi). O'z xatoingiz uchun RAISE_APPLICATION_ERROR(-20000..-20999).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE_APPLICATION_ERROR(-20101, 'Shartnoma topilmadi: ' || p_id);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Kutilgan xatolarni nomi bilan ushlayman, o'z xatolarim uchun -20000 dan -20999 gacha kod."</p>
+</div>
+
+<div class="idea">
+<h3>7. WHEN OTHERS THEN NULL: eng xavfli qator</h3>
+<p class="hayot">Signalizatsiya chalinsa uni o'chirib qo'yish. Tinch bo'ladi, lekin o'g'ri bor-yo'qligini hech kim bilmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Hamma xatoni jimgina yutadi: chaqiruvchi "hammasi yaxshi" deb o'ylaydi. WHEN OTHERS faqat logga yozib, keyin RAISE bilan qayta ko'tarish uchun.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">EXCEPTION
+  WHEN OTHERS THEN
+    log_xato(SQLCODE, SQLERRM, DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
+    RAISE;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "WHEN OTHERS THEN NULL xatoni yashiradi. Men log yozib, RAISE bilan qayta ko'taraman."</p>
+</div>
+
+<div class="idea">
+<h3>8. Har qatorda alohida SQL sekin: "slow by slow"</h3>
+<p class="hayot">Do'kondan 100 ta narsani bittalab olib kelish: 100 marta borib kelasiz. Ro'yxat bilan borsangiz bir marta.</p>
+<p class="qoida"><strong>Qoida:</strong> PL/SQL va SQL orasidagi har o'tish (kontekst almashinuvi) vaqt oladi. Iloji bo'lsa bitta SQL, bo'lmasa BULK (P5).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- sekin: siklda har qator uchun UPDATE
+-- tez:
+UPDATE hisoblar SET holat = 'YOPIQ' WHERE oxirgi_amal &lt; ADD_MONTHS(SYSDATE, -36);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Qatorma-qator ishlash har qatorda kontekst almashinuvi. Avval bitta SQL, keyin BULK COLLECT va FORALL."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 8 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P3 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

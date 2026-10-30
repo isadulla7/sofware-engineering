@@ -15,6 +15,70 @@
 <h1>P6. Oracle ichkaridan: SGA va PGA, fon jarayonlari, so'rov qanday bajariladi, parse va bind</h1>
 <p class="lead">Savol: siz <span class="num">SELECT</span> yoki <span class="num">COMMIT</span> yuborgan paytdan javob kelguncha Oracle ichida nima bo'ladi? Ma'lumot qayerda turadi, kim uni diskka yozadi, elektr o'chsa nima yo'qoladi, va nega bitta so'rovni literal bilan yozish butun serverni sekinlashtiradi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Instance va database: oshxona va ombor</h3>
+<p class="hayot">Restoranda ombor (oziq-ovqat saqlanadi) va oshxona (pishiriladi, oshpazlar ishlaydi) bor. Oshxona yopilsa ham ombordagi narsalar qoladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Database: diskdagi fayllar (ma'lumot, redo log, control file). Instance: xotira (SGA) va fon jarayonlari. Instance o'chsa fayllar qoladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT instance_name, status FROM v$instance;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Database fayllar, instance xotira va jarayonlar. Bitta database ni RAC da bir nechta instance ochishi mumkin."</p>
+</div>
+
+<div class="idea">
+<h3>2. SGA: hamma uchun umumiy xotira</h3>
+<p class="hayot">Oshxonadagi umumiy stol: tez-tez kerak bo'ladigan narsalar shu yerda turadi, har safar omborga borilmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> SGA ichida asosiylari: buffer cache (o'qilgan bloklar), shared pool (tahlil qilingan SQL va rejalar), redo log buffer (o'zgarishlar yozuvi).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT name, bytes FROM v$sgainfo;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "SGA umumiy xotira: buffer cache, shared pool, redo buffer. PGA esa har sessiyaning shaxsiy xotirasi."</p>
+</div>
+
+<div class="idea">
+<h3>3. PGA: har ishchining shaxsiy stoli</h3>
+<p class="hayot">Har oshpazning o'z kesish taxtasi. Katta ish sig'masa, vaqtincha yerga (TEMP ga) qo'yadi va sekinlashadi.</p>
+<p class="qoida"><strong>Qoida:</strong> Saralash, GROUP BY, hash join PGA da bajariladi. Sig'masa TEMP tablespace ga (diskka) yoziladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT name, value FROM v$pgastat WHERE name LIKE 'total PGA%';</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Saralash va hash join PGA da; sig'masa TEMP ga tushadi va so'rov sekinlashadi."</p>
+</div>
+
+<div class="idea">
+<h3>4. COMMIT tez, chunki faqat "jurnal" yoziladi</h3>
+<p class="hayot">Bankda kassir avval jurnalga "Aliga 100 ming berildi" deb yozadi. Seyfni tartiblash keyinroq. Chiroq o'chsa ham jurnal bo'yicha hammasi tiklanadi.</p>
+<p class="qoida"><strong>Qoida:</strong> COMMIT da LGWR redo yozuvlarini diskka yozadi. O'zgargan bloklarni DBWn keyinroq yozadi. Yiqilsa, redo bo'yicha tiklanadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">COMMIT;   -- LGWR: redo diskka; bloklar esa keyin, DBWn yozadi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "COMMIT redo log yozilganda tugaydi (write-ahead logging), bloklar keyin yoziladi. Yiqilishda SMON redo dan tiklaydi."</p>
+</div>
+
+<div class="idea">
+<h3>5. SQL ning yo'li: parse, execute, fetch</h3>
+<p class="hayot">Taksiga manzil aytasiz: haydovchi yo'lni o'ylaydi (parse), yuradi (execute), sizni tushiradi (fetch).</p>
+<p class="qoida"><strong>Qoida:</strong> Parse: matnni tekshirish va reja tuzish. Execute: bajarish. Fetch: natija qatorlarini qaytarish.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- bir xil SQL ikkinchi marta kelsa reja shared pool dan olinadi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "So'rov parse, execute va fetch bosqichlaridan o'tadi; reja shared pool da saqlanadi va qayta ishlatiladi."</p>
+</div>
+
+<div class="idea">
+<h3>6. Hard parse qimmat, soft parse arzon</h3>
+<p class="hayot">Har safar yangi manzil: haydovchi xaritani ochib o'ylaydi (hard). Tanish manzil: darhol yo'lga tushadi (soft).</p>
+<p class="qoida"><strong>Qoida:</strong> Yangi SQL matni uchun reja noldan tuziladi (hard parse). Matn bir xil bo'lsa tayyor reja olinadi (soft parse).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT ... WHERE id = 123;   -- har id yangi matn: hard parse
+SELECT ... WHERE id = :id;   -- bitta matn: soft parse</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Hard parse CPU va qulflarni talab qiladi. Bind o'zgaruvchilar matnni bir xil qilib, soft parse beradi."</p>
+</div>
+
+<div class="idea">
+<h3>7. Bind o'zgaruvchi: qiymat o'rniga "bo'sh katak"</h3>
+<p class="hayot">Bir xil blanka, faqat ism katagi har xil. Yangi blanka chop etish shart emas.</p>
+<p class="qoida"><strong>Qoida:</strong> Qiymatni SQL matniga yozmay, :nom yoki ? bilan alohida berish. Reja qayta ishlatiladi va SQL injection bo'lmaydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">PreparedStatement ps = c.prepareStatement("SELECT qoldiq FROM hisoblar WHERE hisob = ?");</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Bind bilan bitta reja hamma qiymat uchun, shared pool to'lmaydi va injection yo'q."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P6 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

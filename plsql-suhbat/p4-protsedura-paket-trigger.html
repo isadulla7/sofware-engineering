@@ -15,6 +15,78 @@
 <h1>P4. Protsedura, funksiya, paket va triggerlar: spec va body, paket holati, mutating table, compound trigger</h1>
 <p class="lead">Savol: kodni bazada qanday saqlash, qayta ishlatish va himoya qilish mumkin? Nega Oracle paketni ikki qismga bo'ladi, sessiyada paket o'zgaruvchisi qayerda yashaydi, va trigger o'z jadvalini o'qiganda nega xato beradi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Protsedura ish bajaradi, funksiya qiymat qaytaradi</h3>
+<p class="hayot">Protsedura: "pulni o'tkaz" degan topshiriq. Funksiya: "kurs nechchi?" degan savol, javobi bitta son.</p>
+<p class="qoida"><strong>Qoida:</strong> Funksiya RETURN bilan bitta qiymat beradi va SELECT ichida ishlatilishi mumkin (u holda DML qilmasligi kerak). Protsedura natijani OUT parametrlar orqali beradi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT hisob, kurs_ol('840', SYSDATE) * qoldiq FROM hisoblar;   -- funksiya SQL ichida
+EXEC tolov.otkazish(:dan, :ga, :summa);                      -- protsedura</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Funksiya qiymat qaytaradi va SQL da ishlaydi, protsedura amal bajaradi va OUT orqali natija beradi."</p>
+</div>
+
+<div class="idea">
+<h3>2. Paket: tegishli dasturlarni bitta qutiga yig'ish</h3>
+<p class="hayot">Restoran: menyu (spec) mijozga ko'rinadi, oshxona (body) ko'rinmaydi. Oshpaz retseptni o'zgartirsa ham menyu o'zgarmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Spec: tashqariga ochiq nomlar va parametrlar. Body: amalga oshirish va ichki yordamchilar. Body o'zgarsa chaqiruvchilar buzilmaydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE PACKAGE tolov AS
+  PROCEDURE otkazish(p_dan VARCHAR2, p_ga VARCHAR2, p_summa NUMBER);
+END;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Paket interfeys va amalga oshirishni ajratadi: chaqiruvchilar faqat spec ga bog'liq, body ni bemalol o'zgartiraman."</p>
+</div>
+
+<div class="idea">
+<h3>3. Paket o'zgaruvchisi har sessiyada alohida yashaydi va ORA-04068</h3>
+<p class="hayot">Har kassirning o'z daftari: paket o'zgaruvchisi shunday, har ulanishning o'z nusxasi. Daftar shakli o'zgarsa, eski daftarlar bekor qilinadi.</p>
+<p class="qoida"><strong>Qoida:</strong> Paket qayta kompilyatsiya qilinsa, uning o'zgaruvchilarini ushlab turgan sessiyalar keyingi chaqiruvda ORA-04068 oladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- paket body boshida:
+g_kesh_kurs NUMBER;   -- sessiya yopilguncha yashaydi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Paket holati sessiyaga xos. Qayta kompilyatsiyada ORA-04068, shuning uchun paketlarni iloji boricha holatsiz yozaman."</p>
+</div>
+
+<div class="idea">
+<h3>4. Trigger: jadvalda biror narsa bo'lganda o'zi ishga tushadi</h3>
+<p class="hayot">Eshik ochilganda yonadigan chiroq. Siz uni yoqmaysiz, hodisa yoqadi.</p>
+<p class="qoida"><strong>Qoida:</strong> BEFORE yoki AFTER, har qator uchun (FOR EACH ROW) yoki buyruq uchun bir marta. Row triggerda :OLD eski, :NEW yangi qiymat.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE TRIGGER hisoblar_aud AFTER UPDATE OF qoldiq ON hisoblar FOR EACH ROW
+BEGIN
+  INSERT INTO qoldiq_tarix VALUES (:OLD.hisob, :OLD.qoldiq, :NEW.qoldiq, SYSDATE, USER);
+END;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Trigger DML hodisasiga avtomatik javob. Audit va tarix uchun yaxshi, biznes mantiq uchun emas."</p>
+</div>
+
+<div class="idea">
+<h3>5. Triggerlar tartibi</h3>
+<p class="hayot">Bitta UPDATE uch qatorni o'zgartirsa: oldin bir marta "boshlanyapti", keyin har qator uchun "oldin" va "keyin", oxirida bir marta "tugadi".</p>
+<p class="qoida"><strong>Qoida:</strong> BEFORE STATEMENT, keyin har qator uchun BEFORE ROW va AFTER ROW, oxirida AFTER STATEMENT.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">UPDATE hisoblar SET qoldiq = 0 WHERE filial = '01';   -- 3 qator: 1 + 3 + 3 + 1 marta trigger qismlari</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Tartib: BEFORE STATEMENT, har qatorga BEFORE ROW va AFTER ROW, AFTER STATEMENT."</p>
+</div>
+
+<div class="idea">
+<h3>6. Mutating table (ORA-04091): trigger o'z jadvalini o'qiy olmaydi</h3>
+<p class="hayot">Uyni ta'mirlash o'rtasida "uyda nechta xona bor?" deb so'rash: bir devor buzilgan, biri qurilmagan, javob noaniq.</p>
+<p class="qoida"><strong>Qoida:</strong> Row trigger o'zgarayotgan jadvalni o'qisa yoki o'zgartirsa ORA-04091. Yechim: mantiqni protseduraga ko'chirish yoki compound trigger (qatorlarni yig'ib, AFTER STATEMENT da tekshirish).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- row triggerda:
+SELECT SUM(qoldiq) INTO v FROM hisoblar WHERE mijoz_id = :NEW.mijoz_id;   -- ORA-04091</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Row trigger o'z jadvalini ko'ra olmaydi, chunki buyruq yarim yo'lda. Compound trigger yoki protsedura bilan hal qilaman."</p>
+</div>
+
+<div class="idea">
+<h3>7. Job: protsedurani jadval bo'yicha avtomatik ishga tushirish</h3>
+<p class="hayot">Budilnik: bir marta "har kuni 23:30 da" deb sozlaysiz, keyin o'zi chalinadi.</p>
+<p class="qoida"><strong>Qoida:</strong> DBMS_SCHEDULER.CREATE_JOB: nima (protsedura) va qachon (repeat_interval). Natija va xatolar USER_SCHEDULER_JOB_RUN_DETAILS da.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">DBMS_SCHEDULER.CREATE_JOB(job_name =&gt; 'KUNLIK_FOIZ', job_type =&gt; 'STORED_PROCEDURE',
+  job_action =&gt; 'kredit_foiz.hamma', repeat_interval =&gt; 'FREQ=DAILY; BYHOUR=23', enabled =&gt; TRUE);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Muntazam ish uchun DBMS_SCHEDULER job, natijasini jurnaldan kuzataman va xatoni o'z logimga yozaman."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P4 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

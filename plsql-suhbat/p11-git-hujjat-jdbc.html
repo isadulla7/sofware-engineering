@@ -15,6 +15,94 @@
 <h1>P11. Git, hujjatlashtirish va ilova bilan integratsiya (Java, JDBC)</h1>
 <p class="lead">Savol: PL/SQL kodi bazada yashaydi, unda «kim, qachon, nimani o'zgartirdi» qayerda yoziladi? Ikki dasturchi bitta paketni o'zgartirsa nima bo'ladi? Kod test bazasidan prodga qanday yetib boradi? Va Java ilova bazaga qanday ulanadi, protsedurani qanday chaqiradi, xatoni qanday ushlaydi, tranzaksiyani kim boshqaradi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Git: kodning har bir o'zgarishi saqlanadigan arxiv</h3>
+<p class="hayot">Hujjatning har tahriri "kim, qachon, nima uchun" yozuvi bilan saqlanadi va istalgan eski variantga qaytish mumkin.</p>
+<p class="qoida"><strong>Qoida:</strong> Commit: bir paytdagi surat. Branch: alohida ish yo'li. Merge: birlashtirish. Pull request: "ko'rib chiqib qo'shing" so'rovi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">git switch -c feature/KR-112
+git commit -am "KR-112: foizda 365 kun"
+git push -u origin feature/KR-112</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Har vazifa alohida branchda, pull request va review dan keyin main ga birlashtiriladi, versiyaga teg qo'yiladi."</p>
+</div>
+
+<div class="idea">
+<h3>2. Baza kodi ham repo da fayl bo'lib turadi</h3>
+<p class="hayot">Retseptlar daftari oshxonada emas, alohida kitobda: oshpaz o'zgarsa ham retsept yo'qolmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Paket va view: to'liq fayl, CREATE OR REPLACE. Jadval o'zgarishi: tartib raqamli migratsiya skripti, bir marta qo'llanadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">packages/kredit_foiz.pkb
+migrations/V1.4.0_01__stavka_kun_soni.sql</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Repo yagona manba: paketlar fayl sifatida, jadval o'zgarishlari migratsiya skriptlarida. Bazada to'g'ridan-to'g'ri tahrir qilmayman."</p>
+</div>
+
+<div class="idea">
+<h3>3. Konflikt: ikki kishi bitta qatorni o'zgartirdi</h3>
+<p class="hayot">Ikki muharrir bir gapni turlicha tuzatdi. Kompyuter qaysi biri to'g'ri ekanini bilmaydi, odam hal qiladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Git ikkala variantni belgilar bilan ko'rsatadi, siz to'g'risini qoldirasiz, test qilasiz va commit qilasiz.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">&lt;&lt;&lt;&lt;&lt;&lt;&lt; HEAD
+  v_kun := 365;
+=======
+  v_kun := p_kun_soni;
+&gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Konfliktni ikkala o'zgarish maqsadini tushunib hal qilaman, keyin kompilyatsiya va test."</p>
+</div>
+
+<div class="idea">
+<h3>4. Hujjat: o'quvchiga kerakli narsa</h3>
+<p class="hayot">Dori qutisidagi yo'riqnoma: nima uchun, qancha, nima qilmaslik kerak. Kimyoviy formulasi emas.</p>
+<p class="qoida"><strong>Qoida:</strong> Paket spec da har protsedura ustida: vazifasi, parametrlar, xato kodlari, COMMIT qiladimi. Jadval va ustunlarga COMMENT ON.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- Xatolar: -20101 shartnoma topilmadi
+-- Tranzaksiya: COMMIT qilmaydi
+COMMENT ON COLUMN kredit_stavka.kun_soni IS 'Yildagi kunlar: 360 yoki 365';</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Spec izohlari chaqiruvchi uchun, body da "nega" izohlari, COMMENT ON tahlilchi uchun, README va CHANGELOG jamoa uchun."</p>
+</div>
+
+<div class="idea">
+<h3>5. JDBC: Java ning bazaga telefon liniyasi</h3>
+<p class="hayot">Qo'ng'iroq qilasiz (ulanish), savol berasiz (SQL), javobni qism-qism eshitasiz (ResultSet), go'shakni qo'yasiz (close).</p>
+<p class="qoida"><strong>Qoida:</strong> Ulanish puldan olinadi, so'rov PreparedStatement bilan, natija ResultSet da, oxirida hammasi yopiladi (try-with-resources).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">try (Connection c = ds.getConnection();
+     PreparedStatement ps = c.prepareStatement("SELECT qoldiq FROM hisoblar WHERE hisob = ?")) {
+  ps.setString(1, hisob);
+  try (ResultSet rs = ps.executeQuery()) { ... }
+}</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Java da puldan ulanish, PreparedStatement va bind, try-with-resources bilan yopish."</p>
+</div>
+
+<div class="idea">
+<h3>6. Ulanishlar puli: tayyor liniyalar</h3>
+<p class="hayot">Har qo'ng'iroq uchun yangi telefon liniyasi tortish o'rniga, ofisda 10 ta tayyor liniya bor, kim bo'sh bo'lsa ishlatadi.</p>
+<p class="qoida"><strong>Qoida:</strong> Fizik ulanish ochish qimmat. Pul ulanishlarni qayta ishlatadi; "close" uni pulga qaytaradi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">HikariDataSource ds = new HikariDataSource(config);   // ilova boshlanganda</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Pul ulanish narxini va bazadagi sessiyalar sonini kamaytiradi; ulanishni yopish uni pulga qaytaradi."</p>
+</div>
+
+<div class="idea">
+<h3>7. Protsedurani chaqirish va xatoni ushlash</h3>
+<p class="hayot">Buyurtma berasiz (CallableStatement), chek olasiz (OUT parametr), mahsulot tugagan bo'lsa sotuvchi sababini kod bilan aytadi (xato kodi).</p>
+<p class="qoida"><strong>Qoida:</strong> CallableStatement bilan chaqiriladi, OUT parametr oldindan ro'yxatga olinadi. Xato SQLException da, getErrorCode() ORA raqamini beradi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CallableStatement cs = c.prepareCall("{ call kredit_api.berish(?, ?, ?) }");
+cs.registerOutParameter(3, Types.NUMERIC);
+// catch: e.getErrorCode() == 20102</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "CallableStatement, OUT va REF CURSOR, xatoni getErrorCode bilan biznes xatoga aylantiraman."</p>
+</div>
+
+<div class="idea">
+<h3>8. Autocommit: JDBC da sukut bo'yicha yoqilgan</h3>
+<p class="hayot">Har gapdan keyin "tasdiqlayman" deb imzo qo'yish: ikkinchi gap xato bo'lsa, birinchisi allaqachon imzolangan.</p>
+<p class="qoida"><strong>Qoida:</strong> Ikki chaqiruv bitta tranzaksiya bo'lishi uchun setAutoCommit(false), oxirida commit, xatoda rollback.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">c.setAutoCommit(false);
+// ... ikki chaqiruv
+c.commit();   // xatoda: c.rollback();</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "JDBC da autocommit yoqilgan, shuning uchun bir nechta chaqiruvda uni o'chirib, bitta commit qilaman."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 8 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P11 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

@@ -15,6 +15,70 @@
 <h1>P10. iABS: bank yadro tizimi tuzilishi, hisoblar, provodkalar, operatsion kun</h1>
 <p class="lead">Savol: bank yadro tizimi ichkaridan qanday tuzilgan? Kassada qabul qilingan to'lov, karta tranzaksiyasi yoki kredit foizi qanday qilib bitta buxgalteriya yozuviga aylanadi, qoldiq qayerda turadi, va bank kuni qanday ochilib yopiladi? Va bularning hammasi P1–P9 dagi mavzularga qanday bog'lanadi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. Yadro bank tizimi: bankning markaziy buxgalteriyasi</h3>
+<p class="hayot">Katta bozor: har rasta (kredit, karta, omonat) o'zi sotadi, lekin pul hammasi bitta markaziy kassadan o'tadi va bitta daftarga yoziladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Modullar ko'p, lekin pul harakati hammasi yadro orqali: bitta provodka dvigateli, bitta buxgalteriya.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- modul: kredit foizi hisoblandi -&gt; yadro: provodka -&gt; hisob qoldig'i</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Yadro tizimida har modul o'z jadvallariga yozadi, pul harakati esa doim yadrodagi provodka orqali."</p>
+</div>
+
+<div class="idea">
+<h3>2. Nega mantiq bazada (PL/SQL da)</h3>
+<p class="hayot">Kassir pul berib, daftarga yozishni boshqa odamga topshirsa, ikkinchisi unutishi mumkin. Bitta odam ikkalasini bir vaqtda qilsa xato yo'q.</p>
+<p class="qoida"><strong>Qoida:</strong> Modul jadvali, provodka va qoldiq bitta tranzaksiyada yoziladi. Ekran ham, mobil ilova ham, tungi job ham bitta paketni chaqiradi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- ekran, mobil shlyuz, job -&gt; hammasi: kredit_api.berish(...)</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Mantiq bazada: bitta tranzaksiya, hamma kanal uchun bitta qoida, ma'lumotga yaqin. Narxi: ko'p PL/SQL kod va qayta kompilyatsiya muammolari."</p>
+</div>
+
+<div class="idea">
+<h3>3. Hisob raqami 20 xonali va ma'noli</h3>
+<p class="hayot">Pasport raqami kabi tasodifiy emas: manzil kabi, har qismi nimanidir bildiradi.</p>
+<p class="qoida"><strong>Qoida:</strong> 5 xona balans hisobi, 3 xona valyuta (000 so'm, 840 dollar), 1 xona nazorat raqami, 8 xona mijoz kodi, 3 xona tartib raqami.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">20208 000 5 12345678 001</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Hisob raqami: balans hisobi, valyuta, nazorat raqami, mijoz kodi, tartib raqami."</p>
+</div>
+
+<div class="idea">
+<h3>4. Provodka: har pul harakati ikki tomonlama</h3>
+<p class="hayot">Bir cho'ntakdan olib boshqasiga solasiz: biri kamayadi, ikkinchisi ko'payadi, umumiy pul o'zgarmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Har provodka bir hisobni debetlaydi, boshqasini kreditlaydi, bir xil summaga. Shuning uchun debet yig'indisi doim kredit yig'indisiga teng.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">debet: 20208... (mijoz hisobi)   kredit: 10101... (kassa)   summa: 1 000 000</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Provodka ikki tomonlama yozuv: debet va kredit teng. Kun yopishda shu tenglik tekshiriladi."</p>
+</div>
+
+<div class="idea">
+<h3>5. Qoldiqni hech qachon to'g'ridan-to'g'ri o'zgartirmang</h3>
+<p class="hayot">Daftardagi yozuvni o'chirib, ustidan yangi raqam yozish: auditor buni darhol topadi.</p>
+<p class="qoida"><strong>Qoida:</strong> Qoldiq faqat provodka orqali o'zgaradi. Xato bo'lsa teskari provodka (storno).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- noto'g'ri: UPDATE hisoblar SET qoldiq = 5000 WHERE ...
+-- to'g'ri: storno yoki tuzatuvchi provodka</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Qoldiq faqat provodka dvigateli orqali o'zgaradi; xato storno bilan tuzatiladi."</p>
+</div>
+
+<div class="idea">
+<h3>6. Operatsion kun va kun yopish</h3>
+<p class="hayot">Do'kon ertalab ochiladi, kechqurun kassa sanaladi, kunlik hisobot yoziladi, ertasi kun yangi daftar ochiladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Hujjatlar ochiq operatsion kunga yoziladi. Kun yopishda: foizlar, avtoto'lovlar, tekshiruvlar, kunlik qoldiqlar, joriy provodkalar tarixga ko'chadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- kun yopish: kiritishni to'xtatish -&gt; hisob-kitoblar -&gt; solishtiruv -&gt; tarixga ko'chirish -&gt; keyingi kun</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Kun yopish bosqichli: kiritish to'xtaydi, kun yakuni jarayonlari, solishtiruv, tarixga ko'chirish, yangi kun ochiladi."</p>
+</div>
+
+<div class="idea">
+<h3>7. Har modul bir xil skeletda</h3>
+<p class="hayot">Har xil uylar, lekin hammasida poydevor, devor, tom bor. Bittasini tushunsangiz, qolganlarini tez tushunasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> Lug'atlar, asosiy obyekt (shartnoma), hisoblar, parametrlar (stavka, grafik), tarix va modul provodkalari.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- kredit: shartnoma -&gt; hisoblar (asosiy qarz, foiz) -&gt; grafik -&gt; provodka</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Modullar bir xil andozada: shartnoma, uning hisoblari, parametrlari, tarixi va modul provodkalari, keyin yadro."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P10 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>
