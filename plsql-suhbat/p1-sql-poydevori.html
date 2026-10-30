@@ -15,6 +15,108 @@
 <h1>P1. SQL poydevori: bajarilish tartibi, JOIN, GROUP BY, subquery, NULL</h1>
 <p class="lead">Savol: Oracle bitta <span class="num">SELECT</span> ni qaysi tartibda bajaradi, jadvallar qanday birlashtiriladi, guruhlash qanday ishlaydi, va nega <span class="num">NULL</span> bilan yozilgan so'rov ba'zan jimgina noto'g'ri javob beradi?</p>
 
+<section class="sodda" id="sodda">
+<h2>Sodda tilda: 15 daqiqada</h2>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik SQL va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+
+<div class="idea">
+<h3>1. SQL da siz "nima kerak"ni aytasiz, "qanday topish"ni Oracle hal qiladi</h3>
+<p class="hayot">Taksiga o'tirib "Chorsuga" deysiz. Qaysi ko'chadan borishni haydovchi o'zi tanlaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> SQL so'rovi natijani tasvirlaydi. Qaysi indeksdan o'qish, jadvallarni qanday ulashni Oracle ning "haydovchisi", ya'ni <strong>optimizator</strong> tanlaydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT ism FROM mijozlar WHERE filial = '01';   -- "01-filial mijozlarining ismi kerak"</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "SQL deklarativ til: men natijani yozaman, bajarish yo'lini optimizator tanlaydi."</p>
+</div>
+
+<div class="idea">
+<h3>2. So'rov yozilgan tartibda emas, boshqa tartibda bajariladi</h3>
+<p class="hayot">Bozordan meva olish: avval qaysi bozorga borasiz (FROM), chirigan mevalarni olmaysiz (WHERE), qolganini turlarga ajratasiz (GROUP BY), juda kam qolgan turlarni tashlaysiz (HAVING), daftarga nimani yozishni tanlaysiz (SELECT), oxirida ro'yxatni tartiblaysiz (ORDER BY).</p>
+<p class="qoida"><strong>Qoida:</strong> FROM → WHERE → GROUP BY → HAVING → SELECT → ORDER BY. Shuning uchun SELECT da bergan nomingizni (alias) WHERE da ishlatib bo'lmaydi, ORDER BY da esa bo'ladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT summa * 2 AS ikki_baravar FROM tolovlar
+WHERE ikki_baravar &gt; 100      -- XATO: WHERE paytida bu nom hali yo'q
+ORDER BY ikki_baravar;         -- bu yerda ishlaydi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Mantiqiy tartib FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY. Shuning uchun WHERE da alias ham, agregat ham yo'q."</p>
+</div>
+
+<div class="idea">
+<h3>3. WHERE qatorlarni, HAVING guruhlarni filtrlaydi</h3>
+<p class="hayot">Maktabda: WHERE "faqat 9-sinf o'quvchilari", HAVING "faqat 30 kishidan ko'p sinflar". Ikkinchisini bilish uchun avval o'quvchilarni sinflarga ajratib sanash kerak.</p>
+<p class="qoida"><strong>Qoida:</strong> COUNT, SUM kabi shartlar faqat HAVING da, chunki ular guruhlashdan keyin paydo bo'ladi. Oddiy shartni WHERE ga yozing: guruhlanadigan qator kamayadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT filial, COUNT(*) FROM hisoblar
+WHERE holat = 'OCHIQ'          -- qatorlar: faqat ochiq hisoblar
+GROUP BY filial
+HAVING COUNT(*) &gt; 1000;       -- guruhlar: 1000 dan ko'p hisobi bor filiallar</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "WHERE guruhlashdan oldin qatorlarni, HAVING keyin guruhlarni filtrlaydi. WHERE paytida guruh yo'q, shuning uchun COUNT ni u yerda yozib bo'lmaydi."</p>
+</div>
+
+<div class="idea">
+<h3>4. INNER JOIN faqat juftlarni, LEFT JOIN chap tomonni to'liq qoldiradi</h3>
+<p class="hayot">Sinf ro'yxati va topshirilgan uy vazifalari. INNER: faqat vazifa topshirganlar. LEFT: butun sinf, topshirmaganlar yonida bo'sh joy (NULL).</p>
+<p class="qoida"><strong>Qoida:</strong> "Hammasi kerak, bo'lmasa bo'sh tursin" desa LEFT JOIN. "Faqat ikkalasida ham borlar" desa INNER JOIN.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT m.ism, h.hisob
+FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id;   -- hisobi yo'q mijoz ham chiqadi, hisob = NULL</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "INNER faqat mos kelgan juftlarni qaytaradi. LEFT chap jadvalning hamma qatorini qaytaradi, mos qator bo'lmasa o'ng tomon NULL."</p>
+</div>
+
+<div class="idea">
+<h3>5. LEFT JOIN dan keyin o'ng jadval shartini WHERE ga emas, ON ga yozing</h3>
+<p class="hayot">"Butun sinf, va kimda bugungi vazifa bor" dedingiz, keyin "faqat bugungi vazifasi borlarni ko'rsat" deb filtrladingiz. Vazifasi yo'qlar yana yo'qoldi.</p>
+<p class="qoida"><strong>Qoida:</strong> o'ng jadvalga shart WHERE da bo'lsa, NULL qatorlar o'chadi va LEFT JOIN oddiy INNER JOIN ga aylanadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- noto'g'ri: hisobi yo'q mijozlar yo'qoladi
+... LEFT JOIN hisoblar h ON h.mijoz_id = m.id WHERE h.valyuta = '840';
+-- to'g'ri:
+... LEFT JOIN hisoblar h ON h.mijoz_id = m.id AND h.valyuta = '840';</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "LEFT JOIN da o'ng jadval sharti ON ichida bo'lishi kerak, WHERE da u JOIN ni INNER ga aylantiradi."</p>
+</div>
+
+<div class="idea">
+<h3>6. NULL bu "noma'lum", nol ham emas, bo'sh ham emas</h3>
+<p class="hayot">Anketada "telefon" katagi to'ldirilmagan. Bu "telefoni yo'q" degani emas, "bilmaymiz" degani. Ikki noma'lum telefon bir xilmi? Buni ham bilmaymiz.</p>
+<p class="qoida"><strong>Qoida:</strong> NULL bilan har qanday solishtiruv (<span class="num">=</span>, <span class="num">&lt;&gt;</span>, <span class="num">&gt;</span>) TRUE ham, FALSE ham emas, balki UNKNOWN. WHERE faqat TRUE ni o'tkazadi. NULL ni faqat <span class="num">IS NULL</span> bilan tekshiring. Oracle da bo'sh satr <span class="num">''</span> ham NULL.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">WHERE telefon = NULL      -- hech qachon ishlamaydi
+WHERE telefon IS NULL     -- to'g'ri
+SELECT NVL(telefon, 'yo''q') FROM mijozlar;   -- NULL o'rniga qiymat</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "NULL bu noma'lum qiymat. Solishtiruv UNKNOWN beradi, shuning uchun IS NULL va NVL yoki COALESCE ishlataman."</p>
+</div>
+
+<div class="idea">
+<h3>7. NOT IN ro'yxatida bitta NULL bo'lsa, natija butunlay bo'sh</h3>
+<p class="hayot">"Qora ro'yxatda yo'q odamlarni chaqir" dedingiz, lekin ro'yxatda bitta ismi o'chib ketgan qator bor. "Bu odam o'sha noma'lum odam emasmi?" savoliga javob "bilmayman", shuning uchun hech kimni chaqirmaysiz.</p>
+<p class="qoida"><strong>Qoida:</strong> <span class="num">NOT IN (... NULL ...)</span> doim bo'sh natija beradi. O'rniga <span class="num">NOT EXISTS</span>.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT h.hisob FROM hisoblar h
+WHERE NOT EXISTS (SELECT 1 FROM bloklar b WHERE b.hisob = h.hisob);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "NOT IN ichida NULL bo'lsa so'rov bo'sh qaytadi, chunki id &lt;&gt; NULL UNKNOWN. Shuning uchun NOT EXISTS yoki IS NOT NULL."</p>
+</div>
+
+<div class="idea">
+<h3>8. Ikkita "bittaga ko'p" JOIN summani ko'paytirib yuboradi</h3>
+<p class="hayot">Mijozning 2 ta kartasi va 3 ta to'lovi bor. Kartalar va to'lovlarni bir vaqtda ulasangiz, har to'lov har karta bilan juftlashadi: 3 emas, 6 qator, va summa ikki baravar.</p>
+<p class="qoida"><strong>Qoida:</strong> ikki mustaqil ro'yxatni avval alohida guruhlang, keyin ulang.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT m.id, k.soni, t.jami
+FROM mijozlar m
+LEFT JOIN (SELECT mijoz_id, COUNT(*) soni FROM kartalar GROUP BY mijoz_id) k ON k.mijoz_id = m.id
+LEFT JOIN (SELECT mijoz_id, SUM(summa) jami FROM tolovlar GROUP BY mijoz_id) t ON t.mijoz_id = m.id;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Bu fan-out. Ikki 1:N bog'lanishni bitta so'rovda ulasam qatorlar ko'payadi, shuning uchun har birini avval guruhlayman."</p>
+</div>
+
+<div class="idea">
+<h3>9. Oracle DATE ichida soat ham bor</h3>
+<p class="hayot">"Oktabr oyidagi to'lovlar" dedingiz, lekin 31-oktabr kechqurun 18:00 dagi to'lov tushib qoldi: "31-oktabr" siz uchun butun kun, Oracle uchun esa faqat 00:00.</p>
+<p class="qoida"><strong>Qoida:</strong> kun oralig'ini "dan, gacha emas" deb yozing.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">WHERE sana &gt;= DATE '2026-10-01' AND sana &lt; DATE '2026-11-01'</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "DATE da vaqt ham bor, shuning uchun BETWEEN emas, &gt;= va &lt; keyingi kun. Ustunga TRUNC qo'ymayman, aks holda indeks ishlamaydi."</p>
+</div>
+
+<div class="idea">
+<h3>10. "Eng katta 10 ta" uchun FETCH FIRST</h3>
+<p class="hayot">Avval eng baland 10 o'quvchini tanlash kerak, keyin saflash. ROWNUM esa avval tasodifiy 10 kishini olib, keyin ularni saflaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> 12c dan <span class="num">ORDER BY ... FETCH FIRST 10 ROWS ONLY</span>. Eski usul: ichki so'rovda saralab, tashqarida ROWNUM.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT hisob, qoldiq FROM hisoblar ORDER BY qoldiq DESC FETCH FIRST 10 ROWS ONLY;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "ROWNUM saralashdan oldin beriladi, shuning uchun top-N uchun FETCH FIRST yoki ichki so'rovda ORDER BY."</p>
+</div>
+
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 10 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P1 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+</section>
+
 <div class="intro">
   <div>
     <h3>Bu nima</h3>

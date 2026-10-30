@@ -519,3 +519,12 @@ details.grp > summary { font-weight: 600; }
 .quiz-link { margin: 0 0 0.8rem; font-size: 0.9375rem; }
 .quiz-next { font: inherit; font-weight: 600; background: var(--accent); color: var(--panel); border: 1px solid var(--accent); border-radius: 6px; padding: 0.55rem 1.1rem; cursor: pointer; }
 .quiz-best { font-size: 0.9375rem; color: var(--muted); margin: 0.9rem 0 0; }
+
+/* Sodda tilda: darsning boshidagi oddiy tushuntirish */
+.sodda { background: var(--panel); border: 1px solid var(--line); border-left: 4px solid var(--lamp); border-radius: 6px; padding: 0.8rem 1.2rem 1rem; margin: 1.2rem 0 2rem; }
+.sodda > h2 { margin-top: 0.4rem; }
+.sodda .idea { border-top: 1px solid var(--line); padding-top: 0.6rem; margin-top: 1rem; }
+.sodda .idea h3 { margin: 0.2rem 0 0.4rem; }
+.sodda .hayot { font-style: italic; }
+.sodda .qoida { background: var(--lamp-soft); border-radius: 4px; padding: 0.4rem 0.7rem; }
+.sodda .ayt { border-left: 3px solid var(--accent); padding-left: 0.7rem; color: var(--ink); }
