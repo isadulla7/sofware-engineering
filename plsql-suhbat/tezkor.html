@@ -1,0 +1,773 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Tezkor tayyorgarlik</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+<style>
+.ru { border-left: 3px solid var(--accent); padding: 0.35rem 0.8rem; margin: 0.6rem 0 0.2rem; background: var(--accent-soft); border-radius: 0 4px 4px 0; }
+.ru::before { content: "Ruscha javob"; display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; color: var(--accent); margin-bottom: 0.15rem; }
+.intro-ru { white-space: normal; }
+.plan td:first-child { white-space: nowrap; font-weight: 600; }
+</style>
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a> / Tezkor tayyorgarlik</p>
+<h1>Texnik suhbatga tezkor tayyorgarlik</h1>
+<p class="lead">Hamkorbank, Oracle PL/SQL dasturchi vakansiyasi bo'yicha texnik suhbatdan oldingi bir kunlik konspekt. Eng ko'p so'raladigan savollar oddiy tilda tushuntirilgan, har biriga ruscha tayyor javob berilgan. Asosiy mavzular chizmalar bilan ko'rsatilgan. Oxirida amaliy masalalar, ruscha atamalar lug'ati va test bor.</p>
+
+<div class="intro">
+  <div>
+    <h3>Bu nima</h3>
+    <p>P1–P12 darslarining suhbat uchun eng kerakli qismi, bitta sahifada. Yangi mavzu deyarli yo'q: hammasi darslarda chizmalar va misollar bilan batafsil yozilgan. Bu sahifa esa ularning "imtihon oldidan bir varaq" ko'rinishi.</p>
+    <p>Suhbat, ehtimol, rus tilida bo'ladi. Shuning uchun har javobning tagida qisqa <strong>ruscha javob</strong> bor: tushunchani o'zbekcha tushunasiz, gapirishni esa ruscha mashq qilasiz.</p>
+  </div>
+  <div>
+    <h3>Qayerda ishlatiladi</h3>
+    <ul>
+      <li><strong>Bugun kechqurun:</strong> savollarni guruhma-guruh o'qib chiqish va ruscha javoblarni ovoz chiqarib aytish.</li>
+      <li><strong>Ertaga ertalab:</strong> test, amaliy masalalar va ruscha lug'at.</li>
+      <li><strong>Suhbatdan 30 daqiqa oldin:</strong> pastdagi "Oxirgi cheklist" va o'zingizni tanishtirish matni.</li>
+    </ul>
+  </div>
+  <div>
+    <h3>Maqsad</h3>
+    <p>Har bir savolga 1–2 daqiqada, tartib bilan javob bera olish: <strong>ta'rif → ichkarida qanday ishlaydi → bank misoli → tuzoq</strong>. Suhbatdosh ko'pincha javobning to'g'riligidan ko'ra, mavzuni qanchalik chuqur tushunishingizni tekshiradi.</p>
+    <p>Biror javob tushunarsiz bo'lsa, uning yonidagi havola orqali tegishli darsni oching.</p>
+  </div>
+</div>
+
+<nav class="toc" aria-label="Sahifa mundarijasi">
+  <h2>Sahifada</h2>
+  <ol>
+    <li><a href="#reja">Bugun va ertaga uchun reja</a></li>
+    <li><a href="#tanishtirish">O'zingizni tanishtirish (ruscha matn)</a></li>
+    <li><a href="#g1">SQL poydevori</a></li>
+    <li><a href="#g2">Analitik funksiyalar va murakkab so'rovlar</a></li>
+    <li><a href="#g3">PL/SQL: blok, kursor, exception</a></li>
+    <li><a href="#g4">Protsedura, paket, trigger</a></li>
+    <li><a href="#g5">Katta hajmdagi ma'lumot va dinamik SQL</a></li>
+    <li><a href="#g6">Oracle ichkaridan</a></li>
+    <li><a href="#g7">Indekslar va bajarilish rejasi</a></li>
+    <li><a href="#g8">Tranzaksiya va qulflar</a></li>
+    <li><a href="#g9">Bazani loyihalash</a></li>
+    <li><a href="#g10">iABS va bank yadro tizimi</a></li>
+    <li><a href="#g11">Mayda, lekin tez-tez so'raladigan savollar</a></li>
+    <li><a href="#amaliy">Amaliy masalalar (doskada yoki ekranda)</a></li>
+    <li><a href="#lugat">Ruscha atamalar lug'ati</a></li>
+    <li><a href="#sorash">Suhbat oxirida ular so'raydigan va siz so'raydigan savollar</a></li>
+    <li><a href="#test">Test</a></li>
+    <li><a href="#cheklist">Oxirgi cheklist</a></li>
+  </ol>
+</nav>
+
+<h2 id="reja">Bugun va ertaga uchun reja</h2>
+<p>Suhbat ertaga soat 14:00 da. Hammasini bir xil chuqurlikda o'qishga vaqt yo'q, shuning uchun tartib vakansiya talablariga qarab tuzilgan: eng ko'p urg'u berilgan mavzular (optimizatsiya, indekslar, reja, tranzaksiya va qulflar, katta hajm) birinchi navbatda.</p>
+<div class="scroll"><table class="plan">
+<thead><tr><th>Qachon</th><th>Nima qilish</th><th>Vaqt</th></tr></thead>
+<tbody>
+<tr><td>Bugun, 1-blok</td><td>O'zingizni tanishtirish matnini 3 marta ovoz chiqarib o'qing. Keyin <a href="#g7">Indekslar va reja</a>, <a href="#g8">Tranzaksiya va qulflar</a>.</td><td>1 soat</td></tr>
+<tr><td>Bugun, 2-blok</td><td><a href="#g1">SQL</a>, <a href="#g2">Analitik</a>, <a href="#g3">PL/SQL</a>, <a href="#g4">Paket va trigger</a>, <a href="#g5">Katta hajm</a>.</td><td>1,5 soat</td></tr>
+<tr><td>Bugun, 3-blok</td><td><a href="#g6">Oracle ichkaridan</a>, <a href="#g9">Loyihalash</a>, <a href="#g10">iABS</a>, <a href="#g11">Mayda savollar</a>.</td><td>1 soat</td></tr>
+<tr><td>Ertaga ertalab</td><td><a href="#test">Test</a>. Xato qilgan guruhni qayta o'qing. Keyin <a href="#amaliy">Amaliy masalalar</a>: avval o'zingiz yozib ko'ring, keyin yechimni oching.</td><td>1,5 soat</td></tr>
+<tr><td>13:00–13:30</td><td><a href="#lugat">Ruscha lug'at</a>, <a href="#cheklist">Cheklist</a>, kompyuter, mikrofon va havolani tekshirish.</td><td>30 daqiqa</td></tr>
+</tbody></table></div>
+<p class="note">Har savolni o'qish tartibi: avval savolni o'qing, javobni o'zingiz ichingizda ayting, keyin oching. Javobni yodlash shart emas. Muhimi, undagi asosiy fikrlar sizning javobingizda bo'lsin.</p>
+
+<h2 id="tanishtirish">O'zingizni tanishtirish</h2>
+<p>Deyarli har bir texnik suhbat "расскажите о себе" savoli bilan boshlanadi. Bu yerda 1–1,5 daqiqalik javob kerak: kimsiz, nima bilan ishlagansiz, qaysi texnologiyalarda, bitta-ikkita aniq natija va nega shu vakansiya. Quyidagi matnni o'zingizga moslang: kvadrat qavs ichidagilarni o'zingizning haqiqiy misolingiz bilan almashtiring yoki olib tashlang. Faqat aniq bilgan narsangizni ayting, chunki har gapingizdan keyin "подробнее" deb so'rashlari mumkin.</p>
+<div class="ru intro-ru"><p>Меня зовут Садулла. Я окончил Туринский политехнический университет в Ташкенте по направлению «Информационные технологии». Около шести лет работаю в компании Fido-Biznes, которая разрабатывает программное обеспечение для банков.</p>
+<p>Первые три года я занимался Android-разработкой банковских приложений: например, в приложении DigitalBank для Universal Bank делал разделы кредитов, депозитов и карт. Потом перешёл в бэкенд, и сейчас моя основная работа связана с Oracle PL/SQL и Java.</p>
+<p>На PL/SQL я пишу и дорабатываю процедуры, функции и пакеты, разбираю ошибки, оптимизирую запросы. Работаю с корпоративным интернет-банком (КИБ) и интеграциями с платёжными системами: Uzcard, Humo, Payme, Click, Alipay. [Пример: «недавно делал интеграцию КИБ с …» или «ускорил отчёт с … до …» — назовите одну реальную задачу.]</p>
+<p>Мне интересна эта вакансия, потому что хочу сосредоточиться именно на базе данных: на больших объёмах, производительности и архитектуре данных в банке.</p></div>
+<details><summary>Shu matn bo'yicha qanday qo'shimcha savollar kelishi mumkin</summary>
+<ul>
+<li><strong>"Какую самую сложную задачу на PL/SQL вы решали?"</strong> Bitta aniq misolni tayyorlab qo'ying, quyidagi tartibda: vazifa nima edi, nima qiyin edi, nima qildingiz (masalan, BULK, indeks yoki so'rovni qayta yozish), natija qanday bo'ldi (vaqt, xatolar soni).</li>
+<li><strong>"Как вы оптимизировали медленный запрос?"</strong> Bunga <a href="#g7">7-guruhdagi</a> "sekin so'rov" javobi tartibida, o'z misolingiz bilan javob bering.</li>
+<li><strong>"Почему уходите с текущей работы?"</strong> Ish joyini yomonlamang. Masalan: "Хочу развиваться именно как разработчик баз данных и работать над продуктами с большой нагрузкой".</li>
+<li><strong>"С какой версией Oracle работали? Какие инструменты?"</strong> Bunga oldindan aniq javob tayyorlang: qaysi versiya (masalan 12c yoki 19c), qaysi dastur (PL/SQL Developer, SQL Developer, Toad), Git bor-yo'qligi.</li>
+</ul></details>
+
+<h2 id="g1">1. SQL poydevori</h2>
+<p><strong>Bu nima:</strong> SQL bazadan ma'lumot so'rash tili. Unda natija qanday bo'lishi kerakligini yozasiz, uni qanday yo'l bilan topishni esa Oracle'ning optimizatori o'zi tanlaydi. <strong>Qayerda:</strong> har bir hisobot, ekran va paket ichidagi so'rovlarda. <strong>Suhbatdagi maqsad:</strong> asoslarni tushunishingizni va NULL bilan JOIN tuzoqlarini bilishingizni ko'rsatish. Batafsil: <a href="p1-sql-poydevori.html">P1</a>.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="d1" style="width:1240px;height:250px" viewBox="0 0 1240 250" role="img" aria-label="SELECT so'rovining mantiqiy bajarilish tartibi"></svg></div>
+  <figcaption>SELECT yozilish tartibida emas, mana shu tartibda bajariladi. Har bosqich oldingisining natijasi bilan ishlaydi. Shuning uchun WHERE ichida SELECT'dagi alias ham, agregat ham hali mavjud emas, ORDER BY esa aliasni ko'radi.</figcaption>
+</figure>
+<details><summary>SELECT qanday tartibda bajariladi? · «В каком порядке выполняется SELECT?»</summary>
+<p>Avval FROM va JOIN: manba jadvallar yig'iladi. Keyin WHERE alohida qatorlarni filtrlaydi. GROUP BY qolgan qatorlarni guruhlarga bo'ladi, HAVING esa guruhlarni filtrlaydi. Shundan keyin SELECT ifodalarni hisoblaydi va aliaslar paydo bo'ladi. Oxirida DISTINCT, ORDER BY va FETCH/ROWNUM. Bu <em>mantiqiy</em> tartib: optimizator fizik tartibni o'zgartirishi mumkin, lekin natija bir xil bo'ladi.</p>
+<p class="ru">Логический порядок: FROM и JOIN, затем WHERE, GROUP BY, HAVING, SELECT, DISTINCT, ORDER BY и в конце FETCH. Поэтому в WHERE нельзя использовать алиас из SELECT и агрегатные функции, а в ORDER BY алиас можно. Физически оптимизатор может менять порядок, но результат будет тот же.</p></details>
+<details><summary>WHERE va HAVING farqi · «Чем отличается WHERE от HAVING?»</summary>
+<p>WHERE guruhlashdan <em>oldin</em> qatorlarni filtrlaydi va unda agregat (SUM, COUNT) ishlamaydi. HAVING guruhlashdan <em>keyin</em> guruhlarni filtrlaydi: <span class="num">HAVING SUM(summa) &gt; 1000000</span>. Oddiy shartni (masalan, filial bo'yicha) WHERE da yozgan to'g'ri: keraksiz qatorlar guruhlashdan oldin tashlanadi va ish kamayadi.</p>
+<p class="ru">WHERE фильтрует строки до группировки, агрегаты в нём использовать нельзя. HAVING фильтрует уже группы после GROUP BY, обычно по агрегату. Условие, не связанное с агрегатом, лучше писать в WHERE: меньше строк попадёт в группировку.</p></details>
+<details><summary>JOIN turlari · «Какие виды JOIN знаете?»</summary>
+<p>INNER: faqat ikkala jadvalda jufti topilgan qatorlar. LEFT: chap jadvalning hamma qatori, jufti yo'q bo'lsa o'ng tomon ustunlari NULL. RIGHT buning teskarisi. FULL: ikkala tomonning hammasi, ikki manbani solishtirishda kerak. CROSS: hamma qatorlar hamma qatorlar bilan (dekart ko'paytma). Self join: jadvalni o'zi bilan ulash (masalan, xodim va uning rahbari). Oracle'da eski <span class="num">(+)</span> yozuvi ham bor: u NULL qo'shiladigan tomonga yoziladi.</p>
+<p>Bular <em>mantiqiy</em> turlar. Fizik usullarni (nested loops, hash join, merge join) optimizator tanlaydi, ular <a href="#g7">7-guruhda</a>.</p>
+<p class="ru">INNER — только совпавшие строки. LEFT — все строки левой таблицы, где нет пары — NULL справа. RIGHT — наоборот. FULL — все строки с обеих сторон. CROSS — декартово произведение. Ещё self join и старый синтаксис Oracle с (+). Физически соединение выполняется через nested loops, hash join или sort merge — это выбирает оптимизатор.</p></details>
+<details><summary>LEFT JOIN da o'ng jadval sharti ON da yoki WHERE da · «Есть разница, где писать условие при LEFT JOIN?»</summary>
+<p>Farqi bor. ON ichida yozilgan shart juft qidirishda qatnashadi: chap jadvalning hamma qatori baribir qoladi. WHERE ichida yozilgan shart esa JOIN'dan keyin ishlaydi: jufti yo'q qatorlarda o'ng ustun NULL bo'ladi, shart UNKNOWN beradi va qator tashlanadi. Natijada LEFT JOIN jimgina INNER JOIN'ga aylanib qoladi. Istisno: <span class="num">WHERE o.id IS NULL</span>, bu ataylab "jufti yo'q qatorlarni" topish usuli.</p>
+<p class="ru">Да. Условие в ON участвует в поиске пары, и все строки левой таблицы остаются. Условие в WHERE применяется после соединения: у строк без пары справа NULL, условие даёт UNKNOWN, и строка отбрасывается — LEFT JOIN фактически превращается в INNER. Исключение — WHERE b.id IS NULL, это поиск строк без пары.</p></details>
+<details><summary>NULL bilan ishlash, NOT IN tuzog'i · «Чем опасен NOT IN?»</summary>
+<p>NULL "noma'lum" degani: u nol ham, bo'sh satr ham emas. NULL bilan har qanday solishtirish (hatto <span class="num">NULL = NULL</span>) TRUE emas, UNKNOWN beradi, WHERE esa faqat TRUE'ni o'tkazadi. Tekshirish faqat IS NULL yoki IS NOT NULL bilan.</p>
+<p>Tuzoq: <span class="num">WHERE id NOT IN (SELECT mijoz_id FROM ...)</span> ichki so'rovda bitta NULL bo'lsa, butun so'rov bo'sh natija qaytaradi. Sababi: <span class="num">id &lt;&gt; NULL</span> UNKNOWN beradi. NOT EXISTS'da bunday muammo yo'q. Yana bir Oracle o'ziga xosligi: bo'sh satr <span class="num">''</span> ham NULL hisoblanadi.</p>
+<p class="ru">NULL — это «неизвестно». Любое сравнение с NULL даёт UNKNOWN, а WHERE пропускает только TRUE, поэтому проверяем через IS NULL, NVL, COALESCE. Если в подзапросе NOT IN есть хотя бы один NULL, запрос вернёт пустой результат. Поэтому для «нет в списке» использую NOT EXISTS. В Oracle пустая строка тоже равна NULL.</p></details>
+<details><summary>IN va EXISTS farqi · «IN или EXISTS — что быстрее?»</summary>
+<p>IN qiymatni ro'yxat bilan solishtiradi. EXISTS esa ichki so'rov kamida bitta qator qaytarishini tekshiradi va birinchi topilgan qatorda to'xtaydi. Zamonaviy Oracle ikkalasini ham bir xil semi-join'ga aylantiradi, shuning uchun "EXISTS doim tezroq" degan gap eskirgan. Asosiy farq NOT varianti va NULL bilan bog'liq (yuqoridagi savol).</p>
+<p class="ru">В современных версиях оптимизатор обычно переписывает оба варианта в semi join, и планы часто одинаковые, так что «EXISTS всегда быстрее» — устаревшее правило. Важная разница — у NOT IN и NOT EXISTS при наличии NULL.</p></details>
+<details><summary>UNION va UNION ALL · «Чем UNION отличается от UNION ALL?»</summary>
+<p>UNION ALL natijalarni shunchaki ketma-ket ulaydi. UNION esa takrorlarni olib tashlaydi, buning uchun qo'shimcha saralash yoki xesh qiladi, shuning uchun sekinroq. Takror bo'lmasligi aniq bo'lsa, UNION ALL ishlating. MINUS birinchi natijada bor, ikkinchisida yo'q qatorlarni beradi. Masalan, ikki tizimdagi ro'yxatlarni solishtirishda shu ishlatiladi.</p>
+<p class="ru">UNION ALL просто склеивает результаты. UNION дополнительно убирает дубликаты через сортировку или хеширование, поэтому медленнее. Если дубликатов нет или они нужны — UNION ALL. MINUS даёт строки первого набора, которых нет во втором, удобно для сверки.</p></details>
+<details><summary>Eng katta N ta qator, ROWNUM tuzog'i · «Как получить топ-3? В чём ловушка ROWNUM?»</summary>
+<p>12c versiyadan boshlab: <span class="num">ORDER BY summa DESC FETCH FIRST 3 ROWS ONLY</span>. Eski usulda saralash ichki so'rovda bo'lishi kerak: <span class="num">SELECT * FROM (SELECT ... ORDER BY summa DESC) WHERE ROWNUM &lt;= 3</span>. Xato: ROWNUM va ORDER BY'ni bitta darajada yozish. ROWNUM saralashdan <em>oldin</em> beriladi, shuning uchun tasodifiy 3 ta qator olinib, keyin saralanadi. Yana: <span class="num">ROWNUM = 2</span> hech qachon qator qaytarmaydi.</p>
+<p class="ru">С 12c — FETCH FIRST 3 ROWS ONLY. В старых версиях — ORDER BY во вложенном запросе и ROWNUM &lt;= 3 снаружи. ROWNUM присваивается до сортировки, поэтому на одном уровне с ORDER BY он даёт случайные строки. Условие ROWNUM = 2 никогда не вернёт строку.</p></details>
+<details><summary>Takror qatorlarni topish va o'chirish · «Как найти и удалить дубликаты?»</summary>
+<p>Topish: <span class="num">GROUP BY ustunlar HAVING COUNT(*) &gt; 1</span>. O'chirish, har guruhdan bittasini qoldirib: <span class="num">DELETE FROM t WHERE ROWID NOT IN (SELECT MIN(ROWID) FROM t GROUP BY ustunlar)</span>. ROWID qatorning diskdagi fizik manzili, har qatorda noyob. Shu ishni ROW_NUMBER bilan ham qilsa bo'ladi (<a href="#amaliy">amaliy masalalarda</a>). Keyin takror yana paydo bo'lmasligi uchun shu ustunlarga UNIQUE cheklov qo'yiladi.</p>
+<p class="ru">Найти: GROUP BY по ключевым колонкам и HAVING COUNT(*) &gt; 1. Удалить, оставив одну строку: DELETE ... WHERE ROWID NOT IN (SELECT MIN(ROWID) ... GROUP BY ...) или через ROW_NUMBER. После этого добавить уникальное ограничение, чтобы дубли не появлялись снова.</p></details>
+<details><summary>Uchta jadvalni JOIN qilsam, summa haqiqiydan katta chiqdi · «Сумма после JOIN получилась больше реальной. Почему?»</summary>
+<p>Bu fan-out (qatorlar ko'payishi). Mijozda bir nechta hisob ham, bir nechta to'lov ham bor. Ikkalasini bitta so'rovda mijozga ulasangiz, har hisob har to'lov bilan juftlanadi: 2 hisob va 3 to'lov 6 qator beradi va har summa bir necha marta qo'shiladi. Yechim: har bir "ko'p" tomonni avval alohida guruhlab (WITH yoki ichki so'rovda), keyin ulash.</p>
+<p class="ru">Это размножение строк (fan-out): две связи «один ко многим» в одном запросе дают декартово произведение внутри каждого клиента, и суммы складываются несколько раз. Решение — сначала агрегировать каждую сторону отдельно в подзапросе или WITH, потом соединять.</p></details>
+
+<h2 id="g2">2. Analitik funksiyalar va murakkab so'rovlar</h2>
+<p><strong>Bu nima:</strong> qatorlarni guruhlab siqmasdan, har qatorning yoniga hisob-kitob qo'shadigan funksiyalar: tartib raqami, oldingi qator qiymati, yig'ma jami. <strong>Qayerda:</strong> hisobotlar, "har mijozning oxirgi to'lovi", qoldiq dinamikasi, takrorlarni tozalash. <strong>Maqsad:</strong> "murakkab SQL" talabiga javob beradigan asosiy vosita. Batafsil: <a href="p2-analitik-funksiyalar.html">P2</a>.</p>
+<details><summary>Analitik funksiya oddiy agregatdan nima bilan farq qiladi · «Чем аналитические функции отличаются от агрегатных?»</summary>
+<p>Agregat (GROUP BY bilan) ko'p qatorni bitta qatorga siqadi. Analitik funksiya esa qatorlar sonini o'zgartirmaydi: har qator yoniga natijani qo'shadi. Masalan, har to'lovning yonida shu filialning jami summasi turadi. Yozilishi: <span class="num">funksiya() OVER (PARTITION BY ... ORDER BY ... ramka)</span>. PARTITION BY guruhni, ORDER BY guruh ichidagi tartibni, ramka esa qaysi qatorlar hisobga olinishini belgilaydi. Ular WHERE'dan keyin, SELECT bosqichida hisoblanadi, shuning uchun ularni WHERE ichida ishlatib bo'lmaydi: natija tashqi so'rovda filtrlanadi.</p>
+<p class="ru">Агрегатная функция с GROUP BY сворачивает строки в одну. Аналитическая — считает значение для каждой строки, не уменьшая их количество. Синтаксис: OVER (PARTITION BY — группы, ORDER BY — порядок, окно — какие строки учитывать). Вычисляются после WHERE, поэтому фильтровать по ним можно только во внешнем запросе.</p></details>
+<details><summary>ROW_NUMBER, RANK, DENSE_RANK · «В чём разница ROW_NUMBER, RANK и DENSE_RANK?»</summary>
+<p>Summalar 500, 500, 300 bo'lsa: ROW_NUMBER beradi 1, 2, 3 (teng qiymatlarga ham har xil raqam); RANK beradi 1, 1, 3 (tenglarga bir xil raqam, keyin sakraydi); DENSE_RANK beradi 1, 1, 2 (sakramaydi). Takrorlarni o'chirish va sahifalash uchun ROW_NUMBER, "N-chi eng katta qiymat" uchun DENSE_RANK ishlatiladi.</p>
+<p class="ru">Для значений 500, 500, 300: ROW_NUMBER — 1, 2, 3; RANK — 1, 1, 3 (с пропуском); DENSE_RANK — 1, 1, 2 (без пропуска). ROW_NUMBER — для дедупликации и пагинации, DENSE_RANK — для «N-го по величине значения».</p></details>
+<details><summary>Har bir filialdan eng katta 3 ta to'lov · «Как получить топ-3 по каждой группе?»</summary>
+<p>Ichki so'rovda <span class="num">ROW_NUMBER() OVER (PARTITION BY filial ORDER BY summa DESC) rn</span>, tashqi so'rovda esa <span class="num">WHERE rn &lt;= 3</span>. Teng summalarning hammasi kerak bo'lsa, ROW_NUMBER o'rniga DENSE_RANK ishlatiladi. To'liq yechim <a href="#amaliy">amaliy masalalarda</a>.</p>
+<p class="ru">Во вложенном запросе ROW_NUMBER() OVER (PARTITION BY филиал ORDER BY сумма DESC), во внешнем — WHERE rn &lt;= 3. Если нужны все равные значения — DENSE_RANK.</p></details>
+<details><summary>LAG va LEAD · «Для чего LAG и LEAD?»</summary>
+<p>LAG oldingi qatorning, LEAD keyingi qatorning qiymatini olib beradi. Buning uchun jadvalni o'zi bilan ulashga (self join) hojat yo'q. Misol: qoldiq kecha qanday edi va bugun qanchaga o'zgardi, yoki ikki to'lov orasida necha kun o'tgani.</p>
+<p class="ru">LAG берёт значение из предыдущей строки, LEAD — из следующей, в заданном порядке. Заменяет self join: например, изменение остатка по сравнению с прошлым днём или интервал между платежами.</p></details>
+<details><summary>Yig'ma jami (running total) · «Как посчитать нарастающий итог?»</summary>
+<p><span class="num">SUM(summa) OVER (PARTITION BY hisob ORDER BY sana ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW)</span>. Tuzoq: ORDER BY bor-u ramka yozilmasa, sukut bo'yicha RANGE ishlatiladi va bir xil sanadagi qatorlar birdaniga qo'shilib ketadi. Aniq natija uchun ROWS deb yozing.</p>
+<p class="ru">SUM(...) OVER (PARTITION BY счёт ORDER BY дата ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW). По умолчанию при ORDER BY окно RANGE, и строки с одинаковой датой складываются сразу, поэтому явно пишу ROWS.</p></details>
+<details><summary>WITH, CONNECT BY, MERGE · «Что такое WITH? Как обойти иерархию? Что делает MERGE?»</summary>
+<p><strong>WITH</strong> katta so'rovni nomlangan qadamlarga bo'ladi va o'qishni osonlashtiradi. Rekursiv WITH esa ierarxiyani yurish uchun kerak. <strong>CONNECT BY</strong> Oracle'ning ierarxik so'rovi: <span class="num">START WITH</span> ildiz qatorni, <span class="num">CONNECT BY PRIOR</span> bog'lanishni belgilaydi, <span class="num">LEVEL</span> esa chuqurlikni beradi. Misol: filiallar daraxti yoki xodim va uning rahbarlari. <strong>MERGE</strong> "bor bo'lsa yangila, yo'q bo'lsa qo'sh" amalini (upsert) bitta buyruqda bajaradi. Tuzoq: manbada bir kalit ikki marta kelsa, ORA-30926 xatosi chiqadi.</p>
+<p class="ru">WITH разбивает сложный запрос на именованные шаги; рекурсивный WITH — для иерархий. CONNECT BY — иерархический запрос Oracle: START WITH корень, CONNECT BY PRIOR связь, LEVEL глубина. MERGE — upsert одной командой: при совпадении UPDATE, иначе INSERT; если в источнике дубли ключа — ORA-30926.</p></details>
+
+<h2 id="g3">3. PL/SQL: blok, kursor, exception</h2>
+<p><strong>Bu nima:</strong> PL/SQL Oracle'ning SQL'ga qo'shilgan dasturlash tili: o'zgaruvchi, shart, sikl va xatolarni ushlash. Kod bazaning ichida, ma'lumot yonida bajariladi. <strong>Qayerda:</strong> bankdagi biznes mantiqning katta qismi PL/SQL paketlarida. <strong>Maqsad:</strong> vakansiyadagi asosiy ish aynan shu. Batafsil: <a href="p3-plsql-asoslari.html">P3</a>.</p>
+<details><summary>PL/SQL blokining tuzilishi · «Из чего состоит блок PL/SQL?»</summary>
+<p>To'rt qism: DECLARE (o'zgaruvchilar, kursorlar, tiplar e'loni), BEGIN (asosiy kod), EXCEPTION (xatolarni ushlash) va END. Faqat BEGIN va END majburiy. Nomsiz (anonim) blok bazada saqlanmaydi. Protsedura, funksiya, paket va trigger esa nomlangan bloklar: ular kompilyatsiya qilinib, bazada saqlanadi.</p>
+<p class="ru">DECLARE — объявления, BEGIN — исполняемая часть, EXCEPTION — обработка ошибок, END. Обязательны только BEGIN и END. Анонимный блок не хранится, а процедуры, функции, пакеты и триггеры — именованные блоки, хранятся в базе в скомпилированном виде.</p></details>
+<details><summary>%TYPE va %ROWTYPE · «Зачем %TYPE и %ROWTYPE?»</summary>
+<p><span class="num">v_summa hisoblar.qoldiq%TYPE</span> o'zgaruvchiga ustunning tipini beradi. <span class="num">v_hisob hisoblar%ROWTYPE</span> esa butun qator tuzilishini beradi. Foydasi: ustun tipi o'zgarsa (masalan, NUMBER(15) dan NUMBER(20) ga), kodni qo'lda tuzatish shart emas, u qayta kompilyatsiyada yangi tipni oladi.</p>
+<p class="ru">%TYPE берёт тип колонки, %ROWTYPE — структуру всей строки таблицы или курсора. Если тип колонки изменится, код не нужно переписывать — он подстроится при перекомпиляции.</p></details>
+<details><summary>SELECT INTO va uning xatolari · «Какие исключения может дать SELECT INTO?»</summary>
+<p>SELECT INTO aynan bitta qator kutadi. Qator topilmasa NO_DATA_FOUND (ORA-01403), bittadan ko'p qator kelsa TOO_MANY_ROWS (ORA-01422) xatosi chiqadi. Tuzoq: agregat funksiya (<span class="num">SELECT COUNT(*) INTO</span>, <span class="num">SELECT MAX(...) INTO</span>) hech qachon NO_DATA_FOUND bermaydi, chunki u har doim bitta qator qaytaradi.</p>
+<p class="ru">SELECT INTO ожидает ровно одну строку: если строк нет — NO_DATA_FOUND, если больше одной — TOO_MANY_ROWS. Агрегат вроде COUNT или MAX всегда возвращает одну строку, поэтому NO_DATA_FOUND не будет.</p></details>
+<details><summary>Kursorlar: yashirin, aniq, REF CURSOR · «Какие бывают курсоры?»</summary>
+<p>Kursor so'rov natijasi bo'ylab yuradigan ko'rsatkich. <strong>Yashirin (implicit)</strong> kursorni Oracle har bir DML va SELECT INTO uchun o'zi ochadi. Uning atributlari: <span class="num">SQL%ROWCOUNT</span> (nechta qator o'zgardi), <span class="num">SQL%FOUND</span>, <span class="num">SQL%NOTFOUND</span>. <strong>Aniq (explicit)</strong> kursor DECLARE'da e'lon qilinadi va OPEN, FETCH, CLOSE bilan boshqariladi. Uning eng xavfsiz shakli <span class="num">FOR r IN kursor LOOP</span>: u o'zi ochadi va xato bo'lsa ham o'zi yopadi. <strong>REF CURSOR</strong> (yoki SYS_REFCURSOR) esa natijani boshqa dasturga, masalan Java'ga qaytarish uchun ishlatiladi. Natija OPEN paytida "qotadi": keyin boshqa sessiyalar qilgan o'zgarishlar unga ta'sir qilmaydi.</p>
+<p class="ru">Неявный курсор Oracle открывает сам для DML и SELECT INTO — атрибуты SQL%ROWCOUNT, SQL%FOUND, SQL%NOTFOUND. Явный курсор объявляется и управляется через OPEN, FETCH, CLOSE; самый безопасный вариант — цикл FOR, он сам открывает и закрывает. REF CURSOR (SYS_REFCURSOR) — чтобы вернуть результат, например, в Java. Набор данных фиксируется в момент OPEN.</p></details>
+<details><summary>Exception'lar bilan ishlash · «Как обрабатываете ошибки? Что не так с WHEN OTHERS THEN NULL?»</summary>
+<p>Xatolar uch turda bo'ladi: nomlangan tizim xatolari (NO_DATA_FOUND, DUP_VAL_ON_INDEX, ZERO_DIVIDE), nomsiz tizim xatolari (ularga <span class="num">PRAGMA EXCEPTION_INIT</span> bilan nom beriladi) va o'zingiz chiqaradigan biznes xatolar: <span class="num">RAISE_APPLICATION_ERROR(-20001, 'Qoldiq yetarli emas')</span>, kod -20000 dan -20999 gacha. Xato ichki blokdan tashqi blokka ko'tariladi, ushlanmasa chaqiruvchiga yetib boradi. Aniq kutilgan xatolarni ushlang. <span class="num">WHEN OTHERS</span> faqat log yozib, qayta <span class="num">RAISE</span> qilish uchun ishlatiladi. <span class="num">WHEN OTHERS THEN NULL</span> esa eng yomon odat: xato yo'qoladi, ma'lumot jimgina buziladi. Log uchun <span class="num">SQLCODE</span>, <span class="num">SQLERRM</span> va <span class="num">DBMS_UTILITY.FORMAT_ERROR_BACKTRACE</span> (xato chiqqan qator raqami) yoziladi.</p>
+<p class="ru">Есть предопределённые исключения (NO_DATA_FOUND, DUP_VAL_ON_INDEX), неименованные — им даю имя через PRAGMA EXCEPTION_INIT, и пользовательские через RAISE_APPLICATION_ERROR с кодом от -20000 до -20999. Ловлю конкретные ошибки; WHEN OTHERS — только чтобы залогировать и пробросить дальше через RAISE. WHEN OTHERS THEN NULL — плохая практика: ошибка теряется. Для лога — SQLCODE, SQLERRM и FORMAT_ERROR_BACKTRACE с номером строки.</p></details>
+
+<h2 id="g4">4. Protsedura, funksiya, paket, trigger</h2>
+<p><strong>Bu nima:</strong> bazada nom bilan saqlanadigan dasturlar. <strong>Qayerda:</strong> bank tizimida har bir ekran, job va integratsiya paket protsedurasini chaqiradi. <strong>Maqsad:</strong> vakansiyaning birinchi qatori: "разработка процедур, функций, пакетов и триггеров". Batafsil: <a href="p4-protsedura-paket-trigger.html">P4</a>.</p>
+<details><summary>Protsedura va funksiya farqi · «Чем процедура отличается от функции?»</summary>
+<p>Funksiya doim bitta qiymat qaytaradi (RETURN) va uni ifoda ichida, hatto SQL so'rovda ham ishlatish mumkin. Lekin SQL'dan chaqirilganda u DML qila olmaydi (aks holda ORA-14551). Protsedura amal bajaradi va natijani OUT parametrlar orqali beradi, uni SELECT ichida chaqirib bo'lmaydi. Parametr turlari: IN (faqat kiradi), OUT (faqat chiqadi), IN OUT (ikkalasi).</p>
+<p class="ru">Функция всегда возвращает значение через RETURN и может использоваться в выражениях и в SQL, но при вызове из SQL не должна делать DML. Процедура выполняет действие и возвращает результаты через OUT-параметры, в SELECT её вызвать нельзя. Режимы параметров: IN, OUT, IN OUT.</p></details>
+<details><summary>Paket nima uchun kerak · «Зачем нужны пакеты?»</summary>
+<p>Paket ikki qismdan iborat. <strong>Spec</strong> tashqariga ko'rinadigan interfeys: qaysi protsedura va funksiyalar bor. <strong>Body</strong> esa ularning amalga oshirilishi va yashirin yordamchi kod. Foydalari: (1) bog'liq kod bir joyda; (2) inkapsulyatsiya: tashqariga faqat specdagi narsalar ochiq; (3) chaqiruvchilar faqat specga bog'liq, shuning uchun body o'zgarsa ular INVALID bo'lmaydi; (4) paket birinchi chaqirilganda xotiraga bir marta yuklanadi; (5) overloading: bir xil nomli, har xil parametrli protseduralar; (6) huquq EXECUTE orqali beriladi.</p>
+<p>Paket darajasidagi o'zgaruvchilar <em>har sessiyaga alohida</em> va sessiya tugaguncha yashaydi. Tuzoq: holati bor paket qayta kompilyatsiya qilinsa, uni ishlatib turgan sessiyalar <strong>ORA-04068</strong> ("existing state of packages has been discarded") xatosini oladi.</p>
+<p class="ru">Пакет состоит из спецификации (публичный интерфейс) и тела (реализация и приватный код). Плюсы: группировка, инкапсуляция, зависимые объекты зависят только от спецификации, поэтому изменение тела их не инвалидирует; пакет загружается в память один раз; перегрузка; права через EXECUTE. Переменные пакета живут отдельно в каждой сессии. Если перекомпилировать пакет с состоянием, у работающих сессий будет ORA-04068.</p></details>
+<details><summary>Trigger turlari va bajarilish tartibi · «Какие бывают триггеры? В каком порядке срабатывают?»</summary>
+<p>DML triggerlar: BEFORE yoki AFTER, statement darajasida (buyruq uchun bir marta) yoki row darajasida (<span class="num">FOR EACH ROW</span>, har qator uchun). Row triggerda <span class="num">:OLD</span> va <span class="num">:NEW</span> qiymatlar mavjud. Tartib: BEFORE STATEMENT → har qator uchun (BEFORE ROW → AFTER ROW) → AFTER STATEMENT. Boshqa turlari: INSTEAD OF (view ustida), DDL triggerlar (CREATE, ALTER) va tizim triggerlari (LOGON). Qoida: cheklov (constraint) bilan qilsa bo'ladigan ishni trigger bilan qilmang. Trigger yashirin ishlaydi, uni hamma ham ko'ravermaydi.</p>
+<p class="ru">DML-триггеры: BEFORE/AFTER, на уровне оператора или строки (FOR EACH ROW, есть :OLD и :NEW). Порядок: BEFORE STATEMENT, для каждой строки BEFORE ROW и AFTER ROW, затем AFTER STATEMENT. Есть ещё INSTEAD OF для представлений, DDL- и системные триггеры. Если правило можно сделать ограничением, лучше ограничение, а не триггер.</p></details>
+<details><summary>Mutating table xatosi · «Что такое mutating table и как обойти?»</summary>
+<p><strong>ORA-04091</strong>: row darajasidagi trigger o'zi o'zgartirilayotgan jadvalni o'qimoqchi yoki o'zgartirmoqchi bo'lganda chiqadi. Oracle bunga ruxsat bermaydi, chunki buyruq yarim bajarilgan, jadval esa "o'zgarish o'rtasida" turibdi va natija qatorlar tartibiga bog'liq bo'lib qoladi. Yechimlar: (1) <strong>compound trigger</strong> (11g'dan): row qismida kerakli ID'larni kolleksiyaga yig'asiz, AFTER STATEMENT qismida esa jadvalni bemalol o'qiysiz; (2) mantiqni triggerdan chiqarib, paket protsedurasiga o'tkazish (bu eng toza yo'l); (3) eski usul: paket o'zgaruvchisi va ikki trigger.</p>
+<p class="ru">ORA-04091 возникает, когда строчный триггер читает или меняет ту же таблицу, которая сейчас изменяется. Решения: compound trigger — в части строки собираю ключи в коллекцию, в AFTER STATEMENT работаю с таблицей; или вынести логику из триггера в процедуру пакета.</p></details>
+<details><summary>Avtonom tranzaksiya · «Что такое автономная транзакция и когда её использовать?»</summary>
+<p><span class="num">PRAGMA AUTONOMOUS_TRANSACTION</span> bilan belgilangan protsedura asosiy tranzaksiyadan mustaqil, o'zining alohida tranzaksiyasida ishlaydi va o'zi COMMIT qilishi shart. Asosiy qo'llanilishi: xato jurnali. Asosiy tranzaksiya ROLLBACK bo'lsa ham, log yozuvi saqlanib qoladi. Tuzoqlar: (1) biznes ma'lumotni avtonom tranzaksiyada yozish xavfli, chunki asosiy ish bekor bo'ladi-yu, bu yozuv qoladi; (2) asosiy tranzaksiya qulflagan qatorni avtonom tranzaksiyada o'zgartirmoqchi bo'lsangiz, deadlock bo'ladi.</p>
+<p class="ru">Процедура с PRAGMA AUTONOMOUS_TRANSACTION работает в отдельной независимой транзакции и должна сама сделать COMMIT. Главное применение — журнал ошибок: запись сохранится, даже если основная транзакция откатится. Для бизнес-данных не использую, а если попытаться изменить строку, заблокированную основной транзакцией, будет deadlock.</p></details>
+<details><summary>Joblar · «Как запускать процедуру по расписанию?»</summary>
+<p><span class="num">DBMS_SCHEDULER</span> orqali: job, program va schedule (jadval). Masalan, <span class="num">repeat_interval =&gt; 'FREQ=DAILY;BYHOUR=1'</span>. Natija va xatolar <span class="num">USER_SCHEDULER_JOB_RUN_DETAILS</span> ko'rinishida kuzatiladi. Eski usul DBMS_JOB endi tavsiya qilinmaydi.</p>
+<p class="ru">Через DBMS_SCHEDULER: создаю job с программой и расписанием (repeat_interval, например FREQ=DAILY;BYHOUR=1). Результаты смотрю в USER_SCHEDULER_JOB_RUN_DETAILS. DBMS_JOB — устаревший вариант.</p></details>
+
+<h2 id="g5">5. Katta hajmdagi ma'lumot va dinamik SQL</h2>
+<p><strong>Bu nima:</strong> millionlab qatorni tez qayta ishlash usullari. <strong>Qayerda:</strong> kunlik foiz hisoblash, ma'lumot ko'chirish, kun yopish va reestrlarni yuklash. <strong>Maqsad:</strong> vakansiyadagi "работа с большими объёмами данных" talabi. Batafsil: <a href="p5-katta-hajm-bulk.html">P5</a>.</p>
+<details><summary>Nega qatorma-qator sikl sekin · «Почему построчная обработка медленная?»</summary>
+<p>PL/SQL va SQL bazaning ichida ikki alohida "dvigatel"da bajariladi. Siklning har bir qadamida SQL buyrug'i chaqirilsa, PL/SQL'dan SQL'ga va qaytib o'tish (<strong>kontekst almashinuvi</strong>) sodir bo'ladi. Million qatorda bu million marta takrorlanadi. Tezlikning qoidasi: (1) iloji bo'lsa, butun ishni bitta SQL buyrug'i bilan qiling; (2) bo'lmasa, BULK COLLECT va FORALL bilan to'plamlab ishlang; (3) qatorma-qator ishlash faqat oxirgi chora.</p>
+<p class="ru">PL/SQL и SQL выполняются разными движками, и на каждой итерации цикла происходит переключение контекста. На миллионе строк это миллион переключений. Правило: если можно — одним SQL-оператором; если нет — BULK COLLECT и FORALL; построчно — в последнюю очередь.</p></details>
+<details><summary>BULK COLLECT va LIMIT · «Что такое BULK COLLECT и зачем LIMIT?»</summary>
+<p>BULK COLLECT ko'p qatorni bitta murojaatda kolleksiyaga (massivga) o'qiydi. LIMIT bo'lmasa, 10 million qator butunlay PGA xotirasiga yuklanadi va xotira tugashi mumkin. Shuning uchun bo'lak-bo'lak o'qiladi: <span class="num">FETCH c BULK COLLECT INTO arr LIMIT 1000</span>. Sikldan chiqish sharti <span class="num">EXIT WHEN arr.COUNT = 0</span> bo'ladi. <span class="num">c%NOTFOUND</span> ni FETCH'dan keyin darhol tekshirsangiz, oxirgi to'liq bo'lmagan bo'lak yo'qolishi mumkin.</p>
+<p class="ru">BULK COLLECT читает много строк в коллекцию за одно обращение. Без LIMIT весь результат попадёт в PGA и может не хватить памяти, поэтому читаю порциями LIMIT 1000. Выход из цикла — по arr.COUNT = 0, а не сразу по %NOTFOUND, иначе потеряется последняя неполная порция.</p></details>
+<details><summary>FORALL va SAVE EXCEPTIONS · «Что делает FORALL? Что если одна строка с ошибкой?»</summary>
+<p>FORALL kolleksiyadagi barcha elementlar uchun bitta DML buyrug'ini SQL dvigateliga bir martada yuboradi. Bu sikl emas: uning ichida faqat bitta DML bo'ladi. <span class="num">SAVE EXCEPTIONS</span> qo'shilsa, xatoli qatorlar o'tkazib yuboriladi, qolganlari bajariladi, oxirida esa ORA-24381 chiqadi. Xatolar ro'yxatini <span class="num">SQL%BULK_EXCEPTIONS</span> dan o'qiysiz (qaysi element, qanday xato). Muqobil usul: DML'ga <span class="num">LOG ERRORS INTO</span> qo'shish.</p>
+<p class="ru">FORALL отправляет один DML-оператор для всей коллекции за одно переключение контекста — это не цикл. С SAVE EXCEPTIONS ошибочные строки пропускаются, в конце возникает ORA-24381, а детали — индекс и код ошибки — берём из SQL%BULK_EXCEPTIONS. Альтернатива — DML с LOG ERRORS.</p></details>
+<details><summary>Dinamik SQL va SQL injection · «Когда нужен динамический SQL и как защититься от инъекций?»</summary>
+<p>Dinamik SQL so'rov matni faqat bajarilish paytida ma'lum bo'lganda kerak: jadval nomi o'zgaruvchan bo'lsa, DDL buyruqlarida yoki filtrlar soni o'zgaruvchan bo'lganda. Yozilishi: <span class="num">EXECUTE IMMEDIATE</span> yoki <span class="num">OPEN ... FOR</span>. Qiymatlar matnga qo'shib yozilmaydi, faqat bind o'zgaruvchi orqali beriladi (<span class="num">USING :p</span>). Bu ham injection'dan himoya qiladi, ham har safar qattiq parse bo'lishining oldini oladi. Jadval va ustun nomlari bind bo'la olmaydi, shuning uchun ular <span class="num">DBMS_ASSERT</span> bilan tekshiriladi. Eslatma: DDL buyrug'idan oldin ham, keyin ham yashirin COMMIT bajariladi.</p>
+<p class="ru">Динамический SQL — когда текст запроса известен только во время выполнения: имя таблицы, DDL, переменный набор фильтров. EXECUTE IMMEDIATE или OPEN FOR. Значения только через bind-переменные (USING) — это защита от SQL-инъекций и меньше hard parse. Имена объектов проверяю через DBMS_ASSERT. DDL делает неявный COMMIT.</p></details>
+
+<h2 id="g6">6. Oracle ichkaridan</h2>
+<p><strong>Bu nima:</strong> Oracle ishlayotganda xotirada va diskda nima bor, va so'rov qanday yo'l bosadi. <strong>Qayerda:</strong> optimizatsiya, "nega sekin" degan savollar va xatolarni tushunishda. <strong>Maqsad:</strong> optimizatsiya haqidagi javoblaringiz yodlangan gap emas, tushunishga asoslanganini ko'rsatish. Batafsil: <a href="p6-oracle-ichkaridan.html">P6</a>.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="d2" style="width:1240px;height:470px" viewBox="0 0 1240 470" role="img" aria-label="Oracle instance va baza fayllari arxitekturasi"></svg></div>
+  <figcaption>Instance (xotira va fon jarayonlari) va baza (diskdagi fayllar) alohida tushunchalar. Sessiyaning server jarayoni bloklarni avval buffer cache'dan qidiradi, topilmasa datafile'dan o'qiydi. O'zgarishlar redo buferiga yoziladi. LGWR redo'ni COMMIT paytida diskka yozadi, DBWn esa o'zgargan bloklarni keyinroq, o'ziga qulay vaqtda yozadi.</figcaption>
+</figure>
+<details><summary>Instance va database farqi, SGA va PGA · «Что такое instance и database? Что такое SGA и PGA?»</summary>
+<p><strong>Database</strong> diskdagi fayllar: datafile'lar (ma'lumot), online redo log (o'zgarishlar jurnali), control file (baza tuzilishi). <strong>Instance</strong> esa ishlab turgan Oracle: xotira (SGA) va fon jarayonlari. <strong>SGA</strong> barcha sessiyalar uchun umumiy xotira. Uning ichida buffer cache (o'qilgan bloklar), shared pool (parse qilingan SQL va rejalar, lug'at keshi) va redo log buffer bor. <strong>PGA</strong> esa har bir server jarayonining shaxsiy xotirasi: saralash, hash join, PL/SQL kolleksiyalari shu yerda turadi. Asosiy fon jarayonlari: DBWn (bloklarni diskka yozadi), LGWR (redo yozadi), CKPT (checkpoint), SMON (ishga tushganda tiklash), PMON (uzilgan sessiyalarni tozalaydi).</p>
+<p class="ru">Database — файлы на диске: datafiles, online redo logs, control files. Instance — запущенный Oracle: память SGA и фоновые процессы. SGA — общая память: buffer cache, shared pool с разобранными SQL и планами, redo log buffer. PGA — частная память серверного процесса: сортировки, hash join, коллекции PL/SQL. Фоновые процессы: DBWn, LGWR, CKPT, SMON, PMON.</p></details>
+<details><summary>Hard parse va soft parse, bind o'zgaruvchilar · «Что такое hard parse и зачем bind-переменные?»</summary>
+<p>So'rov kelganda Oracle sintaksis va semantikani (jadval bormi, huquq bormi) tekshiradi, keyin shared pool'da aynan shu matnli so'rov bor-yo'qligini qidiradi. Topilsa, bu <strong>soft parse</strong>: tayyor reja qayta ishlatiladi. Topilmasa, bu <strong>hard parse</strong>: optimizator reja tuzadi, bu esa CPU va qulflar jihatidan qimmat. <span class="num">WHERE id = 101</span>, <span class="num">WHERE id = 102</span> Oracle uchun har xil matn, ya'ni har biri hard parse. <span class="num">WHERE id = :id</span> esa bitta matn, bitta reja. Bind o'zgaruvchilar SQL injection'dan ham himoya qiladi. PL/SQL ichidagi statik SQL'da o'zgaruvchilar avtomatik bind bo'ladi. Tuzoq: bind peeking. Ma'lumot notekis taqsimlangan bo'lsa, birinchi qiymat uchun tuzilgan reja boshqa qiymatlar uchun yomon bo'lishi mumkin (11g'dan boshlab buni adaptive cursor sharing qisman hal qiladi).</p>
+<p class="ru">При разборе Oracle проверяет синтаксис и права, затем ищет такой же текст запроса в shared pool. Нашёл — soft parse, план переиспользуется. Не нашёл — hard parse: оптимизатор строит план, это дорого. Литералы дают каждый раз новый текст, bind-переменные — один текст и один план, плюс защита от инъекций. В статическом SQL внутри PL/SQL переменные биндятся автоматически.</p></details>
+<details><summary>COMMIT paytida nima bo'ladi · «Что происходит при COMMIT?»</summary>
+<p>COMMIT paytida ma'lumot bloklari diskka yozilmaydi. Faqat LGWR redo log buferidagi yozuvlarni online redo log fayliga yozadi va shu yozish tugashini kutadi. Shundan keyin "commit complete" javobi qaytadi. O'zgargan bloklarni DBWn keyinroq yozadi. Server o'chib qolsa, ishga tushganda SMON redo'dan COMMIT qilingan o'zgarishlarni qayta tiklaydi, COMMIT qilinmaganlarini esa undo orqali bekor qiladi. Shuning uchun COMMIT tez ishlaydi. Lekin sikl ichida har qatordan keyin COMMIT qilish sekin: har biri log yozilishini kutadi (log file sync).</p>
+<p class="ru">При COMMIT блоки данных на диск не пишутся: LGWR записывает redo из буфера в online redo log, и сессия ждёт только этой записи. Блоки DBWn запишет позже. При сбое SMON восстановит зафиксированные изменения из redo и откатит незафиксированные через undo. Поэтому COMMIT быстрый, но COMMIT на каждой строке в цикле — медленно из-за ожиданий log file sync.</p></details>
+<details><summary>Undo va redo farqi, ORA-01555 · «Чем undo отличается от redo? Что такое ORA-01555?»</summary>
+<p><strong>Undo</strong> ma'lumotning <em>eski</em> qiymati. U ROLLBACK uchun va boshqa sessiyalarga o'zgarishdan oldingi holatni ko'rsatish uchun (o'qish izchilligi) kerak. <strong>Redo</strong> esa <em>o'zgarishning o'zi</em>, u yiqilishdan keyin tiklash uchun kerak. Qisqasi: undo orqaga qaytarish uchun, redo oldinga qayta bajarish uchun. <strong>ORA-01555 snapshot too old</strong>: uzoq ishlayotgan so'rov o'zi boshlangan paytdagi holatni ko'rishi kerak, lekin bu holat uchun kerakli undo boshqa tranzaksiyalar tomonidan ustidan yozib yuborilgan. Yechimlar: so'rovni tezlashtirish, undo hajmini yoki retention'ni oshirish, va ochiq kursor bo'ylab yurganda o'sha jadvalni COMMIT bilan o'zgartirib turmaslik (fetch across commit).</p>
+<p class="ru">Undo — старые значения: для отката и согласованного чтения другими сессиями. Redo — сами изменения: для восстановления после сбоя. Undo — назад, redo — вперёд. ORA-01555 snapshot too old: длинному запросу нужна старая версия блока, а undo уже перезаписан. Решение — ускорить запрос, увеличить undo или undo_retention, не делать commit внутри цикла по открытому курсору.</p></details>
+
+<h2 id="g7">7. Indekslar va bajarilish rejasi</h2>
+<p><strong>Bu nima:</strong> indeks jadvaldagi kerakli qatorni butun jadvalni o'qimasdan topish uchun alohida tuzilma, xuddi kitob oxiridagi ko'rsatkich kabi. Bajarilish rejasi (execution plan) esa Oracle so'rovni qanday bajarishga qaror qilganini ko'rsatadi. <strong>Qayerda:</strong> har bir sekin so'rovni tahlil qilishda. <strong>Maqsad:</strong> vakansiyadagi eng og'ir talab: "оптимизация, индексы, планы выполнения". Batafsil: <a href="p7-indekslar-explain-plan.html">P7</a>.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="d3" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="B-tree indeks orqali qatorni topish"></svg></div>
+  <figcaption>B-tree indeksda qidiruv: ildizdan branch'larga, keyin barg (leaf) blokigacha 3–4 ta blok o'qiladi. Bargda kalit qiymati va qatorning manzili (ROWID) turadi. ROWID orqali jadvaldagi kerakli blok o'qiladi (TABLE ACCESS BY INDEX ROWID). Barglar o'zaro bog'langan, shuning uchun diapazon bo'yicha qidiruv (RANGE SCAN) ular bo'ylab yurib o'qiydi.</figcaption>
+</figure>
+<details><summary>B-tree indeks qanday ishlaydi · «Как устроен B-tree индекс?»</summary>
+<p>B-tree past va muvozanatli daraxt. Ildiz va branch bloklarda "qaysi tomonga borish" kerakligi yoziladi, barg bloklarda esa tartiblangan kalit qiymatlari va ROWID'lar turadi. Millionlab qatorli jadvalda ham daraxt balandligi odatda 3–4 bo'ladi, shuning uchun bitta qiymatni topish bir necha blok o'qish bilan bitadi. Barg bloklar ikki tomonlama bog'langan, bu diapazon qidiruvini tez qiladi. Oddiy B-tree indeksda butunlay NULL qiymatlar saqlanmaydi, shuning uchun <span class="num">WHERE ustun IS NULL</span> bunday indeksdan foydalana olmaydi.</p>
+<p class="ru">Сбалансированное дерево: корень и ветви указывают направление, в листьях — отсортированные ключи и ROWID. Высота обычно 3–4 уровня даже на миллионах строк, поэтому поиск одного значения — несколько чтений блоков. Листья связаны между собой — это даёт быстрый range scan. Полностью NULL-ключи в обычный B-tree не попадают.</p></details>
+<details><summary>Indeks bor, lekin ishlatilmayapti. Nega? · «Индекс есть, но не используется. Почему?»</summary>
+<p>Asosiy sabablar: (1) ustunga funksiya qo'yilgan: <span class="num">TRUNC(sana) = ...</span>, <span class="num">UPPER(ism)</span>. Yechim: shartni o'zgartirish yoki funksiyaga asoslangan indeks yaratish; (2) yashirin tip konvertatsiyasi: VARCHAR2 ustunni songa solishtirish (<span class="num">WHERE telefon = 998901234567</span>); (3) <span class="num">LIKE '%abc'</span>, boshida foiz belgisi; (4) composite indeksning birinchi ustuni shartda yo'q (ba'zan skip scan yordam beradi); (5) <span class="num">IS NULL</span> sharti; (6) so'rov jadvalning katta qismini qaytaradi, bu holda full scan haqiqatan arzonroq; (7) statistika eskirgan va optimizator noto'g'ri hisob qilmoqda; (8) <span class="num">&lt;&gt;</span> yoki <span class="num">NOT IN</span> sharti.</p>
+<p class="ru">Функция над колонкой (TRUNC, UPPER) — решается переписыванием условия или функциональным индексом; неявное преобразование типов; LIKE с % в начале; в условии нет ведущей колонки составного индекса; IS NULL; запрос возвращает большую долю таблицы, и full scan действительно дешевле; устаревшая статистика; условия &lt;&gt; и NOT IN.</p></details>
+<details><summary>Composite indeksda ustunlar tartibi · «Как выбрать порядок колонок в составном индексе?»</summary>
+<p>Indeks avval birinchi ustun bo'yicha, keyin ikkinchisi bo'yicha tartiblanadi, xuddi telefon kitobidagi "familiya, keyin ism" kabi. Qoida: tenglik (=) bilan qidiriladigan ustunlar oldinda, diapazon (&gt;, BETWEEN) bilan qidiriladigan ustun oxirida. Eng ko'p so'rovlarda qatnashadigan ustun boshida turishi kerak. Misol: <span class="num">WHERE filial = :f AND sana BETWEEN :d1 AND :d2</span> uchun <span class="num">(filial, sana)</span> indeksi kerak, <span class="num">(sana, filial)</span> emas. Agar so'rovdagi barcha ustunlar indeksda bo'lsa, jadvalga umuman murojaat qilinmaydi (covering index).</p>
+<p class="ru">Индекс отсортирован сначала по первой колонке, потом по второй. Колонки с условием равенства — впереди, с диапазоном — в конце; ведущая колонка должна участвовать в большинстве запросов. Для filial = :f AND sana BETWEEN — индекс (filial, sana). Если все нужные колонки есть в индексе, к таблице обращения нет.</p></details>
+<details><summary>B-tree va bitmap indeks · «Когда bitmap индекс?»</summary>
+<p>Bitmap indeks har bir qiymat uchun bitlar qatorini saqlaydi. U kam turli qiymatli ustunlar (jins, holat) va murakkab AND/OR shartlari uchun samarali. Lekin bitmap indeksda bitta qatorni o'zgartirish ko'p qatorni birdaniga qulflaydi. Shuning uchun u ko'p foydalanuvchi bir vaqtda yozadigan OLTP tizimiga (masalan, bank yadrosiga) to'g'ri kelmaydi. Uning joyi faqat hisobot omborlari (DWH). Bank tranzaksiya jadvallarida B-tree ishlatiladi.</p>
+<p class="ru">Bitmap хранит битовые карты по каждому значению, хорош для колонок с малым числом значений и сложных AND/OR в хранилищах данных. Но изменение одной строки блокирует много строк, поэтому для OLTP с параллельной записью, как в банковском ядре, не подходит. В OLTP — B-tree.</p></details>
+<details><summary>Rejani qanday olasiz va o'qiysiz · «Как получить и читать план выполнения?»</summary>
+<p><span class="num">EXPLAIN PLAN FOR ...</span> va keyin <span class="num">SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY)</span>. Bu Oracle'ning <em>taxmini</em>: so'rov bajarilmaydi va bind qiymatlar hisobga olinmaydi. Haqiqiy reja uchun so'rovni <span class="num">/*+ GATHER_PLAN_STATISTICS */</span> bilan ishga tushirib, <span class="num">DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST')</span> chaqiriladi. Bu yerda taxmin (E-Rows) va haqiqatda qaytgan qatorlar (A-Rows) yonma-yon turadi. Ular o'rtasida katta farq bo'lsa, bu muammoning belgisi, odatda statistika sababli. O'qish tartibi: eng ichkaridagi (eng o'ngga surilgan) qatordan boshlanadi; bir xil darajadagilar yuqoridan pastga o'qiladi. Ustunlar: Operation, Rows (kardinallik), Cost, Predicate Information (access va filter).</p>
+<p class="ru">EXPLAIN PLAN показывает предполагаемый план без выполнения. Реальный план — через DBMS_XPLAN.DISPLAY_CURSOR с ALLSTATS LAST после запуска с подсказкой GATHER_PLAN_STATISTICS: там рядом E-Rows и A-Rows. Большое расхождение — признак проблемы, чаще всего со статистикой. Читаю с самой вложенной операции; смотрю операции, кардинальность, стоимость и предикаты access/filter.</p></details>
+<details><summary>Kirish usullari va JOIN usullari · «Какие бывают методы доступа и соединения?»</summary>
+<p>Kirish usullari: <strong>TABLE ACCESS FULL</strong> (butun jadval o'qiladi, katta bloklar bilan); <strong>INDEX UNIQUE SCAN</strong> (bitta qator); <strong>INDEX RANGE SCAN</strong> (diapazon); <strong>INDEX FAST FULL SCAN</strong> (butun indeks, jadval o'rniga); <strong>TABLE ACCESS BY INDEX ROWID</strong> (indeksdan keyin jadvalga kirish). JOIN usullari: <strong>NESTED LOOPS</strong>: tashqi to'plamdagi har qator uchun ichki jadvaldan indeks bilan qidiradi; kichik to'plam va yaxshi indeks bo'lsa eng yaxshisi. <strong>HASH JOIN</strong>: kichik jadvaldan xotirada xesh-jadval quriladi, katta jadval esa bir marta o'qiladi; katta to'plamlar va tenglik sharti uchun. <strong>SORT MERGE JOIN</strong>: ikkala tomon saralanadi va birlashtiriladi; tenglik bo'lmagan shartlar uchun yoki ma'lumot allaqachon saralangan bo'lsa.</p>
+<p class="ru">Доступ: FULL TABLE SCAN, INDEX UNIQUE SCAN, INDEX RANGE SCAN, INDEX FAST FULL SCAN, TABLE ACCESS BY INDEX ROWID. Соединения: NESTED LOOPS — для каждой строки внешнего набора поиск по индексу во внутреннем, хорошо для малых наборов; HASH JOIN — хеш-таблица по меньшему набору, для больших объёмов и равенства; SORT MERGE — сортировка обеих сторон, для неравенств или уже отсортированных данных.</p></details>
+<details><summary>Statistika va hintlar · «Зачем собирать статистику? Используете ли хинты?»</summary>
+<p>Optimizator xarajatga asoslangan (CBO): u statistikaga (qatorlar soni, ustundagi turli qiymatlar soni, gistogrammalar) qarab rejani tanlaydi. Statistika eskirgan bo'lsa, masalan jadvalga katta yuklashdan keyin, reja noto'g'ri bo'ladi. Statistika <span class="num">DBMS_STATS.GATHER_TABLE_STATS</span> bilan yig'iladi. Odatda avtomatik job buni kechasi qiladi, lekin katta yuklashdan keyin qo'lda yig'ish kerak bo'ladi. Hintlar (<span class="num">/*+ INDEX(t idx) */</span>, <span class="num">LEADING</span>, <span class="num">USE_HASH</span>, <span class="num">PARALLEL</span>) optimizatorni majburlaydi. Ular oxirgi chora: avval statistika, indekslar va so'rov matnini tuzatish kerak, chunki ma'lumot o'zgarsa, hint qotib qolgan yomon rejaga aylanadi.</p>
+<p class="ru">Оптимизатор стоимостной: выбирает план по статистике — число строк, число различных значений, гистограммы. Устаревшая статистика — неверный план. Собираю через DBMS_STATS.GATHER_TABLE_STATS, особенно после массовой загрузки. Хинты — крайняя мера: сначала статистика, индексы и сам запрос, потому что хинт фиксирует план, а данные меняются.</p></details>
+<details><summary>Sekin so'rovni qanday optimizatsiya qilasiz · «Запрос стал работать медленно. Ваши действия?»</summary>
+<p>Tartib bilan aytish kerak: (1) muammoni o'lchash: qancha vaqt, qancha marta chaqiriladi, nechta qator qaytaradi (V$SQL, AWR yoki ASH bo'lsa); (2) <em>haqiqiy</em> rejani olish (DISPLAY_CURSOR, ALLSTATS LAST); (3) E-Rows va A-Rows qayerda farq qilishini topish va statistikani tekshirish; (4) eng qimmat qadamni topish: keraksiz full scan, noto'g'ri JOIN usuli, indeks bo'la turib ishlamayotgani (funksiya, tip konvertatsiyasi); (5) yechim: so'rovni qayta yozish (analitik funksiya, bitta SQL), indeks qo'shish yoki o'zgartirish, partitsiya pruning, bind; (6) natijani o'lchash va solishtirish. Bu yerda o'z tajribangizdan bitta misol aytsangiz, javobingiz ancha kuchli chiqadi.</p>
+<p class="ru">Сначала измеряю: время, частота вызова, сколько строк (V$SQL, AWR/ASH). Беру реальный план через DISPLAY_CURSOR, сравниваю E-Rows и A-Rows, проверяю статистику. Ищу самую дорогую операцию: лишний full scan, неверный метод соединения, индекс не используется из-за функции или преобразования типа. Дальше — переписать запрос, добавить или изменить индекс, обеспечить partition pruning, bind-переменные. И снова измерить результат.</p></details>
+
+<h2 id="g8">8. Tranzaksiya va qulflar</h2>
+<p><strong>Bu nima:</strong> tranzaksiya "hammasi yoki hech narsa" qoidasi bo'yicha bajariladigan amallar to'plami. Qulf (lock) ikki sessiya bir qatorni bir vaqtda o'zgartirmasligi uchun kerak. <strong>Qayerda:</strong> bankda har bir pul o'tkazmasida. <strong>Maqsad:</strong> pul yo'qolmasligi va ikki marta yechilmasligini qanday ta'minlashingizni ko'rsatish. Batafsil: <a href="p8-tranzaksiya-qulflar.html">P8</a>.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="d4" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="UPDATE va COMMIT paytida undo, redo va qulf"></svg></div>
+  <figcaption>Sessiya A qatorni yangilaganda uchta narsa sodir bo'ladi: eski qiymat undo'ga yoziladi, o'zgarish redo'ga yoziladi va qator qulflanadi. Sessiya B shu qatorni o'qisa, kutib turmaydi: unga undo'dan eski versiya ko'rsatiladi. Lekin B shu qatorni o'zgartirmoqchi bo'lsa, A COMMIT yoki ROLLBACK qilguncha kutadi.</figcaption>
+</figure>
+<details><summary>ACID · «Что такое ACID?»</summary>
+<p><strong>Atomicity</strong>: hammasi yoki hech narsa. Pul bir hisobdan yechilib, boshqasiga tushmay qolishi mumkin emas. <strong>Consistency</strong>: tranzaksiyadan keyin barcha qoidalar (cheklovlar) bajarilgan bo'ladi. <strong>Isolation</strong>: parallel tranzaksiyalar bir-birining tugallanmagan ishini ko'rmaydi. <strong>Durability</strong>: COMMIT qilingan narsa server o'chib qolsa ham saqlanadi (redo hisobiga).</p>
+<p class="ru">Atomicity — всё или ничего; Consistency — после транзакции соблюдены все правила и ограничения; Isolation — параллельные транзакции не видят незавершённые изменения друг друга; Durability — зафиксированное сохраняется даже при сбое, благодаря redo.</p></details>
+<details><summary>Oracle'da izolyatsiya darajalari va o'qish izchilligi · «Какие уровни изоляции в Oracle? Блокирует ли чтение запись?»</summary>
+<p>Oracle'da ikki daraja bor: <strong>READ COMMITTED</strong> (sukut bo'yicha; har bir so'rov o'zi boshlangan paytdagi COMMIT qilingan ma'lumotni ko'radi) va <strong>SERIALIZABLE</strong> (butun tranzaksiya o'zi boshlangan paytdagi holatni ko'radi). READ ONLY ham bor. Oracle'da "dirty read" (COMMIT qilinmagan ma'lumotni o'qish) umuman yo'q. Asosiy qoida: <em>o'quvchi yozuvchini kutmaydi, yozuvchi o'quvchini kutmaydi</em>. Buni undo orqali ishlaydigan ko'p versiyali o'qish (multiversion read consistency) ta'minlaydi. Faqat ikki yozuvchi bitta qator uchun bir-birini kutadi.</p>
+<p class="ru">В Oracle READ COMMITTED по умолчанию — каждый запрос видит данные, зафиксированные на момент его начала, и SERIALIZABLE — вся транзакция видит снимок на момент её начала; есть ещё READ ONLY. Грязного чтения нет вообще. Читатели не блокируют писателей и наоборот — за счёт многоверсионности через undo. Ждут только два писателя одной строки.</p></details>
+<details><summary>Qulflar: qator qulfi, TM qulf, foreign key · «Какие бывают блокировки в Oracle?»</summary>
+<p>DML qatorni qulflaydi (TX qulf). Qulf belgisi qatorning o'zida, blok ichida saqlanadi, shuning uchun Oracle'da qulflar soni cheklanmagan va qator qulfi hech qachon jadval qulfiga aylanmaydi (escalation yo'q). Bundan tashqari, jadval tuzilishi o'zgarib ketmasligi uchun jadval darajasida TM qulf qo'yiladi. Muhim tuzoq: <strong>indekssiz foreign key</strong>. Ota (parent) jadvaldagi qatorni o'chirsangiz yoki uning kalitini o'zgartirsangiz, bola (child) jadval to'liq qulflanadi. Shuning uchun foreign key ustunlariga indeks qo'yiladi. Kim kimni kutayotganini <span class="num">V$LOCK</span> va <span class="num">V$SESSION</span> (blocking_session ustuni) orqali ko'rish mumkin.</p>
+<p class="ru">DML блокирует строки — TX-блокировка хранится в самом блоке данных, поэтому количество не ограничено и эскалации до таблицы нет. Плюс TM-блокировка на таблицу от изменения структуры. Ловушка — внешний ключ без индекса: при удалении или изменении ключа в родительской таблице блокируется вся дочерняя. Кто кого ждёт — V$SESSION.BLOCKING_SESSION и V$LOCK.</p></details>
+<details><summary>Deadlock · «Что такое deadlock и как его избежать?»</summary>
+<p>A sessiya 1-qatorni qulflab, 2-qatorni kutmoqda, B sessiya esa 2-qatorni qulflab, 1-qatorni kutmoqda. Ikkalasi ham abadiy kutadi. Oracle buni bir necha soniyada aniqlaydi va sessiyalardan birining <em>buyrug'ini</em> ORA-00060 xatosi bilan bekor qiladi (tranzaksiyani emas!). Bu sessiya ROLLBACK qilishi kerak. Oldini olish: qatorlarni hamma joyda bir xil tartibda qulflash (masalan, o'tkazmada hisob raqami kichigidan boshlab), tranzaksiyalarni qisqa qilish, foreign key'larga indeks qo'yish, bitmap indeksdan qochish.</p>
+<p class="ru">Две сессии ждут друг друга по кругу. Oracle обнаруживает это и откатывает оператор одной из сессий с ORA-00060 — не всю транзакцию, сессия должна сама сделать ROLLBACK. Избегаю: блокирую строки в одном порядке, например при переводе сначала меньший номер счёта; короткие транзакции; индексы на внешних ключах.</p></details>
+<details><summary>Lost update va SELECT FOR UPDATE · «Как не потерять обновление при параллельной работе?»</summary>
+<p>Muammo: ikki sessiya qoldiqni o'qiydi (1000), har biri 300 yechadi va 700 yozadi. Natijada bitta yechish yo'qoladi. Yechimlar: (1) hisobni SQL ichida qilish: <span class="num">UPDATE hisob SET qoldiq = qoldiq - :s WHERE id = :id AND qoldiq &gt;= :s</span> va <span class="num">SQL%ROWCOUNT</span> ni tekshirish; (2) pessimistik usul: <span class="num">SELECT ... FOR UPDATE</span> qatorni o'qish paytidayoq qulflaydi; <span class="num">NOWAIT</span> qo'shilsa, kutmasdan darhol xato qaytaradi, <span class="num">WAIT n</span> n soniya kutadi, <span class="num">SKIP LOCKED</span> esa qulflangan qatorlarni o'tkazib yuboradi (navbatdan vazifa oladigan bir nechta ishchi job uchun qulay); (3) optimistik usul: versiya ustuni, <span class="num">WHERE versiya = :v</span>.</p>
+<p class="ru">Две сессии читают остаток, обе списывают и записывают — одно списание теряется. Решения: считать прямо в UPDATE с условием достаточности и проверять SQL%ROWCOUNT; пессимистично — SELECT FOR UPDATE, с NOWAIT, WAIT n или SKIP LOCKED для очередей; оптимистично — колонка версии в условии UPDATE.</p></details>
+<details><summary>Xato bo'lganda tranzaksiya nima bo'ladi, SAVEPOINT · «Что откатывается при ошибке в середине транзакции?»</summary>
+<p>Xato bergan buyruqning faqat o'zi bekor qilinadi (statement-level rollback). Undan oldingi buyruqlar tranzaksiyada qoladi. Nima qilishni chaqiruvchi hal qiladi: ROLLBACK, davom etish yoki <span class="num">ROLLBACK TO SAVEPOINT</span> (tranzaksiyaning bir qismini qaytarish). Xato protseduradan ushlanmasdan chiqib ketsa, faqat shu chaqiruvning o'zgarishlari qaytariladi. Qoida: ichki API protseduralar COMMIT qilmasligi kerak. Tranzaksiya chegarasini eng tashqi chaqiruvchi belgilaydi: ekran, job yoki Java servis.</p>
+<p class="ru">Откатывается только оператор, вызвавший ошибку; предыдущие изменения остаются, и решение — ROLLBACK, продолжить или ROLLBACK TO SAVEPOINT — за вызывающим. Внутренние API-процедуры не должны делать COMMIT — границы транзакции определяет самый внешний вызывающий: экран, джоб или Java-сервис.</p></details>
+
+<h2 id="g9">9. Bazani loyihalash</h2>
+<p><strong>Bu nima:</strong> jadvallarni, ularning bog'lanishlarini va kalitlarini shunday tuzishki, ma'lumot takrorlanmasin va qarama-qarshi bo'lib qolmasin. <strong>Qayerda:</strong> yangi modul yoki yangi jadval qo'shishda. <strong>Maqsad:</strong> vakansiyadagi "проектирование и нормализация БД" talabi. Batafsil: <a href="p9-bazani-loyihalash.html">P9</a>.</p>
+<details><summary>Normal formalar · «Расскажите про нормальные формы»</summary>
+<p><strong>1NF</strong>: har bir katakda bitta qiymat bo'ladi, ro'yxat yoki takrorlanuvchi ustunlar (telefon1, telefon2) bo'lmaydi. <strong>2NF</strong>: 1NF bajarilgan va har bir ustun butun kalitga bog'liq, kalitning bir qismiga emas (bu talab composite kalitda muhim). <strong>3NF</strong>: 2NF bajarilgan va kalit bo'lmagan ustun boshqa kalit bo'lmagan ustunga bog'liq emas. Masalan, to'lov jadvalida filial_kod bilan birga filial_nomi turmasligi kerak, u filiallar jadvalida bo'ladi. Eslab qolish uchun: "kalitga, butun kalitga va faqat kalitga". Foyda: anomaliyalar yo'qoladi. Masalan, filial nomi o'zgarsa, uni faqat bir joyda yangilash kifoya.</p>
+<p class="ru">1НФ — атомарные значения, без списков и повторяющихся колонок. 2НФ — каждый неключевой атрибут зависит от всего ключа, а не от части. 3НФ — нет транзитивных зависимостей между неключевыми атрибутами: например, название филиала хранится в справочнике филиалов, а не в каждом платеже. Цель — убрать аномалии вставки, обновления и удаления.</p></details>
+<details><summary>Denormalizatsiya qachon kerak · «Когда допустима денормализация?»</summary>
+<p>O'qish tezligi juda muhim va hisobni har safar qayta bajarish qimmat bo'lganda. Bankdagi klassik misol: hisoblar jadvalidagi joriy qoldiq va alohida kunlik qoldiqlar jadvali. Ularni har safar provodkalardan qayta yig'ish mumkin edi, lekin bu juda sekin bo'lardi. Shart: ma'lumotning bitta asosiy manbai bo'lishi (provodkalar), denormalizatsiya qilingan ustunni faqat bitta API yangilashi va muntazam solishtiruv (sverka) o'tkazilishi kerak. Boshqa vositalar: materialized view, hisobot omboridagi yulduzsimon sxema.</p>
+<p class="ru">Когда важна скорость чтения, а пересчёт каждый раз дорогой. Пример в банке — текущий остаток на счёте и таблица ежедневных остатков, хотя их можно посчитать из проводок. Условия: один источник истины, обновление только через один API и регулярная сверка. Ещё варианты — материализованные представления, витрины.</p></details>
+<details><summary>Primary key: surrogate yoki natural · «Суррогатный или естественный ключ?»</summary>
+<p>Natural kalit biznesda ma'nosi bor qiymat: INN yoki hisob raqami. Surrogate kalit esa ma'nosiz raqam: sequence yoki identity ustun. Odatda PK sifatida surrogate tanlanadi, chunki u o'zgarmaydi, qisqa va JOIN uchun qulay. Natural kalitga esa UNIQUE cheklov qo'yiladi, takror bo'lmasligi uchun. Cheklovlar (NOT NULL, CHECK, UNIQUE, FK) ilovada emas, bazada bo'lishi kerak: ma'lumotga qaysi kanal orqali kelinsa ham ular ishlaydi.</p>
+<p class="ru">Естественный ключ имеет бизнес-смысл (ИНН, номер счёта), суррогатный — просто число из sequence или identity. Обычно первичный ключ суррогатный — не меняется, короткий, удобен для соединений, а на естественный ключ — UNIQUE. Ограничения лучше держать в базе, а не только в приложении.</p></details>
+<details><summary>Partitsiyalash · «Что такое партиционирование и зачем?»</summary>
+<p>Katta jadval bir nechta bo'lakka (partitsiyaga) bo'linadi, lekin so'rovlar uchun u bitta jadval bo'lib qoladi. Turlari: <strong>RANGE</strong> (sana bo'yicha, masalan har oy alohida), <strong>LIST</strong> (filial yoki region bo'yicha), <strong>HASH</strong> (teng taqsimlash uchun), <strong>INTERVAL</strong> (yangi oy kelganda partitsiya o'zi yaratiladi) va composite turlar. Foydalari: (1) <strong>partition pruning</strong>: shartda partitsiya kaliti bo'lsa, faqat kerakli bo'laklar o'qiladi; (2) boshqarish qulayligi: eski ma'lumotni <span class="num">DROP</span> yoki <span class="num">EXCHANGE PARTITION</span> bilan bir zumda arxivlash. Indekslar: <strong>local</strong> (har partitsiyaga o'z indeksi, boshqarish oson) va <strong>global</strong> (butun jadval uchun bitta indeks, partitsiya kalitisiz qidiruvga tez, lekin partitsiya bilan ishlaganda qayta qurish kerak bo'ladi).</p>
+<p class="ru">Большая таблица делится на секции, но для запросов остаётся одной таблицей. Виды: RANGE по дате, LIST по филиалу, HASH, INTERVAL, композитные. Плюсы — partition pruning: читаются только нужные секции, если в условии есть ключ партиционирования; удобное обслуживание: архив через DROP или EXCHANGE PARTITION. Индексы бывают локальные и глобальные.</p></details>
+
+<h2 id="g10">10. iABS va bank yadro tizimi</h2>
+<p><strong>Bu nima:</strong> yadro bank tizimi (ABS, core banking) bankning asosiy buxgalteriyasi va mahsulotlari yuradigan tizim: mijozlar, hisoblar, provodkalar, kreditlar, omonatlar, kartalar, kassa. iABS O'zbekiston banklarida keng tarqalgan shunday tizimlardan biri: Oracle bazasi va veb-ilova, biznes mantiqning asosiy qismi PL/SQL paketlarida. <strong>Qayerda:</strong> bankning har kungi ishi va barcha kanallar (filial, mobil ilova, internet-bank) shu yadroga yozadi. <strong>Maqsad:</strong> bank PL/SQL vakansiyasida bu sizning eng kuchli kozirlaringizdan biri. Batafsil: <a href="p10-iabs.html">P10</a>.</p>
+<p class="note">Hamkorbank qaysi yadro tizimida ishlashini oldindan bilmaymiz. Suhbat oxirida buni o'zingiz so'rashingiz mumkin (pastda, "Siz so'raydigan savollar"). Pastdagi g'oyalar (ikki tomonlama provodka, hisob raqami tuzilishi, operatsion kun) esa har qanday bank yadrosida bir xil.</p>
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="d5" style="width:1240px;height:520px" viewBox="0 0 1240 520" role="img" aria-label="Yadro bank tizimi qavatlari va provodka yo'li"></svg></div>
+  <figcaption>So'rov qaysi kanal orqali kelmasin, bir xil yo'ldan o'tadi: ilova serveri bazadagi API paketini chaqiradi, modul paketlari o'z jadvallariga yozadi, pul harakati esa doim yadrodagi provodka dvigateli orqali o'tadi. Modul jadvali, provodka va hisob qoldig'i bitta tranzaksiyada yoziladi.</figcaption>
+</figure>
+<details><summary>Yadro tizimi qanday tuzilgan · «Как устроена автоматизированная банковская система?»</summary>
+<p>Ilova serveri (veb-ilova) va Oracle bazasi. Ilova qavatida biznes mantiq deyarli yo'q: u parametrlarni yig'ib, bazadagi API paketini chaqiradi. Mantiq PL/SQL'da: API paketi parametrlarni tekshiradi, modul paketlari (kredit, depozit, karta, kassa) o'z jadvallariga yozadi, pul harakati bo'lsa, yadroning provodka paketini chaqiradi. Nega mantiq bazada: (1) modul jadvali, provodka va qoldiq bitta tranzaksiyada yoziladi; (2) qoida bitta joyda va hamma kanallar uchun bir xil: ekran, mobil shlyuz, tungi job hammasi bitta protsedurani chaqiradi; (3) ma'lumotga yaqinlik: million hisob bo'yicha foiz hisoblash bazaning ichida bajariladi. Narxi ham bor: minglab paket, qayta kompilyatsiya muammolari (ORA-04068), test qilish va versiyalash qiyinroq.</p>
+<p class="ru">Веб-приложение и Oracle. В слое приложения почти нет бизнес-логики: он собирает параметры и вызывает API-пакет в базе. Логика в PL/SQL: модули кредитов, депозитов, карт пишут в свои таблицы, а движение денег всегда идёт через ядро — пакет проводок. Логика в базе потому, что модульная таблица, проводка и остаток пишутся одной транзакцией, правило одно для всех каналов, и обработка рядом с данными.</p></details>
+<details><summary>Provodka: ikki tomonlama yozuv · «Что такое проводка? Как деньги проходят через систему?»</summary>
+<p>Har bir pul harakati ikki tomonlama yoziladi: bitta hisob debetlanadi, boshqasi xuddi shu summaga kreditlanadi. Shuning uchun debetlar yig'indisi doim kreditlar yig'indisiga teng. Masalan, mijoz kassaga naqd pul qo'ydi: debet "kassa" (aktiv hisob), kredit "mijozning depozit hisobi" (passiv hisob). Tizimda bu odatda ikki qavatli bo'ladi: <strong>hujjat</strong> (to'lovchi, oluvchi, summa, maqsad, holat) va uning <strong>debet va kredit yozuvlari</strong>. Hujjat holatlar mashinasidan o'tadi (kiritildi → tasdiqlandi → bajarildi), qoldiq esa ma'lum holatda o'zgaradi. Modullar ko'pincha aniq hisob raqamini emas, <strong>hisob turini</strong> va <strong>provodka shablonini</strong> ishlatadi: "shu operatsiyada shu turdagi hisobdan shu turdagi hisobga".</p>
+<p class="ru">Каждое движение денег — двойная запись: один счёт дебетуется, другой кредитуется на ту же сумму, поэтому сумма дебетов равна сумме кредитов. Например, взнос наличных: дебет кассы, кредит депозитного счёта клиента. В системе это документ и его записи по дебету и кредиту; документ проходит статусы, остаток меняется на определённом шаге. Модули используют не конкретные счета, а типы счетов и шаблоны проводок.</p></details>
+<details><summary>Hisob raqami tuzilishi · «Из чего состоит номер счёта?»</summary>
+<p>20 xona: <span class="num">20208 000 5 12345678 001</span>. 5 xona balans hisobi (Markaziy bankning hisoblar rejasidagi kod, masalan 20208 jismoniy shaxslarning talab qilib olinguncha depozitlari), 3 xona valyuta kodi (000 so'm, 840 AQSh dollari, 978 yevro), 1 xona nazorat raqami (kalit), 8 xona mijozning noyob kodi, 3 xona tartib raqami. Balans hisobi hisobning aktiv yoki passiv ekanini belgilaydi. Bu esa debet qoldiqni oshiradimi yoki kamaytiradimi, shuni hal qiladi.</p>
+<p class="ru">20 цифр: 5 — балансовый счёт по плану счетов ЦБ, 3 — код валюты (000 сум, 840 доллар, 978 евро), 1 — контрольный ключ, 8 — уникальный код клиента, 3 — порядковый номер. Балансовый счёт определяет, активный счёт или пассивный, а значит, увеличивает остаток дебет или кредит.</p></details>
+<details><summary>Qoldiq qanday saqlanadi · «Где хранится остаток? Можно ли поправить остаток UPDATE-ом?»</summary>
+<p>Hisoblar jadvalida joriy holat saqlanadi: kun boshidagi qoldiq, hozirgi qoldiq va aylanmalar. Alohida kunlik qoldiqlar jadvalida esa har hisob va har kun uchun kirish qoldig'i, debet va kredit aylanmalari, chiqish qoldig'i saqlanadi. Bu ongli denormalizatsiya. Qoldiqni <em>hech qachon</em> to'g'ridan-to'g'ri UPDATE qilib bo'lmaydi: u faqat provodka orqali o'zgaradi. Xato bo'lsa, storno (teskari provodka) yoki tuzatuvchi provodka qilinadi. Aks holda provodkalar yig'indisi bilan qoldiq mos kelmaydi, kun yopishdagi solishtiruv to'xtaydi va auditda tushuntirib bo'lmaydigan farq paydo bo'ladi.</p>
+<p class="ru">Текущий остаток и обороты хранятся на счёте, отдельно — ежедневные остатки по каждому счёту и дню. Остаток никогда не правится прямым UPDATE — только проводкой; ошибку исправляют сторно или исправительной проводкой. Иначе остатки не сойдутся с проводками, остановится сверка при закрытии дня, и будет расхождение для аудита.</p></details>
+<details><summary>Operatsion kun va kun yopish · «Что происходит при закрытии операционного дня?»</summary>
+<p>Bankda kalendar sana va operatsion kun alohida tushunchalar. Hujjatlar ochiq operatsion kunga yoziladi. Kun yopish bosqichma-bosqich, odatda filiallar bo'yicha o'tadi: (1) yangi hujjat kiritish to'xtatiladi; (2) kun yakuni jarayonlari: foiz hisoblash, avtoto'lovlar, kartotekadagi hujjatlarni to'lash, qayta baholash; (3) tekshiruvlar va solishtiruv: debet kreditga tengmi, qoldiqlar provodkalarga mosmi; (4) kunlik qoldiqlar yoziladi, joriy kun provodkalari tarix jadvallariga ko'chiriladi (tarix jadvallari sana bo'yicha partitsiyalangan); (5) yangi kun ochiladi. Bu yerda bir nechta mavzu birga ishlaydi: BULK, joblar, partitsiyalar, qulflar.</p>
+<p class="ru">Календарная дата и операционный день — разные вещи. Закрытие дня поэтапное, обычно по филиалам: запрет ввода, процедуры конца дня — начисление процентов, автоплатежи, картотека, переоценка; проверки и сверка — дебет равен кредиту, остатки сходятся с проводками; запись дневных остатков и перенос проводок текущего дня в историю, партиционированную по дате; открытие нового дня.</p></details>
+<details><summary>Modul skeleti · «Как устроен, например, кредитный модуль?»</summary>
+<p>Deyarli har bir modul bir xil andozada quriladi: lug'atlar (mahsulot turlari, stavkalar) → asosiy obyekt, ya'ni shartnoma → shartnomaning hisoblari (har birining roli bor: asosiy qarz, foiz, muddati o'tgan qarz) → parametrlar va grafiklar (to'lov jadvali) → tarix → modul provodkalari → yadro. Kredit misolida: kunlik foiz hisoblanadi → foiz hisobiga va daromad hisobiga provodka yoziladi → to'lov kelganda grafik bo'yicha qarz yopiladi. Yuqori arxitektura darajasida esa umumiy zanjir bor: mahsulot → bitim (aniq shartnoma) → operatsiya → hujjat → provodka.</p>
+<p class="ru">Почти каждый модуль по одному шаблону: справочники, договор как главный объект, счета договора с ролями — основной долг, проценты, просрочка, параметры и графики, история, проводки модуля и ядро. Для кредита: ежедневное начисление процентов, проводка на счёт процентов и доходов, при оплате — погашение по графику. Общая цепочка: продукт, сделка, операция, документ, проводка.</p></details>
+
+<h2 id="g11">11. Mayda, lekin tez-tez so'raladigan savollar</h2>
+<p>Bular qisqa savollar, ko'pincha suhbat boshida "qizdirish" uchun beriladi. Javob bitta-ikki gapdan oshmaydi, lekin adashsangiz, yomon taassurot qoldiradi.</p>
+<details><summary>DELETE, TRUNCATE, DROP · «Чем отличаются DELETE, TRUNCATE и DROP?»</summary>
+<p>DELETE bu DML: qatorlarni WHERE bilan o'chiradi, undo va redo yozadi, ROLLBACK qilish mumkin, triggerlar ishlaydi, sekin. TRUNCATE bu DDL: jadvalning hamma qatorini bir zumda o'chiradi va joyni bo'shatadi (high water mark'ni tushiradi), yashirin COMMIT qiladi, ROLLBACK qilib bo'lmaydi, DML triggerlar ishlamaydi. DROP jadvalning o'zini o'chiradi (recycle bin yoqilgan bo'lsa, <span class="num">FLASHBACK TABLE</span> bilan qaytarish mumkin).</p>
+<p class="ru">DELETE — DML, удаляет строки по условию, пишет undo и redo, можно откатить, срабатывают триггеры. TRUNCATE — DDL, мгновенно очищает всю таблицу, сбрасывает high water mark, неявный COMMIT, откатить нельзя. DROP удаляет саму таблицу, вернуть можно через FLASHBACK TABLE, если включена корзина.</p></details>
+<details><summary>CHAR va VARCHAR2, DATE va TIMESTAMP · «CHAR или VARCHAR2? DATE или TIMESTAMP?»</summary>
+<p>CHAR qat'iy uzunlikda, qolgan joyni bo'shliq bilan to'ldiradi. VARCHAR2 o'zgaruvchan uzunlikda, odatda shu ishlatiladi. DATE ichida sana va vaqt sekundgacha saqlanadi. Shuning uchun <span class="num">WHERE sana = DATE '2026-11-03'</span> faqat yarim tundagi yozuvni topadi, to'g'risi <span class="num">sana &gt;= :d AND sana &lt; :d + 1</span>. TIMESTAMP sekundning bo'laklarigacha saqlaydi, TIMESTAMP WITH TIME ZONE esa vaqt zonasini ham saqlaydi. Pul faqat NUMBER'da saqlanadi, FLOAT'da emas.</p>
+<p class="ru">CHAR фиксированной длины с дополнением пробелами, VARCHAR2 — переменной длины, используется обычно он. DATE хранит дату и время до секунды, поэтому для дня пишу sana &gt;= :d AND sana &lt; :d + 1. TIMESTAMP — с долями секунды, с таймзоной — WITH TIME ZONE. Деньги — только NUMBER.</p></details>
+<details><summary>View va materialized view · «Чем представление отличается от материализованного?»</summary>
+<p>View bu saqlangan so'rov: unda ma'lumot yo'q, har murojaatda so'rov qayta bajariladi. U murakkablikni yashirish va huquqlarni cheklash uchun ishlatiladi. Materialized view natijani jismonan saqlaydi va vaqti-vaqti bilan yangilanadi (COMPLETE yoki FAST refresh, buyruq bilan yoki COMMIT paytida). U og'ir hisobotlarni tezlashtiradi, lekin ma'lumot biroz eskirgan bo'lishi mumkin.</p>
+<p class="ru">Представление — сохранённый запрос без данных, выполняется при каждом обращении; для упрощения и разграничения прав. Материализованное — хранит результат физически и обновляется: COMPLETE или FAST, по требованию или при коммите; ускоряет тяжёлые отчёты, но данные могут быть не самые свежие.</p></details>
+<details><summary>Sequence, identity · «Как генерировать ID?»</summary>
+<p>Sequence (<span class="num">seq.NEXTVAL</span>) yoki 12c'dan boshlab <span class="num">GENERATED AS IDENTITY</span> ustuni. Sequence raqamlari orasida bo'shliqlar bo'lishi tabiiy: ROLLBACK qilingan yoki keshdagi raqamlar yo'qoladi. Shuning uchun "uzluksiz raqamlash" talab qilinsa (masalan, hujjat raqami), boshqa yo'l kerak. Tezlik uchun CACHE ishlatiladi.</p>
+<p class="ru">Sequence или с 12c identity-колонка. Пропуски в sequence нормальны — при откате или потере кэша, поэтому для строгой нумерации документов нужен другой механизм. Для скорости — CACHE.</p></details>
+<details><summary>Constraint turlari · «Какие ограничения целостности знаете?»</summary>
+<p>NOT NULL, UNIQUE, PRIMARY KEY (UNIQUE va NOT NULL birga), FOREIGN KEY (<span class="num">ON DELETE CASCADE</span> yoki <span class="num">SET NULL</span> variantlari bilan), CHECK. Ular <span class="num">DISABLE</span> yoki <span class="num">ENABLE NOVALIDATE</span> qilinishi mumkin. Katta yuklashda shunday qilinadi: avval cheklov o'chiriladi, yuklanadi, keyin qayta yoqiladi.</p>
+<p class="ru">NOT NULL, UNIQUE, PRIMARY KEY, FOREIGN KEY с вариантами ON DELETE CASCADE или SET NULL, CHECK. Их можно отключать и включать с NOVALIDATE, например при массовой загрузке.</p></details>
+<details><summary>Git bilan PL/SQL kodi · «Как вы храните PL/SQL-код в Git?»</summary>
+<p>Har bir paket alohida fayl: spec (.pks) va body (.pkb). Jadval o'zgarishlari tartiblangan migratsiya skriptlarida saqlanadi (Liquibase, Flyway yoki raqamlangan fayllar). Ish tartibi: vazifa uchun alohida branch → commit → pull request → code review → main'ga birlashtirish → teg. Deploy'dan keyin INVALID obyektlarni tekshirish (<span class="num">USER_OBJECTS WHERE status = 'INVALID'</span>) va rollback rejasini oldindan tayyorlab qo'yish kerak. Batafsil: <a href="p11-git-hujjat-jdbc.html">P11</a>.</p>
+<p class="ru">Каждый пакет — отдельный файл спецификации и тела, изменения таблиц — в упорядоченных миграционных скриптах (Liquibase, Flyway или нумерованные файлы). Ветка на задачу, коммиты, pull request, ревью, слияние, тег. После выката проверяю INVALID-объекты, заранее готовлю скрипт отката.</p></details>
+<details><summary>Java'dan protsedura chaqirish · «Как приложение на Java вызывает PL/SQL?»</summary>
+<p>JDBC orqali: ulanish puldan olinadi (HikariCP), <span class="num">CallableStatement</span> bilan <span class="num">{call pkg.proc(?, ?)}</span> chaqiriladi, OUT parametrlar ro'yxatdan o'tkaziladi, natija ro'yxat bo'lsa REF CURSOR qaytariladi. So'rovlarda faqat <span class="num">PreparedStatement</span> va bind ishlatiladi. Bir nechta chaqiruv bitta tranzaksiyada bo'lishi uchun autocommit o'chiriladi va oxirida bitta COMMIT qilinadi. ORA xatolari <span class="num">SQLException.getErrorCode()</span> orqali biznes xatolarga aylantiriladi.</p>
+<p class="ru">Через JDBC: соединение из пула, CallableStatement с вызовом процедуры, регистрация OUT-параметров, для списков — REF CURSOR. Только PreparedStatement и bind-переменные. Для нескольких вызовов в одной транзакции отключаю autocommit и делаю один COMMIT. Ошибки Oracle разбираю через getErrorCode.</p></details>
+
+<h2 id="amaliy">Amaliy masalalar</h2>
+<p>Texnik suhbatda ko'pincha ekranda yoki qog'ozda kichik so'rov yoki protsedura yozdirishadi. Har masalada avval yechimni o'zingiz yozib ko'ring, keyin oching. Yozayotganda fikringizni ovoz chiqarib ayting: suhbatdosh uchun natijadan ko'ra fikrlash jarayoni muhimroq. Jadvallar shartli: <span class="num">mijozlar(id, ism, filial)</span>, <span class="num">hisoblar(id, mijoz_id, qoldiq, holat)</span>, <span class="num">tolovlar(id, hisob_id, filial, sana, summa)</span>.</p>
+
+<details><summary>1. Har bir filialdagi eng katta 3 ta to'lov</summary>
+<pre class="code">SELECT filial, id, summa
+FROM (
+  SELECT t.filial, t.id, t.summa,
+         ROW_NUMBER() OVER (PARTITION BY t.filial ORDER BY t.summa DESC, t.id) AS rn
+  FROM tolovlar t
+)
+WHERE rn &lt;= 3
+ORDER BY filial, rn;</pre>
+<p>Nima uchun shunday: analitik funksiyani WHERE ichida ishlatib bo'lmaydi, shuning uchun u ichki so'rovda hisoblanadi. <span class="num">t.id</span> ORDER BY'ga teng summalar orasida tartib aniq va har safar bir xil bo'lishi uchun qo'shilgan. Teng summalarning hammasi kerak bo'lsa, ROW_NUMBER o'rniga DENSE_RANK yozasiz.</p></details>
+
+<details><summary>2. Takror qatorlarni o'chirish (har guruhdan eng eskisini qoldirib)</summary>
+<pre class="code">DELETE FROM tolovlar
+WHERE ROWID IN (
+  SELECT rid
+  FROM (
+    SELECT ROWID AS rid,
+           ROW_NUMBER() OVER (PARTITION BY hisob_id, sana, summa ORDER BY id) AS rn
+    FROM tolovlar
+  )
+  WHERE rn &gt; 1
+);</pre>
+<p>Avval <span class="num">SELECT</span> qilib, nechta qator o'chishini tekshirasiz, keyin DELETE qilasiz. Oxirida takrorlar qayta paydo bo'lmasligi uchun UNIQUE cheklov qo'yasiz. Bu fikrni suhbatda albatta ayting.</p></details>
+
+<details><summary>3. Ikkinchi (yoki N-chi) eng katta qoldiq</summary>
+<pre class="code">-- analitik funksiya bilan (N ni o'zgartirish oson)
+SELECT DISTINCT qoldiq
+FROM (SELECT qoldiq, DENSE_RANK() OVER (ORDER BY qoldiq DESC) AS r FROM hisoblar)
+WHERE r = 2;
+
+-- analitik funksiyasiz
+SELECT MAX(qoldiq) FROM hisoblar
+WHERE qoldiq &lt; (SELECT MAX(qoldiq) FROM hisoblar);</pre>
+<p>DENSE_RANK tanlangani sababi: eng katta qiymat ikki marta uchrasa ham, "ikkinchi eng katta" haqiqatan ikkinchi <em>qiymat</em> bo'ladi.</p></details>
+
+<details><summary>4. Har hisob bo'yicha yig'ma jami va to'lovlar orasidagi kunlar</summary>
+<pre class="code">SELECT hisob_id, sana, summa,
+       SUM(summa) OVER (PARTITION BY hisob_id ORDER BY sana, id
+                        ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS yigma_jami,
+       sana - LAG(sana) OVER (PARTITION BY hisob_id ORDER BY sana, id) AS oldingisidan_kun
+FROM tolovlar
+ORDER BY hisob_id, sana, id;</pre>
+<p>Birinchi to'lovda <span class="num">LAG</span> NULL qaytaradi, chunki oldingi qator yo'q. ROWS ataylab yozilgan: aks holda bir kundagi to'lovlar yig'ma jamiga birdaniga qo'shilib ketadi.</p></details>
+
+<details><summary>5. Birorta ham to'lovi bo'lmagan mijozlar</summary>
+<pre class="code">SELECT m.id, m.ism
+FROM mijozlar m
+WHERE NOT EXISTS (
+  SELECT 1
+  FROM hisoblar h
+  JOIN tolovlar t ON t.hisob_id = h.id
+  WHERE h.mijoz_id = m.id
+);</pre>
+<p>NOT IN emas, NOT EXISTS ishlatilgan, chunki ichki so'rovda NULL bo'lsa, NOT IN bo'sh natija beradi. Muqobil yo'l: LEFT JOIN va <span class="num">WHERE t.id IS NULL</span>. Mijozda bir nechta hisob bo'lsa, LEFT JOIN usulida qatorlar takrorlanmasligiga e'tibor berish kerak.</p></details>
+
+<details><summary>6. Filiallar daraxti (ierarxiya)</summary>
+<pre class="code">SELECT LPAD(' ', 2 * (LEVEL - 1)) || nomi AS filial, LEVEL AS daraja
+FROM filiallar
+START WITH ota_id IS NULL
+CONNECT BY PRIOR id = ota_id
+ORDER SIBLINGS BY nomi;</pre>
+<p><span class="num">PRIOR</span> ota tomonda turadi: "oldingi qatorning id'si bu qatorning ota_id'siga teng". <span class="num">ORDER SIBLINGS BY</span> daraxt tuzilishini buzmasdan, bir ota ostidagilarni tartiblaydi. Daraxtda sikl bo'lsa, ORA-01436 chiqadi. Bunda <span class="num">NOCYCLE</span> yordam beradi.</p></details>
+
+<details><summary>7. PL/SQL: ikki hisob orasida pul o'tkazish protsedurasi</summary>
+<pre class="code">CREATE OR REPLACE PROCEDURE otkazma (
+  p_dan   IN hisoblar.id%TYPE,
+  p_ga    IN hisoblar.id%TYPE,
+  p_summa IN hisoblar.qoldiq%TYPE
+) IS
+  v_id     hisoblar.id%TYPE;
+  v_qoldiq hisoblar.qoldiq%TYPE;
+BEGIN
+  IF p_summa IS NULL OR p_summa &lt;= 0 THEN
+    RAISE_APPLICATION_ERROR(-20001, 'Summa musbat bo''lishi kerak');
+  END IF;
+  IF p_dan = p_ga THEN
+    RAISE_APPLICATION_ERROR(-20002, 'Hisoblar bir xil');
+  END IF;
+
+  -- 1. Deadlock bo'lmasligi uchun hisoblar doim kichik id'dan boshlab qulflanadi
+  SELECT id INTO v_id FROM hisoblar
+   WHERE id = LEAST(p_dan, p_ga) AND holat = 'OCHIQ' FOR UPDATE;
+  SELECT id INTO v_id FROM hisoblar
+   WHERE id = GREATEST(p_dan, p_ga) AND holat = 'OCHIQ' FOR UPDATE;
+
+  -- 2. Qator endi bizniki: tekshiruv va o'zgarish orasida uni hech kim o'zgartira olmaydi
+  SELECT qoldiq INTO v_qoldiq FROM hisoblar WHERE id = p_dan;
+  IF v_qoldiq &lt; p_summa THEN
+    RAISE_APPLICATION_ERROR(-20003, 'Qoldiq yetarli emas');
+  END IF;
+
+  -- 3. Ikki tomonlama o'zgarish
+  UPDATE hisoblar SET qoldiq = qoldiq - p_summa WHERE id = p_dan;
+  UPDATE hisoblar SET qoldiq = qoldiq + p_summa WHERE id = p_ga;
+  -- COMMIT yo'q: tranzaksiyani chaqiruvchi yakunlaydi
+EXCEPTION
+  WHEN NO_DATA_FOUND THEN
+    RAISE_APPLICATION_ERROR(-20004, 'Hisob topilmadi yoki yopiq');
+END otkazma;
+/</pre>
+<p>Suhbatda aytadigan fikrlar: (1) parametrlar <span class="num">%TYPE</span> bilan e'lon qilingan; (2) kirish ma'lumoti tekshiriladi; (3) <span class="num">FOR UPDATE</span> lost update'ning oldini oladi, bir xil tartibda qulflash esa deadlock'ning; (4) protsedura ichida COMMIT yo'q; (5) biznes xatolar -20xxx kodlari bilan qaytariladi. Qo'shimcha nuqta: haqiqiy bank tizimida qoldiq bunday to'g'ridan-to'g'ri UPDATE bilan o'zgartirilmaydi. Buning o'rniga provodka paketi chaqiriladi va u hujjat, debet va kredit yozuvlarini yaratadi (<a href="#g10">10-guruh</a>). Shuni aytsangiz, bank tizimini tushunishingiz ko'rinadi.</p></details>
+
+<details><summary>8. Katta hajm: faol kreditlarga kunlik foiz yozish</summary>
+<p>Birinchi javob: agar qo'shimcha mantiq bo'lmasa, bu bitta SQL bilan qilinadi va bu eng tez yo'l:</p>
+<pre class="code">INSERT INTO foiz_hisob (kredit_id, sana, summa)
+SELECT id, TRUNC(SYSDATE), ROUND(qarz * stavka / 100 / 365, 2)
+FROM kreditlar
+WHERE holat = 'FAOL';</pre>
+<p>Har qator uchun murakkab PL/SQL mantiq kerak bo'lsa va bitta yomon qator butun ishni to'xtatmasligi kerak bo'lsa, BULK COLLECT, LIMIT va FORALL SAVE EXCEPTIONS ishlatiladi:</p>
+<pre class="code">DECLARE
+  CURSOR c IS SELECT id, qarz, stavka FROM kreditlar WHERE holat = 'FAOL';
+  TYPE t_tab IS TABLE OF c%ROWTYPE;
+  v      t_tab;
+  e_bulk EXCEPTION;
+  PRAGMA EXCEPTION_INIT(e_bulk, -24381);
+BEGIN
+  OPEN c;
+  LOOP
+    FETCH c BULK COLLECT INTO v LIMIT 1000;
+    EXIT WHEN v.COUNT = 0;
+    BEGIN
+      FORALL i IN 1 .. v.COUNT SAVE EXCEPTIONS
+        INSERT INTO foiz_hisob (kredit_id, sana, summa)
+        VALUES (v(i).id, TRUNC(SYSDATE), ROUND(v(i).qarz * v(i).stavka / 100 / 365, 2));
+    EXCEPTION
+      WHEN e_bulk THEN
+        FOR j IN 1 .. SQL%BULK_EXCEPTIONS.COUNT LOOP
+          xato_jurnali.yoz(
+            p_kredit_id =&gt; v(SQL%BULK_EXCEPTIONS(j).ERROR_INDEX).id,
+            p_xato      =&gt; SQLERRM(-SQL%BULK_EXCEPTIONS(j).ERROR_CODE));
+        END LOOP;
+    END;
+  END LOOP;
+  CLOSE c;
+END;
+/</pre>
+<p>Asosiy nuqtalar: LIMIT xotirani himoya qiladi; chiqish sharti <span class="num">v.COUNT = 0</span>; ERROR_CODE musbat son bo'lib keladi, shuning uchun SQLERRM'ga minus bilan beriladi; xato jurnali odatda avtonom tranzaksiyada yoziladi. Agar 300 ming kredit bo'lsa va bu kun yopishda ishlasa, uni filiallar yoki bo'laklar bo'yicha parallel job'larga bo'lish ham mumkin (DBMS_PARALLEL_EXECUTE).</p></details>
+
+<h2 id="lugat">Ruscha atamalar lug'ati</h2>
+<p>Suhbatda tushunchani bilib turib, uning ruscha nomi esga tushmay qolsa, ishonchsiz ko'rinasiz. Ertalab shu jadvalni bir marta ko'z yugurtirib chiqing.</p>
+<div class="scroll"><table>
+<thead><tr><th>Ruscha</th><th>Ma'nosi</th></tr></thead>
+<tbody>
+<tr><td>ограничение целостности, первичный ключ, внешний ключ</td><td>constraint, PK, FK</td></tr>
+<tr><td>составной индекс, функциональный индекс</td><td>composite indeks, funksiyaga asoslangan indeks</td></tr>
+<tr><td>план выполнения (запроса)</td><td>execution plan, bajarilish rejasi</td></tr>
+<tr><td>полное сканирование таблицы</td><td>full table scan</td></tr>
+<tr><td>сбор статистики, устаревшая статистика</td><td>DBMS_STATS bilan statistika yig'ish, eskirgan statistika</td></tr>
+<tr><td>подсказка (хинт)</td><td>hint</td></tr>
+<tr><td>соединение таблиц (вложенные циклы, хеш-соединение)</td><td>JOIN (nested loops, hash join)</td></tr>
+<tr><td>подзапрос, коррелированный подзапрос</td><td>subquery, korrelyatsiyalangan subquery</td></tr>
+<tr><td>агрегатная функция, аналитическая (оконная) функция</td><td>agregat, analitik funksiya</td></tr>
+<tr><td>нарастающий итог</td><td>yig'ma jami (running total)</td></tr>
+<tr><td>иерархический запрос</td><td>CONNECT BY so'rovi</td></tr>
+<tr><td>фиксация (коммит), откат, точка сохранения</td><td>COMMIT, ROLLBACK, SAVEPOINT</td></tr>
+<tr><td>уровень изоляции, согласованное чтение</td><td>isolation level, o'qish izchilligi</td></tr>
+<tr><td>блокировка, взаимоблокировка</td><td>lock, deadlock</td></tr>
+<tr><td>потерянное обновление</td><td>lost update</td></tr>
+<tr><td>автономная транзакция</td><td>autonomous transaction</td></tr>
+<tr><td>курсор (явный, неявный), курсорная переменная</td><td>kursor (explicit, implicit), REF CURSOR</td></tr>
+<tr><td>исключение, обработчик исключений, пробросить исключение</td><td>exception, EXCEPTION bloki, RAISE</td></tr>
+<tr><td>спецификация пакета, тело пакета</td><td>package spec, package body</td></tr>
+<tr><td>перегрузка, инкапсуляция</td><td>overloading, inkapsulyatsiya</td></tr>
+<tr><td>перекомпиляция, невалидные объекты</td><td>qayta kompilyatsiya, INVALID obyektlar</td></tr>
+<tr><td>изменяющаяся таблица (мутирующая)</td><td>mutating table</td></tr>
+<tr><td>массовая обработка, порция</td><td>BULK ishlash, LIMIT bo'lagi</td></tr>
+<tr><td>переключение контекста</td><td>kontekst almashinuvi</td></tr>
+<tr><td>связываемая переменная (bind-переменная)</td><td>bind o'zgaruvchi</td></tr>
+<tr><td>жёсткий / мягкий разбор</td><td>hard / soft parse</td></tr>
+<tr><td>секционирование (партиционирование), отсечение секций</td><td>partitioning, partition pruning</td></tr>
+<tr><td>нормализация, денормализация, нормальная форма</td><td>normalizatsiya, normal forma</td></tr>
+<tr><td>представление, материализованное представление</td><td>view, materialized view</td></tr>
+<tr><td>последовательность</td><td>sequence</td></tr>
+<tr><td>производительность, нагрузка, узкое место</td><td>unumdorlik, yuklama, bottleneck</td></tr>
+<tr><td>проводка, дебет, кредит, сторно</td><td>provodka, Dt, Kt, teskari provodka</td></tr>
+<tr><td>остаток, обороты (дебетовый / кредитовый)</td><td>qoldiq, aylanmalar</td></tr>
+<tr><td>балансовый счёт, план счетов, лицевой счёт</td><td>balans hisobi, hisoblar rejasi, mijoz hisobi</td></tr>
+<tr><td>операционный день, закрытие дня</td><td>operatsion kun, kun yopish</td></tr>
+<tr><td>картотека, начисление процентов, погашение, просрочка</td><td>kartoteka, foiz hisoblash, qarzni to'lash, muddati o'tgan qarz</td></tr>
+<tr><td>сверка</td><td>solishtiruv (reconciliation)</td></tr>
+<tr><td>выкатка (деплой), откат релиза, ревью кода</td><td>deploy, rollback, code review</td></tr>
+</tbody></table></div>
+
+<h2 id="sorash">Suhbat oxirida</h2>
+<h3>Ular yana nimani so'rashi mumkin</h3>
+<ul>
+<li><strong>"Оцените свой уровень PL/SQL от 1 до 10".</strong> Bunga halol va asosli javob bering, masalan 7: "уверенно пишу пакеты, оптимизирую запросы, работаю с bulk-обработкой; хочу глубже в администрирование и тюнинг на уровне AWR".</li>
+<li><strong>"Что не знаете, но хотите изучить?"</strong> Masalan: AWR/ASH tahlili, partitsiyalashni katta hajmda qo'llash, edition-based redefinition.</li>
+<li><strong>Javobini bilmagan savol</strong> chiqsa, o'ylab topmang. Shunday deyish mumkin: "Точно не помню, но рассуждал бы так: ..." va o'xshash mavzudan mantiqiy fikr yuriting. Bunday javob noto'g'ri, lekin ishonch bilan aytilgan javobdan yaxshiroq taassurot qoldiradi.</li>
+</ul>
+<h3>Siz so'raydigan savollar</h3>
+<p>2–3 ta savol tanlang. Bular qiziqishingizni ko'rsatadi va vakansiya haqida kerakli ma'lumot beradi.</p>
+<div class="ru"><ul>
+<li>Какая автоматизированная банковская система используется: iABS или собственная разработка? Какая версия Oracle?</li>
+<li>Из кого состоит команда, кому я буду подчиняться? Какое соотношение новой разработки и поддержки?</li>
+<li>Как устроен процесс: Git, ревью кода, тестовая среда, выкатка релизов?</li>
+<li>Место работы — Ташкент, верно? Есть ли испытательный срок?</li>
+<li>Какой следующий этап после этого собеседования?</li>
+</ul></div>
+
+<h2 id="test">Test</h2>
+<p>Sahifadagi barcha guruhlar bo'yicha savollar. Guruhni tanlab, faqat shu guruh bo'yicha ishlash ham mumkin. Natijasi 70% dan past chiqqan guruhni qayta o'qing.</p>
+<div id="quiz"></div>
+
+<h2 id="cheklist">Oxirgi cheklist</h2>
+<ol class="check">
+<li>Suhbat havolasi bor, kompyuter, mikrofon va kamera tekshirilgan, 10 daqiqa oldin ulanaman.</li>
+<li>O'zimni tanishtirish matnini bir marta ovoz chiqarib aytdim. Bitta aniq "eng qiyin vazifa" misolim tayyor.</li>
+<li>Oracle versiyasi va ishlagan dasturlarim (PL/SQL Developer, Toad, Git) haqida aniq javobim bor.</li>
+<li>Har bir savolga javob tartibi: ta'rif → ichkarida qanday ishlaydi → bank misoli → tuzoq.</li>
+<li>Kod yozdirishsa: shoshilmayman, fikrimni ovoz chiqarib aytaman, NULL, takror va bo'sh natija holatlarini tekshiraman.</li>
+<li>Bilmagan narsani o'ylab topmayman: "точно не помню, рассуждал бы так" deyman.</li>
+<li>Oxirida 2–3 ta savol beraman: qaysi ABS, jamoa, jarayon, ish joyi.</li>
+</ol>
+
+<div class="next">
+  <p><strong>Suhbatdan keyin.</strong> Qanday savollar berilgani va qaysi biriga javob berish qiyin bo'lganini chatga yozing. Ularni tahlil qilib, keyingi bosqichga tayyorlanamiz. Batafsil darslar: <a href="./">Oracle PL/SQL bo'limi</a>.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="./">Bo'lim boshiga</a><a href="p12-xulosa.html">P12. Xulosa va test</a></nav>
+</main>
+<script src="../assets/diagram.js"></script>
+<script src="../assets/quiz.js"></script>
+<script>
+(function () {
+  var S = DG.S, box = DG.box, group = DG.group;
+  function arr(svg, id, d, dash) { S(svg, 'path', { d: d, 'class': 'arr' + (dash ? ' dash' : ''), 'marker-end': 'url(#' + id + ')' }); }
+  function lbl(svg, x, y, t) { S(svg, 'text', { x: x, y: y, 'class': 'lbl' }, t); }
+
+  // D1: SELECT tartibi
+  (function () {
+    var svg = document.getElementById('d1'); DG.marker(svg, 'm1');
+    S(svg, 'text', { x: 17, y: 30, 'class': 'sub' }, 'Yozilish tartibi:');
+    S(svg, 'text', { x: 140, y: 30, 'class': 'mono' }, 'SELECT ... FROM ... WHERE ... GROUP BY ... HAVING ... ORDER BY ... FETCH');
+    var st = [['FROM / JOIN', 'manbalar ulanadi'], ['WHERE', 'qatorlar filtri'], ['GROUP BY', 'guruhlash'], ['HAVING', 'guruhlar filtri'], ['SELECT', 'ifoda va alias'], ['ORDER BY', 'saralash'], ['FETCH', 'top-N, ROWNUM']];
+    st.forEach(function (s, i) {
+      var x = 17 + i * 176;
+      box(svg, x, 70, 150, 62, (i + 1) + '. ' + s[0], s[1], i === 1 || i === 4 ? 'on' : '');
+      if (i < st.length - 1) arr(svg, 'm1', 'M' + (x + 150) + ' 101H' + (x + 174));
+    });
+    lbl(svg, 193, 160, 'Alias ham, agregat ham');
+    lbl(svg, 193, 178, 'hali yo\'q');
+    lbl(svg, 721, 160, 'Alias shu yerda');
+    lbl(svg, 721, 178, 'paydo bo\'ladi');
+    lbl(svg, 897, 160, 'Alias ishlaydi');
+    lbl(svg, 1073, 160, 'Ichki so\'rovsiz ROWNUM');
+    lbl(svg, 1073, 178, 'saralashdan oldin');
+    lbl(svg, 17, 225, 'Bu mantiqiy tartib. Optimizator fizik tartibni o\'zgartirishi mumkin (masalan, filtrni JOIN dan oldin qo\'llash), lekin natija shu tartibdagidek bo\'ladi.');
+  })();
+
+  // D2: Oracle arxitekturasi
+  (function () {
+    var svg = document.getElementById('d2'); DG.marker(svg, 'm2');
+    box(svg, 20, 70, 190, 62, 'Ilova (sessiya)', 'Java, PL/SQL Developer');
+    box(svg, 250, 70, 210, 62, 'Server jarayoni', 'SQL ni bajaradi', 'on');
+    box(svg, 250, 170, 210, 62, 'PGA', 'saralash, kolleksiyalar');
+    arr(svg, 'm2', 'M210 101H250');
+    arr(svg, 'm2', 'M355 132V170');
+    group(svg, 520, 40, 700, 280, 'Instance: xotira va fon jarayonlari');
+    group(svg, 540, 80, 660, 112, 'SGA: umumiy xotira');
+    box(svg, 555, 112, 200, 62, 'Buffer cache', 'o\'qilgan bloklar', 'live');
+    box(svg, 770, 112, 200, 62, 'Shared pool', 'SQL matni va rejalar');
+    box(svg, 985, 112, 200, 62, 'Redo log buffer', 'o\'zgarishlar yozuvi');
+    box(svg, 565, 222, 180, 62, 'DBWn', 'bloklarni yozadi');
+    box(svg, 780, 222, 180, 62, 'CKPT', 'checkpoint');
+    box(svg, 995, 222, 180, 62, 'LGWR', 'redo ni yozadi');
+    S(svg, 'text', { x: 540, y: 308, 'class': 'lbl' }, 'Yana: SMON (ishga tushganda tiklash), PMON (uzilgan sessiyalarni tozalash)');
+    group(svg, 520, 345, 700, 110, 'Database');
+    lbl(svg, 1000, 362, 'diskdagi fayllar');
+    box(svg, 555, 380, 200, 62, 'Datafiles', 'jadval, indeks, undo');
+    box(svg, 770, 380, 200, 62, 'Control file', 'baza tuzilishi');
+    box(svg, 985, 380, 200, 62, 'Online redo log', 'o\'zgarishlar jurnali');
+    arr(svg, 'm2', 'M460 90L555 135');
+    arr(svg, 'm2', 'M460 118H495V411H555', true);
+    arr(svg, 'm2', 'M655 174V222');
+    arr(svg, 'm2', 'M655 284V380');
+    arr(svg, 'm2', 'M1085 174V222');
+    arr(svg, 'm2', 'M1085 284V380');
+    lbl(svg, 663, 340, 'keyinroq');
+    lbl(svg, 1093, 340, 'COMMIT da');
+    lbl(svg, 20, 280, '1. Server jarayoni blokni avval buffer cache dan qidiradi.');
+    lbl(svg, 20, 305, '2. Topilmasa, datafile dan o\'qib, keshga qo\'yadi (punktir).');
+    lbl(svg, 20, 330, '3. O\'zgarish redo buferiga yoziladi; COMMIT da LGWR');
+    lbl(svg, 36, 348, 'uni online redo log ga yozadi va sessiya shuni kutadi.');
+    lbl(svg, 20, 373, '4. O\'zgargan bloklarni DBWn keyinroq yozadi.');
+    lbl(svg, 20, 398, '5. Sessiya xotirasi (saralash, BULK massivlari) PGA da.');
+  })();
+
+  // D3: B-tree
+  (function () {
+    var svg = document.getElementById('d3'); DG.marker(svg, 'm3');
+    S(svg, 'text', { x: 40, y: 40, 'class': 'mono' }, 'WHERE id = 4321');
+    lbl(svg, 40, 62, '3 ta indeks bloki + 1 ta jadval bloki = 4 ta o\'qish');
+    box(svg, 520, 20, 200, 62, 'Root blok', '1–4999 | 5000–9999', 'on');
+    box(svg, 220, 120, 220, 62, 'Branch blok', '1–2499 | 2500–4999', 'on');
+    box(svg, 800, 120, 220, 62, 'Branch blok', '5000–7499 | 7500–9999');
+    var lv = [[60, 'Leaf 1–2499'], [320, 'Leaf 2500–4999'], [680, 'Leaf 5000–7499'], [940, 'Leaf 7500–9999']];
+    lv.forEach(function (l, i) { box(svg, l[0], 220, 220, 62, l[1], 'kalit → ROWID', i === 1 ? 'on' : ''); });
+    arr(svg, 'm3', 'M560 82L380 120');
+    arr(svg, 'm3', 'M680 82L860 120');
+    arr(svg, 'm3', 'M280 182L170 220');
+    arr(svg, 'm3', 'M380 182L430 220');
+    arr(svg, 'm3', 'M860 182L790 220');
+    arr(svg, 'm3', 'M960 182L1050 220');
+    S(svg, 'path', { d: 'M280 251H320', 'class': 'arr dash' });
+    S(svg, 'path', { d: 'M540 251H680', 'class': 'arr dash' });
+    S(svg, 'path', { d: 'M900 251H940', 'class': 'arr dash' });
+    lbl(svg, 556, 243, 'barglar zanjiri');
+    group(svg, 40, 300, 1160, 92, 'Jadval: hisoblar');
+    box(svg, 330, 320, 320, 62, 'Blok 812: qator id = 4321', 'TABLE ACCESS BY INDEX ROWID', 'live');
+    arr(svg, 'm3', 'M430 282V320');
+    lbl(svg, 700, 345, 'RANGE SCAN bo\'lsa: bargdan keyingi barglarga');
+    lbl(svg, 700, 365, 'zanjir bo\'ylab yuriladi, har ROWID uchun jadvalga.');
+  })();
+
+  // D4: UPDATE, undo, redo, qulf
+  (function () {
+    var svg = document.getElementById('d4'); DG.marker(svg, 'm4');
+    box(svg, 20, 40, 270, 62, 'Sessiya A', 'UPDATE hisob ... WHERE id = 7');
+    box(svg, 20, 220, 270, 62, 'Sessiya B', 'SELECT yoki UPDATE, id = 7');
+    box(svg, 430, 130, 260, 62, 'Qator id = 7', 'qulf: A tranzaksiyasi', 'on');
+    box(svg, 820, 40, 400, 62, 'Redo log buffer', 'qoldiq 1000 → 700; COMMIT da LGWR diskka yozadi');
+    box(svg, 820, 220, 400, 62, 'Undo segment', 'eski qiymat: qoldiq = 1000');
+    arr(svg, 'm4', 'M290 71L430 150');
+    arr(svg, 'm4', 'M690 150L820 71');
+    arr(svg, 'm4', 'M690 175L820 240');
+    arr(svg, 'm4', 'M290 232L430 185');
+    arr(svg, 'm4', 'M290 268H820', true);
+    lbl(svg, 300, 60, '1. qulf va yangi qiymat');
+    lbl(svg, 700, 100, '3. o\'zgarish');
+    lbl(svg, 600, 238, '2. eski qiymat');
+    lbl(svg, 20, 210, 'UPDATE: A tugaguncha kutadi');
+    lbl(svg, 420, 318, 'SELECT: kutmaydi, A boshlanishidan oldingi versiyani undo dan oladi');
+  })();
+
+  // D5: iABS
+  (function () {
+    var svg = document.getElementById('d5'); DG.marker(svg, 'm5');
+    group(svg, 20, 40, 225, 420, 'Kanallar');
+    var ch = [['Filial ekrani', 'operator, kassa'], ['Mobil ilova', 'shlyuz orqali'], ['Internet-bank', 'KIB, to\'lovlar'], ['Tungi joblar', 'kun yopish, foiz']];
+    ch.forEach(function (c, i) { var y = 80 + i * 90; box(svg, 35, y, 195, 62, c[0], c[1]); arr(svg, 'm5', 'M230 ' + (y + 31) + 'L290 231'); });
+    box(svg, 290, 200, 200, 62, 'Ilova serveri', 'parametr yig\'adi');
+    group(svg, 520, 40, 700, 465, 'Oracle baza: biznes mantiq PL/SQL da');
+    box(svg, 545, 80, 310, 62, 'API paketi', 'kirish nuqtasi, tekshiruv', 'on');
+    box(svg, 545, 190, 310, 62, 'Modul paketlari', 'kredit, depozit, karta, kassa');
+    box(svg, 545, 300, 310, 62, 'Modul jadvallari', 'shartnoma, grafik, tarix');
+    group(svg, 880, 70, 325, 420, 'Yadro');
+    box(svg, 895, 110, 295, 62, 'Provodka dvigateli', 'tekshirish, holatlar mashinasi', 'live');
+    box(svg, 895, 210, 295, 62, 'Hujjat va Dt/Kt yozuvlar', 'joriy kun provodkalari');
+    box(svg, 895, 310, 295, 62, 'Hisoblar va qoldiqlar', 'joriy va kunlik qoldiq');
+    box(svg, 895, 410, 295, 62, 'Operatsion kun', 'ochiq kun, kun yopish');
+    arr(svg, 'm5', 'M490 231L545 111');
+    arr(svg, 'm5', 'M700 142V190');
+    arr(svg, 'm5', 'M700 252V300');
+    arr(svg, 'm5', 'M855 221L895 141');
+    arr(svg, 'm5', 'M1042 172V210');
+    arr(svg, 'm5', 'M1042 272V310');
+    lbl(svg, 878, 205, 'pul');
+    lbl(svg, 545, 400, 'Hammasi bitta tranzaksiyada:');
+    lbl(svg, 545, 420, 'modul jadvali + provodka + qoldiq');
+    lbl(svg, 545, 440, '→ bitta COMMIT (chaqiruvchida)');
+  })();
+
+  var L = {
+    1: { t: 'SQL poydevori', h: 'p1-sql-poydevori.html', p: 'P1' },
+    2: { t: 'Analitik funksiyalar', h: 'p2-analitik-funksiyalar.html', p: 'P2' },
+    3: { t: 'PL/SQL asoslari', h: 'p3-plsql-asoslari.html', p: 'P3' },
+    4: { t: 'Protsedura, paket, trigger', h: 'p4-protsedura-paket-trigger.html', p: 'P4' },
+    5: { t: 'Katta hajm', h: 'p5-katta-hajm-bulk.html', p: 'P5' },
+    6: { t: 'Oracle ichkaridan', h: 'p6-oracle-ichkaridan.html', p: 'P6' },
+    7: { t: 'Indekslar va reja', h: 'p7-indekslar-explain-plan.html', p: 'P7' },
+    8: { t: 'Tranzaksiya va qulflar', h: 'p8-tranzaksiya-qulflar.html', p: 'P8' },
+    9: { t: 'Loyihalash', h: 'p9-bazani-loyihalash.html', p: 'P9' },
+    10: { t: 'iABS', h: 'p10-iabs.html', p: 'P10' },
+    11: { t: 'Mayda savollar', h: 'p11-git-hujjat-jdbc.html', p: 'P11' }
+  };
+  var Q = [
+    { l: 1, q: 'Qaysi biri WHERE ichida ishlamaydi?', a: ['SELECT dagi alias va SUM()', 'IS NULL', 'Ichki so\'rov', 'BETWEEN'], c: 0, w: 'WHERE SELECT dan oldin bajariladi: alias hali yo\'q. Agregat esa faqat guruhlashdan keyin, HAVING da.' },
+    { l: 1, q: 'Ichki so\'rov natijasida bitta NULL bor. WHERE id NOT IN (ichki so\'rov) nima qaytaradi?', a: ['Hech qanday qator', 'NULL dan tashqari hamma qator', 'Xato beradi', 'Hamma qator'], c: 0, w: 'id <> NULL UNKNOWN beradi, shuning uchun hech bir qator TRUE bo\'lmaydi. NOT EXISTS da bu muammo yo\'q.' },
+    { l: 1, q: 'LEFT JOIN dan keyin o\'ng jadval shartini WHERE ga yozdingiz (IS NULL emas). Natija qanday bo\'ladi?', a: ['Amalda INNER JOIN ga aylanadi', 'Hech narsa o\'zgarmaydi', 'FULL JOIN ga aylanadi', 'Xato beradi'], c: 0, w: 'Juftsiz qatorlarda o\'ng ustun NULL, shart UNKNOWN beradi va qator tashlanadi.' },
+    { l: 1, q: 'SELECT * FROM t WHERE ROWNUM <= 3 ORDER BY summa DESC nimani qaytaradi?', a: ['Tasodifiy 3 qatorni saralab', 'Eng katta 3 summani', 'Eng kichik 3 summani', 'Xato'], c: 0, w: 'ROWNUM saralashdan oldin beriladi. To\'g\'risi FETCH FIRST yoki ichki so\'rovda ORDER BY.' },
+    { l: 2, q: 'Summalar 500, 500, 300. DENSE_RANK nima beradi?', a: ['1, 1, 2', '1, 2, 3', '1, 1, 3', '2, 2, 1'], c: 0, w: 'DENSE_RANK tenglarga bir xil raqam beradi va keyin sakramaydi. RANK 1, 1, 3, ROW_NUMBER 1, 2, 3.' },
+    { l: 2, q: 'Har guruhdan top-3 olish uchun ROW_NUMBER natijasini qayerda filtrlaysiz?', a: ['Tashqi so\'rovning WHERE ida', 'Shu so\'rovning WHERE ida', 'HAVING da', 'GROUP BY da'], c: 0, w: 'Analitik funksiya SELECT bosqichida hisoblanadi, WHERE undan oldin. Shuning uchun ichki so\'rov kerak.' },
+    { l: 2, q: 'MERGE da ORA-30926 qachon chiqadi?', a: ['Manbada bitta kalit bir necha marta kelganda', 'Maqsad jadvali bo\'sh bo\'lganda', 'WHEN NOT MATCHED yozilmaganda', 'Indeks bo\'lmaganda'], c: 0, w: 'Bitta maqsad qatorini MERGE bir buyruqda ikki marta yangilay olmaydi. Manbani avval takrordan tozalash kerak.' },
+    { l: 3, q: 'SELECT COUNT(*) INTO v FROM t WHERE 1 = 0 nima qiladi?', a: ['v = 0, xato yo\'q', 'NO_DATA_FOUND', 'TOO_MANY_ROWS', 'v = NULL'], c: 0, w: 'Agregat har doim bitta qator qaytaradi, shuning uchun NO_DATA_FOUND bo\'lmaydi.' },
+    { l: 3, q: 'WHEN OTHERS THEN NULL nimasi bilan yomon?', a: ['Xato yo\'qoladi, ma\'lumot jimgina buziladi', 'Kompilyatsiya xatosi beradi', 'Tranzaksiyani COMMIT qiladi', 'Sekin ishlaydi'], c: 0, w: 'WHEN OTHERS faqat loglab, qayta RAISE qilish uchun ishlatiladi.' },
+    { l: 3, q: 'Biznes xatosini chaqiruvchiga kod bilan qaytarish uchun nima ishlatiladi?', a: ['RAISE_APPLICATION_ERROR(-20001, ...)', 'DBMS_OUTPUT.PUT_LINE', 'RETURN -1', 'EXIT'], c: 0, w: 'Kodlar -20000 dan -20999 gacha. Java tomonda getErrorCode bilan o\'qiladi.' },
+    { l: 4, q: 'Paket body o\'zgarsa, uni chaqirayotgan protseduralar nima bo\'ladi?', a: ['INVALID bo\'lmaydi, chunki ular faqat specga bog\'liq', 'Hammasi INVALID bo\'ladi', 'O\'chib ketadi', 'Avtomatik COMMIT bo\'ladi'], c: 0, w: 'Paketning asosiy afzalliklaridan biri shu: chaqiruvchilar faqat specga bog\'liq.' },
+    { l: 4, q: 'ORA-04068 qachon chiqadi?', a: ['Holati bor paket qayta kompilyatsiya qilinganda, uni ishlatgan sessiyada', 'Deadlock bo\'lganda', 'Jadval topilmaganda', 'Undo yetmaganda'], c: 0, w: 'Paket o\'zgaruvchilari sessiyada yashaydi. Qayta kompilyatsiyadan keyin eski holat bekor qilinadi.' },
+    { l: 4, q: 'Row trigger o\'z jadvalini o\'qisa qanday xato chiqadi va yechimi nima?', a: ['ORA-04091 mutating table; compound trigger yoki protsedura', 'ORA-00060; COMMIT', 'ORA-01555; undo oshirish', 'ORA-01403; NVL'], c: 0, w: 'Compound trigger: row qismida ID yig\'iladi, AFTER STATEMENT da jadval bilan ishlanadi.' },
+    { l: 4, q: 'Avtonom tranzaksiyaning asosiy to\'g\'ri qo\'llanilishi?', a: ['Xato jurnali yozish', 'Pul o\'tkazmasi', 'Qoldiqni yangilash', 'Deadlock dan qochish'], c: 0, w: 'Asosiy tranzaksiya ROLLBACK bo\'lsa ham log qoladi. Biznes ma\'lumot uchun xavfli.' },
+    { l: 5, q: 'BULK COLLECT ... LIMIT siklidan qachon chiqish to\'g\'ri?', a: ['EXIT WHEN massiv.COUNT = 0', 'FETCH dan keyin darhol EXIT WHEN c%NOTFOUND', 'LIMIT dan keyin har doim', 'Hech qachon'], c: 0, w: 'FETCH dan keyin darhol %NOTFOUND tekshirilsa, oxirgi to\'liq bo\'lmagan bo\'lak qayta ishlanmay qoladi.' },
+    { l: 5, q: 'FORALL SAVE EXCEPTIONS da xatolar tafsiloti qayerdan olinadi?', a: ['SQL%BULK_EXCEPTIONS', 'SQLERRM', 'USER_ERRORS', 'DBMS_OUTPUT'], c: 0, w: 'Oxirida ORA-24381 chiqadi, har xato uchun ERROR_INDEX va ERROR_CODE SQL%BULK_EXCEPTIONS da.' },
+    { l: 5, q: 'Katta hajmda eng birinchi qaysi yechim haqida o\'ylash kerak?', a: ['Ishni bitta SQL buyrug\'i bilan qilish', 'Kursor FOR sikli', 'Har qatordan keyin COMMIT', 'Dinamik SQL'], c: 0, w: 'Avval bitta SQL, keyin BULK, oxirida qatorma-qator.' },
+    { l: 5, q: 'Dinamik SQL da jadval nomini qanday xavfsiz qo\'yasiz?', a: ['DBMS_ASSERT bilan tekshirib, matnga qo\'shib', 'Bind o\'zgaruvchi bilan', 'Hech qanday tekshiruvsiz', 'Faqat UPPER bilan'], c: 0, w: 'Obyekt nomlari bind bo\'la olmaydi. Qiymatlar esa doim bind bilan.' },
+    { l: 6, q: 'COMMIT paytida sessiya nimani kutadi?', a: ['LGWR redo ni online redo log ga yozishini', 'DBWn bloklarni datafile ga yozishini', 'Checkpoint ni', 'Statistika yig\'ilishini'], c: 0, w: 'Bloklarni DBWn keyinroq yozadi. Tiklash redo orqali bo\'ladi.' },
+    { l: 6, q: 'ORA-01555 snapshot too old sababi?', a: ['Uzoq so\'rov uchun kerakli undo ustidan yozilgan', 'Redo log to\'lgan', 'Qulf kutish vaqti tugagan', 'Indeks buzilgan'], c: 0, w: 'Yechim: so\'rovni tezlashtirish, undo hajmi yoki retention ni oshirish, ochiq kursor ichida COMMIT qilmaslik.' },
+    { l: 6, q: 'Bind o\'zgaruvchilarning ikki asosiy foydasi?', a: ['Hard parse kamayadi va SQL injection dan himoya', 'Indeks yaratadi va statistika yig\'adi', 'COMMIT ni tezlashtiradi va qulfni olib tashlaydi', 'Undo va redo ni kamaytiradi'], c: 0, w: 'Bitta matn, bitta reja, va qiymat hech qachon SQL matnining bir qismiga aylanmaydi.' },
+    { l: 7, q: 'WHERE TRUNC(sana) = :d sharti bilan sana ustunidagi oddiy indeks...', a: ['ishlatilmaydi', 'har doim ishlatiladi', 'faqat bitmap bo\'lsa ishlatiladi', 'faqat PK bo\'lsa ishlatiladi'], c: 0, w: 'Ustunga funksiya qo\'yilgan. To\'g\'risi: sana >= :d AND sana < :d + 1, yoki funksiyaga asoslangan indeks.' },
+    { l: 7, q: 'WHERE filial = :f AND sana BETWEEN :a AND :b uchun qaysi composite indeks yaxshi?', a: ['(filial, sana)', '(sana, filial)', 'Ikkalasi bir xil', 'Faqat (sana)'], c: 0, w: 'Tenglik ustuni oldinda, diapazon ustuni oxirida.' },
+    { l: 7, q: 'Rejada E-Rows = 10, A-Rows = 2 000 000. Birinchi nimani tekshirasiz?', a: ['Statistikani', 'Undo hajmini', 'Redo log hajmini', 'Paket holatini'], c: 0, w: 'Taxmin va haqiqat orasidagi katta farq ko\'pincha eskirgan statistikadan kelib chiqadi.' },
+    { l: 7, q: 'Bank tranzaksiya jadvalida bitmap indeks nega yaramaydi?', a: ['Bitta qatorni o\'zgartirish ko\'p qatorni qulflaydi', 'Bitmap indeks NULL ni saqlamaydi', 'Bitmap faqat PK uchun', 'U juda katta joy oladi'], c: 0, w: 'Bitmap faqat hisobot omborlari (DWH) uchun. OLTP da B-tree.' },
+    { l: 7, q: 'Katta ikki to\'plamni tenglik sharti bilan ulashda odatda qaysi JOIN usuli eng samarali?', a: ['HASH JOIN', 'NESTED LOOPS', 'CARTESIAN', 'INDEX UNIQUE SCAN'], c: 0, w: 'Nested loops kichik to\'plam va yaxshi indeks bo\'lganda yaxshi.' },
+    { l: 8, q: 'Oracle da sukut bo\'yicha izolyatsiya darajasi?', a: ['READ COMMITTED', 'READ UNCOMMITTED', 'REPEATABLE READ', 'SERIALIZABLE'], c: 0, w: 'Oracle da dirty read umuman yo\'q. Ikkinchi daraja SERIALIZABLE.' },
+    { l: 8, q: 'Deadlock da Oracle nima qiladi?', a: ['Bir sessiyaning buyrug\'ini ORA-00060 bilan bekor qiladi', 'Ikkala tranzaksiyani ROLLBACK qiladi', 'Ikkalasini COMMIT qiladi', 'Hech narsa, abadiy kutadi'], c: 0, w: 'Faqat buyruq bekor qilinadi. Tranzaksiyani sessiya o\'zi ROLLBACK qilishi kerak.' },
+    { l: 8, q: 'Ikki parallel yechish bitta qoldiqni noto\'g\'ri qilmasligi uchun eng oddiy usul?', a: ['UPDATE ... SET qoldiq = qoldiq - :s WHERE id = :id AND qoldiq >= :s', 'Avval SELECT, keyin hisoblab UPDATE', 'Avtonom tranzaksiya', 'Bitmap indeks'], c: 0, w: 'Hisob SQL ichida bajariladi, SQL%ROWCOUNT = 0 bo\'lsa, qoldiq yetarli emas.' },
+    { l: 8, q: 'Indekssiz foreign key ning xavfi?', a: ['Ota qatorni o\'chirishda bola jadval to\'liq qulflanadi', 'FK ishlamaydi', 'Ma\'lumot takrorlanadi', 'Undo ko\'payadi'], c: 0, w: 'Shuning uchun FK ustunlariga indeks qo\'yiladi.' },
+    { l: 8, q: 'Navbatdan vazifa oladigan bir nechta ishchi job bir-birini kutmasligi uchun?', a: ['SELECT ... FOR UPDATE SKIP LOCKED', 'LOCK TABLE', 'SERIALIZABLE', 'COMMIT har qatordan keyin'], c: 0, w: 'Qulflangan qatorlar o\'tkazib yuboriladi, har ishchi bo\'sh vazifani oladi.' },
+    { l: 9, q: 'To\'lov jadvalida filial_kod bilan birga filial_nomi ham saqlansa, qaysi normal forma buziladi?', a: ['3NF', '1NF', 'Hech biri', 'Faqat BCNF'], c: 0, w: 'filial_nomi kalitga emas, filial_kod ga bog\'liq: tranzitiv bog\'liqlik.' },
+    { l: 9, q: 'Partition pruning qachon ishlaydi?', a: ['Shartda partitsiya kaliti bo\'lganda', 'Har doim', 'Faqat global indeks bo\'lsa', 'Faqat HASH partitsiyada'], c: 0, w: 'Masalan, sana bo\'yicha RANGE partitsiyada sana sharti bo\'lsa, faqat kerakli bo\'laklar o\'qiladi.' },
+    { l: 10, q: 'Bank tizimida hisob qoldig\'ini xato bo\'lsa qanday tuzatish kerak?', a: ['Storno yoki tuzatuvchi provodka bilan', 'UPDATE hisoblar SET qoldiq = ...', 'DELETE provodkani', 'TRUNCATE'], c: 0, w: 'Qoldiq faqat provodka orqali o\'zgaradi, aks holda solishtiruv buziladi.' },
+    { l: 10, q: 'Hisob raqami 20208 840 ... dagi 840 nima?', a: ['Valyuta kodi (AQSh dollari)', 'Filial kodi', 'Mijoz kodi', 'Nazorat raqami'], c: 0, w: '5 xona balans hisobi, 3 xona valyuta, 1 nazorat, 8 mijoz kodi, 3 tartib raqami.' },
+    { l: 10, q: 'Ichki API protsedura ichida COMMIT bo\'lsa nima xavf?', a: ['Chaqiruvchining yarim ishi saqlanib qoladi', 'Hech qanday xavf yo\'q', 'Deadlock kafolatlanadi', 'Paket INVALID bo\'ladi'], c: 0, w: 'Tranzaksiya chegarasini eng tashqi chaqiruvchi belgilaydi.' },
+    { l: 11, q: 'TRUNCATE haqida qaysi gap to\'g\'ri?', a: ['DDL, yashirin COMMIT, ROLLBACK qilib bo\'lmaydi', 'DML, ROLLBACK qilsa bo\'ladi', 'Triggerlarni ishga tushiradi', 'WHERE bilan ishlaydi'], c: 0, w: 'DELETE esa DML: WHERE, undo, ROLLBACK, triggerlar.' },
+    { l: 11, q: 'DATE ustunda 3-noyabrning hamma yozuvlarini to\'g\'ri olish?', a: ['sana >= DATE \'2026-11-03\' AND sana < DATE \'2026-11-04\'', 'sana = DATE \'2026-11-03\'', 'TO_CHAR(sana) = \'03.11.2026\'', 'sana LIKE \'2026-11-03%\''], c: 0, w: 'DATE ichida vaqt bor. Ustunga funksiya qo\'ymasdan, oraliq bilan.' }
+  ];
+  quiz('quiz', Q, L, 'plsql-tezkor-v1');
+})();
+</script>
+</body>
+</html>
