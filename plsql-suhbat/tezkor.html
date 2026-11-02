@@ -57,6 +57,7 @@
     <li><a href="#g8">Tranzaksiya va qulflar</a></li>
     <li><a href="#g9">Bazani loyihalash</a></li>
     <li><a href="#g10">iABS va bank yadro tizimi</a></li>
+    <li><a href="#g10r">R-Style (RS-Bank) yadrosi va Senior savollari</a></li>
     <li><a href="#g11">Mayda, lekin tez-tez so'raladigan savollar</a></li>
     <li><a href="#amaliy">Amaliy masalalar (doskada yoki ekranda)</a></li>
     <li><a href="#lugat">Ruscha atamalar lug'ati (suhbatdosh aralash gapirsa)</a></li>
@@ -73,7 +74,7 @@
 <tbody>
 <tr><td>Bugun, 1-blok</td><td>O'zingizni tanishtirish matnini 3 marta ovoz chiqarib o'qing. Keyin <a href="#g7">Indekslar va reja</a>, <a href="#g8">Tranzaksiya va qulflar</a>.</td><td>1 soat</td></tr>
 <tr><td>Bugun, 2-blok</td><td><a href="#g1">SQL</a>, <a href="#g2">Analitik</a>, <a href="#g3">PL/SQL</a>, <a href="#g4">Paket va trigger</a>, <a href="#g5">Katta hajm</a>.</td><td>1,5 soat</td></tr>
-<tr><td>Bugun, 3-blok</td><td><a href="#g6">Oracle ichkaridan</a>, <a href="#g9">Loyihalash</a>, <a href="#g10">iABS</a>, <a href="#g11">Mayda savollar</a>.</td><td>1 soat</td></tr>
+<tr><td>Bugun, 3-blok</td><td><a href="#g10r">R-Style va Senior savollari</a> (lavozim aynan R-Style yadrosi bo'limida), <a href="#g10">iABS</a>, <a href="#g6">Oracle ichkaridan</a>, <a href="#g9">Loyihalash</a>, <a href="#g11">Mayda savollar</a>.</td><td>1,5 soat</td></tr>
 <tr><td>Ertaga ertalab</td><td><a href="#test">Test</a>. Xato qilgan guruhni qayta o'qing. Keyin <a href="#amaliy">Amaliy masalalar</a>: avval o'zingiz yozib ko'ring, keyin yechimni oching.</td><td>1,5 soat</td></tr>
 <tr><td>13:00–13:30</td><td><a href="#lugat">Ruscha atamalarga</a> bir ko'z yugurtirish, <a href="#cheklist">Cheklist</a>, kompyuter, mikrofon va havolani tekshirish.</td><td>30 daqiqa</td></tr>
 </tbody></table></div>
@@ -300,7 +301,7 @@
 
 <h2 id="g10">10. iABS va bank yadro tizimi</h2>
 <p><strong>Bu nima:</strong> yadro bank tizimi (ABS, core banking) bankning asosiy buxgalteriyasi va mahsulotlari yuradigan tizim: mijozlar, hisoblar, provodkalar, kreditlar, omonatlar, kartalar, kassa. iABS O'zbekiston banklarida keng tarqalgan shunday tizimlardan biri: Oracle bazasi va veb-ilova, biznes mantiqning asosiy qismi PL/SQL paketlarida. <strong>Qayerda:</strong> bankning har kungi ishi va barcha kanallar (filial, mobil ilova, internet-bank) shu yadroga yozadi. <strong>Maqsad:</strong> bank PL/SQL vakansiyasida bu sizning eng kuchli kozirlaringizdan biri. Batafsil: <a href="p10-iabs.html">P10</a>.</p>
-<p class="note">Hamkorbank qaysi yadro tizimida ishlashini oldindan bilmaymiz. Suhbat oxirida buni o'zingiz so'rashingiz mumkin (pastda, "Siz so'raydigan savollar"). Pastdagi g'oyalar (ikki tomonlama provodka, hisob raqami tuzilishi, operatsion kun) esa har qanday bank yadrosida bir xil.</p>
+<p class="note">Lavozim "R-Style yadrosini kuzatish va dasturlash bo'limi"da, lekin iABS haqida ham savol bo'lishi mumkin. R-Style haqida <a href="#g10r">keyingi bo'limda</a>. Pastdagi g'oyalar (ikki tomonlama provodka, hisob raqami tuzilishi, operatsion kun) har qanday bank yadrosida bir xil, ularni R-Style savollariga ham tayanch qiling.</p>
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="d5" style="width:1240px;height:520px" viewBox="0 0 1240 520" role="img" aria-label="Yadro bank tizimi qavatlari va provodka yo'li"></svg></div>
   <figcaption>So'rov qaysi kanal orqali kelmasin, bir xil yo'ldan o'tadi: ilova serveri bazadagi API paketini chaqiradi, modul paketlari o'z jadvallariga yozadi, pul harakati esa doim yadrodagi provodka dvigateli orqali o'tadi. Modul jadvali, provodka va hisob qoldig'i bitta tranzaksiyada yoziladi.</figcaption>
@@ -323,6 +324,47 @@
 <details><summary>Modul skeleti</summary>
 <p>Deyarli har bir modul bir xil andozada quriladi: lug'atlar (mahsulot turlari, stavkalar) → asosiy obyekt, ya'ni shartnoma → shartnomaning hisoblari (har birining roli bor: asosiy qarz, foiz, muddati o'tgan qarz) → parametrlar va grafiklar (to'lov jadvali) → tarix → modul provodkalari → yadro. Kredit misolida: kunlik foiz hisoblanadi → foiz hisobiga va daromad hisobiga provodka yoziladi → to'lov kelganda grafik bo'yicha qarz yopiladi. Yuqori arxitektura darajasida esa umumiy zanjir bor: mahsulot → bitim (aniq shartnoma) → operatsiya → hujjat → provodka.</p>
 <p class="ru">Deyarli har modul bitta andozada: lug'atlar, asosiy obyekt bo'lgan shartnoma, rollari bor shartnoma hisoblari (asosiy qarz, foiz, muddati o'tgan qarz), parametrlar va grafiklar, tarix, modul provodkalari va yadro. Kredit uchun: har kuni foiz hisoblanadi, foiz va daromad hisoblariga provodka yoziladi, to'lov kelganda qarz grafik bo'yicha yopiladi. Umumiy zanjir: mahsulot, bitim, operatsiya, hujjat, provodka.</p></details>
+
+<h2 id="g10r">10b. R-Style (RS-Bank) yadrosi va Senior savollari</h2>
+<p><strong>Bu nima:</strong> lavozimning to'liq nomi: "R-Style yadrosini kuzatish va dasturlash bo'limi dasturchi-muhandisi Oracle PL/SQL (Senior)". R-Style Softlab rossiyalik kompaniya, uning <strong>RS-Bank V.6</strong> tizimi ko'p filialli banklar uchun avtomatlashtirilgan bank tizimi (ABS). <strong>Qayerda:</strong> Hamkorbank'da RS-Bank modullari mavjud tizim bilan birga ishlaydi. <strong>Maqsad:</strong> ertaga sizdan iABS bilan birga R-Style haqida ham, "kuzatish" (monitoring, incidentlar) va Senior darajasidagi qarorlar haqida ham so'rashlari mumkin. Bu bo'lim shunga tayyorlaydi.</p>
+
+<h3>Ochiq manbalardan ma'lum bo'lgan faktlar</h3>
+<ul>
+<li><strong>RS-Bank V.6 Oracle bazasida ishlaydi.</strong> R-Style uni Oracle Database 12c bilan sinovdan o'tkazgan va "Oracle Database Ready" maqomini olgan (<a href="https://bdm.ru/publicacii/rs-bank-v-6-gotov-k-rabote-na-oracle-database-12c-8622">bdm.ru</a>). Keyinroq Postgres Pro bilan moslik sertifikatini ham olgan (<a href="https://habr.com/ru/articles/807877">Habr</a>).</li>
+<li><strong>Modullari:</strong> mijozlarga xizmat ko'rsatish, kreditlar va depozitlar, qimmatli qog'ozlar, hisobotlar (o'sha Habr maqolasi).</li>
+<li><strong>RSL (R-Style Language)</strong> R-Style'ning o'z dasturlash tili: obyektga yo'naltirilgan, interpretatsiya qilinadigan til. Bank dasturchilari tizimni u bilan bankka moslaydi.</li>
+<li><strong>Hamkorbank:</strong> 2021-yilgi maqolaga ko'ra, bank eski ABS'ni to'liq almashtirmagan. Unga RS-Bank'ning bir nechta modulini qo'shib, mavjud tizim bilan integratsiya qilgan. Bankning o'z dasturchilari R-Style yordamida o'qitilgan va 20 dan ortiq mahsulotni o'zlari joriy qilgan. Bank ma'lumotiga ko'ra, eng daromadli yo'nalishlar RS-Bank'da ishlaydi. ABS'dagi yuklamani kamaytirish uchun alohida <strong>RSDWH</strong> ma'lumotlar ombori ham qurilgan (<a href="https://www.spot.uz/ru/2021/10/15/hamkorbank/">Spot.uz</a>, maqola reklama sifatida chiqqan).</li>
+</ul>
+<p class="note">RS-Bank'ning ichki tuzilishi (jadval va paket nomlari, RSL qanchalik ishlatilishi, qaysi versiya) ochiq manbalarda deyarli yozilmagan. Pastdagi chizma bankdagi umumiy manzaraning <em>taxminiy</em> ko'rinishi. Aniq holatni suhbatda o'zingiz so'rang: bu qiziqishingizni ham ko'rsatadi.</p>
+
+<figure class="fig">
+  <div class="scrollx"><svg class="dg" id="d6" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Bankda ikki yadro tizimi va ular orasidagi integratsiya, taxminiy"></svg></div>
+  <figcaption>Taxminiy manzara: kanallar ikkala tizimga ham murojaat qiladi, ikki tizim o'zaro integratsiya orqali ma'lumot almashadi (mijozlar, hisoblar, provodkalar), hisobotlar uchun ma'lumot omborga ko'chiriladi. "Yadroni kuzatish" deganda odatda shu oqimlarni, joblarni, kun yopishni va unumdorlikni nazorat qilish tushuniladi.</figcaption>
+</figure>
+
+<details><summary>RS-Bank bilan ishlaganmisiz?</summary>
+<p>Halol javob bering. Ishlamagan bo'lsangiz, shunday deng va darhol nima tayanch bo'lishini ko'rsating: Oracle va PL/SQL bir xil; bank hisobi, ikki tomonlama provodka, operatsion kun, kun yopish har qanday ABS'da bir xil; RSL yangi til, lekin dasturlash va ma'lumotlar bazasi tajribangiz bor. Shunday javob "ha, biroz ishlaganman" degan noaniq gapdan ancha kuchliroq.</p>
+<p class="ru">RS-Bank bilan bevosita ishlamaganman. Lekin bu tizim ham Oracle'da ishlaydi, PL/SQL, optimizatsiya, tranzaksiyalar va qulflar bo'yicha tajribam to'g'ridan-to'g'ri qo'llanadi. Bank tomoni ham tanish: hisoblar, ikki tomonlama provodka, operatsion kun va kun yopish har qanday ABS'da bir xil mantiqda ishlaydi. RSL'ni o'rganishga tayyorman, menimcha birinchi oylarda modullarning jadval tuzilishi va asosiy jarayonlarini o'rganib chiqish kerak.</p></details>
+
+<details><summary>Ikki bank tizimi orasida integratsiyani qanday qurgan bo'lardingiz?</summary>
+<p>Bu savol Hamkorbank uchun ayniqsa dolzarb, chunki RS-Bank modullari mavjud ABS bilan birga ishlaydi. Senior'dan kutiladigan javob, bitta texnologiyani aytish emas, balki muammolarni ko'rsatish: (1) <strong>identifikatorlar xaritasi</strong>: bitta mijoz va hisobning ikki tizimdagi ID'lari jadvali; (2) <strong>uzatish usuli</strong>: database link orqali to'g'ridan-to'g'ri yozish tez, lekin tizimlarni qattiq bog'laydi; yaxshiroq yo'l: "chiquvchi" jadval (outbox) yoki navbat (Oracle AQ, Kafka) va API; (3) <strong>idempotentlik</strong>: bitta xabar ikki marta kelsa, ikki marta provodka bo'lmasligi uchun noyob kalit (UNIQUE) va holat ustuni; (4) <strong>xatolar</strong>: xatoli xabar navbatni to'xtatmasligi, qayta urinish va xatolar jurnali; (5) <strong>solishtiruv (sverka)</strong>: kun oxirida ikki tomondagi summalar va qoldiqlarni MINUS yoki FULL JOIN bilan solishtirish; (6) <strong>monitoring</strong>: navbatda kutib qolgan xabarlar soni va eng eski xabar yoshi.</p>
+<p class="ru">Avval identifikatorlarni bog'lash: bitta mijoz va hisob ikki tizimda qanday ID bilan turadi. Uzatish uchun database link bilan to'g'ridan-to'g'ri yozishdan ko'ra outbox jadvali yoki navbatni afzal ko'raman: tizimlar bir-biriga qattiq bog'lanmaydi. Har xabar idempotent bo'lishi kerak, ya'ni qayta kelsa ham ikki marta provodka qilinmaydi: buning uchun noyob kalit va holat ustuni. Xatoli xabar navbatni to'xtatmaydi, u jurnalga yoziladi va qayta uriniladi. Kun oxirida ikki tizim summalari va qoldiqlari solishtiriladi, navbat esa monitoring qilinadi.</p></details>
+
+<details><summary>"Yadroni kuzatish" deganda nimani tushunasiz? Productionda nimalarni nazorat qilasiz?</summary>
+<p>Kuzatish bu prodda tizim to'g'ri va tez ishlayotganini tekshirib turish va muammoni foydalanuvchilardan oldin topish. Oracle tomonida nimalarga qaraladi: <strong>joblar</strong> (<span class="num">USER_SCHEDULER_JOB_RUN_DETAILS</span>: tushgan yoki odatdagidan uzoq ishlagan joblar); <strong>uzoq ishlayotgan sessiya va so'rovlar</strong> (<span class="num">V$SESSION</span>, <span class="num">V$SESSION_LONGOPS</span>, <span class="num">V$SQL</span> bo'yicha eng qimmat so'rovlar); <strong>qulflar</strong> (<span class="num">V$SESSION.BLOCKING_SESSION</span>: kim kimni ushlab turibdi); <strong>INVALID obyektlar</strong> (deploy'dan keyin); <strong>joy</strong> (tablespace, undo); <strong>kun yopish</strong> bosqichlari va ularning davomiyligi; <strong>integratsiya navbatlari</strong>. Vaqt bo'yicha tahlil uchun AWR va ASH hisobotlari (litsenziya bo'lsa). Odatiy holatni bilish muhim: "bugun kun yopish 40 daqiqa emas, 2 soat davom etdi" deb ayta olish uchun har bosqich davomiyligini yozib borish kerak.</p>
+<p class="ru">Kuzatish bu muammoni foydalanuvchidan oldin ko'rish. Oracle tomonda joblar natijasi va davomiyligi, uzoq sessiyalar va eng qimmat so'rovlar, qulflar va bloklayotgan sessiyalar, deploy'dan keyin INVALID obyektlar, tablespace va undo joyi, kun yopish bosqichlarining davomiyligi va integratsiya navbatlarini nazorat qilaman. Tahlil uchun V$SESSION, V$SQL, ASH va AWR. Eng muhimi, odatiy ko'rsatkichlarni bilish, shunda og'ishni darhol ko'rish mumkin.</p></details>
+
+<details><summary>Prodda muammo: kun yopish to'xtab qoldi yoki operatorlarda hamma narsa sekinlashdi. Nima qilasiz?</summary>
+<p>Tartib muhim, Senior'dan aynan shu kutiladi: (1) <strong>ta'sirni baholash</strong>: kimga ta'sir qilyapti, qachondan beri, pul harakati xavf ostidami; (2) <strong>dalil yig'ish</strong>: hozir nima ishlayapti (V$SESSION: aktiv sessiyalar, ular nimani kutyapti, ya'ni event ustuni), bloklayotgan sessiya bormi, qaysi SQL eng ko'p vaqt olyapti (ASH); (3) <strong>xavfsiz tezkor chora</strong>: masalan, bloklayotgan sessiyani egasi bilan kelishib to'xtatish, osilib qolgan jobni qayta ishga tushirish. Prodda ma'lumotni qo'lda tuzatish faqat tasdiqlangan skript va kelishuv bilan; (4) <strong>xabardor qilish</strong>: jamoa va biznesga holat haqida qisqa xabar; (5) <strong>ildiz sababini topish</strong> (keyin): reja o'zgarganmi, statistika, yangi deploy, ma'lumot hajmi; (6) <strong>takrorlanmasligi uchun</strong>: tuzatish, monitoring qo'shish, qisqa hisobot (postmortem).</p>
+<p class="ru">Avval ta'sirni baholayman: kimga ta'sir qilyapti va pul operatsiyalari xavf ostidami. Keyin dalil yig'aman: aktiv sessiyalar nimani kutyapti, bloklayotgan sessiya bormi, qaysi SQL eng ko'p vaqt olyapti. Keyin xavfsiz tezkor chora ko'raman, masalan kelishgan holda bloklayotgan sessiyani to'xtataman yoki jobni qayta ishga tushiraman, ma'lumotni qo'lda faqat tasdiqlangan skript bilan tuzataman. Jamoa va biznesni xabardor qilaman. Tiklangandan keyin ildiz sababini topaman va takrorlanmasligi uchun tuzatish va monitoring qo'shaman.</p></details>
+
+<details><summary>Senior darajasi siz uchun nima degani?</summary>
+<p>Bu savol to'g'ridan-to'g'ri yoki bilvosita beriladi ("jamoada qanday rol o'ynagansiz", "kodni qanday tekshirasiz"). Senior faqat tez kod yozadigan odam emas: u yechim tanlaydi va sababini tushuntiradi, boshqalarning kodini ko'rib chiqadi (review), prod incidentlarida mas'uliyatni oladi, hujjat yozadi va yangi kelganlarga yordam beradi. Javobda o'z tajribangizdan aniq misollar keltiring: integratsiyalarni mustaqil olib borganingiz, hamkasblar bilan kod ko'rib chiqishingiz va hokazo. Faqat haqiqatda qilgan narsangizni ayting.</p>
+<p class="ru">Men uchun Senior bu vazifani boshidan oxirigacha mustaqil olib borish: talabni tahlil qilish, bir nechta yechimni solishtirib, sababi bilan tanlash, sifatli kod yozish va uni prodga xavfsiz chiqarish. Bundan tashqari, hamkasblarning kodini ko'rib chiqish, prodda muammo bo'lganda mas'uliyatni olish, hujjat yozish va yangi kelganlarga yordam berish. [Bu yerga o'z misolingizni qo'shing: masalan, qaysi integratsiyani mustaqil olib borganingiz.]</p></details>
+
+<details><summary>Code review'da PL/SQL kodida nimalarga qaraysiz?</summary>
+<p>Ro'yxat sifatida aytish qulay: (1) to'g'rilik: NULL holatlari, NO_DATA_FOUND va TOO_MANY_ROWS, chegaraviy qiymatlar; (2) tranzaksiya: ichki protsedurada COMMIT yo'qmi, qulflash tartibi, lost update himoyasi; (3) xatolar: WHEN OTHERS THEN NULL yo'qmi, log va RAISE bormi; (4) unumdorlik: sikl ichida SQL yo'qmi (BULK), indeks ishlatilishini buzadigan funksiya va tip konvertatsiyasi; (5) xavfsizlik: dinamik SQL'da bind va DBMS_ASSERT; (6) tiplar: %TYPE, pul uchun NUMBER; (7) o'qilishi va hujjat: nomlar, spec'dagi izohlar; (8) deploy: migratsiya skripti, rollback, bog'liq obyektlar.</p>
+<p class="ru">Avval to'g'rilikka qarayman: NULL, bo'sh natija, chegaraviy holatlar. Keyin tranzaksiyaga: ichki protsedurada COMMIT yo'qligi va qulflash tartibi. Xatolarni ushlash: WHEN OTHERS THEN NULL bo'lmasligi kerak. Unumdorlik: sikl ichidagi SQL'lar, indeksni buzadigan funksiyalar. Xavfsizlik: dinamik SQL'da faqat bind. Oxirida deploy: migratsiya va rollback skripti bormi.</p></details>
 
 <h2 id="g11">11. Mayda, lekin tez-tez so'raladigan savollar</h2>
 <p>Bular qisqa savollar, ko'pincha suhbat boshida "qizdirish" uchun beriladi. Javob bitta-ikki gapdan oshmaydi, lekin adashsangiz, yomon taassurot qoldiradi.</p>
@@ -544,7 +586,8 @@ END;
 <h3>Siz so'raydigan savollar</h3>
 <p>2–3 ta savol tanlang. Bular qiziqishingizni ko'rsatadi va vakansiya haqida kerakli ma'lumot beradi.</p>
 <ul>
-<li>Bankda qaysi avtomatlashtirilgan bank tizimi ishlatiladi: iABS'mi yoki o'zingizning ishlanmangiz? Oracle'ning qaysi versiyasi?</li>
+<li>RS-Bank'ning qaysi versiyasi va qaysi modullari ishlatiladi? U boshqa tizimlar (masalan, iABS) bilan qanday integratsiya qilingan? Oracle'ning qaysi versiyasi?</li>
+<li>Bo'limda ish qanday taqsimlangan: RSL'da qancha, PL/SQL'da qancha? Kuzatish (monitoring) va navbatchilik qanday tashkil qilingan?</li>
 <li>Jamoa kimlardan iborat, men kimga bo'ysunaman? Yangi ishlanma va support ishlari nisbati qanday?</li>
 <li>Ish jarayoni qanday tashkil qilingan: Git, code review, test muhiti, relizlarni chiqarish?</li>
 <li>Ish joyi Toshkentda, to'g'rimi? Sinov muddati bormi?</li>
@@ -563,7 +606,8 @@ END;
 <li>Har bir savolga javob tartibi: ta'rif → ichkarida qanday ishlaydi → bank misoli → tuzoq.</li>
 <li>Kod yozdirishsa: shoshilmayman, fikrimni ovoz chiqarib aytaman, NULL, takror va bo'sh natija holatlarini tekshiraman.</li>
 <li>Bilmagan narsani o'ylab topmayman: "aniq eslay olmayman, lekin shunday fikr yuritgan bo'lardim" deyman.</li>
-<li>Oxirida 2–3 ta savol beraman: qaysi ABS, jamoa, jarayon, ish joyi.</li>
+<li>Oxirida 2–3 ta savol beraman: RS-Bank versiyasi va modullari, RSL va PL/SQL nisbati, jamoa, jarayon, ish joyi.</li>
+<li>Lavozim Senior: javoblarda mustaqil qaror qabul qilgan, incidentni hal qilgan yoki kod ko'rib chiqqan misollarimni aytaman.</li>
 </ol>
 
 <div class="next">
@@ -713,6 +757,30 @@ END;
     lbl(svg, 545, 440, '→ bitta COMMIT (chaqiruvchida)');
   })();
 
+  // D6: ikki yadro va integratsiya (taxminiy)
+  (function () {
+    var svg = document.getElementById('d6'); DG.marker(svg, 'm6');
+    group(svg, 20, 40, 230, 300, 'Kanallar');
+    [['Filiallar', 'operator, kassa'], ['Mobil va internet', 'bank ilovalari'], ['Tashqi tizimlar', 'protsessing, MB']].forEach(function (c, i) { var y = 80 + i * 90; box(svg, 35, y, 200, 62, c[0], c[1]); arr(svg, 'm6', 'M235 ' + (y + 31) + 'L300 181'); });
+    box(svg, 300, 150, 230, 62, 'Asosiy ABS', 'bankning mavjud tizimi');
+    box(svg, 580, 150, 220, 62, 'Integratsiya', 'ID xaritasi, navbat', 'on');
+    group(svg, 840, 40, 380, 300, 'RS-Bank V.6 (Oracle)');
+    box(svg, 860, 80, 340, 62, 'Kredit va depozit modullari', 'mahsulotlar, shartnomalar');
+    box(svg, 860, 170, 340, 62, 'Hisoblar va provodkalar', 'RS-Bank buxgalteriyasi', 'live');
+    box(svg, 860, 260, 340, 62, 'RSL moslashlar', 'bank dasturchilari yozadi');
+    arr(svg, 'm6', 'M530 172H580');
+    arr(svg, 'm6', 'M580 192H530');
+    arr(svg, 'm6', 'M800 172H860');
+    arr(svg, 'm6', 'M860 212H800');
+    lbl(svg, 560, 135, 'mijoz, hisob, provodka almashinuvi');
+    box(svg, 580, 355, 220, 62, 'RSDWH ombori', 'hisobotlar, tahlil');
+    arr(svg, 'm6', 'M415 212L640 355');
+    arr(svg, 'm6', 'M1030 340L760 355');
+    box(svg, 20, 355, 260, 62, 'Kuzatish', 'joblar, sessiyalar, navbat', 'live');
+    arr(svg, 'm6', 'M200 355L380 212', true);
+    lbl(svg, 300, 28, 'Taxminiy manzara: aniq tuzilishini suhbatda so\'rang');
+  })();
+
   var L = {
     1: { t: 'SQL poydevori', h: 'p1-sql-poydevori.html', p: 'P1' },
     2: { t: 'Analitik funksiyalar', h: 'p2-analitik-funksiyalar.html', p: 'P2' },
@@ -724,7 +792,8 @@ END;
     8: { t: 'Tranzaksiya va qulflar', h: 'p8-tranzaksiya-qulflar.html', p: 'P8' },
     9: { t: 'Loyihalash', h: 'p9-bazani-loyihalash.html', p: 'P9' },
     10: { t: 'iABS', h: 'p10-iabs.html', p: 'P10' },
-    11: { t: 'Mayda savollar', h: 'p11-git-hujjat-jdbc.html', p: 'P11' }
+    11: { t: 'Mayda savollar', h: 'p11-git-hujjat-jdbc.html', p: 'P11' },
+    12: { t: 'R-Style va Senior', h: '#g10r', p: 'R-Style' }
   };
   var Q = [
     { l: 1, q: 'Qaysi biri WHERE ichida ishlamaydi?', a: ['SELECT dagi alias va SUM()', 'IS NULL', 'Ichki so\'rov', 'BETWEEN'], c: 0, w: 'WHERE SELECT dan oldin bajariladi: alias hali yo\'q. Agregat esa faqat guruhlashdan keyin, HAVING da.' },
@@ -765,8 +834,12 @@ END;
     { l: 10, q: 'Ichki API protsedura ichida COMMIT bo\'lsa nima xavf?', a: ['Chaqiruvchining yarim ishi saqlanib qoladi', 'Hech qanday xavf yo\'q', 'Deadlock kafolatlanadi', 'Paket INVALID bo\'ladi'], c: 0, w: 'Tranzaksiya chegarasini eng tashqi chaqiruvchi belgilaydi.' },
     { l: 11, q: 'TRUNCATE haqida qaysi gap to\'g\'ri?', a: ['DDL, yashirin COMMIT, ROLLBACK qilib bo\'lmaydi', 'DML, ROLLBACK qilsa bo\'ladi', 'Triggerlarni ishga tushiradi', 'WHERE bilan ishlaydi'], c: 0, w: 'DELETE esa DML: WHERE, undo, ROLLBACK, triggerlar.' },
     { l: 11, q: 'DATE ustunda 3-noyabrning hamma yozuvlarini to\'g\'ri olish?', a: ['sana >= DATE \'2026-11-03\' AND sana < DATE \'2026-11-04\'', 'sana = DATE \'2026-11-03\'', 'TO_CHAR(sana) = \'03.11.2026\'', 'sana LIKE \'2026-11-03%\''], c: 0, w: 'DATE ichida vaqt bor. Ustunga funksiya qo\'ymasdan, oraliq bilan.' }
+    ,{ l: 12, q: 'Ikki tizim orasidagi integratsiyada bitta xabar ikki marta kelsa, ikki marta provodka bo\'lmasligi uchun nima kerak?', a: ['Idempotentlik: noyob kalit va holat ustuni', 'Database link', 'Avtonom tranzaksiya', 'Bitmap indeks'], c: 0, w: 'Xabarning noyob identifikatoriga UNIQUE cheklov va holat ustuni: qayta kelgan xabar tanib olinadi va o\'tkazib yuboriladi.' },
+    { l: 12, q: 'Prodda operatorlarda hamma narsa sekinlashdi. Birinchi qadam?', a: ['Ta\'sirni baholash va aktiv sessiyalar nimani kutayotganini ko\'rish', 'Darhol indeks qo\'shish', 'Serverni qayta ishga tushirish', 'Statistikani o\'chirish'], c: 0, w: 'Avval ta\'sir va dalil (V$SESSION, bloklayotgan sessiya, ASH), keyin xavfsiz chora, xabardor qilish va ildiz sabab.' },
+    { l: 12, q: 'RS-Bank tizimini bank dasturchilari qaysi til bilan moslaydi?', a: ['RSL (R-Style Language)', 'COBOL', 'ABAP', 'Faqat Java'], c: 0, w: 'RSL R-Style\'ning o\'z tili: obyektga yo\'naltirilgan, interpretatsiya qilinadigan. Ma\'lumot qismi esa Oracle va PL/SQL.' },
+    { l: 12, q: 'Kun oxirida ikki tizimdagi qoldiqlar mosligini tekshirish uchun qaysi SQL vositalari qulay?', a: ['MINUS yoki FULL OUTER JOIN', 'TRUNCATE', 'CONNECT BY', 'SEQUENCE'], c: 0, w: 'MINUS bir tomonda bor, ikkinchisida yo\'q qatorlarni, FULL JOIN esa ikkala tomonning farqlarini ko\'rsatadi.' }
   ];
-  quiz('quiz', Q, L, 'plsql-tezkor-v1');
+  quiz('quiz', Q, L, 'plsql-tezkor-v2');
 })();
 </script>
 </body>
