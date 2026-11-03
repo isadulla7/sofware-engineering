@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Senior kalit mavzular</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../assets/style.css">
+</head>
+<body>
+<main>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a></p>
+<h1>Senior uchun kalit mavzular: tahlil, katta hajm, dizayn, xavfsizlik va qarorlar</h1>
+<p class="lead">Savol: oddiy dasturchidan senior nimasi bilan farq qiladi? Sintaksisni bilish emas, balki muammoni o'lchab tahlil qilish, katta hajmda to'xtovsiz ishlash, ishonchli API va log loyihalash, ma'lumotni himoya qilish va qarorni sabab bilan tushuntirish. Har g'oya bir xil tartibda: hayotiy misol, qoida, kichik misol va suhbatda aytadigan tayyor javob.</p>
+<nav aria-label="Mundarija"><ol><li><a href="#g1">1. Tezlikni tahlil qilish: senior birinchi navbatda shuni so&#x27;raydi</a></li><li><a href="#g2">2. Katta hajm va to&#x27;xtovsiz ishlash</a></li><li><a href="#g3">3. PL/SQL dizayni: kod qanday qurilgan</a></li><li><a href="#g4">4. Xavfsizlik va ma&#x27;lumot himoyasi</a></li><li><a href="#g5">5. Senior ning roli: kod emas, qarorlar</a></li><li><a href="#ssenariy">Senior ssenariy savollari</a></li></ol></nav>
+<section class="sodda" id="g1">
+<h2>1. Tezlikni tahlil qilish: senior birinchi navbatda shuni so&#x27;raydi</h2>
+<div class="idea">
+<h3>1. Sekin so&#x27;rovni tahlil qilish tartibi</h3>
+<p class="hayot">Shifokor dori yozishdan oldin tahlil qiladi. &quot;Ehtimol indeks kerakdir&quot; deb darhol indeks qo&#x27;yish, tahlilsiz dori ichishga o&#x27;xshaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Tartib: 1) qaysi SQL sekin, aniq o&#x27;lchang (SQL_ID, vaqt, qatorlar); 2) haqiqiy rejani oling; 3) E-Rows va A-Rows ni solishtirib, qaysi qadamda vaqt ketganini toping; 4) sababini toping; 5) bitta narsani o&#x27;zgartiring; 6) qayta o&#x27;lchang va natijani raqam bilan yozing.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT sql_id, executions, elapsed_time/1e6 sek, buffer_gets
+FROM v$sql WHERE sql_text LIKE &#x27;%tolovlar%&#x27; ORDER BY elapsed_time DESC;
+
+SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(&#x27;&amp;sql_id&#x27;, NULL, &#x27;ALLSTATS LAST&#x27;));</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Men taxmin qilmayman, o&#x27;lchayman: SQL_ID, haqiqiy reja, E-Rows va A-Rows farqi, keyin bitta o&#x27;zgartirish va qayta o&#x27;lchash."</p>
+</div>
+<div class="idea">
+<h3>2. AWR va ASH: &quot;baza o&#x27;sha paytda nima bilan band edi&quot;</h3>
+<p class="hayot">Samolyotning qora qutisi: qulagandan keyin har daqiqada nima bo&#x27;lganini ko&#x27;rsatadi. AWR soatlik hisobot, ASH esa har soniyadagi surat.</p>
+<p class="qoida"><strong>Qoida:</strong> AWR ma&#x27;lum vaqt oralig&#x27;idagi eng og&#x27;ir SQL lar va kutishlarni ko&#x27;rsatadi. ASH (V$ACTIVE_SESSION_HISTORY) har soniyada faol sessiyalar nima qilayotganini yozadi. &quot;Kecha 14:00 da sekinlashdi&quot; degan shikoyatga shu bilan javob topiladi. Ikkalasi ham Diagnostics Pack litsenziyasini talab qiladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT sql_id, event, COUNT(*) soniyalar
+FROM v$active_session_history
+WHERE sample_time &gt; SYSDATE - 1/24
+GROUP BY sql_id, event ORDER BY 3 DESC FETCH FIRST 10 ROWS ONLY;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Muammo o&#x27;tib ketgan bo&#x27;lsa AWR va ASH dan qaysi SQL va qaysi kutish ko&#x27;p vaqt olganini topaman."</p>
+</div>
+<div class="idea">
+<h3>3. Wait events: sessiya nimani kutyapti</h3>
+<p class="hayot">Ishchi ish vaqtining yarmida ishlaydi, yarmida material kutadi. Nimani kutayotganini bilsangiz, muammoni topasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> DB time = CPU + kutish. Asosiy kutishlar: db file sequential read (indeks orqali bittalab o&#x27;qish), db file scattered read (full scan), enq: TX - row lock contention (birov qatorni qulflagan), log file sync (juda ko&#x27;p COMMIT), latch yoki mutex (ko&#x27;p hard parse).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT event, total_waits, time_waited/100 sek
+FROM v$system_event WHERE wait_class &lt;&gt; &#x27;Idle&#x27; ORDER BY time_waited DESC;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Kutish turiga qarab sababni aniqlayman: ko&#x27;p log file sync bo&#x27;lsa siklda COMMIT, row lock contention bo&#x27;lsa qulflar tartibi va uzun tranzaksiyalar."</p>
+</div>
+<div class="idea">
+<h3>4. Reja birdan o&#x27;zgardi: reja barqarorligi</h3>
+<p class="hayot">Har kuni bir yo&#x27;ldan ishga borasiz, bir kuni navigator sizni aylanma yo&#x27;lga yubordi. Yo&#x27;l emas, navigatorning &quot;bilimi&quot; o&#x27;zgargan.</p>
+<p class="qoida"><strong>Qoida:</strong> Statistika yig&#x27;ildi, bind qiymati o&#x27;zgardi yoki versiya yangilandi: optimizator boshqa reja tanladi. Tezkor yechim: yaxshi rejani SQL Plan Baseline bilan mahkamlash. Keyin sababini topish: statistika, gistogramma, bind peeking.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- yaxshi rejani kursor keshidan baseline ga yuklash
+DECLARE n PLS_INTEGER;
+BEGIN n := DBMS_SPM.LOAD_PLANS_FROM_CURSOR_CACHE(sql_id =&gt; &#x27;&amp;sql_id&#x27;, plan_hash_value =&gt; &amp;yaxshi_plan); END;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Reja regressiyasida avval yaxshi rejani SPM baseline bilan qaytaraman, keyin sababini statistika va bind lardan qidiraman."</p>
+</div>
+<div class="idea">
+<h3>5. Bind peeking va noteng taqsimlangan ma&#x27;lumot</h3>
+<p class="hayot">Birinchi mijozga qarab butun do&#x27;konni sozlash: birinchi kelgan odam ulgurji xaridor edi, siz hamma uchun katta arava qo&#x27;ydingiz, oddiy xaridorlarga noqulay.</p>
+<p class="qoida"><strong>Qoida:</strong> Birinchi hard parse da optimizator bind qiymatiga qaraydi. Agar u kamdan-kam qiymat bo&#x27;lsa, reja hamma uchun noto&#x27;g&#x27;ri bo&#x27;ladi. Adaptive cursor sharing (11g) bunga qarshi bir nechta reja yaratadi; gistogramma noteng taqsimotni ko&#x27;rsatadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- filial &#x27;01&#x27; da 5 million qator, boshqalarda 10 mingdan
+SELECT ... FROM tolovlar WHERE filial = :f;   -- reja birinchi qiymatga bog&#x27;liq</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Ma&#x27;lumot noteng bo&#x27;lsa bind peeking yomon reja berishi mumkin; gistogramma, adaptive cursor sharing va kerak bo&#x27;lsa baseline bilan hal qilaman."</p>
+</div>
+</section>
+<section class="sodda" id="g2">
+<h2>2. Katta hajm va to&#x27;xtovsiz ishlash</h2>
+<div class="idea">
+<h3>6. Parallel ishlash: kuchli, lekin umumiy resursni yeydi</h3>
+<p class="hayot">Bitta katta xonani 8 kishi bilan bo&#x27;yash tezroq. Lekin 8 kishini boshqa xonalardan olib kelsangiz, ular to&#x27;xtab qoladi.</p>
+<p class="qoida"><strong>Qoida:</strong> PARALLEL hint yoki jadval darajasidagi parallellik katta full scan va yuklashni tezlashtiradi. OLTP vaqtida esa boshqa sessiyalarning CPU va diskini oladi. Tungi oynada, nazorat bilan ishlatiladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">ALTER SESSION ENABLE PARALLEL DML;
+INSERT /*+ APPEND PARALLEL(8) */ INTO arxiv SELECT /*+ PARALLEL(8) */ * FROM tolovlar WHERE sana &lt; :d;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Parallellikni tungi katta ishlarda ishlataman, kunduzgi OLTP da emas, va darajasini DBA bilan kelishaman."</p>
+</div>
+<div class="idea">
+<h3>7. Jadvalni to&#x27;xtatmasdan o&#x27;zgartirish</h3>
+<p class="hayot">Uyni ko&#x27;chirmasdan ta&#x27;mirlash: odamlar yashashda davom etadi, ta&#x27;mir xonama-xona bo&#x27;ladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Katta jadvalga NULL ustun qo&#x27;shish (yoki DEFAULT bilan, 12c dan) bir zumda. Indeksni CREATE INDEX ... ONLINE bilan qurish ish to&#x27;xtatmaydi. Tuzilmani butunlay o&#x27;zgartirish (partitsiyalash) uchun DBMS_REDEFINITION yoki ALTER TABLE ... MODIFY PARTITION BY ... ONLINE (12.2).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE INDEX tolov_mijoz_ix ON tolovlar (mijoz_id) ONLINE;
+ALTER TABLE tolovlar ADD (manba VARCHAR2(20));</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Prod da katta jadval o&#x27;zgarishini ONLINE amallar yoki DBMS_REDEFINITION bilan, test bazada vaqtini o&#x27;lchab, qilaman."</p>
+</div>
+<div class="idea">
+<h3>8. Partitsiya kalitini so&#x27;rovlarga qarab tanlash</h3>
+<p class="hayot">Arxivni yil bo&#x27;yicha papkalarga bo&#x27;ldingiz, lekin hamma odam &quot;mijoz bo&#x27;yicha&quot; qidiradi: papkalar hech kimga yordam bermaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Kalit eng ko&#x27;p ishlatiladigan shartdan va tozalash usulidan kelib chiqadi: odatda sana (range yoki interval). Indekslar iloji boricha local. Global indeks kerak bo&#x27;lsa, partitsiya amallarida UPDATE INDEXES.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- so&#x27;rovlar: WHERE sana BETWEEN ... AND filial = ...
+PARTITION BY RANGE (sana) INTERVAL (NUMTOYMINTERVAL(1,&#x27;MONTH&#x27;))
+SUBPARTITION BY LIST (filial) ...</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Partitsiya kalitini so&#x27;rovlar va arxivlash talabiga qarab tanlayman, aks holda pruning bo&#x27;lmaydi va partitsiya foyda bermaydi."</p>
+</div>
+<div class="idea">
+<h3>9. Og&#x27;ir hisobotni OLTP dan ajratish</h3>
+<p class="hayot">Do&#x27;konning kassasida inventarizatsiya qilmaysiz: mijozlar navbatda qoladi. Inventarizatsiya omborda yoki kechasi.</p>
+<p class="qoida"><strong>Qoida:</strong> Katta hisobotlar uchun: materialized view (oldindan hisoblangan natija, belgilangan vaqtda yangilanadi), zaxira bazada (Active Data Guard) yoki DWH. Asosiy bazada esa qisqa tranzaksiyalar.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE MATERIALIZED VIEW mv_kunlik_aylanma REFRESH COMPLETE ON DEMAND AS
+SELECT filial, TRUNC(sana) kun, SUM(summa) jami FROM tolovlar GROUP BY filial, TRUNC(sana);</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Og&#x27;ir analitikani OLTP dan ajrataman: materialized view, zaxira baza yoki DWH."</p>
+</div>
+</section>
+<section class="sodda" id="g3">
+<h2>3. PL/SQL dizayni: kod qanday qurilgan</h2>
+<div class="idea">
+<h3>10. Yagona xato va log tizimi</h3>
+<p class="hayot">Har bo&#x27;limning o&#x27;z daftari bo&#x27;lsa, muammoni topish uchun 20 ta daftarni varaqlaysiz. Bitta umumiy jurnal bo&#x27;lsa, bir joyda ko&#x27;rasiz.</p>
+<p class="qoida"><strong>Qoida:</strong> Bitta log paketi: avtonom tranzaksiyada yoziladi, xato kodi, matn, FORMAT_ERROR_BACKTRACE, parametrlar va kontekst (foydalanuvchi, modul, hujjat id). Hamma joyda bir xil chaqiriladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">EXCEPTION WHEN OTHERS THEN
+  log_pkg.xato(p_modul =&gt; &#x27;KREDIT&#x27;, p_kontekst =&gt; &#x27;kredit_id=&#x27; || p_id);
+  RAISE;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Jamoada bitta log paketi: avtonom tranzaksiya, backtrace va kontekst bilan, xato yutilmaydi, qayta ko&#x27;tariladi."</p>
+</div>
+<div class="idea">
+<h3>11. API dizayni: chaqiruvchi bilan shartnoma</h3>
+<p class="hayot">Rozetka standarti: ichidagi simlar o&#x27;zgarsa ham vilka bir xil. Rozetkani o&#x27;zgartirsangiz, hamma jihozlar ishlamay qoladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Spec barqaror bo&#x27;lsin: yangi parametr DEFAULT bilan qo&#x27;shiladi, eski chaqiruvlar buzilmaydi. API COMMIT qilmaydi, paket holatsiz, xato kodlari diapazoni hujjatlangan.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">PROCEDURE berish(p_ariza_id IN NUMBER, p_summa IN NUMBER,
+                 p_kanal IN VARCHAR2 DEFAULT &#x27;EKRAN&#x27;);   -- yangi parametr eski chaqiruvni buzmaydi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "API spec ni barqaror saqlayman: DEFAULT li yangi parametrlar, COMMIT yo&#x27;q, holatsiz paket, hujjatlangan xato kodlari."</p>
+</div>
+<div class="idea">
+<h3>12. Ikki marta bajarilmaslik (idempotentlik)</h3>
+<p class="hayot">Liftning tugmasini besh marta bossangiz ham lift bir marta keladi.</p>
+<p class="qoida"><strong>Qoida:</strong> Tashqi tizim so&#x27;rovni qayta yuborishi mumkin (timeout). Har so&#x27;rovning tashqi identifikatoriga UNIQUE cheklov qo&#x27;yiladi: ikkinchi marta kelsa, yangi provodka emas, oldingi natija qaytadi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">ALTER TABLE tashqi_tolovlar ADD CONSTRAINT tt_tashqi_id_uk UNIQUE (manba, tashqi_id);
+-- DUP_VAL_ON_INDEX bo&#x27;lsa: oldingi natijani qaytarish</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Pul bilan ishlaydigan har integratsiyada idempotentlik: tashqi id ga unique kalit va qayta so&#x27;rovda oldingi natija."</p>
+</div>
+<div class="idea">
+<h3>13. Navbatni parallel qayta ishlash</h3>
+<p class="hayot">Bir nechta kassir bitta navbatga xizmat qiladi: har biri navbatdagi bo&#x27;sh odamni chaqiradi, bir odamni ikki kassir chaqirmaydi.</p>
+<p class="qoida"><strong>Qoida:</strong> FOR UPDATE SKIP LOCKED: har ishchi qulflanmagan qatorlarni oladi. Holat ustuni va urinishlar soni bilan, xato bo&#x27;lsa qatorni belgilab, keyingisiga o&#x27;tiladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT id FROM navbat WHERE holat = &#x27;YANGI&#x27; ORDER BY id
+FETCH FIRST 100 ROWS ONLY FOR UPDATE SKIP LOCKED;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Parallel ishchilar uchun SKIP LOCKED, har vazifa holati va qayta urinish hisobi bilan."</p>
+</div>
+</section>
+<section class="sodda" id="g4">
+<h2>4. Xavfsizlik va ma&#x27;lumot himoyasi</h2>
+<div class="idea">
+<h3>14. Minimal huquq: jadvalga emas, API ga ruxsat</h3>
+<p class="hayot">Bank xodimiga seyf kaliti emas, kassa dasturiga kirish beriladi: dastur qoidalarni o&#x27;zi tekshiradi.</p>
+<p class="qoida"><strong>Qoida:</strong> Ilova foydalanuvchisiga jadvallarga to&#x27;g&#x27;ridan-to&#x27;g&#x27;ri INSERT yoki UPDATE emas, faqat API paketlariga EXECUTE. Kod egasi sxemasi bilan ilova sxemasi alohida.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">GRANT EXECUTE ON kredit_api TO app_user;
+-- GRANT UPDATE ON hisoblar TO app_user;   -- bunday qilinmaydi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Ilova faqat API paketlarini chaqiradi; jadvallarga to&#x27;g&#x27;ridan-to&#x27;g&#x27;ri huquq yo&#x27;q, shunda hamma qoida bir joyda tekshiriladi."</p>
+</div>
+<div class="idea">
+<h3>15. Shaxsiy va karta ma&#x27;lumotlari</h3>
+<p class="hayot">Kassir mijozning karta raqamini to&#x27;liq ko&#x27;rishi shart emas: oxirgi 4 raqam yetarli.</p>
+<p class="qoida"><strong>Qoida:</strong> Karta raqami bazada shifrlangan, ekranda va logda maskalangan. Loglarga shaxsiy ma&#x27;lumot yozilmaydi. Oracle da buning uchun Data Redaction, TDE va VPD kabi vositalar bor (litsenziyaga bog&#x27;liq).</p>
+<pre class="code" style="margin:0.5rem 0 1rem">SELECT SUBSTR(pan, 1, 6) || &#x27;******&#x27; || SUBSTR(pan, -4) FROM kartalar;   -- 860002******1234</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Karta va shaxsiy ma&#x27;lumotni logga yozmayman, ekranda maskalayman, bazada shifrlangan holda saqlanadi."</p>
+</div>
+</section>
+<section class="sodda" id="g5">
+<h2>5. Senior ning roli: kod emas, qarorlar</h2>
+<div class="idea">
+<h3>16. Kod review: nimaga qarash</h3>
+<p class="hayot">Tajribali haydovchi yangi haydovchiga &quot;tez yurding&quot; demaydi, &quot;bu burilishda oldin sekinla, chunki...&quot; deydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Ro&#x27;yxat: bind va injection, sikl ichida SQL, xatoni yutish, API ichida COMMIT, shartda partitsiya kaliti va indeks, qulflar tartibi, migratsiya va rollback, test va hujjat. Izoh &quot;nega&quot; bilan yoziladi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- review izohi: &quot;Bu yerda siklda UPDATE bor, 300 ming qatorda 20 daqiqa.
+--  Bitta UPDATE ... WHERE ... yoki FORALL bilan yozing.&quot;</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Review da xatoni ko&#x27;rsatibgina qolmay, sababini va to&#x27;g&#x27;ri usulni tushuntiraman: shunda jamoa o&#x27;sadi."</p>
+</div>
+<div class="idea">
+<h3>17. Trade-off ni tushuntirish</h3>
+<p class="hayot">&quot;Qaysi mashina yaxshi?&quot; degan savolga senior &quot;nima uchun kerakligiga qarab: shaharda kichigi, yuk uchun kattasi&quot; deydi.</p>
+<p class="qoida"><strong>Qoida:</strong> Har yechimning narxi bor: denormallashtirish tezlik beradi, lekin sinxronlik talab qiladi; trigger qulay, lekin yashirin; parallel tez, lekin resurs oladi. Senior variantlarni narxi bilan aytadi va tanlovni asoslaydi.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">-- qaror yozuvi: muammo, variantlar, tanlov, nega, oqibatlari</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "Men &quot;bu har doim yaxshi&quot; demayman: har variantning foydasi va narxini aytaman, keyin aniq vaziyat uchun tanlayman."</p>
+</div>
+<div class="idea">
+<h3>18. RAC va Data Guard: dasturchi bilishi kerak bo&#x27;lgan qism</h3>
+<p class="hayot">Bitta do&#x27;kon o&#x27;rniga ikkita filial: ikkalasi bitta omborga ishlaydi. Agar ikkalasi bir vaqtda bitta javondan olsa, bir-birini kutadi.</p>
+<p class="qoida"><strong>Qoida:</strong> RAC: bitta baza, bir nechta server. Hammasi bitta &quot;issiq&quot; blokni o&#x27;zgartirsa (masalan ketma-ket o&#x27;suvchi kalit indeksining oxiri) serverlar orasida tirbandlik. Sequence uchun CACHE katta, ORDER faqat kerak bo&#x27;lsa. Data Guard: zaxira baza, hisobotlarni shu yerda yurgizish mumkin.</p>
+<pre class="code" style="margin:0.5rem 0 1rem">CREATE SEQUENCE tolov_seq CACHE 1000;   -- RAC da NOCACHE yoki ORDER sekinlashtiradi</pre>
+<p class="ayt"><strong>Suhbatda:</strong> "RAC da issiq bloklar va sequence CACHE ni hisobga olaman; og&#x27;ir o&#x27;qishlarni zaxira bazaga beraman."</p>
+</div>
+</section>
+<h2 id="ssenariy">Senior ssenariy savollari</h2>
+<p>Senior suhbatda ko'pincha "nima qilasiz?" degan vaziyat savoli beriladi. Avval o'zingiz ovoz chiqarib javob bering, keyin oching.</p>
+<details><summary>Kecha 5 daqiqa ishlagan job bugun 2 soat ishlayapti. Nima qilasiz?</summary>
+<p>Avval nima o&#x27;zgarganini aniqlayman, taxmin qilmayman. Job qaysi SQL da turganini ko&#x27;raman (V$SESSION dagi SQL_ID va event, ASH). Rejani oldingi bajarilish bilan solishtiraman (AWR dagi plan_hash_value): reja o&#x27;zgargan bo&#x27;lsa sababi statistika, bind yoki yangi indeks bo&#x27;lishi mumkin; tezkor yechim yaxshi rejani SPM baseline bilan qaytarish. Reja o&#x27;zgarmagan bo&#x27;lsa ma&#x27;lumot hajmi o&#x27;sganmi yoki kutish bormi (qulf, I/O). Topilgan sababni tuzataman, natijani raqam bilan yozaman va qayta bo&#x27;lmasligi uchun choralarni (statistika vaqti, monitoring) belgilayman.</p></details>
+<details><summary>2 milliard qatorli jadvalga yangi ustun va indeks kerak, ish to&#x27;xtamasin.</summary>
+<p>NULL li ustun qo&#x27;shish metadata amali, bir zumda (12c dan DEFAULT bilan ham). Indeksni CREATE INDEX ... ONLINE bilan, kerak bo&#x27;lsa PARALLEL bilan va keyin NOPARALLEL qilib quraman, partitsiyalangan bo&#x27;lsa LOCAL. Eski qatorlarni to&#x27;ldirish kerak bo&#x27;lsa: bo&#x27;laklab (DBMS_PARALLEL_EXECUTE yoki partitsiyalar bo&#x27;yicha), har bo&#x27;lak alohida commit va qayta ishga tushirishga chidamli. Avval test bazada vaqtini o&#x27;lchayman, DBA bilan oyna va rollback rejasini kelishaman.</p></details>
+<details><summary>Bitta to&#x27;lov ikki marta o&#x27;tib ketdi. Sababi va yechimi?</summary>
+<p>Odatiy sabablar: tashqi tizim timeoutdan keyin qayta yubordi va bizda idempotentlik yo&#x27;q; yoki ikki parallel ishchi bitta navbat qatorini oldi. Yechim: tashqi identifikatorga unique cheklov va qayta so&#x27;rovda oldingi natijani qaytarish; navbatda FOR UPDATE SKIP LOCKED va holatni bitta tranzaksiyada o&#x27;zgartirish; pul harakati va holat bitta COMMIT da. Keyin solishtiruv hisoboti bilan boshqa takrorlarni topib, storno qilinadi.</p></details>
+<details><summary>Kun yopishni 4 soatdan 1 soatga tushirish kerak.</summary>
+<p>Avval qaysi bosqich qancha vaqt olishini o&#x27;lchayman (har bosqich logi yoki ASH). Odatda vaqtni 2–3 ta bosqich oladi. Ularda: qatorma-qator sikl bo&#x27;lsa bitta SQL yoki BULK; filiallar bo&#x27;yicha parallel (DBMS_PARALLEL_EXECUTE yoki scheduler zanjiri); partitsiya pruning ishlayaptimi; siklda COMMIT va log file sync; keraksiz qayta o&#x27;qishlar. Har o&#x27;zgarishdan keyin qayta o&#x27;lchayman. Bosqichlarning bog&#x27;liqligini ko&#x27;rib, mustaqillarini parallel qilaman.</p></details>
+<details><summary>Review da WHEN OTHERS THEN NULL ko&#x27;rdingiz. Nima deysiz?</summary>
+<p>Xatoni yashirishini va qanday zarar berishini aniq misol bilan tushuntiraman: chaqiruvchi muvaffaqiyat deb o&#x27;ylaydi, yarim ish saqlanadi, sabab yo&#x27;qoladi. To&#x27;g&#x27;ri variantni ko&#x27;rsataman: kutilgan xatolarni nomi bilan ushlash, qolganini log paketi bilan yozib RAISE. Agar bu takrorlanadigan xato bo&#x27;lsa, jamoa qoidalariga va avtomatik tekshiruvga (masalan PL/SQL warnings yoki statik tahlil) qo&#x27;shishni taklif qilaman.</p></details>
+<details><summary>Hisobot so&#x27;rovi kunduzgi ishni sekinlashtiryapti.</summary>
+<p>Avval so&#x27;rovning o&#x27;zini tezlashtiraman: reja, pruning, keraksiz ustunlar. Yetmasa, hisobotni OLTP dan ajrataman: materialized view tungi yangilanish bilan, Active Data Guard zaxira bazasi yoki DWH. Resource Manager bilan hisobot foydalanuvchisiga CPU chegarasi ham qo&#x27;yish mumkin. Biznes bilan kelishaman: hisobot real vaqtda bo&#x27;lishi shartmi yoki kechagi holat yetadimi.</p></details>
+<details><summary>Trigger yoki API: qaysi birini tanlaysiz?</summary>
+<p>Biznes jarayoni (provodka, limit tekshiruvi, holat o&#x27;zgarishi) API protsedurasida: ochiq, test qilinadigan, BULK ni sekinlashtirmaydi. Trigger faqat har doim va istisnosiz bo&#x27;lishi kerak bo&#x27;lgan oddiy narsa uchun: audit, texnik ustunlar, tarix. Cheklov bilan yozsa bo&#x27;ladigan qoida (NOT NULL, CHECK, FK, UNIQUE) cheklov bilan yoziladi, trigger bilan emas.</p></details>
+<details><summary>Yangi modulning jadvallarini loyihalang: nimalarga e&#x27;tibor berasiz?</summary>
+<p>So&#x27;rovlar va hajmdan boshlayman: qaysi so&#x27;rovlar ko&#x27;p, qancha qator o&#x27;sadi, qancha saqlanadi. 3NF gacha normallashtiraman, ongli denormallashtirishni sabab bilan yozaman. Kalitlar: surrogate PK, natural kalitlarga UNIQUE, modul ichida FK. Turlar: pul NUMBER, kodlar VARCHAR2, sana DATE yoki TIMESTAMP. Katta jadvallar uchun partitsiya kaliti va local indekslar, arxivlash rejasi. Audit ustunlari, holat va operatsion kun, COMMENT ON va ER chizmasi.</p></details>
+<div class="next">
+  <p><strong>Bu sahifadan olib ketadigan narsa.</strong> Taxmin emas, o'lchash: SQL_ID, haqiqiy reja, ASH va kutishlar. Katta hajmda ONLINE amallar va bo'laklab ishlash. Yagona log, DEFAULT parametrli API, unique kalit bilan idempotentlik, SKIP LOCKED navbat. Minimal huquq va niqoblash. Har qarorni trade-off bilan tushuntirish.</p>
+  <p><strong>Qayerda chuqurroq.</strong> Tahlil P6 va P7 da, katta hajm P5 va P9 da, tranzaksiya P8 da, umumiy test P12 da.</p>
+</div>
+<nav class="pager" aria-label="Darslar orasida"><a href="p12-xulosa.html">Oldingi: P12. Xulosa va test</a><a href="./">Barcha darslar</a></nav>
+</main>
+</body>
+</html>
