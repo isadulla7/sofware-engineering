@@ -17,7 +17,7 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: 15 daqiqada</h2>
-<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va og'zaki aytiladigan qisqa javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
 
 <div class="idea">
 <h3>1. Git: kodning har bir o'zgarishi saqlanadigan arxiv</h3>
@@ -26,7 +26,7 @@
 <pre class="code" style="margin:0.5rem 0 1rem">git switch -c feature/KR-112
 git commit -am "KR-112: foizda 365 kun"
 git push -u origin feature/KR-112</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Har vazifa alohida branchda, pull request va review dan keyin main ga birlashtiriladi, versiyaga teg qo'yiladi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Har vazifa alohida branchda, pull request va review dan keyin main ga birlashtiriladi, versiyaga teg qo'yiladi."</p>
 </div>
 
 <div class="idea">
@@ -35,7 +35,7 @@ git push -u origin feature/KR-112</pre>
 <p class="qoida"><strong>Qoida:</strong> Paket va view: to'liq fayl, CREATE OR REPLACE. Jadval o'zgarishi: tartib raqamli migratsiya skripti, bir marta qo'llanadi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">packages/kredit_foiz.pkb
 migrations/V1.4.0_01__stavka_kun_soni.sql</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Repo yagona manba: paketlar fayl sifatida, jadval o'zgarishlari migratsiya skriptlarida. Bazada to'g'ridan-to'g'ri tahrir qilmayman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Repo yagona manba: paketlar fayl sifatida, jadval o'zgarishlari migratsiya skriptlarida. Bazada to'g'ridan-to'g'ri tahrir qilmayman."</p>
 </div>
 
 <div class="idea">
@@ -47,7 +47,7 @@ migrations/V1.4.0_01__stavka_kun_soni.sql</pre>
 =======
   v_kun := p_kun_soni;
 &gt;&gt;&gt;&gt;&gt;&gt;&gt; origin/main</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Konfliktni ikkala o'zgarish maqsadini tushunib hal qilaman, keyin kompilyatsiya va test."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Konfliktni ikkala o'zgarish maqsadini tushunib hal qilaman, keyin kompilyatsiya va test."</p>
 </div>
 
 <div class="idea">
@@ -57,7 +57,7 @@ migrations/V1.4.0_01__stavka_kun_soni.sql</pre>
 <pre class="code" style="margin:0.5rem 0 1rem">-- Xatolar: -20101 shartnoma topilmadi
 -- Tranzaksiya: COMMIT qilmaydi
 COMMENT ON COLUMN kredit_stavka.kun_soni IS 'Yildagi kunlar: 360 yoki 365';</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Spec izohlari chaqiruvchi uchun, body da "nega" izohlari, COMMENT ON tahlilchi uchun, README va CHANGELOG jamoa uchun."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Spec izohlari chaqiruvchi uchun, body da "nega" izohlari, COMMENT ON tahlilchi uchun, README va CHANGELOG jamoa uchun."</p>
 </div>
 
 <div class="idea">
@@ -69,7 +69,7 @@ COMMENT ON COLUMN kredit_stavka.kun_soni IS 'Yildagi kunlar: 360 yoki 365';</pre
   ps.setString(1, hisob);
   try (ResultSet rs = ps.executeQuery()) { ... }
 }</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Java da puldan ulanish, PreparedStatement va bind, try-with-resources bilan yopish."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Java da puldan ulanish, PreparedStatement va bind, try-with-resources bilan yopish."</p>
 </div>
 
 <div class="idea">
@@ -77,7 +77,7 @@ COMMENT ON COLUMN kredit_stavka.kun_soni IS 'Yildagi kunlar: 360 yoki 365';</pre
 <p class="hayot">Har qo'ng'iroq uchun yangi telefon liniyasi tortish o'rniga, ofisda 10 ta tayyor liniya bor, kim bo'sh bo'lsa ishlatadi.</p>
 <p class="qoida"><strong>Qoida:</strong> Fizik ulanish ochish qimmat. Pul ulanishlarni qayta ishlatadi; "close" uni pulga qaytaradi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">HikariDataSource ds = new HikariDataSource(config);   // ilova boshlanganda</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Pul ulanish narxini va bazadagi sessiyalar sonini kamaytiradi; ulanishni yopish uni pulga qaytaradi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Pul ulanish narxini va bazadagi sessiyalar sonini kamaytiradi; ulanishni yopish uni pulga qaytaradi."</p>
 </div>
 
 <div class="idea">
@@ -87,7 +87,7 @@ COMMENT ON COLUMN kredit_stavka.kun_soni IS 'Yildagi kunlar: 360 yoki 365';</pre
 <pre class="code" style="margin:0.5rem 0 1rem">CallableStatement cs = c.prepareCall("{ call kredit_api.berish(?, ?, ?) }");
 cs.registerOutParameter(3, Types.NUMERIC);
 // catch: e.getErrorCode() == 20102</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "CallableStatement, OUT va REF CURSOR, xatoni getErrorCode bilan biznes xatoga aylantiraman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "CallableStatement, OUT va REF CURSOR, xatoni getErrorCode bilan biznes xatoga aylantiraman."</p>
 </div>
 
 <div class="idea">
@@ -97,10 +97,10 @@ cs.registerOutParameter(3, Types.NUMERIC);
 <pre class="code" style="margin:0.5rem 0 1rem">c.setAutoCommit(false);
 // ... ikki chaqiruv
 c.commit();   // xatoda: c.rollback();</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "JDBC da autocommit yoqilgan, shuning uchun bir nechta chaqiruvda uni o'chirib, bitta commit qilaman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "JDBC da autocommit yoqilgan, shuning uchun bir nechta chaqiruvda uni o'chirib, bitta commit qilaman."</p>
 </div>
 
-<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 8 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P11 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 8 ta "Qisqa javob" gapini ko'rmasdan ayta olsangiz, P11 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
 </section>
 
 <div class="intro">
@@ -115,7 +115,7 @@ c.commit();   // xatoda: c.rollback();</pre>
       <li><strong>Har kungi ish:</strong> paket o'zgartirish, branch, pull request, kod review, test va prod ga chiqarish.</li>
       <li><strong>Ilova qavati:</strong> veb-ekranlar, mobil shlyuz va servislar bazadagi API paketlarini JDBC orqali chaqiradi (P10 dagi qavatlar).</li>
       <li><strong>Jamoa:</strong> yangi xodim kodni hujjat va commit tarixi orqali tushunadi; auditor «bu o'zgarish qachon va kimning topshirig'i bilan» deb so'raydi.</li>
-      <li><strong>Suhbatda:</strong> vakansiyada «Git, hujjatlashtirish, Java bilan integratsiya» talablari bor; bu dars shularga javob.</li>
+      <li><strong>Qisqa javob:</strong> «Git, hujjatlashtirish, Java bilan integratsiya» talablari bor; bu dars shularga javob.</li>
     </ul>
   </div>
   <div>
@@ -358,7 +358,7 @@ try (Connection c = dataSource.getConnection();            // puldan olish
   <p class="why">To'g'risi: katta o'qishda fetch size 500 dan 1000 gacha (xotiraga mos), juda katta hajmni esa Java ga olib kelmasdan bazada qayta ishlash.</p>
 </div>
 
-<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<h3><span class="part">6. Savol-javob</span>Savol va namunaviy javoblar</h3>
 <p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching.</p>
 <details><summary>PL/SQL kodini qanday versiyalaysiz?</summary>
 <p>Repo yagona manba. Har paket spec va body alohida faylda, view, trigger, tur ham fayllarda, <span class="num">CREATE OR REPLACE</span> bilan. Jadval va ma'lumot o'zgarishlari esa tartib raqamli migratsiya skriptlarida, chunki jadvalni qayta yaratib bo'lmaydi; ularni Flyway yoki Liquibase kabi vosita yoki o'z jurnal jadvalimiz bilan qo'llaymiz. Har vazifa uchun branch, pull request va review, keyin main ga merge va versiya tegi. Bazada to'g'ridan-to'g'ri tahrir qilinmaydi, va vaqti-vaqti bilan bazadagi kod repo bilan solishtiriladi.</p></details>
@@ -420,7 +420,7 @@ EXEC ut.run('test_kredit_foiz');</pre></details>
 
 <div class="next">
   <p><strong>Bu darsdan olib ketadigan narsa.</strong> Repo yagona manba: paketlar fayl sifatida, jadval o'zgarishlari tartibli migratsiya skriptlarida. Branch, pull request, review, teg; rebase faqat o'z branchida. Deploy: CI, test baza, invalid obyektlar, ORA-04068, rollback rejasi. Hujjat o'quvchiga qarab: spec izohlari, COMMENT ON, README, CHANGELOG. JDBC: puldan ulanish, PreparedStatement va bind, CallableStatement va REF CURSOR, fetch size va batch, autocommit o'chirilib bitta commit, getErrorCode bilan ORA xatolari.</p>
-  <p><strong>Keyingi dars.</strong> P12. Xulosa: barcha atamalar bir joyda, butun kurs bo'yicha test va suhbat savollari ro'yxati.</p>
+  <p><strong>Keyingi dars.</strong> P12. Xulosa: barcha atamalar bir joyda, butun kurs bo'yicha test va savol-javoblar ro'yxati.</p>
 </div>
 <nav class="pager" aria-label="Darslar orasida"><a href="p10-iabs.html">Oldingi: P10. iABS yadro tizimi</a><a href="p12-xulosa.html">Keyingi: P12. Xulosa va test</a></nav>
 </main>

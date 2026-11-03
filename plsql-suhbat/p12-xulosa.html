@@ -12,13 +12,13 @@
 <body>
 <main>
 <p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a> / P12</p>
-<h1>P12. Xulosa, umumiy test va suhbat mashqi</h1>
-<p class="lead">Bo'limning hammasi bitta sahifada: har darsning asosiy fikri va tuzoqlari, eslab qolish kerak bo'lgan faktlar va ORA kodlari, barcha atamalar, barcha suhbat savollari namunaviy javoblari bilan, butun kurs bo'yicha test va suhbatning o'zini mashq qilish rejasi.</p>
+<h1>P12. Xulosa, umumiy test va amaliy mashq</h1>
+<p class="lead">Bo'limning hammasi bitta sahifada: har darsning asosiy fikri va tuzoqlari, eslab qolish kerak bo'lgan faktlar va ORA kodlari, barcha atamalar, barcha savollar namunaviy javoblari bilan, butun kurs bo'yicha test va amaliy SQL vazifalar.</p>
 
 <div class="intro">
   <div>
     <h3>Bu nima</h3>
-    <p>Oracle PL/SQL bo'limining yakuniy sahifasi. Yangi mavzu yo'q: P1–P11 da chizmalar va misollar bilan o'tilgan narsa ixcham ko'rinishda yig'ilgan, ustiga suhbatga tayyorlanish qismi qo'shilgan.</p>
+    <p>Oracle PL/SQL bo'limining yakuniy sahifasi. Yangi mavzu yo'q: P1–P11 da chizmalar va misollar bilan o'tilgan narsa ixcham ko'rinishda yig'ilgan, ustiga amaliy mashq qismi qo'shilgan.</p>
     <p>O'xshatish: imtihondan oldingi kechadagi konspekt. Darslik javonda, qo'lda esa bir necha varaq: asosiy formulalar, odatiy xatolar va savollar ro'yxati.</p>
   </div>
   <div>
@@ -26,14 +26,13 @@
     <ul>
       <li><strong>Tushunmagan mavzu bo'lsa:</strong> o'sha darsning boshidagi «Sodda tilda» bo'limini o'qing, keyin testga qayting.</li>
       <li><strong>Bo'limni tugatganda:</strong> hammasi joyiga tushganini test bilan tekshirish.</li>
-      <li><strong>Suhbatdan 1–2 kun oldin:</strong> xulosalar va suhbat savollarini takrorlash, o'zingizni tanishtirishni ovoz chiqarib mashq qilish.</li>
-      <li><strong>Suhbat kuni ertalab:</strong> «Faktlar va ORA kodlari» jadvali va oxirgi cheklist.</li>
+      <li><strong>Takrorlashda:</strong> xulosalar va savol-javoblarni ovoz chiqarib aytish, «Faktlar va ORA kodlari» jadvali.</li>
     </ul>
   </div>
   <div>
     <h3>Maqsad</h3>
     <p>Testda har darsdan kamida 70%. Past chiqqan darsni qayta o'qing va faqat shu dars bo'yicha testni takrorlang.</p>
-    <p>Test tanishni tekshiradi, suhbat esa tushuntira olishni. Shuning uchun «Suhbat savollari» qismida har savolga avval o'zingiz ovoz chiqarib javob bering, keyin namunaviy javobni oching.</p>
+    <p>Test tanishni tekshiradi, og'zaki javob esa tushuntira olishni. Shuning uchun «Savol-javoblar» qismida har savolga avval o'zingiz ovoz chiqarib javob bering, keyin namunaviy javobni oching.</p>
   </div>
 </div>
 
@@ -45,9 +44,9 @@
     <li><a href="#darslar">Darslar bo'yicha xulosa</a></li>
     <li><a href="#faktlar">Faktlar va ORA kodlari</a></li>
     <li><a href="#atamalar">Barcha atamalar (248 ta)</a></li>
-    <li><a href="#savollar">Suhbat savollari va namunaviy javoblar (133 ta)</a></li>
+    <li><a href="#savollar">Savol-javoblar va namunaviy javoblar (133 ta)</a></li>
     <li><a href="#test">Mustahkamlash testi (88 ta savol)</a></li>
-    <li><a href="#mashq">Suhbat mashqi</a></li>
+    <li><a href="#mashq">Amaliy mashq</a></li>
     <li><a href="#ogzaki">Og'zaki tekshiruv savollari (59 ta)</a></li>
   </ol>
 </nav>
@@ -62,7 +61,7 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: barcha asosiy gaplar</h2>
-<p>Har darsning boshidagi «Sodda tilda» bo'limidagi tayyor suhbat javoblari bir joyda. Suhbatdan oldingi kechada shu ro'yxatni o'qing: har gapni ko'rib, uning hayotiy misolini eslay olsangiz, mavzu sizda bor. Eslay olmasangiz, darsning o'zini oching.</p>
+<p>Har darsning boshidagi «Sodda tilda» bo'limidagi qisqa javoblar bir joyda. Takrorlashda shu ro'yxatni o'qing: har gapni ko'rib, uning hayotiy misolini eslay olsangiz, mavzu sizda bor. Eslay olmasangiz, darsning o'zini oching.</p>
 <details><summary>P1. SQL poydevori (10 ta)</summary><ol><li><strong>SQL da siz "nima kerak"ni aytasiz, "qanday topish"ni Oracle hal qiladi.</strong> "SQL deklarativ til: men natijani yozaman, bajarish yo'lini optimizator tanlaydi."</li><li><strong>So'rov yozilgan tartibda emas, boshqa tartibda bajariladi.</strong> "Mantiqiy tartib FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY. Shuning uchun WHERE da alias ham, agregat ham yo'q."</li><li><strong>WHERE qatorlarni, HAVING guruhlarni filtrlaydi.</strong> "WHERE guruhlashdan oldin qatorlarni, HAVING keyin guruhlarni filtrlaydi. WHERE paytida guruh yo'q, shuning uchun COUNT ni u yerda yozib bo'lmaydi."</li><li><strong>INNER JOIN faqat juftlarni, LEFT JOIN chap tomonni to'liq qoldiradi.</strong> "INNER faqat mos kelgan juftlarni qaytaradi. LEFT chap jadvalning hamma qatorini qaytaradi, mos qator bo'lmasa o'ng tomon NULL."</li><li><strong>LEFT JOIN dan keyin o'ng jadval shartini WHERE ga emas, ON ga yozing.</strong> "LEFT JOIN da o'ng jadval sharti ON ichida bo'lishi kerak, WHERE da u JOIN ni INNER ga aylantiradi."</li><li><strong>NULL bu "noma'lum", nol ham emas, bo'sh ham emas.</strong> "NULL bu noma'lum qiymat. Solishtiruv UNKNOWN beradi, shuning uchun IS NULL va NVL yoki COALESCE ishlataman."</li><li><strong>NOT IN ro'yxatida bitta NULL bo'lsa, natija butunlay bo'sh.</strong> "NOT IN ichida NULL bo'lsa so'rov bo'sh qaytadi, chunki id &lt;&gt; NULL UNKNOWN. Shuning uchun NOT EXISTS yoki IS NOT NULL."</li><li><strong>Ikkita "bittaga ko'p" JOIN summani ko'paytirib yuboradi.</strong> "Bu fan-out. Ikki 1:N bog'lanishni bitta so'rovda ulasam qatorlar ko'payadi, shuning uchun har birini avval guruhlayman."</li><li><strong>Oracle DATE ichida soat ham bor.</strong> "DATE da vaqt ham bor, shuning uchun BETWEEN emas, &gt;= va &lt; keyingi kun. Ustunga TRUNC qo'ymayman, aks holda indeks ishlamaydi."</li><li><strong>"Eng katta 10 ta" uchun FETCH FIRST.</strong> "ROWNUM saralashdan oldin beriladi, shuning uchun top-N uchun FETCH FIRST yoki ichki so'rovda ORDER BY."</li></ol><p><a href="p1-sql-poydevori.html#sodda">P1 ning «Sodda tilda» bo'limini ochish</a></p></details>
 <details><summary>P2. Analitik funksiyalar (9 ta)</summary><ol><li><strong>Analitik funksiya qatorlarni yig'maydi, har qatorga qo'shimcha ustun qo'shadi.</strong> "Analitik funksiya qatorlarni yo'qotmaydi: PARTITION BY guruhni, ORDER BY tartibni beradi va har qatorga natija qo'shiladi."</li><li><strong>PARTITION BY: "har biri uchun alohida".</strong> "PARTITION BY hisobni guruhlarga bo'ladi va har guruhda raqamlash yoki yig'indi qaytadan boshlanadi."</li><li><strong>ROW_NUMBER, RANK, DENSE_RANK: tenglarda farq qiladi.</strong> "Uchalasi ham tartib raqam beradi. ROW_NUMBER tenglarga ham har xil raqam, RANK tenglarga bir xil va keyin raqam tashlaydi, DENSE_RANK tashlamaydi."</li><li><strong>Analitik natijani WHERE da emas, tashqi so'rovda filtrlang.</strong> "Har guruhdan top-N: ichki so'rovda ROW_NUMBER yoki DENSE_RANK, tashqi so'rovda WHERE rn &lt;= N."</li><li><strong>LAG va LEAD: oldingi va keyingi qatorga qarash.</strong> "LAG va LEAD self join o'rniga: oldingi yoki keyingi qatorni bitta o'qishda olaman."</li><li><strong>Yig'ma jami: SUM(...) OVER (ORDER BY ...).</strong> "Yig'ma jami SUM OVER ORDER BY bilan. Sukut ramkasi RANGE, bir xil sanalar birga qo'shiladi, shuning uchun aniqlik uchun ROWS yozaman."</li><li><strong>WITH: katta so'rovni nomlangan qadamlarga bo'lish.</strong> "WITH murakkab so'rovni qadamlarga bo'ladi; rekursiv WITH esa ierarxiya uchun."</li><li><strong>CONNECT BY: daraxtni yurish (rahbar va xodimlar, filiallar).</strong> "Ierarxiya uchun Oracle da CONNECT BY: START WITH ildiz, CONNECT BY PRIOR bog'lanish, LEVEL chuqurlik. Standart SQL da rekursiv WITH."</li><li><strong>MERGE: "bor bo'lsa yangila, yo'q bo'lsa qo'sh" bitta buyruqda.</strong> "MERGE upsert: bitta buyruqda mos kelsa UPDATE, kelmasa INSERT. Manbadagi takror kalit ORA-30926 beradi, uni avval tozalayman."</li></ol><p><a href="p2-analitik-funksiyalar.html#sodda">P2 ning «Sodda tilda» bo'limini ochish</a></p></details>
 <details><summary>P3. PL/SQL asoslari (8 ta)</summary><ol><li><strong>PL/SQL: SQL ga "agar", "takrorla" va "xato bo'lsa" qo'shilgan til.</strong> "PL/SQL Oracle ning protsedurali tili: SQL ustiga o'zgaruvchilar, shartlar, sikllar va exception lar."</li><li><strong>Blok to'rt qismdan iborat: DECLARE, BEGIN, EXCEPTION, END.</strong> "Blok: e'lonlar, bajariladigan qism va exception qismi."</li><li><strong>%TYPE: o'zgaruvchi turini jadval ustunidan olish.</strong> "Turni qattiq yozmay, %TYPE va %ROWTYPE bilan ustunga bog'layman: jadval o'zgarsa kod buzilmaydi."</li><li><strong>SELECT INTO aniq bitta qator kutadi.</strong> "SELECT INTO nol qatorda NO_DATA_FOUND, ko'p qatorda TOO_MANY_ROWS beradi; ko'p qator bo'lishi mumkin bo'lsa kursor."</li><li><strong>Kursor: ko'p qatorni birma-bir o'qish.</strong> "Ko'p qator uchun kursor, odatda kursorli FOR sikl. Katta hajmda esa BULK COLLECT (P5)."</li><li><strong>Exception: xato bo'lsa nima qilish.</strong> "Kutilgan xatolarni nomi bilan ushlayman, o'z xatolarim uchun -20000 dan -20999 gacha kod."</li><li><strong>WHEN OTHERS THEN NULL: eng xavfli qator.</strong> "WHEN OTHERS THEN NULL xatoni yashiradi. Men log yozib, RAISE bilan qayta ko'taraman."</li><li><strong>Har qatorda alohida SQL sekin: "slow by slow".</strong> "Qatorma-qator ishlash har qatorda kontekst almashinuvi. Avval bitta SQL, keyin BULK COLLECT va FORALL."</li></ol><p><a href="p3-plsql-asoslari.html#sodda">P3 ning «Sodda tilda» bo'limini ochish</a></p></details>
@@ -77,7 +76,7 @@
 </section>
 
 <h2 id="darslar">Darslar bo'yicha xulosa</h2>
-<p>Har dars uch qismda: asosiy fikr, darsda nimalar o'tilgani va amaliyotdagi tuzoqlar. Suhbatda savolga javob berganda xuddi shu tartibda gapiring: nima, qanday ishlaydi, qanday xatoga olib keladi va qanday to'g'ri qilinadi.</p>
+<p>Har dars uch qismda: asosiy fikr, darsda nimalar o'tilgani va amaliyotdagi tuzoqlar. Savolga javob berganda xuddi shu tartibda gapiring: nima, qanday ishlaydi, qanday xatoga olib keladi va qanday to'g'ri qilinadi.</p>
 <section class="sum" id="d1">
 <h3><span class="part">P1</span>SQL poydevori</h3>
 <p class="sum-core">SQL deklarativ: siz natijani tasvirlaysiz, yo'lni Oracle tanlaydi. Mantiqiy tartib FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY, FETCH, shuning uchun WHERE da alias va agregat yo'q. JOIN turlari juftsiz qator bilan nima qilish bilan farq qiladi, ON va WHERE ning o'rni har xil, birga-ko'p JOIN qatorlarni ko'paytiradi. NULL uchinchi mantiqiy qiymat beradi, WHERE uni tashlaydi, NOT IN ichidagi bitta NULL hammasini o'chiradi. Oracle'da '' bu NULL, ROWNUM esa ORDER BY dan oldin.</p>
@@ -179,7 +178,7 @@
 </section>
 
 <h2 id="faktlar">Faktlar va ORA kodlari</h2>
-<p>Suhbatda tez-tez so'raladigan aniq narsalar: xato kodlari, standart qiymatlar, versiyalar. Raqamni bilish yaxshi, lekin undan muhimi: xato nega chiqadi va nima qilinadi.</p>
+<p>Tez-tez so'raladigan aniq narsalar: xato kodlari, standart qiymatlar, versiyalar. Raqamni bilish yaxshi, lekin undan muhimi: xato nega chiqadi va nima qilinadi.</p>
 <div class="scroll">
 <table>
 <thead><tr><th>Mavzu</th><th>Fakt</th><th>Dars</th></tr></thead>
@@ -468,8 +467,8 @@
   <dt>SQL injection</dt><dd>Foydalanuvchi matni SQL ning bir qismi bo'lib bajarilishi.</dd>
   <dt>ORM, N+1</dt><dd>Qatorlarni obyektlarga moslovchi qatlam; har element uchun alohida so'rov muammosi.</dd></dl></details>
 
-<h2 id="savollar">Suhbat savollari va namunaviy javoblar</h2>
-<p>Har darsning «Suhbatda» qismi bir joyga yig'ilgan. Ishlash tartibi: savolni o'qing, javobni ovoz chiqarib 1–2 daqiqada ayting, keyin namunaviy javobni ochib solishtiring. Javob tuzilishi: ta'rif, ichkarida qanday ishlaydi, bank misoli, tuzoq va to'g'ri yo'l.</p>
+<h2 id="savollar">Savol-javoblar</h2>
+<p>Har darsning «Savol-javob» qismi bir joyga yig'ilgan. Ishlash tartibi: savolni o'qing, javobni ovoz chiqarib 1–2 daqiqada ayting, keyin namunaviy javobni ochib solishtiring. Javob tuzilishi: ta'rif, ichkarida qanday ishlaydi, bank misoli, tuzoq va to'g'ri yo'l.</p>
 <details class="grp"><summary>P1. SQL poydevori (16 ta savol)</summary><div class="grp-in"><p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Namunaviy javob yod olish uchun emas: undagi asosiy fikrlar sizning javobingizda bo'lishi kerak.</p>
 <details><summary>SELECT so'rovi qanday tartibda bajariladi?</summary>
 <p>Mantiqiy tartib: FROM va JOIN (manbalar yig'iladi), WHERE (qatorlar filtrlanadi), GROUP BY (guruhlarga bo'linadi), HAVING (guruhlar filtrlanadi), SELECT (ifodalar va aliaslar hisoblanadi), DISTINCT, ORDER BY, va oxirida OFFSET/FETCH yoki tashqi ROWNUM. Shundan xulosalar: WHERE da SELECT aliasi va agregat ishlamaydi, ORDER BY da alias ishlaydi. Bu mantiqiy tartib: optimizator fizik tartibni o'zgartirishi mumkin, masalan filtrni JOIN dan oldin qo'llash yoki view ichiga kiritish, lekin natija o'zgarmaydi.</p></details>
@@ -752,49 +751,11 @@
 <p>88 ta savol, har darsdan 8 tadan. Har javobdan keyin izoh va darsga havola chiqadi. Savollar va variantlar har safar aralashtiriladi. Bitta dars bo'yicha alohida ishlash ham mumkin; oxirida darslar bo'yicha natija jadvali va faqat xatolarni qayta ishlash tugmasi.</p>
 <div class="bench" id="quiz"></div>
 
-<h2 id="mashq">Suhbat mashqi</h2>
-<p>Bilim bor, lekin suhbatda uni ishonchli gapirib berish alohida ko'nikma. Oldingi mashqlarda kuchli tomonlar karta moduli va yadro tizimi bo'ldi, mashq kerak bo'lganlari esa SQL nazariyasi (HAVING, RANK, NOT IN va NULL), keys tahlil usuli va «bilmayman» o'rniga ovoz chiqarib fikrlash. Quyidagilar shularga qaratilgan.</p>
+<h2 id="mashq">Amaliy mashq</h2>
+<p>Bilim bor, lekin uni ishonchli gapirib berish va qog'ozda yozib berish alohida ko'nikma. Bu qismda amaliy SQL vazifalar, og'zaki takrorlash rejasi va ruscha atamalar.</p>
 
-<h3><span class="part">1</span>O'zingizni tanishtirish (60–90 soniya)</h3>
-<p>Tuzilish: kim, nima qilgan, nimani yaxshi biladi, nega aynan shu vakansiya. Quyidagi namunani o'z so'zlaringiz va aniq raqamlaringiz bilan moslang va soat bilan bir necha marta ovoz chiqarib ayting.</p>
-<div class="rule">
-  <p>«Men Sadullaman, bank yadro tizimini ishlab chiqaradigan kompaniyada backend dasturchiman, asosiy stekim PL/SQL va Java. Kundalik ishim tizimning Oracle qismi: modul paketlari, provodkalar, integratsiyalar va hisobotlar. Eng yaxshi bilganim karta moduli: shartnoma va karta tuzilishi, protsessingdan keladigan tranzaksiyalar va ularning buxgalteriyaga tushishi.»</p>
-  <p>«So'nggi loyihalarimda regulyator hisobotlari uchun ma'lumotlarni tizim jadvallaridan avtomatik yig'ish arxitekturasini loyihaladim va korporativ internet-bankda to'lovlarni tashqi antifrod tizimi bilan tekshirish integratsiyasini yozdim: PL/SQL paketlar, holatlar, timeout va xatolarni qayta ishlash. Ilgari Android dasturchi bo'lib ishlaganman, shuning uchun bazani chaqiradigan ilova tomonini ham yaxshi tushunaman.»</p>
-  <p>«Sizning vakansiyangiz aynan shu: bankda Oracle va PL/SQL, katta hajmdagi ma'lumot va so'rovlarni tezlashtirish. Yadro tizimini ichkaridan biladigan dasturchi sifatida bank tomonida ishlab, foyda keltira olaman.»</p>
-  <p class="why">Raqam va aniq modul nomlari ishonch beradi. Ichki jadval va paket nomlarini, mijoz banklar nomlarini aytmang: «bitta yirik bank uchun» yetarli.</p>
-</div>
-
-<h3><span class="part">2</span>Qiyin savollar</h3>
-<details><summary>«Siz vendor tomonda ishlagansiz. Bank tomonidagi ish farq qiladi, bunga tayyormisiz?»</summary>
-<p>Farqni o'zingiz ayting: «Vendorda bir tizimni ko'p bank uchun qilamiz, bankda esa bitta bankning ehtiyoji, prod ma'lumot hajmi va ichki jarayonlar: o'zgarish so'rovlari, DBA bilan ishlash, audit. Yadro tizimini ichkaridan bilishim bu yerda ustunlik: muammoni tezroq topaman va vendor bilan bir tilda gaplashaman.»</p></details>
-<details><summary>«Kredit modulini yaxshi bilasizmi?»</summary>
-<p>Halol va dalil bilan: «Eng chuqur bilganim karta moduli. Kreditni umumiy tuzilish darajasida bilaman: shartnoma, hisob turlari, grafiklar, foiz hisoblash va muddati o'tganga o'tkazish, provodka shablonlari. Modullar bir xil skeletda qurilgan, shuning uchun yangisini tez o'rganaman.» Keyin P10 dagi modul skeletini qisqacha ayting.</p></details>
-<details><summary>«Sekin so'rovni qanday tezlashtirgansiz? Aniq misol.»</summary>
-<p>STAR bilan, raqamlar bilan: qaysi ekran yoki job, qanday aniqlandi (AWR yoki V$SQL dan SQL_ID), haqiqiy reja (DISPLAY_CURSOR, E-Rows va A-Rows), sabab (partitsiya kaliti yo'q, sanaga TRUNC, satr ulangan SQL, qatorma-qator sikl), yechim va natija («40 daqiqadan 3 daqiqaga»). Agar haqiqiy misolingiz kichik bo'lsa ham, uni to'liq va aniq ayting: to'qib chiqarilgan katta misoldan yaxshi.</p></details>
-<details><summary>«Bu savolga javobni bilmaysizmi?»</summary>
-<p>Jim qolmang va «bilmayman» bilan to'xtamang: «Aniq eslay olmayapman, lekin men shunday mulohaza qilaman...» va mantiqiy fikr: nima bilasiz, qanday tekshirardingiz (hujjat, kichik test, reja). Suhbatchi fikrlash usulini baholaydi.</p></details>
-<details><summary>«Kuchsiz tomoningiz nima?»</summary>
-<p>Haqiqiy, lekin ustida ishlayotgan narsa: «Nazariyani gapirib berish. Amaliyotda qilaman, lekin nega shunday ishlashini tushuntirishga kam e'tibor bergandim. Shuning uchun hozir har mavzuni ichkaridan o'rganyapman: masalan, COMMIT da aslida LGWR redo ni yozishi va bloklar keyinroq yozilishi.»</p></details>
-<details><summary>«Toshkentda yoki Andijonda ishlashga tayyormisiz?»</summary>
-<p>Oldindan aniq qaror qiling va xotirjam ayting: qaysi shahar, qachondan, masofaviy yoki gibrid ish mumkinmi degan savol bilan. Noaniq javob «hali o'ylamagan» degan taassurot beradi.</p></details>
-<details><summary>«Qancha maosh kutyapsiz?»</summary>
-<p>Bozor va vakansiya darajasi bo'yicha oldindan aniq diapazon tayyorlang va uni xotirjam ayting. Birinchi bo'lib aytishni xohlamasangiz: «Vazifalar va jamoa bilan tanishib, sizning diapazoningizni bilsam, aniqroq aytaman».</p></details>
-
-<h3><span class="part">3</span>Amaliyotdan hikoyalar (STAR)</h3>
-<p>«Murakkab vazifa haqida gapirib bering» savoliga tayyor uchta hikoya. Tuzilish STAR: vaziyat (Situation), vazifa (Task), nima qildingiz (Action), natija raqamlar bilan (Result). Har biri 2 daqiqa. Tafsilotlarni o'zingiz to'ldirasiz, ichki nomlarsiz.</p>
-<div class="scroll">
-<table>
-<thead><tr><th>Hikoya</th><th>Nimani ko'rsatadi</th><th>Qaysi darslarga bog'lanadi</th></tr></thead>
-<tbody>
-<tr><td><strong>Karta tranzaksiyalari buxgalteriyaga.</strong> Protsessingdan kelgan fayl, yuklash, xato qatorlar, guruhlash, provodkalar, bank va protsessing holatini solishtirish.</td><td>Yadro tizimini bilish, katta hajm, xatolarga chidamlilik</td><td>P5, P8, P10</td></tr>
-<tr><td><strong>Regulyator hisobotlari uchun ma'lumot yig'ish.</strong> Talablarni tizim jadvallariga moslash, alohida sxemada faqat o'qish huquqi bilan, to'liq va o'zgarish rejimlari.</td><td>Loyihalash, hujjatdan boshlash, ma'lumot sifati</td><td>P1, P2, P9, P11</td></tr>
-<tr><td><strong>To'lovni tashqi antifrod tizimida tekshirish.</strong> Yuborishdan oldingi joy, HTTP chaqiruv va timeout, standart qaror, holatlar, qayta tekshiruv natijasini qabul qilish.</td><td>Integratsiya, tranzaksiya chegarasi, ehtiyotkor o'zgarish</td><td>P4, P8, P10, P11</td></tr>
-</tbody>
-</table>
-</div>
-
-<h3><span class="part">4</span>Jonli SQL vazifalar</h3>
-<p>Ko'p suhbatda doskada yoki muharrirda SQL yozdiriladi. Odatiy vazifalar va ularning kaliti. Avval o'zingiz yozing, keyin oching. Yozayotganda ovoz chiqarib fikrlang: qaysi jadval, qaysi kalit, NULL bo'lsa nima.</p>
+<h3><span class="part">1</span>Amaliy SQL vazifalar</h3>
+<p>Odatiy amaliy vazifalar va ularning kaliti. Avval o'zingiz yozing, keyin oching. Yozayotganda ovoz chiqarib fikrlang: qaysi jadval, qaysi kalit, NULL bo'lsa nima.</p>
 <details><summary>Har filialda eng katta qoldiqli 3 ta hisob</summary>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT filial, hisob, qoldiq
 FROM (SELECT h.*, ROW_NUMBER() OVER (PARTITION BY filial ORDER BY qoldiq DESC, hisob) rn
@@ -835,25 +796,23 @@ ORDER SIBLINGS BY nom;</pre></details>
 <details><summary>PL/SQL: 5 million qatorli jadvalda status ni yangilash, xatolarni logga yozib</summary>
 <p>Avval: bitta UPDATE yetadimi? Ko'pincha ha. Agar har qatorga murakkab mantiq kerak bo'lsa: kursor, <span class="num">BULK COLLECT LIMIT 1000</span>, <span class="num">FORALL ... SAVE EXCEPTIONS</span>, xatolar SQL%BULK_EXCEPTIONS dan xato jadvaliga, COMMIT siklda emas (yoki kelishilgan bo'laklar bilan va qayta ishga tushirsa bo'ladigan qilib). Juda katta bo'lsa: DBMS_PARALLEL_EXECUTE yoki CTAS bilan yangi jadval (P5).</p></details>
 
-<h3><span class="part">5</span>Suhbat mashqi rejasi (60 daqiqa)</h3>
-<p>Bank PL/SQL vakansiyasidagi odatiy texnik suhbat tartibi. Chatda «mock suhbat qilamiz» deb yozsangiz, xuddi shu tartibda savol beraman va har javobingizga baho va tuzatish bilan javob qaytaraman.</p>
+<h3><span class="part">2</span>Og'zaki takrorlash rejasi (60 daqiqa)</h3>
+<p>Mavzularni shu tartibda ovoz chiqarib takrorlang. Chatda «savol-javob mashqi» deb yozsangiz, xuddi shu tartibda savol beraman va har javobga baho va tuzatish bilan javob qaytaraman.</p>
 <div class="scroll">
 <table>
-<thead><tr><th>Daqiqa</th><th>Bosqich</th><th>Kutiladigan savollar</th><th>Darslar</th></tr></thead>
+<thead><tr><th>Daqiqa</th><th>Mavzu</th><th>Savollar</th><th>Darslar</th></tr></thead>
 <tbody>
-<tr><td class="num">0–5</td><td>Tanishuv</td><td>O'zingiz haqingizda, oxirgi loyiha, nega shu vakansiya</td><td>Mashq 1</td></tr>
-<tr><td class="num">5–20</td><td>SQL</td><td>JOIN turlari, WHERE va HAVING, NULL, NOT IN va NOT EXISTS, analitik funksiyalar, MERGE, jonli SQL vazifa</td><td>P1, P2</td></tr>
-<tr><td class="num">20–32</td><td>PL/SQL</td><td>Exception va tarqalish, kursorlar, paket spec va body, paket holati, triggerlar va mutating table, BULK COLLECT va FORALL, dinamik SQL</td><td>P3–P5</td></tr>
-<tr><td class="num">32–45</td><td>Tezlik</td><td>Sekin so'rovni qanday tahlil qilasiz, reja o'qish, indeks turlari, nega indeks ishlatilmadi, statistika, bind va parse</td><td>P6, P7</td></tr>
-<tr><td class="num">45–52</td><td>Tranzaksiya va qulflar</td><td>ACID, undo va redo, read consistency, deadlock, lost update, FOR UPDATE, avtonom tranzaksiya</td><td>P8</td></tr>
-<tr><td class="num">52–57</td><td>Loyihalash va bank</td><td>Normallashtirish, kalitlar, partitsiya, pul turi; provodka, qoldiq, kun yopish; Git, deploy, JDBC</td><td>P9–P11</td></tr>
-<tr><td class="num">57–60</td><td>Sizning savollaringiz</td><td>Pastdagi ro'yxatdan 2–3 tasi</td><td>Mashq 7</td></tr>
+<tr><td class="num">0–15</td><td>SQL</td><td>JOIN turlari, WHERE va HAVING, NULL, NOT IN va NOT EXISTS, analitik funksiyalar, MERGE, amaliy SQL vazifa</td><td>P1, P2</td></tr>
+<tr><td class="num">15–28</td><td>PL/SQL</td><td>Exception va tarqalish, kursorlar, paket spec va body, paket holati, triggerlar va mutating table, BULK COLLECT va FORALL, dinamik SQL</td><td>P3–P5</td></tr>
+<tr><td class="num">28–42</td><td>Tezlik</td><td>Sekin so'rovni qanday tahlil qilasiz, reja o'qish, indeks turlari, nega indeks ishlatilmadi, statistika, bind va parse</td><td>P6, P7</td></tr>
+<tr><td class="num">42–50</td><td>Tranzaksiya va qulflar</td><td>ACID, undo va redo, read consistency, deadlock, lost update, FOR UPDATE, avtonom tranzaksiya</td><td>P8</td></tr>
+<tr><td class="num">50–60</td><td>Loyihalash va bank</td><td>Normallashtirish, kalitlar, partitsiya, pul turi; provodka, qoldiq, kun yopish; Git, deploy, JDBC</td><td>P9–P11</td></tr>
 </tbody>
 </table>
 </div>
 
-<h3><span class="part">6</span>Ruscha atamalar</h3>
-<p>Bank jamoalarida ish tili ko'pincha rus tili. Suhbat ruschaga o'tib ketsa, atamalar tayyor tursin.</p>
+<h3><span class="part">3</span>Ruscha atamalar</h3>
+<p>Bank jamoalarida ish tili ko'pincha rus tili, shuning uchun atamalar tayyor tursin.</p>
 <div class="scroll">
 <table>
 <thead><tr><th>O'zbekcha</th><th>Ruscha</th><th>Inglizcha</th></tr></thead>
@@ -884,25 +843,6 @@ ORDER SIBLINGS BY nom;</pre></details>
 </table>
 </div>
 
-<h3><span class="part">7</span>Ish beruvchiga savollar</h3>
-<ul>
-  <li>Qaysi yadro tizimi va Oracle versiyasi ishlatiladi; bank tomonda qanday ishlar qilinadi: o'z modullari, integratsiyalar, hisobotlar?</li>
-  <li>Jamoa: nechta PL/SQL dasturchi, DBA, Java dasturchilar, testchilar; kod review qanday?</li>
-  <li>Kod qanday versiyalanadi va prod ga qanday chiqariladi: Git, migratsiya skriptlari, o'zgarish oynalari?</li>
-  <li>Prod ma'lumotlariga va AWR kabi tahlil vositalariga dasturchining kirishi qanday?</li>
-  <li>Eng og'riqli muammolar hozir nima: kun yopish vaqti, hisobot tezligi, integratsiyalar?</li>
-  <li>Birinchi 3 oyda mendan qanday natija kutasiz?</li>
-</ul>
-
-<h3><span class="part">8</span>Suhbatdan oldingi kun</h3>
-<ul>
-  <li>Testni to'liq ishlang; 70% dan past darslarni qayta o'qing.</li>
-  <li>«Suhbat savollari»dan har darsdan 2 tasini ovoz chiqarib javob bering.</li>
-  <li>Jonli SQL vazifalardan 3 tasini qog'ozda, yordamsiz yozing.</li>
-  <li>O'zingizni tanishtirishni soat bilan 3 marta ayting; STAR hikoyalaridagi raqamlarni eslang.</li>
-  <li>Onlayn bo'lsa: kamera, mikrofon, internet, ekran ulashish; SQL yozish uchun muharrir ochiq tursin.</li>
-  <li>Bilmagan savolga: «Aniq bilmayman, lekin men shunday mulohaza qilaman...» va mantiqiy fikr. Bu jimlikdan va to'qib chiqarishdan yaxshi.</li>
-</ul>
 
 <h2 id="ogzaki">Og'zaki tekshiruv savollari</h2>
 <p>Har darsning oxiridagi tekshiruv savollari bir joyda. Variant yo'q: javobni o'z so'zingiz bilan ayting yoki chatga yozing, tekshirib beraman.</p>
@@ -957,8 +897,8 @@ ORDER SIBLINGS BY nom;</pre></details>
   <li>Java servisi ikki protsedurani chaqiradi: kredit berish va pulni mijoz hisobiga o'tkazish. Tranzaksiyani to'g'ri qilib yozing (psevdokod yetarli) va xato kodi -20102 ni biznes xatoga aylantiring.</li></ol></details>
 
 <div class="next">
-  <p><strong>Bo'lim tugadi.</strong> SQL va analitik so'rovlar, PL/SQL dasturlari va katta hajm, Oracle ichki tuzilishi, indeks va reja, tranzaksiya va qulflar, loyihalash va partitsiyalar, bank yadro tizimi, Git va JDBC. Endi testni to'liq ishlang, past darslarni qayta o'qing va suhbat mashqini boshlang.</p>
-  <p><strong>Keyingi qadam.</strong> Chatda «mock suhbat qilamiz» deb yozing: yuqoridagi reja bo'yicha savol beraman va har javobingizga baho va tuzatish bilan javob qaytaraman.</p>
+  <p><strong>Bo'lim tugadi.</strong> SQL va analitik so'rovlar, PL/SQL dasturlari va katta hajm, Oracle ichki tuzilishi, indeks va reja, tranzaksiya va qulflar, loyihalash va partitsiyalar, bank yadro tizimi, Git va JDBC. Endi testni to'liq ishlang, past darslarni qayta o'qing va amaliy vazifalarni yozib ko'ring.</p>
+  <p><strong>Keyingi qadam.</strong> Senior darajasidagi mavzular va vaziyat savollari keyingi sahifada.</p>
 </div>
 <nav class="pager" aria-label="Darslar orasida"><a href="p11-git-hujjat-jdbc.html">Oldingi: P11. Git, hujjat, integratsiya</a><a href="senior-kalit-mavzular.html">Keyingi: senior kalit mavzular</a></nav>
 </main>

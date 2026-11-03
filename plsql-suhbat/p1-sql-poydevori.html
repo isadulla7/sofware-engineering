@@ -17,14 +17,14 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: 15 daqiqada</h2>
-<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik SQL va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik SQL va og'zaki aytiladigan qisqa javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
 
 <div class="idea">
 <h3>1. SQL da siz "nima kerak"ni aytasiz, "qanday topish"ni Oracle hal qiladi</h3>
 <p class="hayot">Taksiga o'tirib "Chorsuga" deysiz. Qaysi ko'chadan borishni haydovchi o'zi tanlaydi.</p>
 <p class="qoida"><strong>Qoida:</strong> SQL so'rovi natijani tasvirlaydi. Qaysi indeksdan o'qish, jadvallarni qanday ulashni Oracle ning "haydovchisi", ya'ni <strong>optimizator</strong> tanlaydi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT ism FROM mijozlar WHERE filial = '01';   -- "01-filial mijozlarining ismi kerak"</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "SQL deklarativ til: men natijani yozaman, bajarish yo'lini optimizator tanlaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "SQL deklarativ til: men natijani yozaman, bajarish yo'lini optimizator tanlaydi."</p>
 </div>
 
 <div class="idea">
@@ -34,7 +34,7 @@
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT summa * 2 AS ikki_baravar FROM tolovlar
 WHERE ikki_baravar &gt; 100      -- XATO: WHERE paytida bu nom hali yo'q
 ORDER BY ikki_baravar;         -- bu yerda ishlaydi</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Mantiqiy tartib FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY. Shuning uchun WHERE da alias ham, agregat ham yo'q."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Mantiqiy tartib FROM, WHERE, GROUP BY, HAVING, SELECT, ORDER BY. Shuning uchun WHERE da alias ham, agregat ham yo'q."</p>
 </div>
 
 <div class="idea">
@@ -45,7 +45,7 @@ ORDER BY ikki_baravar;         -- bu yerda ishlaydi</pre>
 WHERE holat = 'OCHIQ'          -- qatorlar: faqat ochiq hisoblar
 GROUP BY filial
 HAVING COUNT(*) &gt; 1000;       -- guruhlar: 1000 dan ko'p hisobi bor filiallar</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "WHERE guruhlashdan oldin qatorlarni, HAVING keyin guruhlarni filtrlaydi. WHERE paytida guruh yo'q, shuning uchun COUNT ni u yerda yozib bo'lmaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "WHERE guruhlashdan oldin qatorlarni, HAVING keyin guruhlarni filtrlaydi. WHERE paytida guruh yo'q, shuning uchun COUNT ni u yerda yozib bo'lmaydi."</p>
 </div>
 
 <div class="idea">
@@ -54,7 +54,7 @@ HAVING COUNT(*) &gt; 1000;       -- guruhlar: 1000 dan ko'p hisobi bor filiallar
 <p class="qoida"><strong>Qoida:</strong> "Hammasi kerak, bo'lmasa bo'sh tursin" desa LEFT JOIN. "Faqat ikkalasida ham borlar" desa INNER JOIN.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT m.ism, h.hisob
 FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id;   -- hisobi yo'q mijoz ham chiqadi, hisob = NULL</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "INNER faqat mos kelgan juftlarni qaytaradi. LEFT chap jadvalning hamma qatorini qaytaradi, mos qator bo'lmasa o'ng tomon NULL."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "INNER faqat mos kelgan juftlarni qaytaradi. LEFT chap jadvalning hamma qatorini qaytaradi, mos qator bo'lmasa o'ng tomon NULL."</p>
 </div>
 
 <div class="idea">
@@ -65,7 +65,7 @@ FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id;   -- hisobi yo'q mijo
 ... LEFT JOIN hisoblar h ON h.mijoz_id = m.id WHERE h.valyuta = '840';
 -- to'g'ri:
 ... LEFT JOIN hisoblar h ON h.mijoz_id = m.id AND h.valyuta = '840';</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "LEFT JOIN da o'ng jadval sharti ON ichida bo'lishi kerak, WHERE da u JOIN ni INNER ga aylantiradi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "LEFT JOIN da o'ng jadval sharti ON ichida bo'lishi kerak, WHERE da u JOIN ni INNER ga aylantiradi."</p>
 </div>
 
 <div class="idea">
@@ -75,7 +75,7 @@ FROM mijozlar m LEFT JOIN hisoblar h ON h.mijoz_id = m.id;   -- hisobi yo'q mijo
 <pre class="code" style="margin:0.5rem 0 1rem">WHERE telefon = NULL      -- hech qachon ishlamaydi
 WHERE telefon IS NULL     -- to'g'ri
 SELECT NVL(telefon, 'yo''q') FROM mijozlar;   -- NULL o'rniga qiymat</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "NULL bu noma'lum qiymat. Solishtiruv UNKNOWN beradi, shuning uchun IS NULL va NVL yoki COALESCE ishlataman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "NULL bu noma'lum qiymat. Solishtiruv UNKNOWN beradi, shuning uchun IS NULL va NVL yoki COALESCE ishlataman."</p>
 </div>
 
 <div class="idea">
@@ -84,7 +84,7 @@ SELECT NVL(telefon, 'yo''q') FROM mijozlar;   -- NULL o'rniga qiymat</pre>
 <p class="qoida"><strong>Qoida:</strong> <span class="num">NOT IN (... NULL ...)</span> doim bo'sh natija beradi. O'rniga <span class="num">NOT EXISTS</span>.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT h.hisob FROM hisoblar h
 WHERE NOT EXISTS (SELECT 1 FROM bloklar b WHERE b.hisob = h.hisob);</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "NOT IN ichida NULL bo'lsa so'rov bo'sh qaytadi, chunki id &lt;&gt; NULL UNKNOWN. Shuning uchun NOT EXISTS yoki IS NOT NULL."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "NOT IN ichida NULL bo'lsa so'rov bo'sh qaytadi, chunki id &lt;&gt; NULL UNKNOWN. Shuning uchun NOT EXISTS yoki IS NOT NULL."</p>
 </div>
 
 <div class="idea">
@@ -95,7 +95,7 @@ WHERE NOT EXISTS (SELECT 1 FROM bloklar b WHERE b.hisob = h.hisob);</pre>
 FROM mijozlar m
 LEFT JOIN (SELECT mijoz_id, COUNT(*) soni FROM kartalar GROUP BY mijoz_id) k ON k.mijoz_id = m.id
 LEFT JOIN (SELECT mijoz_id, SUM(summa) jami FROM tolovlar GROUP BY mijoz_id) t ON t.mijoz_id = m.id;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Bu fan-out. Ikki 1:N bog'lanishni bitta so'rovda ulasam qatorlar ko'payadi, shuning uchun har birini avval guruhlayman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Bu fan-out. Ikki 1:N bog'lanishni bitta so'rovda ulasam qatorlar ko'payadi, shuning uchun har birini avval guruhlayman."</p>
 </div>
 
 <div class="idea">
@@ -103,7 +103,7 @@ LEFT JOIN (SELECT mijoz_id, SUM(summa) jami FROM tolovlar GROUP BY mijoz_id) t O
 <p class="hayot">"Oktabr oyidagi to'lovlar" dedingiz, lekin 31-oktabr kechqurun 18:00 dagi to'lov tushib qoldi: "31-oktabr" siz uchun butun kun, Oracle uchun esa faqat 00:00.</p>
 <p class="qoida"><strong>Qoida:</strong> kun oralig'ini "dan, gacha emas" deb yozing.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">WHERE sana &gt;= DATE '2026-10-01' AND sana &lt; DATE '2026-11-01'</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "DATE da vaqt ham bor, shuning uchun BETWEEN emas, &gt;= va &lt; keyingi kun. Ustunga TRUNC qo'ymayman, aks holda indeks ishlamaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "DATE da vaqt ham bor, shuning uchun BETWEEN emas, &gt;= va &lt; keyingi kun. Ustunga TRUNC qo'ymayman, aks holda indeks ishlamaydi."</p>
 </div>
 
 <div class="idea">
@@ -111,10 +111,10 @@ LEFT JOIN (SELECT mijoz_id, SUM(summa) jami FROM tolovlar GROUP BY mijoz_id) t O
 <p class="hayot">Avval eng baland 10 o'quvchini tanlash kerak, keyin saflash. ROWNUM esa avval tasodifiy 10 kishini olib, keyin ularni saflaydi.</p>
 <p class="qoida"><strong>Qoida:</strong> 12c dan <span class="num">ORDER BY ... FETCH FIRST 10 ROWS ONLY</span>. Eski usul: ichki so'rovda saralab, tashqarida ROWNUM.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT hisob, qoldiq FROM hisoblar ORDER BY qoldiq DESC FETCH FIRST 10 ROWS ONLY;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "ROWNUM saralashdan oldin beriladi, shuning uchun top-N uchun FETCH FIRST yoki ichki so'rovda ORDER BY."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "ROWNUM saralashdan oldin beriladi, shuning uchun top-N uchun FETCH FIRST yoki ichki so'rovda ORDER BY."</p>
 </div>
 
-<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 10 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P1 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 10 ta "Qisqa javob" gapini ko'rmasdan ayta olsangiz, P1 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
 </section>
 
 <div class="intro">
@@ -128,7 +128,7 @@ LEFT JOIN (SELECT mijoz_id, SUM(summa) jami FROM tolovlar GROUP BY mijoz_id) t O
     <ul>
       <li><strong>Hamma joyda:</strong> ekrandagi ro'yxat, hisobot, kun yopish jarayoni, Markaziy bankka yuboriladigan fayllar: hammasi oxir-oqibat <span class="num">SELECT</span>, <span class="num">INSERT</span>, <span class="num">UPDATE</span>, <span class="num">DELETE</span>.</li>
       <li><strong>Bankda:</strong> «filial bo'yicha bugungi to'lovlar», «hisobi yo'q mijozlar», «oxirgi kungi qoldiq» kabi so'rovlar har kuni yoziladi.</li>
-      <li><strong>Suhbatda:</strong> birinchi texnik savollar deyarli doim shu yerdan: <span class="num">WHERE</span> va <span class="num">HAVING</span> farqi, JOIN turlari, <span class="num">NOT IN</span> va <span class="num">NULL</span>.</li>
+      <li><strong>Qisqa javob:</strong> birinchi texnik savollar deyarli doim shu yerdan: <span class="num">WHERE</span> va <span class="num">HAVING</span> farqi, JOIN turlari, <span class="num">NOT IN</span> va <span class="num">NULL</span>.</li>
     </ul>
   </div>
   <div>
@@ -201,7 +201,7 @@ FETCH FIRST 2 ROWS ONLY;</pre>
   <div class="evo-tabs" id="ordT" style="margin-top:0.9rem"></div>
   <p class="say" id="ordSay" aria-live="polite"></p>
 </figure>
-<p>Shu tartibdan suhbatdagi uchta mashhur savolning javobi kelib chiqadi:</p>
+<p>Shu tartibdan uchta mashhur savolning javobi kelib chiqadi:</p>
 <ul>
   <li><strong>Nega <span class="num">WHERE jami &gt; 600</span> xato beradi?</strong> <span class="num">jami</span> nomi <span class="num">SELECT</span> da beriladi, <span class="num">SELECT</span> esa 5-bosqich. <span class="num">WHERE</span> 2-bosqichda ishlaydi va u paytda bunday nom hali yo'q: <span class="num">ORA-00904: invalid identifier</span>. <span class="num">ORDER BY jami</span> esa ishlaydi, chunki u <span class="num">SELECT</span> dan keyin.</li>
   <li><strong>Nega <span class="num">WHERE SUM(summa) &gt; 600</span> xato beradi?</strong> <span class="num">WHERE</span> har bir qatorni alohida tekshiradi, guruhlar hali yo'q, demak yig'indi ham yo'q: <span class="num">ORA-00934: group function is not allowed here</span>. Guruh bo'yicha filtr <span class="num">HAVING</span> ning ishi.</li>
@@ -234,7 +234,7 @@ FETCH FIRST 2 ROWS ONLY;</pre>
 
 <p class="beat">GROUP BY va agregatlar</p>
 <p><strong>Agregat funksiya</strong> ko'p qatordan bitta qiymat chiqaradi: <span class="num">COUNT</span>, <span class="num">SUM</span>, <span class="num">AVG</span>, <span class="num">MIN</span>, <span class="num">MAX</span>, va Oracle'da yana <span class="num">LISTAGG</span> (qiymatlarni bitta satrga terish), <span class="num">MEDIAN</span>, <span class="num">STDDEV</span>. <span class="num">GROUP BY</span> bo'lmasa, butun natija bitta guruh. <span class="num">GROUP BY filial</span> bo'lsa, har filial alohida guruh va har biri uchun bitta qator.</p>
-<p>Agregatlarning <span class="num">NULL</span> bilan munosabati suhbatda ko'p so'raladi:</p>
+<p>Agregatlarning <span class="num">NULL</span> bilan munosabati ko'p so'raladi:</p>
 <ul>
   <li><span class="num">COUNT(*)</span> qatorlarni sanaydi, ichida nima borligiga qaramaydi. <span class="num">COUNT(1)</span> aynan shu narsa: Oracle ikkalasini bir xil bajaradi, «COUNT(1) tezroq» degan gap afsona.</li>
   <li><span class="num">COUNT(summa)</span> faqat <span class="num">summa</span> bo'sh bo'lmagan qatorlarni sanaydi. <span class="num">COUNT(DISTINCT filial)</span> esa nechta har xil filial borligini.</li>
@@ -367,7 +367,7 @@ SELECT * FROM hisoblar ORDER BY qoldiq DESC OFFSET 20 ROWS FETCH NEXT 10 ROWS ON
   <p class="why">To'g'risi: yarim ochiq oraliq: <span class="num">sana &gt;= DATE '2026-10-01' AND sana &lt; DATE '2026-11-01'</span>.</p>
 </div>
 
-<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<h3><span class="part">6. Savol-javob</span>Savol va namunaviy javoblar</h3>
 <p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Namunaviy javob yod olish uchun emas: undagi asosiy fikrlar sizning javobingizda bo'lishi kerak. Javob bilmasangiz, «bilmayman» demang: tartibni bilaman, shundan kelib chiqib o'ylayman, deb fikrlashni ovoz chiqarib davom ettiring.</p>
 <details><summary>SELECT so'rovi qanday tartibda bajariladi?</summary>
 <p>Mantiqiy tartib: FROM va JOIN (manbalar yig'iladi), WHERE (qatorlar filtrlanadi), GROUP BY (guruhlarga bo'linadi), HAVING (guruhlar filtrlanadi), SELECT (ifodalar va aliaslar hisoblanadi), DISTINCT, ORDER BY, va oxirida OFFSET/FETCH yoki tashqi ROWNUM. Shundan xulosalar: WHERE da SELECT aliasi va agregat ishlamaydi, ORDER BY da alias ishlaydi. Bu mantiqiy tartib: optimizator fizik tartibni o'zgartirishi mumkin, masalan filtrni JOIN dan oldin qo'llash yoki view ichiga kiritish, lekin natija o'zgarmaydi.</p></details>
@@ -403,7 +403,7 @@ SELECT * FROM hisoblar ORDER BY qoldiq DESC OFFSET 20 ROWS FETCH NEXT 10 ROWS ON
 <p>Agregatsiz bir xil natija beradi va Oracle ko'pincha bir xil reja tuzadi. GROUP BY bilan har guruhga agregat hisoblash mumkin, DISTINCT esa faqat takrorlarni olib tashlaydi. Amaliy maslahat: JOIN dan keyin takror chiqqani uchun DISTINCT qo'yish odatda xatoni yashirish: avval nega takror chiqqanini tushunish kerak.</p></details>
 
 <h3><span class="part">7. Tekshiruv</span></h3>
-<p>Javoblarni chatga yozing, men suhbatdoshdek baholayman. Jadvallar darsdagi misollardan: <span class="num">mijozlar(id, ism)</span>, <span class="num">hisoblar(raqam, mijoz_id, qoldiq)</span>, <span class="num">tolovlar(id, filial, summa, holat)</span>.</p>
+<p>Javoblarni chatga yozing, men tekshiruvchidek baholayman. Jadvallar darsdagi misollardan: <span class="num">mijozlar(id, ism)</span>, <span class="num">hisoblar(raqam, mijoz_id, qoldiq)</span>, <span class="num">tolovlar(id, filial, summa, holat)</span>.</p>
 <ol class="check">
   <li>Har bir filialdagi <span class="num">OK</span> to'lovlar soni va jami summasini chiqaring, faqat 3 tadan ko'p to'lovi bor filiallarni, summa bo'yicha kamayish tartibida.</li>
   <li>Hisobi yo'q mijozlarni ikki xil usulda toping. Ikkalasi qachon har xil natija beradi?</li>
@@ -658,7 +658,7 @@ SELECT * FROM hisoblar ORDER BY qoldiq DESC OFFSET 20 ROWS FETCH NEXT 10 ROWS ON
       how: `SQL qulayliklari: GROUP BY va HAVING da alias va pozitsiya, FROM siz SELECT, SQL da BOOLEAN turi, IF [NOT] EXISTS bilan DDL, VALUES dan jadval yasash. 26ai (2025-yil oktyabr) 23ai ning davomi.`,
       better: `Mantiqiy tartib tufayli bo'lgan noqulayliklarning bir qismi yengillashdi.`,
       pain: `Bu imkoniyatlar faqat yangi bazalarda: 19c kod bazasida eski qoidalar kuchda.`,
-      ex: `Suhbatda ish joyidagi Oracle versiyasini so'rab oling, javoblaringizni shunga moslang.` }
+      ex: `Ish joyidagi Oracle versiyasini aniqlab oling, javoblaringizni shunga moslang.` }
   ]);
 })();
 </script>

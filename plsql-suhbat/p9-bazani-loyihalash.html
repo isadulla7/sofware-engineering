@@ -17,7 +17,7 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: 15 daqiqada</h2>
-<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va og'zaki aytiladigan qisqa javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
 
 <div class="idea">
 <h3>1. Normallashtirish: har ma'lumot bir joyda</h3>
@@ -25,7 +25,7 @@
 <p class="qoida"><strong>Qoida:</strong> Har fakt bitta joyda saqlanadi, boshqalar unga kalit orqali murojaat qiladi. Takror va qarama-qarshi ma'lumot kamayadi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">mijozlar(id, ism, manzil)
 hisoblar(hisob, mijoz_id, ...)   -- manzil emas, mijoz_id</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Normallashtirish takrorni yo'qotadi va o'zgartirish anomaliyalaridan saqlaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Normallashtirish takrorni yo'qotadi va o'zgartirish anomaliyalaridan saqlaydi."</p>
 </div>
 
 <div class="idea">
@@ -34,7 +34,7 @@ hisoblar(hisob, mijoz_id, ...)   -- manzil emas, mijoz_id</pre>
 <p class="qoida"><strong>Qoida:</strong> Eslab qolish: "kalit, butun kalit va faqat kalit".</p>
 <pre class="code" style="margin:0.5rem 0 1rem">-- 3NF buzilishi: hisoblar(hisob, filial_id, filial_nomi)
 -- filial_nomi filial_id ga bog'liq, hisobga emas -&gt; filiallar jadvaliga</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "3NF: har kalit bo'lmagan ustun butun kalitga va faqat kalitga bog'liq."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "3NF: har kalit bo'lmagan ustun butun kalitga va faqat kalitga bog'liq."</p>
 </div>
 
 <div class="idea">
@@ -42,7 +42,7 @@ hisoblar(hisob, mijoz_id, ...)   -- manzil emas, mijoz_id</pre>
 <p class="hayot">Pasport raqami (unique), bazadagi ichki raqam (primary), va boshqa jadvaldagi "egasi kim" degan havola (foreign).</p>
 <p class="qoida"><strong>Qoida:</strong> Primary key qatorni aniq belgilaydi, unique takrorni taqiqlaydi, foreign key bog'langan qator borligini kafolatlaydi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">ALTER TABLE hisoblar ADD CONSTRAINT hisob_mijoz_fk FOREIGN KEY (mijoz_id) REFERENCES mijozlar(id);</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "PK aniqlaydi, UNIQUE takrorni to'xtatadi, FK bog'lanishni kafolatlaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "PK aniqlaydi, UNIQUE takrorni to'xtatadi, FK bog'lanishni kafolatlaydi."</p>
 </div>
 
 <div class="idea">
@@ -51,7 +51,7 @@ hisoblar(hisob, mijoz_id, ...)   -- manzil emas, mijoz_id</pre>
 <p class="qoida"><strong>Qoida:</strong> Pul: NUMBER(p, s) yoki butun tiyin, FLOAT emas. Hisob raqami, INN, telefon: VARCHAR2, chunki boshidagi nollar va arifmetika ma'nosiz.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">summa NUMBER(18,2),
 hisob VARCHAR2(20)</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Pul NUMBER da, kod va raqamlar VARCHAR2 da."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Pul NUMBER da, kod va raqamlar VARCHAR2 da."</p>
 </div>
 
 <div class="idea">
@@ -59,7 +59,7 @@ hisob VARCHAR2(20)</pre>
 <p class="hayot">Hisob qoldig'ini har safar 10 yillik provodkalardan qo'shib chiqmaysiz, tayyor qoldiq yozib qo'yiladi.</p>
 <p class="qoida"><strong>Qoida:</strong> Ba'zan hisoblangan qiymat alohida saqlanadi. Shart: u manba bilan bitta tranzaksiyada yangilansin va muntazam solishtirilsin.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">UPDATE hisoblar SET qoldiq = qoldiq + :s WHERE hisob = :h;   -- provodka bilan birga</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Qoldiq denormallashtirish: tezlik uchun alohida, lekin faqat provodka bilan birga yangilanadi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Qoldiq denormallashtirish: tezlik uchun alohida, lekin faqat provodka bilan birga yangilanadi."</p>
 </div>
 
 <div class="idea">
@@ -68,7 +68,7 @@ hisob VARCHAR2(20)</pre>
 <p class="qoida"><strong>Qoida:</strong> Jadval sana (range), ro'yxat (list) yoki xesh bo'yicha bo'linadi. Shartda partitsiya kaliti bo'lsa Oracle faqat kerakli bo'lakni o'qiydi (pruning).</p>
 <pre class="code" style="margin:0.5rem 0 1rem">CREATE TABLE tolovlar (...) PARTITION BY RANGE (sana)
 INTERVAL (NUMTOYMINTERVAL(1, 'MONTH')) (PARTITION p0 VALUES LESS THAN (DATE '2025-01-01'));</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Partitsiya katta jadvalni bo'laklaydi; pruning uchun shartda partitsiya kaliti bo'lishi kerak."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Partitsiya katta jadvalni bo'laklaydi; pruning uchun shartda partitsiya kaliti bo'lishi kerak."</p>
 </div>
 
 <div class="idea">
@@ -76,10 +76,10 @@ INTERVAL (NUMTOYMINTERVAL(1, 'MONTH')) (PARTITION p0 VALUES LESS THAN (DATE '202
 <p class="hayot">Eski yilning papkasini butunlay olib tashlash, har varaqni alohida yirtish o'rniga.</p>
 <p class="qoida"><strong>Qoida:</strong> DELETE millionlab qator uchun ko'p undo va redo yozadi. DROP yoki TRUNCATE PARTITION bir zumda.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">ALTER TABLE tolovlar DROP PARTITION p_2019 UPDATE INDEXES;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Eski ma'lumot partitsiya amali bilan tozalanadi; local indekslar buzilmaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Eski ma'lumot partitsiya amali bilan tozalanadi; local indekslar buzilmaydi."</p>
 </div>
 
-<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P9 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Qisqa javob" gapini ko'rmasdan ayta olsangiz, P9 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
 </section>
 
 <div class="intro">
@@ -94,7 +94,7 @@ INTERVAL (NUMTOYMINTERVAL(1, 'MONTH')) (PARTITION p0 VALUES LESS THAN (DATE '202
       <li><strong>Yangi modul va integratsiya:</strong> yangi mahsulot, yangi hisobot, tashqi tizim bilan almashinuv jadvallari.</li>
       <li><strong>Mavjud tizimni tushunish:</strong> yadro bank tizimida minglab jadval: qaysi biri asosiy, qaysi biri lug'at, qaysi biri tarix, qaysi biri yig'ma.</li>
       <li><strong>Tezlik va saqlash:</strong> tranzaksiya jadvallari yiliga yuzlab million qator o'sadi: partitsiya, arxivlash, siqish.</li>
-      <li><strong>Suhbatda:</strong> «normallashtirishni tushuntiring», «denormallashtirish qachon», «partitsiya turlari», «local va global indeks» klassik savollar.</li>
+      <li><strong>Qisqa javob:</strong> «normallashtirishni tushuntiring», «denormallashtirish qachon», «partitsiya turlari», «local va global indeks» klassik savollar.</li>
     </ul>
   </div>
   <div>
@@ -180,7 +180,7 @@ INTERVAL (NUMTOYMINTERVAL(1, 'MONTH')) (PARTITION p0 VALUES LESS THAN (DATE '202
   <li><strong>Composite kalit</strong>: bir necha ustunli. Oraliq jadvallarda tabiiy (<span class="num">hisob_id, shaxs_id</span>), lekin uni ko'p jadvallar foreign key qilib olsa, surrogate qulayroq.</li>
   <li><strong>NOT NULL</strong> va <strong>CHECK</strong>: <span class="num">CHECK (summa &gt; 0)</span>, <span class="num">CHECK (holat IN ('OCHIQ', 'YOPIQ', 'BLOK'))</span>, <span class="num">CHECK (yopilgan_sana IS NULL OR yopilgan_sana &gt;= ochilgan_sana)</span>. Cheklov bazada bo'lsa, uni hech bir ilova chetlab o'ta olmaydi va optimizator undan foydalanadi (NOT NULL bo'lsa indeksni COUNT(*) uchun ishlatadi).</li>
   <li><strong>Foreign key</strong>: bola qatori mavjud ota qatoriga ishora qilishini kafolatlaydi. <span class="num">ON DELETE CASCADE</span> (bolalar ham o'chiriladi) yoki <span class="num">ON DELETE SET NULL</span>; sukut: ota o'chirilmaydi (ORA-02292). Moliyaviy ma'lumotda CASCADE deyarli ishlatilmaydi: o'chirish emas, holat o'zgartirish. Foreign key ga indeks (P7). <span class="num">DEFERRABLE INITIALLY DEFERRED</span>: tekshiruv COMMIT da, aylanma bog'lanishlarni yuklash uchun.</li>
-  <li>Ba'zi yadro tizimlarida foreign key lar tezlik uchun bazada yo'q va butunlik PL/SQL API orqali saqlanadi. Bu ongli qaror bo'lishi mumkin, lekin narxi bor: «yetim» qatorlar va optimizator uchun kamroq ma'lumot. Suhbatda ikkala tomonni aytish kerak.</li>
+  <li>Ba'zi yadro tizimlarida foreign key lar tezlik uchun bazada yo'q va butunlik PL/SQL API orqali saqlanadi. Bu ongli qaror bo'lishi mumkin, lekin narxi bor: «yetim» qatorlar va optimizator uchun kamroq ma'lumot. Ikkala tomonni ham aytish kerak.</li>
 </ul>
 
 <p class="beat">To'g'ri tiplar</p>
@@ -279,7 +279,7 @@ INTERVAL (NUMTOYMINTERVAL(1, 'MONTH')) (PARTITION p0 VALUES LESS THAN (DATE '202
   <p class="why">To'g'risi: <span class="num">VARCHAR2(20)</span> va format <span class="num">CHECK</span> (uzunlik, faqat raqamlar: <span class="num">REGEXP_LIKE(raqam, '^\d{20}$')</span>).</p>
 </div>
 
-<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<h3><span class="part">6. Savol-javob</span>Savol va namunaviy javoblar</h3>
 <p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda doskaga kichik model chizib berish (mijoz, hisob, to'lov) ko'pincha so'raladi.</p>
 <details><summary>Normallashtirish nima va nima uchun kerak?</summary>
 <p>Har faktni bir joyda saqlash uchun jadvallarni ajratish qoidalari. Maqsad: takrorlanishni va undan kelib chiqadigan anomaliyalarni yo'qotish: update (bir nusxa yangilanib, boshqasi qolishi), insert (bog'liq bo'lmagan ma'lumotni kiritib bo'lmasligi), delete (bir narsani o'chirganda boshqasi ham yo'qolishi). 1NF: atomar qiymatlar, takroriy guruhlar yo'q. 2NF: hamma atribut butun kalitga bog'liq. 3NF: kalit bo'lmagan atributlar bir-biriga bog'liq emas. Misol: to'lovda mijoz familiyasini saqlash o'rniga mijoz_id, familiya mijozlar jadvalida. OLTP odatda 3NF gacha normallashtiriladi.</p></details>

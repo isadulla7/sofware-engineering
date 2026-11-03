@@ -17,14 +17,14 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: 15 daqiqada</h2>
-<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va og'zaki aytiladigan qisqa javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
 
 <div class="idea">
 <h3>1. Katta hajmda eng tez yo'l: bitta SQL</h3>
 <p class="hayot">Bitta yuk mashinasi 1000 ta qopni bir marta olib boradi. 1000 marta velosipedda borish shart emas.</p>
 <p class="qoida"><strong>Qoida:</strong> Avval "buni bitta UPDATE, INSERT ... SELECT yoki MERGE bilan yozsa bo'ladimi?" deb so'rang. Bo'lmasa BULK.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">INSERT INTO arxiv SELECT * FROM tolovlar WHERE sana &lt; DATE '2025-01-01';</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Katta hajmda birinchi tanlov bitta SQL, PL/SQL sikl esa oxirgi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Katta hajmda birinchi tanlov bitta SQL, PL/SQL sikl esa oxirgi."</p>
 </div>
 
 <div class="idea">
@@ -33,7 +33,7 @@
 <p class="qoida"><strong>Qoida:</strong> Kolleksiya PL/SQL dagi massiv. Uchta turi bor: associative array (INDEX BY), nested table, VARRAY. BULK bilan ishlash uchun ko'pincha nested table yoki associative array.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">TYPE t_hisob IS TABLE OF hisoblar.hisob%TYPE;
 l_hisob t_hisob;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Kolleksiya xotiradagi ro'yxat; BULK COLLECT unga qatorlarni bir yo'la yuklaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Kolleksiya xotiradagi ro'yxat; BULK COLLECT unga qatorlarni bir yo'la yuklaydi."</p>
 </div>
 
 <div class="idea">
@@ -47,7 +47,7 @@ LOOP
   -- ishlash
 END LOOP;
 CLOSE c;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "BULK COLLECT LIMIT 1000 bilan bo'laklab o'qiyman; chiqish sharti COUNT = 0, %NOTFOUND emas, aks holda oxirgi bo'lak qoladi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "BULK COLLECT LIMIT 1000 bilan bo'laklab o'qiyman; chiqish sharti COUNT = 0, %NOTFOUND emas, aks holda oxirgi bo'lak qoladi."</p>
 </div>
 
 <div class="idea">
@@ -56,7 +56,7 @@ CLOSE c;</pre>
 <p class="qoida"><strong>Qoida:</strong> FORALL sikl emas: uning ichida faqat bitta INSERT, UPDATE yoki DELETE bo'ladi va u butun kolleksiya uchun bir marta yuboriladi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">FORALL i IN 1 .. l_hisob.COUNT
   UPDATE hisoblar SET holat = 'YOPIQ' WHERE hisob = l_hisob(i);</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "FORALL bitta DML ni kolleksiya uchun bitta kontekst almashinuvida bajaradi: bu BULK ning yozish tomoni."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "FORALL bitta DML ni kolleksiya uchun bitta kontekst almashinuvida bajaradi: bu BULK ning yozish tomoni."</p>
 </div>
 
 <div class="idea">
@@ -69,7 +69,7 @@ CLOSE c;</pre>
       log_xato(SQL%BULK_EXCEPTIONS(j).ERROR_INDEX, SQL%BULK_EXCEPTIONS(j).ERROR_CODE);
     END LOOP;
   ELSE RAISE; END IF;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "SAVE EXCEPTIONS bilan yomon qatorlarni ajratib logga yozaman, qolganlari bajariladi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "SAVE EXCEPTIONS bilan yomon qatorlarni ajratib logga yozaman, qolganlari bajariladi."</p>
 </div>
 
 <div class="idea">
@@ -78,7 +78,7 @@ CLOSE c;</pre>
 <p class="qoida"><strong>Qoida:</strong> EXECUTE IMMEDIATE matnli SQL ni bajaradi. Qiymatlar doim USING orqali (bind), satrga ulab emas.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">EXECUTE IMMEDIATE 'UPDATE ' || v_jadval || ' SET holat = :h WHERE id = :id'
   USING 'YOPIQ', p_id;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Dinamik SQL da qiymatlar USING bilan bind qilinadi; jadval nomi kabi qismlarni DBMS_ASSERT yoki ruxsat ro'yxati bilan tekshiraman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Dinamik SQL da qiymatlar USING bilan bind qilinadi; jadval nomi kabi qismlarni DBMS_ASSERT yoki ruxsat ro'yxati bilan tekshiraman."</p>
 </div>
 
 <div class="idea">
@@ -87,10 +87,10 @@ CLOSE c;</pre>
 <p class="qoida"><strong>Qoida:</strong> Matnni SQL ga ulasangiz, foydalanuvchi SQL ning bir qismini yozib yuborishi mumkin. Bind (USING, ?) buni yo'q qiladi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">-- xavfli:  'WHERE ism = ''' || p_ism || ''''
 -- xavfsiz: 'WHERE ism = :ism' USING p_ism</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "SQL injection dan himoya: bind o'zgaruvchilar, satr ulamaslik."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "SQL injection dan himoya: bind o'zgaruvchilar, satr ulamaslik."</p>
 </div>
 
-<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P5 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Qisqa javob" gapini ko'rmasdan ayta olsangiz, P5 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
 </section>
 
 <div class="intro">
@@ -105,7 +105,7 @@ CLOSE c;</pre>
       <li><strong>Kun yopish va tungi jarayonlar:</strong> millionlab hisob bo'yicha foiz hisoblash, qoldiqlarni ko'chirish, arxivlash.</li>
       <li><strong>Yuklash va eksport:</strong> protsessing fayllari, Markaziy bankka hisobotlar, boshqa tizimlar bilan almashinuv.</li>
       <li><strong>Dinamik SQL:</strong> jadval yoki ustun nomi ish paytida ma'lum bo'lganda: partitsiya bo'yicha ishlash, umumiy hisobot generatori, DDL.</li>
-      <li><strong>Suhbatda:</strong> vakansiyadagi «katta hajmdagi ma'lumot» va «optimizatsiya» talablari aynan shu mavzu.</li>
+      <li><strong>Qisqa javob:</strong> «katta hajmdagi ma'lumot» va «optimizatsiya» talablari aynan shu mavzu.</li>
     </ul>
   </div>
   <div>
@@ -266,7 +266,7 @@ EXECUTE IMMEDIATE 'SELECT qoldiq FROM hisoblar WHERE raqam = :r' INTO v_q USING 
 
 OPEN v_cur FOR 'SELECT * FROM tolovlar WHERE filial = :f' USING p_filial;   -- REF CURSOR</pre>
 <p><strong>Native dinamik SQL</strong> (<span class="num">EXECUTE IMMEDIATE</span>, <span class="num">OPEN FOR</span>, 8i dan) qisqa va tez. <strong><span class="num">DBMS_SQL</span></strong> paketi (Oracle 7 dan) uzunroq, lekin ustunlar soni va tipi oldindan noma'lum bo'lganda kerak: ixtiyoriy so'rov natijasini CSV ga yozadigan umumiy eksport. 11g dan ikkalasi orasida o'tish mumkin: <span class="num">DBMS_SQL.TO_REFCURSOR</span> va <span class="num">TO_CURSOR_NUMBER</span>.</p>
-<p><strong>SQL injection.</strong> Foydalanuvchi kiritgan qiymat satrga ulansa, u qiymat emas, SQL kodining bir qismiga aylanadi. Bu dinamik SQL ning eng katta xavfi va suhbatda albatta so'raladi. Qiymatni yozib ko'ring:</p>
+<p><strong>SQL injection.</strong> Foydalanuvchi kiritgan qiymat satrga ulansa, u qiymat emas, SQL kodining bir qismiga aylanadi. Bu dinamik SQL ning eng katta xavfi va albatta bilish kerak. Qiymatni yozib ko'ring:</p>
 
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="inj" style="width:1240px;height:300px" viewBox="0 0 1240 300" role="img" aria-label="Foydalanuvchi kiritgan qiymat satrga ulanganda va bind qilinganda Oracle nimani bajaradi"></svg></div>
@@ -340,7 +340,7 @@ OPEN v_cur FOR 'SELECT * FROM tolovlar WHERE filial = :f' USING p_filial;   -- R
   <p class="why">To'g'risi: DDL ni biznes tranzaksiyasidan tashqarida qilish, vaqtinchalik ma'lumot uchun DDL siz yechim: global temporary table (<span class="num">ON COMMIT DELETE ROWS</span>) yoki kolleksiya.</p>
 </div>
 
-<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<h3><span class="part">6. Savol-javob</span>Savol va namunaviy javoblar</h3>
 <p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda raqamlar bilan gapirish (necha qator, qancha vaqt, qancha xotira) kuchli taassurot qoldiradi.</p>
 <details><summary>BULK COLLECT va FORALL nima va nega tezroq?</summary>
 <p>PL/SQL va SQL alohida dvigatellar, har o'tish kontekst almashinuvi. Qatorma-qator siklda har FETCH va har DML bitta almashinuv: million qatorda ikki million. BULK COLLECT so'rov natijasini bitta murojaatda kolleksiyaga oladi, FORALL bitta DML ni kolleksiyaning barcha qiymatlari bilan bitta murojaatda bajaradi. LIMIT 1000 bilan million qator uchun mingta FETCH va mingta FORALL: almashinuvlar ming baravar kam. SQL dvigateli ham massiv bilan ishlab, bloklarni samaraliroq oladi. Lekin undan ham tez variant ko'pincha PL/SQL siz bitta SQL.</p></details>

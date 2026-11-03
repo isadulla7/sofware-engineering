@@ -3,41 +3,41 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Tezkor tayyorgarlik</title>
+<title>Tezkor takrorlash</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=IBM+Plex+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../assets/style.css">
 <style>
 .ru { border-left: 3px solid var(--accent); padding: 0.35rem 0.8rem; margin: 0.6rem 0 0.2rem; background: var(--accent-soft); border-radius: 0 4px 4px 0; }
-.ru::before { content: "Suhbatda shunday ayting"; display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; color: var(--accent); margin-bottom: 0.15rem; }
+.ru::before { content: "Qisqa qilib shunday ayting"; display: block; font-size: 0.78rem; font-weight: 600; letter-spacing: 0.02em; color: var(--accent); margin-bottom: 0.15rem; }
 .intro-ru { white-space: normal; }
 .plan td:first-child { white-space: nowrap; font-weight: 600; }
 </style>
 </head>
 <body>
 <main>
-<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a> / Tezkor tayyorgarlik</p>
-<h1>Texnik suhbatga tezkor tayyorgarlik</h1>
-<p class="lead">Hamkorbank, Oracle PL/SQL dasturchi vakansiyasi bo'yicha texnik suhbatdan oldingi bir kunlik konspekt. Eng ko'p so'raladigan savollar oddiy tilda tushuntirilgan, har biriga suhbatda aytish uchun qisqa tayyor javob berilgan. Asosiy mavzular chizmalar bilan ko'rsatilgan. Oxirida amaliy masalalar, ruscha atamalar lug'ati va test bor.</p>
+<p class="crumbs"><a href="../">Yo'l xaritasi</a> / <a href="./">Oracle PL/SQL</a> / Tezkor takrorlash</p>
+<h1>Tezkor takrorlash: bir sahifalik konspekt</h1>
+<p class="lead">Oracle PL/SQL bo'yicha eng ko'p uchraydigan savollar bitta sahifada, oddiy tilda tushuntirilgan va har biriga og'zaki aytiladigan qisqa javob berilgan. Asosiy mavzular chizmalar bilan ko'rsatilgan. Oxirida amaliy masalalar, ruscha atamalar lug'ati va test bor.</p>
 
 <div class="intro">
   <div>
     <h3>Bu nima</h3>
-    <p>P1–P12 darslarining suhbat uchun eng kerakli qismi, bitta sahifada. Yangi mavzu deyarli yo'q: hammasi darslarda chizmalar va misollar bilan batafsil yozilgan. Bu sahifa esa ularning "imtihon oldidan bir varaq" ko'rinishi.</p>
-    <p>Suhbat o'zbek tilida bo'ladi. Har savolda ikki qism bor: avval batafsil tushuntirish (nega shunday, ichkarida qanday ishlaydi), keyin ko'k ramkada <strong>"Suhbatda shunday ayting"</strong>: 30–60 soniyada og'zaki aytiladigan qisqa javob, birinchi shaxsda.</p>
+    <p>P1–P12 darslarining eng kerakli qismi, bitta sahifada. Yangi mavzu deyarli yo'q: hammasi darslarda chizmalar va misollar bilan batafsil yozilgan. Bu sahifa ularning "bir varaqlik" ko'rinishi.</p>
+    <p>Har savolda ikki qism bor: avval batafsil tushuntirish (nega shunday, ichkarida qanday ishlaydi), keyin ko'k ramkada <strong>"Qisqa qilib shunday ayting"</strong>: 30–60 soniyada og'zaki aytiladigan qisqa javob, birinchi shaxsda.</p>
   </div>
   <div>
     <h3>Qayerda ishlatiladi</h3>
     <ul>
-      <li><strong>Bugun kechqurun:</strong> savollarni guruhma-guruh o'qib chiqish va qisqa javoblarni ovoz chiqarib aytish.</li>
-      <li><strong>Ertaga ertalab:</strong> test va amaliy masalalar.</li>
-      <li><strong>Suhbatdan 30 daqiqa oldin:</strong> pastdagi "Oxirgi cheklist" va o'zingizni tanishtirish matni.</li>
+      <li><strong>Takrorlash:</strong> savollarni guruhma-guruh o'qib, qisqa javoblarni ovoz chiqarib aytish.</li>
+      <li><strong>Tekshirish:</strong> test va amaliy masalalar.</li>
+      <li><strong>Tez eslash:</strong> ruscha atamalar lug'ati va oxiridagi "Javob berish tartibi".</li>
     </ul>
   </div>
   <div>
     <h3>Maqsad</h3>
-    <p>Har bir savolga 1–2 daqiqada, tartib bilan javob bera olish: <strong>ta'rif → ichkarida qanday ishlaydi → bank misoli → tuzoq</strong>. Suhbatdosh ko'pincha javobning to'g'riligidan ko'ra, mavzuni qanchalik chuqur tushunishingizni tekshiradi.</p>
+    <p>Har bir savolga 1–2 daqiqada, tartib bilan javob bera olish: <strong>ta'rif → ichkarida qanday ishlaydi → bank misoli → tuzoq</strong>. Javobning to'g'riligidan tashqari, mavzuni qanchalik chuqur tushunganingiz ham muhim.</p>
     <p>Biror javob tushunarsiz bo'lsa, uning yonidagi havola orqali tegishli darsni oching.</p>
   </div>
 </div>
@@ -45,8 +45,6 @@
 <nav class="toc" aria-label="Sahifa mundarijasi">
   <h2>Sahifada</h2>
   <ol>
-    <li><a href="#reja">Bugun va ertaga uchun reja</a></li>
-    <li><a href="#tanishtirish">O'zingizni tanishtirish</a></li>
     <li><a href="#g1">SQL poydevori</a></li>
     <li><a href="#g2">Analitik funksiyalar va murakkab so'rovlar</a></li>
     <li><a href="#g3">PL/SQL: blok, kursor, exception</a></li>
@@ -57,45 +55,17 @@
     <li><a href="#g8">Tranzaksiya va qulflar</a></li>
     <li><a href="#g9">Bazani loyihalash</a></li>
     <li><a href="#g10">iABS va bank yadro tizimi</a></li>
-    <li><a href="#g10r">R-Style (RS-Bank) yadrosi va Senior savollari</a></li>
+    <li><a href="#g10r">Ikkinchi ABS bilan ishlash va Senior savollari</a></li>
     <li><a href="#g11">Mayda, lekin tez-tez so'raladigan savollar</a></li>
     <li><a href="#amaliy">Amaliy masalalar (doskada yoki ekranda)</a></li>
-    <li><a href="#lugat">Ruscha atamalar lug'ati (suhbatdosh aralash gapirsa)</a></li>
-    <li><a href="#sorash">Suhbat oxirida ular so'raydigan va siz so'raydigan savollar</a></li>
+    <li><a href="#lugat">Ruscha atamalar lug'ati</a></li>
     <li><a href="#test">Test</a></li>
-    <li><a href="#cheklist">Oxirgi cheklist</a></li>
+    <li><a href="#cheklist">Javob berish tartibi</a></li>
   </ol>
 </nav>
 
-<h2 id="reja">Bugun va ertaga uchun reja</h2>
-<p>Suhbat ertaga soat 14:00 da. Hammasini bir xil chuqurlikda o'qishga vaqt yo'q, shuning uchun tartib vakansiya talablariga qarab tuzilgan: eng ko'p urg'u berilgan mavzular (optimizatsiya, indekslar, reja, tranzaksiya va qulflar, katta hajm) birinchi navbatda.</p>
-<div class="scroll"><table class="plan">
-<thead><tr><th>Qachon</th><th>Nima qilish</th><th>Vaqt</th></tr></thead>
-<tbody>
-<tr><td>Bugun, 1-blok</td><td>O'zingizni tanishtirish matnini 3 marta ovoz chiqarib o'qing. Keyin <a href="#g7">Indekslar va reja</a>, <a href="#g8">Tranzaksiya va qulflar</a>.</td><td>1 soat</td></tr>
-<tr><td>Bugun, 2-blok</td><td><a href="#g1">SQL</a>, <a href="#g2">Analitik</a>, <a href="#g3">PL/SQL</a>, <a href="#g4">Paket va trigger</a>, <a href="#g5">Katta hajm</a>.</td><td>1,5 soat</td></tr>
-<tr><td>Bugun, 3-blok</td><td><a href="#g10r">R-Style va Senior savollari</a> (lavozim aynan R-Style yadrosi bo'limida), <a href="#g10">iABS</a>, <a href="#g6">Oracle ichkaridan</a>, <a href="#g9">Loyihalash</a>, <a href="#g11">Mayda savollar</a>.</td><td>1,5 soat</td></tr>
-<tr><td>Ertaga ertalab</td><td><a href="#test">Test</a>. Xato qilgan guruhni qayta o'qing. Keyin <a href="#amaliy">Amaliy masalalar</a>: avval o'zingiz yozib ko'ring, keyin yechimni oching.</td><td>1,5 soat</td></tr>
-<tr><td>13:00–13:30</td><td><a href="#lugat">Ruscha atamalarga</a> bir ko'z yugurtirish, <a href="#cheklist">Cheklist</a>, kompyuter, mikrofon va havolani tekshirish.</td><td>30 daqiqa</td></tr>
-</tbody></table></div>
-<p class="note">Har savolni o'qish tartibi: avval savolni o'qing, javobni o'zingiz ichingizda ayting, keyin oching. Javobni yodlash shart emas. Muhimi, undagi asosiy fikrlar sizning javobingizda bo'lsin.</p>
-
-<h2 id="tanishtirish">O'zingizni tanishtirish</h2>
-<p>Deyarli har bir texnik suhbat "o'zingiz haqingizda gapirib bering" savoli bilan boshlanadi. Bu yerda 1–1,5 daqiqalik javob kerak: kimsiz, nima bilan ishlagansiz, qaysi texnologiyalarda, bitta-ikkita aniq natija va nega shu vakansiya. Quyidagi matnni o'zingizga moslang: kvadrat qavs ichidagilarni o'zingizning haqiqiy misolingiz bilan almashtiring yoki olib tashlang. Faqat aniq bilgan narsangizni ayting, chunki har gapingizdan keyin "подробнее" deb so'rashlari mumkin.</p>
-<div class="ru intro-ru"><p>Ismim Sadulla. Toshkentdagi Turin politexnika universitetini axborot texnologiyalari yo'nalishi bo'yicha tugatganman. Taxminan olti yildan beri banklar uchun dasturiy ta'minot ishlab chiqadigan Fido-Biznes kompaniyasida ishlayman.</p>
-<p>Dastlabki uch yil bank ilovalari uchun Android dasturlash bilan shug'ullandim. Masalan, Universal Bank uchun DigitalBank ilovasida kredit, depozit va kartalar bo'limlarini qilganman. Keyin backend'ga o'tdim va hozir asosiy ishim Oracle PL/SQL va Java bilan bog'liq.</p>
-<p>PL/SQL'da protsedura, funksiya va paketlar yozaman va ularni rivojlantiraman, xatolarni tahlil qilaman, so'rovlarni optimizatsiya qilaman. Korporativ internet-bank (KIB) va to'lov tizimlari integratsiyalari bilan ishlayman: Uzcard, Humo, Payme, Click, Alipay. [Misol: "yaqinda KIB'ni … bilan integratsiya qildim" yoki "hisobotni … dan … gacha tezlashtirdim". Bitta haqiqiy vazifani ayting.]</p>
-<p>Bu vakansiya menga qiziq, chunki aynan ma'lumotlar bazasi yo'nalishiga e'tibor qaratmoqchiman: katta hajmdagi ma'lumot, unumdorlik va bankdagi ma'lumotlar arxitekturasi.</p></div>
-<details><summary>Shu matn bo'yicha qanday qo'shimcha savollar kelishi mumkin</summary>
-<ul>
-<li><strong>"PL/SQL'da yechgan eng qiyin vazifangiz qaysi?"</strong> Bitta aniq misolni tayyorlab qo'ying, quyidagi tartibda: vazifa nima edi, nima qiyin edi, nima qildingiz (masalan, BULK, indeks yoki so'rovni qayta yozish), natija qanday bo'ldi (vaqt, xatolar soni).</li>
-<li><strong>"Sekin so'rovni qanday optimizatsiya qilgansiz?"</strong> Bunga <a href="#g7">7-guruhdagi</a> "sekin so'rov" javobi tartibida, o'z misolingiz bilan javob bering.</li>
-<li><strong>"Nega hozirgi ish joyingizdan ketmoqchisiz?"</strong> Ish joyini yomonlamang. Masalan: "Aynan ma'lumotlar bazasi dasturchisi sifatida o'smoqchiman va katta yuklamali mahsulotlar ustida ishlamoqchiman".</li>
-<li><strong>"Oracle'ning qaysi versiyasi bilan ishlagansiz? Qaysi dasturlar bilan?"</strong> Bunga oldindan aniq javob tayyorlang: qaysi versiya (masalan 12c yoki 19c), qaysi dastur (PL/SQL Developer, SQL Developer, Toad), Git bor-yo'qligi.</li>
-</ul></details>
-
 <h2 id="g1">1. SQL poydevori</h2>
-<p><strong>Bu nima:</strong> SQL bazadan ma'lumot so'rash tili. Unda natija qanday bo'lishi kerakligini yozasiz, uni qanday yo'l bilan topishni esa Oracle'ning optimizatori o'zi tanlaydi. <strong>Qayerda:</strong> har bir hisobot, ekran va paket ichidagi so'rovlarda. <strong>Suhbatdagi maqsad:</strong> asoslarni tushunishingizni va NULL bilan JOIN tuzoqlarini bilishingizni ko'rsatish. Batafsil: <a href="p1-sql-poydevori.html">P1</a>.</p>
+<p><strong>Bu nima:</strong> SQL bazadan ma'lumot so'rash tili. Unda natija qanday bo'lishi kerakligini yozasiz, uni qanday yo'l bilan topishni esa Oracle'ning optimizatori o'zi tanlaydi. <strong>Qayerda:</strong> har bir hisobot, ekran va paket ichidagi so'rovlarda. <strong>Maqsad:</strong> asoslarni tushunishingizni va NULL bilan JOIN tuzoqlarini bilishingizni ko'rsatish. Batafsil: <a href="p1-sql-poydevori.html">P1</a>.</p>
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="d1" style="width:1240px;height:250px" viewBox="0 0 1240 250" role="img" aria-label="SELECT so'rovining mantiqiy bajarilish tartibi"></svg></div>
   <figcaption>SELECT yozilish tartibida emas, mana shu tartibda bajariladi. Har bosqich oldingisining natijasi bilan ishlaydi. Shuning uchun WHERE ichida SELECT'dagi alias ham, agregat ham hali mavjud emas, ORDER BY esa aliasni ko'radi.</figcaption>
@@ -155,7 +125,7 @@
 <p class="ru">WITH murakkab so'rovni nomlangan qadamlarga bo'ladi, rekursiv WITH esa ierarxiya uchun. CONNECT BY Oracle'ning ierarxik so'rovi: START WITH ildizni, CONNECT BY PRIOR bog'lanishni, LEVEL chuqurlikni beradi. MERGE upsert'ni bitta buyruqda bajaradi: mos kelsa UPDATE, kelmasa INSERT. Manbada kalit takrorlansa, ORA-30926 chiqadi.</p></details>
 
 <h2 id="g3">3. PL/SQL: blok, kursor, exception</h2>
-<p><strong>Bu nima:</strong> PL/SQL Oracle'ning SQL'ga qo'shilgan dasturlash tili: o'zgaruvchi, shart, sikl va xatolarni ushlash. Kod bazaning ichida, ma'lumot yonida bajariladi. <strong>Qayerda:</strong> bankdagi biznes mantiqning katta qismi PL/SQL paketlarida. <strong>Maqsad:</strong> vakansiyadagi asosiy ish aynan shu. Batafsil: <a href="p3-plsql-asoslari.html">P3</a>.</p>
+<p><strong>Bu nima:</strong> PL/SQL Oracle'ning SQL'ga qo'shilgan dasturlash tili: o'zgaruvchi, shart, sikl va xatolarni ushlash. Kod bazaning ichida, ma'lumot yonida bajariladi. <strong>Qayerda:</strong> bankdagi biznes mantiqning katta qismi PL/SQL paketlarida. <strong>Maqsad:</strong> bank dasturchisining asosiy ishi aynan shu. Batafsil: <a href="p3-plsql-asoslari.html">P3</a>.</p>
 <details><summary>PL/SQL blokining tuzilishi</summary>
 <p>To'rt qism: DECLARE (o'zgaruvchilar, kursorlar, tiplar e'loni), BEGIN (asosiy kod), EXCEPTION (xatolarni ushlash) va END. Faqat BEGIN va END majburiy. Nomsiz (anonim) blok bazada saqlanmaydi. Protsedura, funksiya, paket va trigger esa nomlangan bloklar: ular kompilyatsiya qilinib, bazada saqlanadi.</p>
 <p class="ru">DECLARE'da e'lonlar, BEGIN'da bajariladigan kod, EXCEPTION'da xatolarni ushlash, oxirida END. Faqat BEGIN va END majburiy. Anonim blok saqlanmaydi. Protsedura, funksiya, paket va trigger esa nomlangan bloklar: ular bazada kompilyatsiya qilingan holda saqlanadi.</p></details>
@@ -173,7 +143,7 @@
 <p class="ru">Oldindan nomlangan xatolar bor (NO_DATA_FOUND, DUP_VAL_ON_INDEX). Nomsizlariga PRAGMA EXCEPTION_INIT bilan nom beraman. O'z biznes xatolarimni RAISE_APPLICATION_ERROR bilan, -20000 dan -20999 gacha kod bilan chiqaraman. Aniq xatolarni ushlayman. WHEN OTHERS faqat log yozib, RAISE bilan qayta ko'tarish uchun. WHEN OTHERS THEN NULL yomon amaliyot, chunki xato yo'qolib ketadi. Log uchun SQLCODE, SQLERRM va qator raqami bilan FORMAT_ERROR_BACKTRACE yozaman.</p></details>
 
 <h2 id="g4">4. Protsedura, funksiya, paket, trigger</h2>
-<p><strong>Bu nima:</strong> bazada nom bilan saqlanadigan dasturlar. <strong>Qayerda:</strong> bank tizimida har bir ekran, job va integratsiya paket protsedurasini chaqiradi. <strong>Maqsad:</strong> vakansiyaning birinchi qatori: "разработка процедур, функций, пакетов и триггеров". Batafsil: <a href="p4-protsedura-paket-trigger.html">P4</a>.</p>
+<p><strong>Bu nima:</strong> bazada nom bilan saqlanadigan dasturlar. <strong>Qayerda:</strong> bank tizimida har bir ekran, job va integratsiya paket protsedurasini chaqiradi. <strong>Maqsad:</strong> bank PL/SQL dasturchisining asosiy vazifasi: "разработка процедур, функций, пакетов и триггеров". Batafsil: <a href="p4-protsedura-paket-trigger.html">P4</a>.</p>
 <details><summary>Protsedura va funksiya farqi</summary>
 <p>Funksiya doim bitta qiymat qaytaradi (RETURN) va uni ifoda ichida, hatto SQL so'rovda ham ishlatish mumkin. Lekin SQL'dan chaqirilganda u DML qila olmaydi (aks holda ORA-14551). Protsedura amal bajaradi va natijani OUT parametrlar orqali beradi, uni SELECT ichida chaqirib bo'lmaydi. Parametr turlari: IN (faqat kiradi), OUT (faqat chiqadi), IN OUT (ikkalasi).</p>
 <p class="ru">Funksiya doim RETURN orqali qiymat qaytaradi, uni ifodalarda va SQL ichida ishlatish mumkin, lekin SQL'dan chaqirilganda DML qilmasligi kerak. Protsedura amal bajaradi va natijani OUT parametrlar orqali qaytaradi, uni SELECT ichida chaqirib bo'lmaydi. Parametr turlari: IN, OUT, IN OUT.</p></details>
@@ -195,7 +165,7 @@
 <p class="ru">DBMS_SCHEDULER orqali: dastur va jadval bilan job yarataman, masalan repeat_interval FREQ=DAILY;BYHOUR=1. Natijalarni USER_SCHEDULER_JOB_RUN_DETAILS'dan ko'raman. DBMS_JOB eskirgan variant.</p></details>
 
 <h2 id="g5">5. Katta hajmdagi ma'lumot va dinamik SQL</h2>
-<p><strong>Bu nima:</strong> millionlab qatorni tez qayta ishlash usullari. <strong>Qayerda:</strong> kunlik foiz hisoblash, ma'lumot ko'chirish, kun yopish va reestrlarni yuklash. <strong>Maqsad:</strong> vakansiyadagi "работа с большими объёмами данных" talabi. Batafsil: <a href="p5-katta-hajm-bulk.html">P5</a>.</p>
+<p><strong>Bu nima:</strong> millionlab qatorni tez qayta ishlash usullari. <strong>Qayerda:</strong> kunlik foiz hisoblash, ma'lumot ko'chirish, kun yopish va reestrlarni yuklash. <strong>Maqsad:</strong> "работа с большими объёмами данных", ya'ni katta hajm bilan ishlash. Batafsil: <a href="p5-katta-hajm-bulk.html">P5</a>.</p>
 <details><summary>Nega qatorma-qator sikl sekin</summary>
 <p>PL/SQL va SQL bazaning ichida ikki alohida "dvigatel"da bajariladi. Siklning har bir qadamida SQL buyrug'i chaqirilsa, PL/SQL'dan SQL'ga va qaytib o'tish (<strong>kontekst almashinuvi</strong>) sodir bo'ladi. Million qatorda bu million marta takrorlanadi. Tezlikning qoidasi: (1) iloji bo'lsa, butun ishni bitta SQL buyrug'i bilan qiling; (2) bo'lmasa, BULK COLLECT va FORALL bilan to'plamlab ishlang; (3) qatorma-qator ishlash faqat oxirgi chora.</p>
 <p class="ru">PL/SQL va SQL alohida dvigatellarda bajariladi va siklning har qadamida kontekst almashinuvi bo'ladi. Million qatorda bu million marta almashinuv. Qoida: imkon bo'lsa, bitta SQL buyrug'i; bo'lmasa, BULK COLLECT va FORALL; qatorma-qator esa eng oxirgi chora.</p></details>
@@ -229,7 +199,7 @@
 <p class="ru">Undo eski qiymatlar: ROLLBACK uchun va boshqa sessiyalar izchil o'qishi uchun. Redo o'zgarishlarning o'zi: yiqilishdan keyin tiklash uchun. Undo orqaga, redo oldinga. ORA-01555 snapshot too old: uzoq so'rovga blokning eski versiyasi kerak, lekin undo allaqachon ustidan yozilgan. Yechim: so'rovni tezlashtirish, undo hajmini yoki undo_retention'ni oshirish, ochiq kursor bo'ylab sikl ichida COMMIT qilmaslik.</p></details>
 
 <h2 id="g7">7. Indekslar va bajarilish rejasi</h2>
-<p><strong>Bu nima:</strong> indeks jadvaldagi kerakli qatorni butun jadvalni o'qimasdan topish uchun alohida tuzilma, xuddi kitob oxiridagi ko'rsatkich kabi. Bajarilish rejasi (execution plan) esa Oracle so'rovni qanday bajarishga qaror qilganini ko'rsatadi. <strong>Qayerda:</strong> har bir sekin so'rovni tahlil qilishda. <strong>Maqsad:</strong> vakansiyadagi eng og'ir talab: "оптимизация, индексы, планы выполнения". Batafsil: <a href="p7-indekslar-explain-plan.html">P7</a>.</p>
+<p><strong>Bu nima:</strong> indeks jadvaldagi kerakli qatorni butun jadvalni o'qimasdan topish uchun alohida tuzilma, xuddi kitob oxiridagi ko'rsatkich kabi. Bajarilish rejasi (execution plan) esa Oracle so'rovni qanday bajarishga qaror qilganini ko'rsatadi. <strong>Qayerda:</strong> har bir sekin so'rovni tahlil qilishda. <strong>Maqsad:</strong> eng og'ir va eng muhim mavzu: "оптимизация, индексы, планы выполнения". Batafsil: <a href="p7-indekslar-explain-plan.html">P7</a>.</p>
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="d3" style="width:1240px;height:400px" viewBox="0 0 1240 400" role="img" aria-label="B-tree indeks orqali qatorni topish"></svg></div>
   <figcaption>B-tree indeksda qidiruv: ildizdan branch'larga, keyin barg (leaf) blokigacha 3–4 ta blok o'qiladi. Bargda kalit qiymati va qatorning manzili (ROWID) turadi. ROWID orqali jadvaldagi kerakli blok o'qiladi (TABLE ACCESS BY INDEX ROWID). Barglar o'zaro bog'langan, shuning uchun diapazon bo'yicha qidiruv (RANGE SCAN) ular bo'ylab yurib o'qiydi.</figcaption>
@@ -285,7 +255,7 @@
 <p class="ru">Faqat xato bergan buyruq bekor qilinadi, oldingi o'zgarishlar qoladi. ROLLBACK qilish, davom etish yoki ROLLBACK TO SAVEPOINT qilishni chaqiruvchi hal qiladi. Ichki API protseduralar COMMIT qilmasligi kerak: tranzaksiya chegarasini eng tashqi chaqiruvchi belgilaydi, ya'ni ekran, job yoki Java servis.</p></details>
 
 <h2 id="g9">9. Bazani loyihalash</h2>
-<p><strong>Bu nima:</strong> jadvallarni, ularning bog'lanishlarini va kalitlarini shunday tuzishki, ma'lumot takrorlanmasin va qarama-qarshi bo'lib qolmasin. <strong>Qayerda:</strong> yangi modul yoki yangi jadval qo'shishda. <strong>Maqsad:</strong> vakansiyadagi "проектирование и нормализация БД" talabi. Batafsil: <a href="p9-bazani-loyihalash.html">P9</a>.</p>
+<p><strong>Bu nima:</strong> jadvallarni, ularning bog'lanishlarini va kalitlarini shunday tuzishki, ma'lumot takrorlanmasin va qarama-qarshi bo'lib qolmasin. <strong>Qayerda:</strong> yangi modul yoki yangi jadval qo'shishda. <strong>Maqsad:</strong> "проектирование и нормализация БД", ya'ni bazani loyihalash. Batafsil: <a href="p9-bazani-loyihalash.html">P9</a>.</p>
 <details><summary>Normal formalar</summary>
 <p><strong>1NF</strong>: har bir katakda bitta qiymat bo'ladi, ro'yxat yoki takrorlanuvchi ustunlar (telefon1, telefon2) bo'lmaydi. <strong>2NF</strong>: 1NF bajarilgan va har bir ustun butun kalitga bog'liq, kalitning bir qismiga emas (bu talab composite kalitda muhim). <strong>3NF</strong>: 2NF bajarilgan va kalit bo'lmagan ustun boshqa kalit bo'lmagan ustunga bog'liq emas. Masalan, to'lov jadvalida filial_kod bilan birga filial_nomi turmasligi kerak, u filiallar jadvalida bo'ladi. Eslab qolish uchun: "kalitga, butun kalitga va faqat kalitga". Foyda: anomaliyalar yo'qoladi. Masalan, filial nomi o'zgarsa, uni faqat bir joyda yangilash kifoya.</p>
 <p class="ru">1NF: qiymatlar bo'linmas, ro'yxat va takrorlanuvchi ustunlar yo'q. 2NF: kalit bo'lmagan har bir atribut kalitning bir qismiga emas, butun kalitga bog'liq. 3NF: kalit bo'lmagan atributlar orasida tranzitiv bog'liqlik yo'q. Masalan, filial nomi har to'lovda emas, filiallar lug'atida saqlanadi. Maqsad: qo'shish, yangilash va o'chirishdagi anomaliyalarni yo'qotish.</p></details>
@@ -300,8 +270,8 @@
 <p class="ru">Katta jadval bo'laklarga bo'linadi, lekin so'rovlar uchun bitta jadval bo'lib qoladi. Turlari: sana bo'yicha RANGE, filial bo'yicha LIST, HASH, INTERVAL va composite. Foydalari: partition pruning, ya'ni shartda partitsiya kaliti bo'lsa, faqat kerakli bo'laklar o'qiladi; boshqarish qulay, arxivlash DROP yoki EXCHANGE PARTITION bilan. Indekslar local va global bo'ladi.</p></details>
 
 <h2 id="g10">10. iABS va bank yadro tizimi</h2>
-<p><strong>Bu nima:</strong> yadro bank tizimi (ABS, core banking) bankning asosiy buxgalteriyasi va mahsulotlari yuradigan tizim: mijozlar, hisoblar, provodkalar, kreditlar, omonatlar, kartalar, kassa. iABS O'zbekiston banklarida keng tarqalgan shunday tizimlardan biri: Oracle bazasi va veb-ilova, biznes mantiqning asosiy qismi PL/SQL paketlarida. <strong>Qayerda:</strong> bankning har kungi ishi va barcha kanallar (filial, mobil ilova, internet-bank) shu yadroga yozadi. <strong>Maqsad:</strong> bank PL/SQL vakansiyasida bu sizning eng kuchli kozirlaringizdan biri. Batafsil: <a href="p10-iabs.html">P10</a>.</p>
-<p class="note">Lavozim "R-Style yadrosini kuzatish va dasturlash bo'limi"da, lekin iABS haqida ham savol bo'lishi mumkin. R-Style haqida <a href="#g10r">keyingi bo'limda</a>. Pastdagi g'oyalar (ikki tomonlama provodka, hisob raqami tuzilishi, operatsion kun) har qanday bank yadrosida bir xil, ularni R-Style savollariga ham tayanch qiling.</p>
+<p><strong>Bu nima:</strong> yadro bank tizimi (ABS, core banking) bankning asosiy buxgalteriyasi va mahsulotlari yuradigan tizim: mijozlar, hisoblar, provodkalar, kreditlar, omonatlar, kartalar, kassa. iABS O'zbekiston banklarida keng tarqalgan shunday tizimlardan biri: Oracle bazasi va veb-ilova, biznes mantiqning asosiy qismi PL/SQL paketlarida. <strong>Qayerda:</strong> bankning har kungi ishi va barcha kanallar (filial, mobil ilova, internet-bank) shu yadroga yozadi. <strong>Maqsad:</strong> bank PL/SQL dasturchisi uchun bu eng kerakli bilimlardan biri. Batafsil: <a href="p10-iabs.html">P10</a>.</p>
+<p class="note">Ikkinchi ABS (R-Style) haqida <a href="#g10r">keyingi bo'limda</a>. Pastdagi g'oyalar (ikki tomonlama provodka, hisob raqami tuzilishi, operatsion kun) har qanday bank yadrosida bir xil, ularni R-Style savollariga ham tayanch qiling.</p>
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="d5" style="width:1240px;height:520px" viewBox="0 0 1240 520" role="img" aria-label="Yadro bank tizimi qavatlari va provodka yo'li"></svg></div>
   <figcaption>So'rov qaysi kanal orqali kelmasin, bir xil yo'ldan o'tadi: ilova serveri bazadagi API paketini chaqiradi, modul paketlari o'z jadvallariga yozadi, pul harakati esa doim yadrodagi provodka dvigateli orqali o'tadi. Modul jadvali, provodka va hisob qoldig'i bitta tranzaksiyada yoziladi.</figcaption>
@@ -325,29 +295,24 @@
 <p>Deyarli har bir modul bir xil andozada quriladi: lug'atlar (mahsulot turlari, stavkalar) → asosiy obyekt, ya'ni shartnoma → shartnomaning hisoblari (har birining roli bor: asosiy qarz, foiz, muddati o'tgan qarz) → parametrlar va grafiklar (to'lov jadvali) → tarix → modul provodkalari → yadro. Kredit misolida: kunlik foiz hisoblanadi → foiz hisobiga va daromad hisobiga provodka yoziladi → to'lov kelganda grafik bo'yicha qarz yopiladi. Yuqori arxitektura darajasida esa umumiy zanjir bor: mahsulot → bitim (aniq shartnoma) → operatsiya → hujjat → provodka.</p>
 <p class="ru">Deyarli har modul bitta andozada: lug'atlar, asosiy obyekt bo'lgan shartnoma, rollari bor shartnoma hisoblari (asosiy qarz, foiz, muddati o'tgan qarz), parametrlar va grafiklar, tarix, modul provodkalari va yadro. Kredit uchun: har kuni foiz hisoblanadi, foiz va daromad hisoblariga provodka yoziladi, to'lov kelganda qarz grafik bo'yicha yopiladi. Umumiy zanjir: mahsulot, bitim, operatsiya, hujjat, provodka.</p></details>
 
-<h2 id="g10r">10b. R-Style (RS-Bank) yadrosi va Senior savollari</h2>
-<p><strong>Bu nima:</strong> lavozimning to'liq nomi: "R-Style yadrosini kuzatish va dasturlash bo'limi dasturchi-muhandisi Oracle PL/SQL (Senior)". R-Style Softlab rossiyalik kompaniya, uning <strong>RS-Bank V.6</strong> tizimi ko'p filialli banklar uchun avtomatlashtirilgan bank tizimi (ABS). <strong>Qayerda:</strong> Hamkorbank'da RS-Bank modullari mavjud tizim bilan birga ishlaydi. <strong>Maqsad:</strong> ertaga sizdan iABS bilan birga R-Style haqida ham, "kuzatish" (monitoring, incidentlar) va Senior darajasidagi qarorlar haqida ham so'rashlari mumkin. Bu bo'lim shunga tayyorlaydi.</p>
+<h2 id="g10r">10b. Ikkinchi ABS (R-Style RS-Bank) bilan ishlash va Senior savollari</h2>
+<p><strong>Bu nima:</strong> ba'zi banklarda iABS bilan birga boshqa ABS modullari ham ishlaydi, masalan rossiyalik R-Style Softlab kompaniyasining <strong>RS-Bank V.6</strong> tizimi. <strong>Maqsad:</strong> ikki yadro tizimi birga ishlaganda nimaga e'tibor berish kerakligini, "yadroni kuzatish" (monitoring, incidentlar) nimani anglatishini va Senior darajasidagi savollarni tushunish.</p>
 
 <h3>Ochiq manbalardan ma'lum bo'lgan faktlar</h3>
 <ul>
 <li><strong>RS-Bank V.6 Oracle bazasida ishlaydi.</strong> R-Style uni Oracle Database 12c bilan sinovdan o'tkazgan va "Oracle Database Ready" maqomini olgan (<a href="https://bdm.ru/publicacii/rs-bank-v-6-gotov-k-rabote-na-oracle-database-12c-8622">bdm.ru</a>). Keyinroq Postgres Pro bilan moslik sertifikatini ham olgan (<a href="https://habr.com/ru/articles/807877">Habr</a>).</li>
 <li><strong>Modullari:</strong> mijozlarga xizmat ko'rsatish, kreditlar va depozitlar, qimmatli qog'ozlar, hisobotlar (o'sha Habr maqolasi).</li>
 <li><strong>RSL (R-Style Language)</strong> R-Style'ning o'z dasturlash tili: obyektga yo'naltirilgan, interpretatsiya qilinadigan til. Bank dasturchilari tizimni u bilan bankka moslaydi.</li>
-<li><strong>Hamkorbank:</strong> 2021-yilgi maqolaga ko'ra, bank eski ABS'ni to'liq almashtirmagan. Unga RS-Bank'ning bir nechta modulini qo'shib, mavjud tizim bilan integratsiya qilgan. Bankning o'z dasturchilari R-Style yordamida o'qitilgan va 20 dan ortiq mahsulotni o'zlari joriy qilgan. Bank ma'lumotiga ko'ra, eng daromadli yo'nalishlar RS-Bank'da ishlaydi. ABS'dagi yuklamani kamaytirish uchun alohida <strong>RSDWH</strong> ma'lumotlar ombori ham qurilgan (<a href="https://www.spot.uz/ru/2021/10/15/hamkorbank/">Spot.uz</a>, maqola reklama sifatida chiqqan).</li>
 </ul>
-<p class="note">RS-Bank'ning ichki tuzilishi (jadval va paket nomlari, RSL qanchalik ishlatilishi, qaysi versiya) ochiq manbalarda deyarli yozilmagan. Pastdagi chizma bankdagi umumiy manzaraning <em>taxminiy</em> ko'rinishi. Aniq holatni suhbatda o'zingiz so'rang: bu qiziqishingizni ham ko'rsatadi.</p>
+<p class="note">RS-Bank'ning ichki tuzilishi (jadval va paket nomlari, RSL qanchalik ishlatilishi, qaysi versiya) ochiq manbalarda deyarli yozilmagan. Pastdagi chizma bankdagi umumiy manzaraning <em>taxminiy</em> ko'rinishi. Aniq holat har bankda har xil.</p>
 
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="d6" style="width:1240px;height:430px" viewBox="0 0 1240 430" role="img" aria-label="Bankda ikki yadro tizimi va ular orasidagi integratsiya, taxminiy"></svg></div>
   <figcaption>Taxminiy manzara: kanallar ikkala tizimga ham murojaat qiladi, ikki tizim o'zaro integratsiya orqali ma'lumot almashadi (mijozlar, hisoblar, provodkalar), hisobotlar uchun ma'lumot omborga ko'chiriladi. "Yadroni kuzatish" deganda odatda shu oqimlarni, joblarni, kun yopishni va unumdorlikni nazorat qilish tushuniladi.</figcaption>
 </figure>
 
-<details><summary>RS-Bank bilan ishlaganmisiz?</summary>
-<p>Halol javob bering. Ishlamagan bo'lsangiz, shunday deng va darhol nima tayanch bo'lishini ko'rsating: Oracle va PL/SQL bir xil; bank hisobi, ikki tomonlama provodka, operatsion kun, kun yopish har qanday ABS'da bir xil; RSL yangi til, lekin dasturlash va ma'lumotlar bazasi tajribangiz bor. Shunday javob "ha, biroz ishlaganman" degan noaniq gapdan ancha kuchliroq.</p>
-<p class="ru">RS-Bank bilan bevosita ishlamaganman. Lekin bu tizim ham Oracle'da ishlaydi, PL/SQL, optimizatsiya, tranzaksiyalar va qulflar bo'yicha tajribam to'g'ridan-to'g'ri qo'llanadi. Bank tomoni ham tanish: hisoblar, ikki tomonlama provodka, operatsion kun va kun yopish har qanday ABS'da bir xil mantiqda ishlaydi. RSL'ni o'rganishga tayyorman, menimcha birinchi oylarda modullarning jadval tuzilishi va asosiy jarayonlarini o'rganib chiqish kerak.</p></details>
-
 <details><summary>Ikki bank tizimi orasida integratsiyani qanday qurgan bo'lardingiz?</summary>
-<p>Bu savol Hamkorbank uchun ayniqsa dolzarb, chunki RS-Bank modullari mavjud ABS bilan birga ishlaydi. Senior'dan kutiladigan javob, bitta texnologiyani aytish emas, balki muammolarni ko'rsatish: (1) <strong>identifikatorlar xaritasi</strong>: bitta mijoz va hisobning ikki tizimdagi ID'lari jadvali; (2) <strong>uzatish usuli</strong>: database link orqali to'g'ridan-to'g'ri yozish tez, lekin tizimlarni qattiq bog'laydi; yaxshiroq yo'l: "chiquvchi" jadval (outbox) yoki navbat (Oracle AQ, Kafka) va API; (3) <strong>idempotentlik</strong>: bitta xabar ikki marta kelsa, ikki marta provodka bo'lmasligi uchun noyob kalit (UNIQUE) va holat ustuni; (4) <strong>xatolar</strong>: xatoli xabar navbatni to'xtatmasligi, qayta urinish va xatolar jurnali; (5) <strong>solishtiruv (sverka)</strong>: kun oxirida ikki tomondagi summalar va qoldiqlarni MINUS yoki FULL JOIN bilan solishtirish; (6) <strong>monitoring</strong>: navbatda kutib qolgan xabarlar soni va eng eski xabar yoshi.</p>
+<p>Bu savol ikki yadro tizimi birga ishlaydigan banklar uchun ayniqsa dolzarb. Senior'dan kutiladigan javob, bitta texnologiyani aytish emas, balki muammolarni ko'rsatish: (1) <strong>identifikatorlar xaritasi</strong>: bitta mijoz va hisobning ikki tizimdagi ID'lari jadvali; (2) <strong>uzatish usuli</strong>: database link orqali to'g'ridan-to'g'ri yozish tez, lekin tizimlarni qattiq bog'laydi; yaxshiroq yo'l: "chiquvchi" jadval (outbox) yoki navbat (Oracle AQ, Kafka) va API; (3) <strong>idempotentlik</strong>: bitta xabar ikki marta kelsa, ikki marta provodka bo'lmasligi uchun noyob kalit (UNIQUE) va holat ustuni; (4) <strong>xatolar</strong>: xatoli xabar navbatni to'xtatmasligi, qayta urinish va xatolar jurnali; (5) <strong>solishtiruv (sverka)</strong>: kun oxirida ikki tomondagi summalar va qoldiqlarni MINUS yoki FULL JOIN bilan solishtirish; (6) <strong>monitoring</strong>: navbatda kutib qolgan xabarlar soni va eng eski xabar yoshi.</p>
 <p class="ru">Avval identifikatorlarni bog'lash: bitta mijoz va hisob ikki tizimda qanday ID bilan turadi. Uzatish uchun database link bilan to'g'ridan-to'g'ri yozishdan ko'ra outbox jadvali yoki navbatni afzal ko'raman: tizimlar bir-biriga qattiq bog'lanmaydi. Har xabar idempotent bo'lishi kerak, ya'ni qayta kelsa ham ikki marta provodka qilinmaydi: buning uchun noyob kalit va holat ustuni. Xatoli xabar navbatni to'xtatmaydi, u jurnalga yoziladi va qayta uriniladi. Kun oxirida ikki tizim summalari va qoldiqlari solishtiriladi, navbat esa monitoring qilinadi.</p></details>
 
 <details><summary>"Yadroni kuzatish" deganda nimani tushunasiz? Productionda nimalarni nazorat qilasiz?</summary>
@@ -367,7 +332,7 @@
 <p class="ru">Avval to'g'rilikka qarayman: NULL, bo'sh natija, chegaraviy holatlar. Keyin tranzaksiyaga: ichki protsedurada COMMIT yo'qligi va qulflash tartibi. Xatolarni ushlash: WHEN OTHERS THEN NULL bo'lmasligi kerak. Unumdorlik: sikl ichidagi SQL'lar, indeksni buzadigan funksiyalar. Xavfsizlik: dinamik SQL'da faqat bind. Oxirida deploy: migratsiya va rollback skripti bormi.</p></details>
 
 <h2 id="g11">11. Mayda, lekin tez-tez so'raladigan savollar</h2>
-<p>Bular qisqa savollar, ko'pincha suhbat boshida "qizdirish" uchun beriladi. Javob bitta-ikki gapdan oshmaydi, lekin adashsangiz, yomon taassurot qoldiradi.</p>
+<p>Bular qisqa savollar, ko'pincha mavzu boshida "qizdirish" uchun beriladi. Javob bitta-ikki gapdan oshmaydi, lekin adashsangiz, yomon taassurot qoldiradi.</p>
 <details><summary>DELETE, TRUNCATE, DROP</summary>
 <p>DELETE bu DML: qatorlarni WHERE bilan o'chiradi, undo va redo yozadi, ROLLBACK qilish mumkin, triggerlar ishlaydi, sekin. TRUNCATE bu DDL: jadvalning hamma qatorini bir zumda o'chiradi va joyni bo'shatadi (high water mark'ni tushiradi), yashirin COMMIT qiladi, ROLLBACK qilib bo'lmaydi, DML triggerlar ishlamaydi. DROP jadvalning o'zini o'chiradi (recycle bin yoqilgan bo'lsa, <span class="num">FLASHBACK TABLE</span> bilan qaytarish mumkin).</p>
 <p class="ru">DELETE bu DML: shart bo'yicha qatorlarni o'chiradi, undo va redo yozadi, ROLLBACK qilish mumkin, triggerlar ishlaydi. TRUNCATE bu DDL: butun jadvalni bir zumda tozalaydi, high water mark'ni tushiradi, yashirin COMMIT qiladi, ROLLBACK qilib bo'lmaydi. DROP jadvalning o'zini o'chiradi, recycle bin yoqilgan bo'lsa, FLASHBACK TABLE bilan qaytarish mumkin.</p></details>
@@ -391,7 +356,7 @@
 <p class="ru">JDBC orqali: ulanish puldan olinadi, protsedura CallableStatement bilan chaqiriladi, OUT parametrlar ro'yxatdan o'tkaziladi, ro'yxat qaytarish uchun REF CURSOR ishlatiladi. Faqat PreparedStatement va bind. Bir nechta chaqiruvni bitta tranzaksiyada bajarish uchun autocommit'ni o'chirib, oxirida bitta COMMIT qilaman. Oracle xatolarini getErrorCode orqali ajrataman.</p></details>
 
 <h2 id="amaliy">Amaliy masalalar</h2>
-<p>Texnik suhbatda ko'pincha ekranda yoki qog'ozda kichik so'rov yoki protsedura yozdirishadi. Har masalada avval yechimni o'zingiz yozib ko'ring, keyin oching. Yozayotganda fikringizni ovoz chiqarib ayting: suhbatdosh uchun natijadan ko'ra fikrlash jarayoni muhimroq. Jadvallar shartli: <span class="num">mijozlar(id, ism, filial)</span>, <span class="num">hisoblar(id, mijoz_id, qoldiq, holat)</span>, <span class="num">tolovlar(id, hisob_id, filial, sana, summa)</span>.</p>
+<p>Bu yerda ekranda yoki qog'ozda yoziladigan kichik so'rov va protseduralar bor. Har masalada avval yechimni o'zingiz yozib ko'ring, keyin oching. Yozayotganda fikringizni ovoz chiqarib ayting: natijadan ko'ra fikrlash jarayoni muhimroq. Jadvallar shartli: <span class="num">mijozlar(id, ism, filial)</span>, <span class="num">hisoblar(id, mijoz_id, qoldiq, holat)</span>, <span class="num">tolovlar(id, hisob_id, filial, sana, summa)</span>.</p>
 
 <details><summary>1. Har bir filialdagi eng katta 3 ta to'lov</summary>
 <pre class="code">SELECT filial, id, summa
@@ -415,7 +380,7 @@ WHERE ROWID IN (
   )
   WHERE rn &gt; 1
 );</pre>
-<p>Avval <span class="num">SELECT</span> qilib, nechta qator o'chishini tekshirasiz, keyin DELETE qilasiz. Oxirida takrorlar qayta paydo bo'lmasligi uchun UNIQUE cheklov qo'yasiz. Bu fikrni suhbatda albatta ayting.</p></details>
+<p>Avval <span class="num">SELECT</span> qilib, nechta qator o'chishini tekshirasiz, keyin DELETE qilasiz. Oxirida takrorlar qayta paydo bo'lmasligi uchun UNIQUE cheklov qo'yasiz. Bu fikrni albatta ayting.</p></details>
 
 <details><summary>3. Ikkinchi (yoki N-chi) eng katta qoldiq</summary>
 <pre class="code">-- analitik funksiya bilan (N ni o'zgartirish oson)
@@ -493,7 +458,7 @@ EXCEPTION
     RAISE_APPLICATION_ERROR(-20004, 'Hisob topilmadi yoki yopiq');
 END otkazma;
 /</pre>
-<p>Suhbatda aytadigan fikrlar: (1) parametrlar <span class="num">%TYPE</span> bilan e'lon qilingan; (2) kirish ma'lumoti tekshiriladi; (3) <span class="num">FOR UPDATE</span> lost update'ning oldini oladi, bir xil tartibda qulflash esa deadlock'ning; (4) protsedura ichida COMMIT yo'q; (5) biznes xatolar -20xxx kodlari bilan qaytariladi. Qo'shimcha nuqta: haqiqiy bank tizimida qoldiq bunday to'g'ridan-to'g'ri UPDATE bilan o'zgartirilmaydi. Buning o'rniga provodka paketi chaqiriladi va u hujjat, debet va kredit yozuvlarini yaratadi (<a href="#g10">10-guruh</a>). Shuni aytsangiz, bank tizimini tushunishingiz ko'rinadi.</p></details>
+<p>Aytiladigan asosiy fikrlar: (1) parametrlar <span class="num">%TYPE</span> bilan e'lon qilingan; (2) kirish ma'lumoti tekshiriladi; (3) <span class="num">FOR UPDATE</span> lost update'ning oldini oladi, bir xil tartibda qulflash esa deadlock'ning; (4) protsedura ichida COMMIT yo'q; (5) biznes xatolar -20xxx kodlari bilan qaytariladi. Qo'shimcha nuqta: haqiqiy bank tizimida qoldiq bunday to'g'ridan-to'g'ri UPDATE bilan o'zgartirilmaydi. Buning o'rniga provodka paketi chaqiriladi va u hujjat, debet va kredit yozuvlarini yaratadi (<a href="#g10">10-guruh</a>). Shuni aytsangiz, bank tizimini tushunishingiz ko'rinadi.</p></details>
 
 <details><summary>8. Katta hajm: faol kreditlarga kunlik foiz yozish</summary>
 <p>Birinchi javob: agar qo'shimcha mantiq bo'lmasa, bu bitta SQL bilan qilinadi va bu eng tez yo'l:</p>
@@ -532,7 +497,7 @@ END;
 <p>Asosiy nuqtalar: LIMIT xotirani himoya qiladi; chiqish sharti <span class="num">v.COUNT = 0</span>; ERROR_CODE musbat son bo'lib keladi, shuning uchun SQLERRM'ga minus bilan beriladi; xato jurnali odatda avtonom tranzaksiyada yoziladi. Agar 300 ming kredit bo'lsa va bu kun yopishda ishlasa, uni filiallar yoki bo'laklar bo'yicha parallel job'larga bo'lish ham mumkin (DBMS_PARALLEL_EXECUTE).</p></details>
 
 <h2 id="lugat">Ruscha atamalar lug'ati</h2>
-<p>Suhbat o'zbek tilida bo'lsa ham, IT'da atamalar ko'pincha ruscha yoki inglizcha aralash aytiladi ("план выполнения", "блокировка", "проводка"). Suhbatdosh shunday atamani ishlatsa, darhol tanib olishingiz uchun ertalab shu jadvalga bir ko'z yugurtiring.</p>
+<p>IT'da atamalar ko'pincha ruscha yoki inglizcha aralash aytiladi ("план выполнения", "блокировка", "проводка"). Shunday atamani eshitganda darhol tanib olish uchun shu jadvalga bir ko'z yugurtiring.</p>
 <div class="scroll"><table>
 <thead><tr><th>Ruscha</th><th>Ma'nosi</th></tr></thead>
 <tbody>
@@ -576,42 +541,20 @@ END;
 <tr><td>выкатка (деплой), откат релиза, ревью кода</td><td>deploy, rollback, code review</td></tr>
 </tbody></table></div>
 
-<h2 id="sorash">Suhbat oxirida</h2>
-<h3>Ular yana nimani so'rashi mumkin</h3>
-<ul>
-<li><strong>"PL/SQL bo'yicha darajangizni 1 dan 10 gacha baholang".</strong> Bunga halol va asosli javob bering, masalan 7: "paketlarni ishonch bilan yozaman, so'rovlarni optimizatsiya qilaman, BULK bilan ishlayman; AWR darajasidagi tyuning va administratsiyani chuqurroq o'rganmoqchiman".</li>
-<li><strong>"Nimani bilmaysiz, lekin o'rganmoqchisiz?"</strong> Masalan: AWR/ASH tahlili, partitsiyalashni katta hajmda qo'llash, edition-based redefinition.</li>
-<li><strong>Javobini bilmagan savol</strong> chiqsa, o'ylab topmang. Shunday deyish mumkin: "Aniq eslay olmayman, lekin men shunday fikr yuritgan bo'lardim: ..." va o'xshash mavzudan mantiqiy fikr yuriting. Bunday javob noto'g'ri, lekin ishonch bilan aytilgan javobdan yaxshiroq taassurot qoldiradi.</li>
-</ul>
-<h3>Siz so'raydigan savollar</h3>
-<p>2–3 ta savol tanlang. Bular qiziqishingizni ko'rsatadi va vakansiya haqida kerakli ma'lumot beradi.</p>
-<ul>
-<li>RS-Bank'ning qaysi versiyasi va qaysi modullari ishlatiladi? U boshqa tizimlar (masalan, iABS) bilan qanday integratsiya qilingan? Oracle'ning qaysi versiyasi?</li>
-<li>Bo'limda ish qanday taqsimlangan: RSL'da qancha, PL/SQL'da qancha? Kuzatish (monitoring) va navbatchilik qanday tashkil qilingan?</li>
-<li>Jamoa kimlardan iborat, men kimga bo'ysunaman? Yangi ishlanma va support ishlari nisbati qanday?</li>
-<li>Ish jarayoni qanday tashkil qilingan: Git, code review, test muhiti, relizlarni chiqarish?</li>
-<li>Ish joyi Toshkentda, to'g'rimi? Sinov muddati bormi?</li>
-<li>Bu suhbatdan keyingi bosqich qanday bo'ladi?</li>
-</ul>
-
 <h2 id="test">Test</h2>
 <p>Sahifadagi barcha guruhlar bo'yicha savollar. Guruhni tanlab, faqat shu guruh bo'yicha ishlash ham mumkin. Natijasi 70% dan past chiqqan guruhni qayta o'qing.</p>
 <div id="quiz"></div>
 
-<h2 id="cheklist">Oxirgi cheklist</h2>
+<h2 id="cheklist">Javob berish tartibi</h2>
 <ol class="check">
-<li>Suhbat havolasi bor, kompyuter, mikrofon va kamera tekshirilgan, 10 daqiqa oldin ulanaman.</li>
-<li>O'zimni tanishtirish matnini bir marta ovoz chiqarib aytdim. Bitta aniq "eng qiyin vazifa" misolim tayyor.</li>
-<li>Oracle versiyasi va ishlagan dasturlarim (PL/SQL Developer, Toad, Git) haqida aniq javobim bor.</li>
 <li>Har bir savolga javob tartibi: ta'rif → ichkarida qanday ishlaydi → bank misoli → tuzoq.</li>
-<li>Kod yozdirishsa: shoshilmayman, fikrimni ovoz chiqarib aytaman, NULL, takror va bo'sh natija holatlarini tekshiraman.</li>
+<li>Kod yozishda shoshilmayman, fikrimni ovoz chiqarib aytaman, NULL, takror va bo'sh natija holatlarini tekshiraman.</li>
 <li>Bilmagan narsani o'ylab topmayman: "aniq eslay olmayman, lekin shunday fikr yuritgan bo'lardim" deyman.</li>
-<li>Oxirida 2–3 ta savol beraman: RS-Bank versiyasi va modullari, RSL va PL/SQL nisbati, jamoa, jarayon, ish joyi.</li>
-<li>Lavozim Senior: javoblarda mustaqil qaror qabul qilgan, incidentni hal qilgan yoki kod ko'rib chiqqan misollarimni aytaman.</li>
+<li>Senior darajasidagi savollarda mustaqil qaror qabul qilgan, incidentni hal qilgan yoki kod ko'rib chiqqan aniq misollarni keltiraman.</li>
 </ol>
 
 <div class="next">
-  <p><strong>Suhbatdan keyin.</strong> Qanday savollar berilgani va qaysi biriga javob berish qiyin bo'lganini chatga yozing. Ularni tahlil qilib, keyingi bosqichga tayyorlanamiz. Batafsil darslar: <a href="./">Oracle PL/SQL bo'limi</a>.</p>
+  <p><strong>Keyingi qadam.</strong> Qaysi savolga javob berish qiyin bo'lsa, tegishli darsni qayta o'qing. Batafsil darslar: <a href="./">Oracle PL/SQL bo'limi</a>.</p>
 </div>
 <nav class="pager" aria-label="Darslar orasida"><a href="./">Bo'lim boshiga</a><a href="p12-xulosa.html">P12. Xulosa va test</a></nav>
 </main>
@@ -778,7 +721,7 @@ END;
     arr(svg, 'm6', 'M1030 340L760 355');
     box(svg, 20, 355, 260, 62, 'Kuzatish', 'joblar, sessiyalar, navbat', 'live');
     arr(svg, 'm6', 'M200 355L380 212', true);
-    lbl(svg, 300, 28, 'Taxminiy manzara: aniq tuzilishini suhbatda so\'rang');
+    lbl(svg, 300, 28, 'Taxminiy manzara: aniq tuzilishi har bankda har xil');
   })();
 
   var L = {

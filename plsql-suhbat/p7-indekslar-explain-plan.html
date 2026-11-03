@@ -17,14 +17,14 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: 15 daqiqada</h2>
-<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va og'zaki aytiladigan qisqa javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
 
 <div class="idea">
 <h3>1. Indeks: kitob oxiridagi mundarija</h3>
 <p class="hayot">Qalin kitobda "provodka" so'zini qidirish: butun kitobni varaqlamaysiz, oxiridagi ko'rsatkichdan sahifani topasiz.</p>
 <p class="qoida"><strong>Qoida:</strong> Indeks ustun qiymatlari va ularning qator manzili (ROWID). Oz qator kerak bo'lsa tez, ko'p qator kerak bo'lsa butun jadvalni o'qish tezroq.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">CREATE INDEX hisoblar_mijoz_ix ON hisoblar (mijoz_id);</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Indeks qiymat va ROWID juftlari. Selektiv shartda tez, ko'p qatorda full scan arzonroq bo'lishi mumkin."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Indeks qiymat va ROWID juftlari. Selektiv shartda tez, ko'p qatorda full scan arzonroq bo'lishi mumkin."</p>
 </div>
 
 <div class="idea">
@@ -32,7 +32,7 @@
 <p class="hayot">Telefon kitobi: avval harf, keyin bo'g'in, keyin ism. Uch qadamda kerakli sahifadasiz.</p>
 <p class="qoida"><strong>Qoida:</strong> B-tree ning ildizi, oraliq va barg qavatlari bor. Katta jadvalda ham chuqurligi odatda 2–3.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT index_name, blevel, leaf_blocks FROM user_indexes WHERE table_name = 'HISOBLAR';</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "B-tree juda sayoz, shuning uchun bitta qiymatni bir necha blok o'qishda topadi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "B-tree juda sayoz, shuning uchun bitta qiymatni bir necha blok o'qishda topadi."</p>
 </div>
 
 <div class="idea">
@@ -41,7 +41,7 @@
 <p class="qoida"><strong>Qoida:</strong> WHERE TRUNC(sana) = ..., UPPER(ism) = ... yoki matn ustunini son bilan solishtirish indeksni o'chiradi. Shartni ustunga tegmasdan yozing.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">WHERE TRUNC(sana) = DATE '2026-10-29'                              -- indeks ishlamaydi
 WHERE sana &gt;= DATE '2026-10-29' AND sana &lt; DATE '2026-10-30'     -- ishlaydi</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Indeksli ustunga funksiya yoki yashirin tur almashuvi qo'ymayman; kerak bo'lsa funksiya asosidagi indeks."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Indeksli ustunga funksiya yoki yashirin tur almashuvi qo'ymayman; kerak bo'lsa funksiya asosidagi indeks."</p>
 </div>
 
 <div class="idea">
@@ -49,7 +49,7 @@ WHERE sana &gt;= DATE '2026-10-29' AND sana &lt; DATE '2026-10-30'     -- ishlay
 <p class="hayot">Telefon kitobi familiya, keyin ism bo'yicha. Faqat ism bo'yicha qidirsangiz, kitob yordam bermaydi.</p>
 <p class="qoida"><strong>Qoida:</strong> (filial, hisob) indeksi WHERE filial = ... yoki filial va hisob bo'yicha yaxshi ishlaydi, faqat hisob bo'yicha esa yomon.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">CREATE INDEX tolov_ix ON tolovlar (hisob, sana);   -- WHERE hisob = :h AND sana &gt;= :d</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Composite indeksda tenglik shartidagi va ko'p ishlatiladigan ustun birinchi turadi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Composite indeksda tenglik shartidagi va ko'p ishlatiladigan ustun birinchi turadi."</p>
 </div>
 
 <div class="idea">
@@ -58,7 +58,7 @@ WHERE sana &gt;= DATE '2026-10-29' AND sana &lt; DATE '2026-10-30'     -- ishlay
 <p class="qoida"><strong>Qoida:</strong> EXPLAIN PLAN taxminiy reja. Haqiqiysi: DBMS_XPLAN.DISPLAY_CURSOR, E-Rows (taxmin) va A-Rows (haqiqat) bilan. Ular juda farq qilsa, sabab shu yerda.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT /*+ GATHER_PLAN_STATISTICS */ ... ;
 SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Rejani DISPLAY_CURSOR bilan ko'raman va E-Rows ni A-Rows bilan solishtiraman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Rejani DISPLAY_CURSOR bilan ko'raman va E-Rows ni A-Rows bilan solishtiraman."</p>
 </div>
 
 <div class="idea">
@@ -66,7 +66,7 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));</pr
 <p class="hayot">Eski xarita bilan yo'l tanlash: yangi ko'prik yo'q, eski yo'l yopilgan, tanlov noto'g'ri.</p>
 <p class="qoida"><strong>Qoida:</strong> Optimizator jadval hajmi va ustun qiymatlarini statistikadan biladi. Statistika eskirsa, reja yomonlashadi. DBMS_STATS bilan yangilanadi.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">EXEC DBMS_STATS.GATHER_TABLE_STATS(USER, 'TOLOVLAR');</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Yomon rejaning ko'p sababi eskirgan statistika; katta yuklashdan keyin statistika yig'aman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Yomon rejaning ko'p sababi eskirgan statistika; katta yuklashdan keyin statistika yig'aman."</p>
 </div>
 
 <div class="idea">
@@ -74,10 +74,10 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));</pr
 <p class="hayot">Nested loops: har mehmon uchun stulni alohida qidirasiz (mehmon kam bo'lsa yaxshi). Hash join: avval stullarni raqam bo'yicha joylab, keyin hammani bir yo'la o'tqazasiz (mehmon ko'p bo'lsa yaxshi).</p>
 <p class="qoida"><strong>Qoida:</strong> Kam qator va indeks bo'lsa nested loops, katta hajm va tenglik shartida hash join.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">-- rejada: NESTED LOOPS yoki HASH JOIN qatori</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Nested loops oz qatorda indeks bilan, hash join katta hajmda. Optimizator buni statistikaga qarab tanlaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Nested loops oz qatorda indeks bilan, hash join katta hajmda. Optimizator buni statistikaga qarab tanlaydi."</p>
 </div>
 
-<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P7 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 7 ta "Qisqa javob" gapini ko'rmasdan ayta olsangiz, P7 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
 </section>
 
 <div class="intro">
@@ -90,9 +90,9 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));</pr
     <h3>Qayerda ishlatiladi</h3>
     <ul>
       <li><strong>Har kungi ish:</strong> hisob, mijoz, karta, tranzaksiya bo'yicha qidiruvlarning hammasi indeks orqali. Indeks yo'q yoki noto'g'ri bo'lsa, operator ekrani o'nlab sekund kutadi.</li>
-      <li><strong>Tezlashtirish:</strong> vakansiyadagi «so'rovlarni optimallashtirish» talabi: rejani o'qish, sababni topish, tuzatish.</li>
+      <li><strong>Tezlashtirish:</strong> «so'rovlarni optimallashtirish» talabi: rejani o'qish, sababni topish, tuzatish.</li>
       <li><strong>Loyihalash:</strong> qaysi indeks kerak va qaysi biri faqat yozishni sekinlashtiradi.</li>
-      <li><strong>Suhbatda:</strong> «indeks nega ishlatilmadi», «composite indeksda ustunlar tartibi», «rejani o'qing» savollari deyarli majburiy.</li>
+      <li><strong>Qisqa javob:</strong> «indeks nega ishlatilmadi», «composite indeksda ustunlar tartibi», «rejani o'qing» savollari deyarli majburiy.</li>
     </ul>
   </div>
   <div>
@@ -177,7 +177,7 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR(NULL, NULL, 'ALLSTATS LAST'));</pr
 </figure>
 
 <p class="beat">Indeks bor, lekin ishlatilmaydi</p>
-<p>Suhbatdagi eng ko'p beriladigan savol. Indeks ustunning <em>xom</em> qiymatini tartib bilan saqlaydi. Shart shu tartibdan foydalana olmaydigan ko'rinishda yozilsa, indeks foydasiz. Har holatni bosing: shart, natija, sabab va tuzatish.</p>
+<p>Eng ko'p beriladigan savol. Indeks ustunning <em>xom</em> qiymatini tartib bilan saqlaydi. Shart shu tartibdan foydalana olmaydigan ko'rinishda yozilsa, indeks foydasiz. Har holatni bosing: shart, natija, sabab va tuzatish.</p>
 
 <figure class="fig">
   <div class="scrollx"><svg class="dg" id="use" style="width:1240px;height:330px" viewBox="0 0 1240 330" role="img" aria-label="Turli WHERE shartlarida indeks ishlatiladimi: sabab va tuzatish"></svg></div>
@@ -303,7 +303,7 @@ SELECT * FROM TABLE(DBMS_XPLAN.DISPLAY_CURSOR('7h35uxf5uhmm1', NULL, 'TYPICAL'))
   <p class="why">To'g'risi: OLTP da B-tree (kerak bo'lsa function-based, faqat kerakli holatlar uchun); bitmap faqat kam yangilanadigan DWH jadvallarida.</p>
 </div>
 
-<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<h3><span class="part">6. Savol-javob</span>Savol va namunaviy javoblar</h3>
 <p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. Bu mavzuda ish joyidagi bitta haqiqiy holatni (qaysi so'rov sekin edi, rejada nima ko'rdingiz, nima qildingiz, natija qancha bo'ldi) aytib berish eng kuchli javob.</p>
 <details><summary>B-tree indeks qanday tuzilgan va qidiruv qanday ishlaydi?</summary>
 <p>Muvozanatli daraxt: tepada root blok, o'rtada branch bloklar, pastda leaf bloklar. Leaf bloklarda kalit qiymatlari tartib bilan va har birining yonida ROWID, leaflar bir-biriga ikki tomonlama bog'langan. Branch bloklarda «bu diapazon qaysi pastki blokda» yo'l ko'rsatkichlari. Qidiruv rootdan boshlanib, har darajada bitta blok o'qiladi, leafda kalit topiladi, ROWID bo'yicha jadval bloki o'qiladi. Bir blokda yuzlab kalit sig'gani uchun daraxt past: millionlab qatorda 3–4 daraja, ya'ni bitta qiymat uchun 4–5 logical read. Range scan da leaflar bo'ylab bog'lanish orqali yuriladi.</p></details>

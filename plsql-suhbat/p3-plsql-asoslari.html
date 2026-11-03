@@ -17,7 +17,7 @@
 
 <section class="sodda" id="sodda">
 <h2>Sodda tilda: 15 daqiqada</h2>
-<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va suhbatda aytadigan tayyor javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
+<p>Bu qism darsning eng kerakli joylari, oddiy so'z bilan. Har g'oya bir xil tartibda: hayotiy misol, bitta qoida, kichik misol va og'zaki aytiladigan qisqa javob. Avval shuni o'qing. Pastdagi batafsil qism keyin, "nega shunday" degan savolga javob kerak bo'lganda.</p>
 
 <div class="idea">
 <h3>1. PL/SQL: SQL ga "agar", "takrorla" va "xato bo'lsa" qo'shilgan til</h3>
@@ -29,7 +29,7 @@
     RAISE_APPLICATION_ERROR(-20001, 'Hisob topilmadi');
   END IF;
 END;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "PL/SQL Oracle ning protsedurali tili: SQL ustiga o'zgaruvchilar, shartlar, sikllar va exception lar."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "PL/SQL Oracle ning protsedurali tili: SQL ustiga o'zgaruvchilar, shartlar, sikllar va exception lar."</p>
 </div>
 
 <div class="idea">
@@ -43,7 +43,7 @@ BEGIN
 EXCEPTION
   WHEN NO_DATA_FOUND THEN v_qoldiq := 0;
 END;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Blok: e'lonlar, bajariladigan qism va exception qismi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Blok: e'lonlar, bajariladigan qism va exception qismi."</p>
 </div>
 
 <div class="idea">
@@ -51,7 +51,7 @@ END;</pre>
 <p class="hayot">Kiyimni "o'lchami 48" deb emas, "egasining o'lchamida" deb buyurtma qilish: egasi o'zgarsa ham mos keladi.</p>
 <p class="qoida"><strong>Qoida:</strong> v_summa hisoblar.qoldiq%TYPE ustun turi o'zgarsa kodni o'zi moslaydi. %ROWTYPE butun qator uchun.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">v_qator hisoblar%ROWTYPE;   -- hisoblar jadvalining bitta qatori kabi</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Turni qattiq yozmay, %TYPE va %ROWTYPE bilan ustunga bog'layman: jadval o'zgarsa kod buzilmaydi."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Turni qattiq yozmay, %TYPE va %ROWTYPE bilan ustunga bog'layman: jadval o'zgarsa kod buzilmaydi."</p>
 </div>
 
 <div class="idea">
@@ -59,7 +59,7 @@ END;</pre>
 <p class="hayot">Kassirga "shu odamning pasportini bering" deysiz. Bunday odam yo'q bo'lsa ham, ikkita bo'lsa ham kassir to'xtaydi.</p>
 <p class="qoida"><strong>Qoida:</strong> Qator yo'q: NO_DATA_FOUND. Bir nechta: TOO_MANY_ROWS. Ikkalasini ham oldindan o'ylang.</p>
 <pre class="code" style="margin:0.5rem 0 1rem">SELECT qoldiq INTO v_q FROM hisoblar WHERE mijoz_id = :m;   -- mijozning 2 ta hisobi bo'lsa TOO_MANY_ROWS</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "SELECT INTO nol qatorda NO_DATA_FOUND, ko'p qatorda TOO_MANY_ROWS beradi; ko'p qator bo'lishi mumkin bo'lsa kursor."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "SELECT INTO nol qatorda NO_DATA_FOUND, ko'p qatorda TOO_MANY_ROWS beradi; ko'p qator bo'lishi mumkin bo'lsa kursor."</p>
 </div>
 
 <div class="idea">
@@ -69,7 +69,7 @@ END;</pre>
 <pre class="code" style="margin:0.5rem 0 1rem">FOR r IN (SELECT hisob, qoldiq FROM hisoblar WHERE filial = :f) LOOP
   -- r.hisob, r.qoldiq
 END LOOP;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Ko'p qator uchun kursor, odatda kursorli FOR sikl. Katta hajmda esa BULK COLLECT (P5)."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Ko'p qator uchun kursor, odatda kursorli FOR sikl. Katta hajmda esa BULK COLLECT (P5)."</p>
 </div>
 
 <div class="idea">
@@ -79,7 +79,7 @@ END LOOP;</pre>
 <pre class="code" style="margin:0.5rem 0 1rem">EXCEPTION
   WHEN NO_DATA_FOUND THEN
     RAISE_APPLICATION_ERROR(-20101, 'Shartnoma topilmadi: ' || p_id);</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Kutilgan xatolarni nomi bilan ushlayman, o'z xatolarim uchun -20000 dan -20999 gacha kod."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Kutilgan xatolarni nomi bilan ushlayman, o'z xatolarim uchun -20000 dan -20999 gacha kod."</p>
 </div>
 
 <div class="idea">
@@ -90,7 +90,7 @@ END LOOP;</pre>
   WHEN OTHERS THEN
     log_xato(SQLCODE, SQLERRM, DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
     RAISE;</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "WHEN OTHERS THEN NULL xatoni yashiradi. Men log yozib, RAISE bilan qayta ko'taraman."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "WHEN OTHERS THEN NULL xatoni yashiradi. Men log yozib, RAISE bilan qayta ko'taraman."</p>
 </div>
 
 <div class="idea">
@@ -100,10 +100,10 @@ END LOOP;</pre>
 <pre class="code" style="margin:0.5rem 0 1rem">-- sekin: siklda har qator uchun UPDATE
 -- tez:
 UPDATE hisoblar SET holat = 'YOPIQ' WHERE oxirgi_amal &lt; ADD_MONTHS(SYSDATE, -36);</pre>
-<p class="ayt"><strong>Suhbatda:</strong> "Qatorma-qator ishlash har qatorda kontekst almashinuvi. Avval bitta SQL, keyin BULK COLLECT va FORALL."</p>
+<p class="ayt"><strong>Qisqa javob:</strong> "Qatorma-qator ishlash har qatorda kontekst almashinuvi. Avval bitta SQL, keyin BULK COLLECT va FORALL."</p>
 </div>
 
-<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 8 ta "Suhbatda" gapini ko'rmasdan ayta olsangiz, P3 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
+<p style="margin-top:1rem"><strong>O'zingizni tekshiring:</strong> yuqoridagi 8 ta "Qisqa javob" gapini ko'rmasdan ayta olsangiz, P3 ning asosi sizda bor. Qolgani pastda, chizmalar va chuqurroq tushuntirish bilan.</p>
 </section>
 
 <div class="intro">
@@ -117,7 +117,7 @@ UPDATE hisoblar SET holat = 'YOPIQ' WHERE oxirgi_amal &lt; ADD_MONTHS(SYSDATE, -
     <ul>
       <li><strong>Bank yadro tizimlarida asosiy til:</strong> to'lov o'tkazish, foiz hisoblash, kun yopish, hisobotlar. iABS kabi tizimlarda biznes mantiqning katta qismi PL/SQL paketlarida.</li>
       <li><strong>Integratsiya:</strong> Java ilova bitta protsedurani chaqiradi, ichida o'nlab SQL bajariladi.</li>
-      <li><strong>Suhbatda:</strong> «kursor turlari», «NO_DATA_FOUND qachon chiqadi», «RAISE_APPLICATION_ERROR», «WHEN OTHERS THEN NULL nega yomon» deyarli har doim so'raladi.</li>
+      <li><strong>Qisqa javob:</strong> «kursor turlari», «NO_DATA_FOUND qachon chiqadi», «RAISE_APPLICATION_ERROR», «WHEN OTHERS THEN NULL nega yomon» deyarli har doim so'raladi.</li>
     </ul>
   </div>
   <div>
@@ -335,7 +335,7 @@ FOR i IN REVERSE 1 .. 10 LOOP  CONTINUE WHEN MOD(i, 2) = 0; ... END LOOP;   -- C
   <p class="why">To'g'risi: <span class="num">v_raqam hisoblar.raqam%TYPE</span>. Paket spetsifikatsiyasida esa umumiy <span class="num">SUBTYPE</span> lar.</p>
 </div>
 
-<h3><span class="part">6. Suhbatda</span>Savol va namunaviy javoblar</h3>
+<h3><span class="part">6. Savol-javob</span>Savol va namunaviy javoblar</h3>
 <p>Avval javobni o'zingiz ovoz chiqarib ayting, keyin oching. iABS tajribangizdan misol qo'shsangiz, javob kuchliroq eshitiladi.</p>
 <details><summary>PL/SQL nima uchun kerak, SQL dan farqi nima?</summary>
 <p>SQL deklarativ va bitta buyruq: shart, sikl, o'zgaruvchi, xatolarni ushlash yo'q. PL/SQL Oracle ichidagi protsedur til: SQL ni o'z ichiga oladi va unga mantiq qo'shadi. Asosiy foydalari: biznes mantiq ma'lumot yonida, bitta chaqiruv bilan ko'p SQL bajariladi, ya'ni tarmoq aylanishlari kam; hamma ilova bir xil qoidani chaqiradi; huquq jadvalga emas, protseduraga beriladi; kod kompilyatsiya qilingan holda saqlanadi va bog'liqliklar kuzatiladi. Narxi: kod bazaga bog'lanadi, va PL/SQL bilan SQL orasida kontekst almashinuvi bor.</p></details>
@@ -540,7 +540,7 @@ FOR i IN REVERSE 1 .. 10 LOOP  CONTINUE WHEN MOD(i, 2) = 0; ... END LOOP;   -- C
       how: `SQL da BOOLEAN turi, SQL Domains, SQL Transpiler (oddiy PL/SQL funksiyalarni SQL ifodaga aylantirish), JSON bilan ishlash kengaygan, JavaScript ham baza ichida (MLE).`,
       better: `SQL dan PL/SQL funksiya chaqirishning narxi kamayadi, tiplar SQL va PL/SQL da bir xillashadi.`,
       pain: `Faqat yangi bazalarda.`,
-      ex: `Suhbatda versiyani so'rab oling: ko'p narsa 19c chegarasida qoladi.` }
+      ex: `Ish joyidagi versiyani aniqlab oling: ko'p narsa 19c chegarasida qoladi.` }
   ]);
 })();
 </script>
